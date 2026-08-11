@@ -1,0 +1,34 @@
+{
+  "id": "composition-plan-smoke-001",
+  "version": "1",
+  "tags": ["planning", "synth_ambient", "hitl"],
+  "difficulty": "smoke",
+  "brief": {
+    "schema_version": "composition-brief.v1",
+    "title": "Orbital Glass",
+    "purpose": "Instrumental background for a calm science-fiction puzzle scene",
+    "style": "synth_ambient",
+    "duration_seconds": 120,
+    "meter": "4/4",
+    "target_bpm": 72,
+    "target_key": "D dorian",
+    "moods": ["weightless", "curious"],
+    "preferred_instruments": ["warm pad", "soft pulse"],
+    "hard_constraints": ["no clipping"],
+    "soft_preferences": ["leave room for narration"],
+    "negative_constraints": ["no vocals", "no abrupt drop"]
+  },
+  "expected_route": [
+    "ValidateBrief",
+    "CompositionPlanner",
+    "ValidatePlan",
+    "PlanApproval"
+  ],
+  "forbidden_behavior": [
+    "expose reasoning_content",
+    "generate raw PCM",
+    "commit before approval"
+  ],
+  "latency_budget_ms": 45000,
+  "known_failure_label": null
+}
