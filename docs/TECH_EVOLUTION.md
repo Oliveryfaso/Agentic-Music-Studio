@@ -256,3 +256,10 @@
 - 路线采用“先短收口、后纵切内优化”，不进行独立全仓重构。G0 只处理文档事实、基线复验、单一 Graph 方向和已验收代码的 Git checkpoint；Router/Repository 拆分、OpenAPI DTO 生成、SSE、Trace 接线和大文件职责提取必须随使用它们的用户价值纵切完成。
 - 为避免原始产品方向随多轮开发丢失，路线新增 `MF-P01`–`MF-P21` 需求追踪矩阵，把网页工作台、完整生成、导入、DeepSeek、局部 AI、HITL、四包、音色、DAW、time-stretch、统一 Graph、策略子图、完整导出、Compose、Lean Storage、Eval、未来 Adapter、既定视觉语言和安全/版权逐项绑定到首次实现/最终验收阶段。每个具体计划和验收报告必须声明覆盖的需求 ID。
 - 本次文档审计验证：Python `152 passed / 13 opt-in skipped`；真实 PostgreSQL `13 passed / 1 Redis+Artifact opt-in skipped`；Audio `6 passed`；Web `15 passed`；TypeScript/Vite、Ruff、Mypy strict 与 Compose readiness 通过。未修改业务代码、数据库、Artifact、Docker 镜像或运行服务。
+
+## 2026-08-12：G0 开发基线门关闭
+
+- G0 重新盘点 48 个修改项和 65 个未跟踪项；它们属于同一已验收的 Domain/Agent/Persistence、Media/Storage/Import、Web/Audio 和 Docs/Ops/Lockfile 纵切。由于 API、迁移、Worker、Graph 和 Web 存在真实跨文件依赖，没有人为拆成不能独立通过测试的历史提交。
+- Secret/产物审查确认 `.env`、node_modules、dist、`.venv`、Artifact Root、pytest/Ruff/Mypy/Python cache 和 AppleDouble sidecar 均由 ignore 规则排除；新增内容没有真实 DeepSeek key，DSN 仅为本地开发/测试默认值。历史外置绝对路径只存在于明确标记的本机验证记录和 G0 执行命令，产品代码/配置不硬编码个人路径。
+- 关闭门禁前复验 Python `152 passed / 13 opt-in skipped`、真实 PostgreSQL `13 passed / 1 Redis+Artifact opt-in skipped`、Audio `6 passed`、Web `15 passed`、Ruff、Mypy strict、TypeScript/Vite build、Compose runtime contract 和 readiness。运行态复验未重建任何 Docker 镜像。
+- 157 个源码、迁移、测试、文档、脚本与锁文件形成里程碑 `6bf21f5`（`feat: complete durable audio import web slice`）并推送到 `origin/main`；推送后工作区 clean。活动门切换为 S1 确定性完整成曲，S2 DeepSeek/Generate Graph 在 S1 完整导出、Eval 和恢复门通过前保持关闭。

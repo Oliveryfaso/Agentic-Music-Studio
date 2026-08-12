@@ -17,7 +17,7 @@ Record the SHA-256 of `docs/PROJECT_GUIDE.md` at task start and recheck it befor
 
 ## Active gate
 
-The current gate is `G0` in `docs/NEXT_DEVELOPMENT_ROADMAP.md`. Do not start S1 or a later product feature until G0 has a reviewed Git checkpoint and its acceptance conditions pass. After G0, follow S1 → S7 in dependency order unless the user approves a documented route change.
+`G0` closed with implementation checkpoint `6bf21f5` pushed to `origin/main`. The current gate is `S1` in `docs/NEXT_DEVELOPMENT_ROADMAP.md`: deterministic complete-song Walking Skeleton. Do not start S2 or a later product feature until S1 complete export, Eval, failure and recovery gates pass. Follow S1 → S7 in dependency order unless the user approves a documented route change.
 
 ## Scope and traceability
 

@@ -106,24 +106,20 @@ Import、Artifact、恢复和容量治理已达到较高完成度，但 `Composi
 
 ## 6. 版本治理状态
 
-审计时 `main` 只有一个已推送 commit，而工作区包含 47 个已修改文件和 62 个未跟踪项。它们包含已经验收的完整纵切，继续开发前必须先形成可恢复的里程碑版本。
+`G0` 已完成：原先跨多个纵切的 48 个修改项和 65 个未跟踪项经逐项盘点后，以一个保持跨服务一致性的里程碑提交 `6bf21f5`（`feat: complete durable audio import web slice`）推送到 `origin/main`。没有提交 `.env`、API key、用户音频、Artifact bytes、dist、node_modules、Python/工具 cache 或 AppleDouble sidecar。
 
-该收口不是删除或重写用户变更，也不是为追求整洁而重新设计代码。执行时必须：
+Checkpoint 前复验：Python `152 passed / 13 opt-in skipped`；真实 PostgreSQL `13 passed / 1 Redis+Artifact opt-in skipped`；Audio `6 passed`；Web `15 passed`；Ruff、Mypy strict、Vite build、Compose runtime contract 和 readiness 均通过。Checkpoint 推送后工作区为 clean。
 
-1. 重新盘点所有状态项并确认均属于当前项目。
-2. 复跑本文件第 4 节基线。
-3. 以当前完整 Import 纵切作为一个可恢复 checkpoint；若能在不拆坏依赖的前提下安全分组，可按 Domain/Agent、Media/Storage、Web/Docs 分组提交。
-4. 不提交 `.env`、API key、音频临时文件、测试 cache 或本机路径。
-5. 推送前检查迁移、锁文件、外置 Artifact 忽略规则和文档状态。
+后续每个可独立验收纵切都必须形成 Git checkpoint，不再跨多个阶段积累未提交业务代码。
 
-在这一版本治理门通过前，不开始新的业务功能代码。
-
-## 7. 当前开发断点
+## 7. 当前开发断点：S1
 
 下一条业务纵切不是继续扩充 Import 页面，也不是先做完整 DAW，而是：
 
 > **不依赖 LLM，从固定 Brief/模板生成一首 60–90 秒、4 轨、单候选的 Synth Ambient 完整作品，并由正式 Render Job 完整导出 Master WAV/MP3、四条 Stem、MIDI、可编辑 Project 与全部 manifests。**
 
 这是内部 Walking Skeleton，不改变首版最终要求的 1–5 分钟、最多 12 轨、最多 2 个候选和四个 Style Pack 同时交付。
+
+S1 结束前必须完成全部格式和恢复门；不能在只生成一段 WAV 后提前进入 S2。S1 的具体代码级步骤必须写入独立实施计划，并使用 TDD 执行。
 
 具体前后顺序、阶段门和优化规则见 `NEXT_DEVELOPMENT_ROADMAP.md`。
