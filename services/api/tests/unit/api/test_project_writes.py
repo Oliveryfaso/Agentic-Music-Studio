@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -8,6 +9,37 @@ from application.fakes import FakeTransaction
 from httpx import ASGITransport, AsyncClient
 from motif_forge.api.app import create_app
 from motif_forge.config import Settings
+
+
+class _ConfirmationGraph:
+    async def aget_state(self, config: object) -> object:
+        del config
+        return SimpleNamespace(values={"phase": "analysis_confirmation_required"})
+
+    async def ainvoke(self, command: object, config: object) -> dict[str, object]:
+        del command, config
+        return {
+            "thread_id": "import-confirmation-test",
+            "run_id": str(uuid4()),
+            "phase": "waiting_worker",
+            "pending_job_id": str(uuid4()),
+            "artifact_refs": [],
+            "analysis_policy_version": "import-analysis-policy.v1",
+            "source_bpm": 100.0,
+            "project_bpm": 120.0,
+            "bpm_confidence": 0.4,
+            "key_confidence": 0.3,
+            "analysis_explanation_code": "IMPORT_ANALYSIS_USER_OVERRIDE",
+        }
+
+
+class _ReadableImportGraph:
+    def __init__(self, values: dict[str, object]) -> None:
+        self.values = values
+
+    async def aget_state(self, config: object) -> object:
+        del config
+        return SimpleNamespace(values=self.values)
 
 
 def _add_track_command(*, actor_kind: str = "human") -> dict[str, object]:
@@ -140,8 +172,86 @@ async def test_public_command_endpoint_rejects_agent_actor() -> None:
 
 
 @pytest.mark.asyncio
+async def test_import_analysis_confirmation_resumes_existing_parent_thread() -> None:
+    app = create_app(Settings(environment="test"))
+    app.state.parent_graph = _ConfirmationGraph()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            f"/api/v1/imports/import-{'a' * 32}/confirm-analysis",
+            json={
+                "action": "override",
+                "source_bpm": 100.0,
+                "key_tonic": "C",
+                "key_mode": "major",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["phase"] == "waiting_worker"
+    assert response.json()["data"]["analysis"]["policy_version"] == ("import-analysis-policy.v1")
+
+
+@pytest.mark.asyncio
+async def test_import_run_read_projects_stable_checkpoint_without_resuming_graph() -> None:
+    run_id = uuid4()
+    job_id = uuid4()
+    artifact_id = uuid4()
+    source_artifact_id = uuid4()
+    normalized_artifact_id = uuid4()
+    revision_id = uuid4()
+    app = create_app(Settings(environment="test"))
+    app.state.parent_graph = _ReadableImportGraph(
+        {
+            "operation": "import_audio",
+            "run_id": str(run_id),
+            "phase": "completed",
+            "pending_job_id": str(job_id),
+            "artifact_refs": [str(artifact_id)],
+            "request_payload": {"source_artifact_id": str(source_artifact_id)},
+            "normalized_artifact_id": str(normalized_artifact_id),
+            "materialized_revision_id": str(revision_id),
+            "analysis_policy_version": "import-analysis-policy.v1",
+            "source_bpm": 112.0,
+            "project_bpm": 120.0,
+            "bpm_confidence": 0.8,
+            "key_tonic": "D",
+            "key_mode": "minor",
+            "key_confidence": 0.4,
+            "analysis_explanation_code": "IMPORT_ANALYSIS_ACCEPTED",
+        }
+    )
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get(f"/api/v1/imports/import-{'b' * 32}")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["run_id"] == str(run_id)
+    assert data["artifact_id"] == str(artifact_id)
+    assert data["source_artifact_id"] == str(source_artifact_id)
+    assert data["normalized_artifact_id"] == str(normalized_artifact_id)
+    assert data["revision_id"] == str(revision_id)
+    assert data["analysis"]["bpm"] == 112.0
+
+
+@pytest.mark.asyncio
+async def test_import_run_read_rejects_missing_or_wrong_operation_checkpoint() -> None:
+    app = create_app(Settings(environment="test"))
+    app.state.parent_graph = _ReadableImportGraph(
+        {"operation": "artifact_rehydrate", "phase": "completed"}
+    )
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get(f"/api/v1/imports/import-{'c' * 32}")
+
+    assert response.status_code == 404
+    assert response.json()["error_code"] == "IMPORT_RUN_NOT_FOUND"
+
+
+@pytest.mark.asyncio
 async def test_project_write_without_postgres_configuration_returns_503() -> None:
-    transport = ASGITransport(app=create_app(Settings(environment="test")))
+    transport = ASGITransport(app=create_app(Settings(environment="test", postgres_dsn=None)))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/api/v1/projects",

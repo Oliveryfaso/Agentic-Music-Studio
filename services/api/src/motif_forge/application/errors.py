@@ -43,3 +43,25 @@ class ChangeImpactEscalatedError(ApplicationError):
             "L2/L3 changes require a candidate preview and human approval",
             retryable=False,
         )
+
+
+class MediaJobNotFoundError(ApplicationError):
+    def __init__(self) -> None:
+        super().__init__("MEDIA_JOB_NOT_FOUND", "the media job does not exist", retryable=False)
+
+
+class MediaJobStateConflictError(ApplicationError):
+    def __init__(self, message: str) -> None:
+        super().__init__("MEDIA_JOB_STATE_CONFLICT", message, retryable=False)
+
+
+class ArtifactRehydrationError(ApplicationError):
+    def __init__(self, code: str, message: str, *, retryable: bool = False) -> None:
+        super().__init__(code, message, retryable=retryable)
+
+
+class UploadError(ApplicationError):
+    """Stable upload failure surfaced as RFC 9457 problem details."""
+
+    def __init__(self, code: str, message: str, *, retryable: bool = False) -> None:
+        super().__init__(code, message, retryable=retryable)

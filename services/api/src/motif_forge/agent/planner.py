@@ -39,11 +39,24 @@ class PlannerResponse:
     model: str = "deterministic"
     prompt_version: str = "composition-planner.v1"
     schema_version: str = "composition-plan.v1"
+    model_calls: int = 1
+    operation_id: str | None = None
 
 
 class CompositionPlanner(Protocol):
-    async def create_plan(self, brief: CompositionBrief) -> PlannerResponse:
+    async def create_plan(
+        self, brief: CompositionBrief, *, allow_schema_repair: bool = True
+    ) -> PlannerResponse:
         """Create a bounded structured plan without performing side effects."""
+
+    async def repair_plan(
+        self,
+        brief: CompositionBrief,
+        *,
+        invalid_payload: Mapping[str, Any],
+        validation_issues: tuple[str, ...],
+    ) -> PlannerResponse:
+        """Make one bounded repair attempt from safe deterministic validation issues."""
 
 
 class PlannerError(RuntimeError):
@@ -72,14 +85,35 @@ class StaticCompositionPlanner:
 
     plan: CompositionPlan | Mapping[str, Any]
     failure: PlannerError | None = None
+    repaired_plan: CompositionPlan | Mapping[str, Any] | None = None
 
-    async def create_plan(self, brief: CompositionBrief) -> PlannerResponse:
-        del brief
+    async def create_plan(
+        self, brief: CompositionBrief, *, allow_schema_repair: bool = True
+    ) -> PlannerResponse:
+        del brief, allow_schema_repair
         if self.failure is not None:
             raise self.failure
         payload = (
             self.plan.model_dump(mode="json")
             if isinstance(self.plan, CompositionPlan)
             else self.plan
+        )
+        return PlannerResponse(plan_payload=payload)
+
+    async def repair_plan(
+        self,
+        brief: CompositionBrief,
+        *,
+        invalid_payload: Mapping[str, Any],
+        validation_issues: tuple[str, ...],
+    ) -> PlannerResponse:
+        del brief, invalid_payload, validation_issues
+        if self.failure is not None:
+            raise self.failure
+        candidate = self.repaired_plan if self.repaired_plan is not None else self.plan
+        payload = (
+            candidate.model_dump(mode="json")
+            if isinstance(candidate, CompositionPlan)
+            else candidate
         )
         return PlannerResponse(plan_payload=payload)

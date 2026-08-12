@@ -54,6 +54,30 @@ Use these field sets as checklists. Adapt names to the repository conventions; d
 - pinned audio-engine/Chromium resource profile for render jobs
 - trace metrics and failure injection tests
 
+## Artifact Contract
+
+- artifact/project/revision/source IDs and immutable checksum
+- media/schema/engine versions, size, duration, and provenance
+- retention class: `durable|protected|rebuildable|ephemeral`
+- availability: `available|evicted|missing|rehydrating`
+- protection reason and reference owners
+- configured storage-root identity, never a browser-visible or model-visible server path
+- created/accessed/expires/evicted/rehydration timestamps
+- version-pinned `RebuildRecipe` and source Artifact references when rebuildable
+- atomic promotion, duplicate-write, checksum, cleanup, and orphan semantics
+- API/event/UI mapping plus disconnect, quota, eviction, rehydrate, and missing-source tests
+
+## StoragePressureGate Contract
+
+- required/project/global/temp byte estimates and current usage snapshot
+- configured-root mounted/writable/same-filesystem facts
+- protected, rebuildable, and ephemeral cleanup candidates
+- versioned deterministic policy and explanation code
+- route: proceed/gc-then-retry/rehydrate-then-resume/wait-for-storage/fail
+- hard bounds for cleanup and retry; no model call
+- persistent event, trace span, metrics, and audit record
+- idempotent resume/checkpoint behavior and recovery Eval cases
+
 For Chromium render jobs, also define the Python `ChromiumRenderAdapter` ↔ page `RenderBridgeRequest/Receipt`, loopback output sink token/limits, pinned Chromium/Tone/audio-engine versions, cancellation, and semantic-parity tolerance.
 
 ## ErrorEnvelope

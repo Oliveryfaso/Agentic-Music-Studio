@@ -313,3 +313,29 @@ def create_preview_candidate(
         created_at=created_at,
         expires_at=expires_at,
     )
+
+
+def resolve_preview_candidate(
+    preview: PreviewCandidate,
+    *,
+    status: PreviewStatus,
+    decided_by: str,
+    decided_at: datetime,
+    approved_revision_id: UUID | None = None,
+) -> PreviewCandidate:
+    """Return one terminal lifecycle update without mutating candidate content."""
+
+    if preview.status is not PreviewStatus.PENDING:
+        raise ValueError("only pending previews can be resolved")
+    if status is PreviewStatus.PENDING:
+        raise ValueError("preview resolution requires a terminal status")
+    return PreviewCandidate.model_validate(
+        {
+            **preview.model_dump(),
+            "status": status,
+            "approved_revision_id": approved_revision_id,
+            "decision_by": decided_by,
+            "decision_at": decided_at,
+        },
+        strict=True,
+    )

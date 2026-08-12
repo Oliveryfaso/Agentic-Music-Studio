@@ -13,12 +13,16 @@ from motif_forge.domain.ir import (
     ArrangementIR,
     Articulation,
     AudioClip,
+    AudioSourceKind,
     Clip,
     DomainModel,
     NoteClip,
     NoteEvent,
+    Section,
+    TimeStretchRef,
     Track,
     TrackRole,
+    TrackType,
 )
 
 COMMAND_SCHEMA_VERSION = "editor-command.v1"
@@ -76,6 +80,32 @@ class AddClipPayload(DomainModel):
 class AddClipCommand(CommandEnvelope):
     command_type: Literal["add_clip"] = "add_clip"
     payload: AddClipPayload
+
+
+class ImportAudioPayload(DomainModel):
+    track_id: UUID
+    clip_id: UUID
+    section_id: UUID
+    artifact_id: UUID
+    track_name: str = Field(min_length=1, max_length=80)
+    duration_tick: int = Field(gt=0)
+    source_duration_seconds: float = Field(gt=0.0, le=1800.0, allow_inf_nan=False)
+    source_bpm: float | None = Field(default=None, ge=20.0, le=300.0, allow_inf_nan=False)
+    target_bpm: float | None = Field(default=None, ge=20.0, le=300.0, allow_inf_nan=False)
+    time_stretch_ref: TimeStretchRef | None = None
+
+    @model_validator(mode="after")
+    def validate_alignment_metadata(self) -> Self:
+        if (self.source_bpm is None) != (self.target_bpm is None):
+            raise ValueError("source_bpm and target_bpm must be provided together")
+        if self.time_stretch_ref is not None and self.source_bpm is None:
+            raise ValueError("time_stretch_ref requires source and target BPM")
+        return self
+
+
+class ImportAudioCommand(CommandEnvelope):
+    command_type: Literal["import_audio"] = "import_audio"
+    payload: ImportAudioPayload
 
 
 class ClipTargetPayload(DomainModel):
@@ -223,6 +253,7 @@ class DeleteNotesCommand(CommandEnvelope):
 
 EditorCommand = Annotated[
     AddTrackCommand
+    | ImportAudioCommand
     | DeleteTrackCommand
     | AddClipCommand
     | DeleteClipCommand
@@ -424,6 +455,51 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
     # The discriminated command model guarantees the payload pairing at parse time. Pydantic's
     # plugin does not currently preserve that relationship when narrowing the union below.
     payload: Any = command.payload
+    if isinstance(command, ImportAudioCommand):
+        if len(arrangement.tracks) >= MAX_TRACKS:
+            raise issue("TRACK_LIMIT_EXCEEDED", "tracks", "v1 supports at most 12 tracks")
+        bounded_end = (
+            (payload.duration_tick + arrangement.bar_ticks - 1) // arrangement.bar_ticks
+        ) * arrangement.bar_ticks
+        sections = arrangement.sections
+        if not sections:
+            sections = (
+                Section(
+                    section_id=payload.section_id,
+                    start_tick=0,
+                    end_tick=bounded_end,
+                    label="Imported Audio",
+                    function="imported",
+                ),
+            )
+        elif payload.duration_tick > arrangement.duration_tick:
+            last = sections[-1]
+            sections = (
+                *sections[:-1],
+                last.model_copy(update={"end_tick": bounded_end}),
+            )
+        imported_clip = AudioClip(
+            clip_id=payload.clip_id,
+            source_kind=AudioSourceKind.IMPORTED,
+            artifact_id=payload.artifact_id,
+            start_tick=0,
+            duration_tick=payload.duration_tick,
+            source_duration_seconds=payload.source_duration_seconds,
+            source_bpm=payload.source_bpm,
+            target_bpm=payload.target_bpm,
+            time_stretch_ref=payload.time_stretch_ref,
+        )
+        track = Track(
+            track_id=payload.track_id,
+            track_type=TrackType.AUDIO,
+            name=payload.track_name,
+            role=TrackRole.OTHER,
+            clips=(imported_clip,),
+        )
+        data = arrangement.model_dump(mode="python")
+        data["sections"] = sections
+        data["tracks"] = (*arrangement.tracks, track)
+        return ArrangementIR.model_validate(data)
     if isinstance(command, AddTrackCommand):
         if len(arrangement.tracks) >= MAX_TRACKS:
             raise issue("TRACK_LIMIT_EXCEEDED", "tracks", "v1 supports at most 12 tracks")

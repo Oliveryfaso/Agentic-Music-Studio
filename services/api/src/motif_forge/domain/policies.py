@@ -10,6 +10,7 @@ from motif_forge.domain.commands import (
     DeleteNotesCommand,
     DeleteTrackCommand,
     EditorCommand,
+    ImportAudioCommand,
     SetClipParamCommand,
     SetTrackParamCommand,
     UpdateNotesCommand,
@@ -46,6 +47,7 @@ def command_change_impact(command: EditorCommand) -> ChangeImpact:
 
     creative_commands = (
         AddTrackCommand,
+        ImportAudioCommand,
         DeleteTrackCommand,
         AddClipCommand,
         DeleteClipCommand,

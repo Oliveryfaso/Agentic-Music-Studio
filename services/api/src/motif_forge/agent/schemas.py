@@ -181,6 +181,11 @@ class ApprovalDecision(StrictSchema):
     note: Annotated[str, Field(max_length=500)] = ""
 
 
+class ErrorRecoveryDecision(StrictSchema):
+    decision: Literal["fallback", "stop"]
+    note: Annotated[str, Field(max_length=500)] = ""
+
+
 class AgentErrorEnvelope(StrictSchema):
     """Compact, user-safe projection of the project ErrorEnvelope contract."""
 

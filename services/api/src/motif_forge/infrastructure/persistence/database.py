@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from types import TracebackType
 from typing import Self
@@ -21,17 +22,22 @@ from motif_forge.domain.commands import EditorCommand
 from motif_forge.domain.ir import ArrangementIR
 from motif_forge.domain.revisions import (
     AuthorKind,
+    CandidateSnapshot,
     ChangeImpact,
+    PreviewCandidate,
     ProjectBranch,
     ProjectRootState,
     Revision,
     VersionRefs,
 )
 from motif_forge.infrastructure.persistence.tables import (
+    ApprovalRow,
     AuditEventRow,
     BranchRow,
+    CandidateSnapshotRow,
     CommandBatchRow,
     IdempotencyRow,
+    PreviewCandidateRow,
     ProjectRow,
     RevisionCommandRow,
     RevisionRow,
@@ -226,6 +232,46 @@ class PostgresTransaction:
             return None
         return _revision_from_row(row)
 
+    async def get_candidate_snapshot(self, candidate_snapshot_id: UUID) -> CandidateSnapshot | None:
+        row = (
+            await self._session.execute(
+                select(CandidateSnapshotRow).where(CandidateSnapshotRow.id == candidate_snapshot_id)
+            )
+        ).scalar_one_or_none()
+        return None if row is None else _candidate_snapshot_from_row(row)
+
+    async def insert_candidate_preview(
+        self, *, snapshot: CandidateSnapshot, preview: PreviewCandidate
+    ) -> None:
+        await self._session.execute(
+            insert(CandidateSnapshotRow).values(**_candidate_snapshot_values(snapshot))
+        )
+        await self._session.execute(
+            insert(PreviewCandidateRow).values(**_preview_candidate_values(preview))
+        )
+
+    async def lock_preview(self, preview_id: UUID) -> PreviewCandidate | None:
+        row = (
+            await self._session.execute(
+                select(PreviewCandidateRow)
+                .where(PreviewCandidateRow.id == preview_id)
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
+        return None if row is None else _preview_candidate_from_row(row)
+
+    async def update_preview(self, preview: PreviewCandidate) -> None:
+        await self._session.execute(
+            update(PreviewCandidateRow)
+            .where(PreviewCandidateRow.id == preview.preview_id)
+            .values(
+                status=preview.status.value,
+                approved_revision_id=preview.approved_revision_id,
+                decision_by=preview.decision_by,
+                decision_at=preview.decision_at,
+            )
+        )
+
     async def insert_revision(
         self,
         *,
@@ -266,6 +312,75 @@ class PostgresTransaction:
                     client_sequence=command.client_sequence,
                 )
             )
+
+    async def insert_materialized_revision(
+        self,
+        *,
+        revision: Revision,
+        snapshot: CandidateSnapshot,
+        preview: PreviewCandidate,
+        idempotency_key: str,
+        command_id: UUID,
+    ) -> None:
+        batch_id = revision.command_batch_id
+        if batch_id is None or revision.parent_revision_id is None:
+            raise ValueError("materialized revision requires batch and parent IDs")
+        await self._session.execute(
+            insert(CommandBatchRow).values(
+                id=batch_id,
+                project_id=revision.project_id,
+                branch_id=revision.created_on_branch_id,
+                base_revision_id=revision.parent_revision_id,
+                resulting_revision_id=revision.revision_id,
+                actor_kind=revision.author_kind.value,
+                actor_id=revision.created_by,
+                predicted_impact=int(revision.change_impact_predicted),
+                actual_impact=int(revision.change_impact_actual),
+                idempotency_key=idempotency_key,
+                created_at=revision.created_at,
+            )
+        )
+        await self._session.execute(insert(RevisionRow).values(**_revision_values(revision)))
+        await self._session.execute(
+            insert(RevisionCommandRow).values(
+                revision_id=revision.revision_id,
+                command_batch_id=batch_id,
+                command_id=command_id,
+                command_type="materialize_candidate",
+                schema_version="service-command.v1",
+                payload={
+                    "candidate_snapshot_id": str(snapshot.candidate_snapshot_id),
+                    "candidate_content_hash": snapshot.candidate_content_hash,
+                    "preview_id": str(preview.preview_id),
+                },
+                selection={},
+                actor_kind=revision.author_kind.value,
+                client_sequence=0,
+            )
+        )
+
+    async def insert_approval(
+        self,
+        *,
+        approval_id: UUID,
+        preview: PreviewCandidate,
+        decision: str,
+        actor_id: str,
+        payload_hash: str,
+        decided_at: datetime,
+    ) -> None:
+        await self._session.execute(
+            insert(ApprovalRow).values(
+                id=approval_id,
+                project_id=preview.project_id,
+                preview_id=preview.preview_id,
+                source_run_id=preview.source_run_id,
+                decision=decision,
+                actor_id=actor_id,
+                payload_hash=payload_hash,
+                decided_at=decided_at,
+            )
+        )
 
     async def advance_branch_head(
         self, *, branch_id: UUID, expected_head_id: UUID, new_head_id: UUID
@@ -328,7 +443,13 @@ def _revision_from_row(row: RevisionRow) -> Revision:
         project_id=row.project_id,
         parent_revision_id=row.parent_id,
         created_on_branch_id=row.created_on_branch_id,
-        arrangement_ir=ArrangementIR.model_validate(row.arrangement_ir),
+        # JSONB returns JSON-compatible Python values (UUIDs as strings and
+        # tuples as lists). Validate through Pydantic's JSON mode so the strict
+        # domain model keeps rejecting coercion at ordinary Python boundaries
+        # while accepting its canonical persisted representation.
+        arrangement_ir=ArrangementIR.model_validate_json(
+            json.dumps(row.arrangement_ir), strict=True
+        ),
         content_hash=row.content_hash,
         command_batch_id=row.command_batch_id,
         change_impact_predicted=ChangeImpact(row.change_impact_predicted),
@@ -337,6 +458,101 @@ def _revision_from_row(row: RevisionRow) -> Revision:
         created_by=row.created_by,
         source_run_id=row.source_run_id,
         reason_code=row.reason_code,
-        versions=VersionRefs.model_validate(row.versions),
+        versions=VersionRefs.model_validate_json(json.dumps(row.versions), strict=True),
         created_at=row.created_at,
+    )
+
+
+def _candidate_snapshot_values(snapshot: CandidateSnapshot) -> dict[str, object]:
+    return {
+        "id": snapshot.candidate_snapshot_id,
+        "candidate_id": snapshot.candidate_id,
+        "project_id": snapshot.project_id,
+        "base_revision_id": snapshot.base_revision_id,
+        "source_run_id": snapshot.source_run_id,
+        "parent_candidate_snapshot_id": snapshot.parent_candidate_snapshot_id,
+        "candidate_ir": snapshot.candidate_ir.model_dump(mode="json"),
+        "candidate_content_hash": snapshot.candidate_content_hash,
+        "command_batch_id": snapshot.command_batch_id,
+        "materialization_command_ref": snapshot.materialization_command_ref,
+        "structural_diff": [entry.model_dump(mode="json") for entry in snapshot.structural_diff],
+        "non_target_preservation_hash": snapshot.non_target_preservation_hash,
+        "versions": snapshot.versions.model_dump(mode="json"),
+        "schema_version": snapshot.schema_version,
+        "created_at": snapshot.created_at,
+    }
+
+
+def _candidate_snapshot_from_row(row: CandidateSnapshotRow) -> CandidateSnapshot:
+    return CandidateSnapshot.model_validate_json(
+        json.dumps(
+            {
+                "candidate_snapshot_id": str(row.id),
+                "candidate_id": str(row.candidate_id),
+                "project_id": str(row.project_id),
+                "base_revision_id": str(row.base_revision_id),
+                "source_run_id": None if row.source_run_id is None else str(row.source_run_id),
+                "parent_candidate_snapshot_id": (
+                    None
+                    if row.parent_candidate_snapshot_id is None
+                    else str(row.parent_candidate_snapshot_id)
+                ),
+                "candidate_ir": row.candidate_ir,
+                "candidate_content_hash": row.candidate_content_hash,
+                "command_batch_id": (
+                    None if row.command_batch_id is None else str(row.command_batch_id)
+                ),
+                "materialization_command_ref": (
+                    None
+                    if row.materialization_command_ref is None
+                    else str(row.materialization_command_ref)
+                ),
+                "structural_diff": row.structural_diff,
+                "non_target_preservation_hash": row.non_target_preservation_hash,
+                "versions": row.versions,
+                "schema_version": row.schema_version,
+                "created_at": row.created_at.isoformat(),
+            }
+        ),
+        strict=True,
+    )
+
+
+def _preview_candidate_values(preview: PreviewCandidate) -> dict[str, object]:
+    payload = preview.model_dump(mode="json")
+    return {
+        "id": preview.preview_id,
+        **{key: value for key, value in payload.items() if key != "preview_id"},
+    }
+
+
+def _preview_candidate_from_row(row: PreviewCandidateRow) -> PreviewCandidate:
+    return PreviewCandidate.model_validate_json(
+        json.dumps(
+            {
+                "preview_id": str(row.id),
+                "project_id": str(row.project_id),
+                "branch_id": str(row.branch_id),
+                "base_revision_id": str(row.base_revision_id),
+                "candidate_snapshot_id": str(row.candidate_snapshot_id),
+                "candidate_content_hash": row.candidate_content_hash,
+                "structural_diff": row.structural_diff,
+                "actual_change_impact": row.actual_change_impact,
+                "non_target_preservation_hash": row.non_target_preservation_hash,
+                "preview_artifact_ids": row.preview_artifact_ids,
+                "analysis_artifact_ids": row.analysis_artifact_ids,
+                "evidence_refs": row.evidence_refs,
+                "source_run_id": None if row.source_run_id is None else str(row.source_run_id),
+                "status": row.status,
+                "approved_revision_id": (
+                    None if row.approved_revision_id is None else str(row.approved_revision_id)
+                ),
+                "decision_by": row.decision_by,
+                "decision_at": None if row.decision_at is None else row.decision_at.isoformat(),
+                "schema_version": row.schema_version,
+                "created_at": row.created_at.isoformat(),
+                "expires_at": row.expires_at.isoformat(),
+            }
+        ),
+        strict=True,
     )

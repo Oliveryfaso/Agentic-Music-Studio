@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12,<3.14"
 dependencies = [
   "alembic>=1.16,<2.0",
+  "celery[redis]>=5.6,<6.0",
   "fastapi>=0.116,<1.0",
   "httpx>=0.28,<1.0",
   "langchain-core>=1.2,<2.0",
@@ -14,7 +15,8 @@ dependencies = [
   "psycopg[binary,pool]>=3.2,<4.0",
   "pydantic>=2.11,<3.0",
   "pydantic-settings>=2.10,<3.0",
-  "sqlalchemy>=2.0,<3.0",
+  "redis>=6.4,<7.0",
+  "sqlalchemy[asyncio]>=2.0,<3.0",
   "uvicorn[standard]>=0.35,<1.0",
 ]
 

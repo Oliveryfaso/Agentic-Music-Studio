@@ -1,0 +1,37 @@
+{
+  "name": "motif-forge-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build:audio": "tsc -p tsconfig.json --noEmit && node scripts/build-render-worker.mjs",
+    "build:web": "tsc -p apps/web/tsconfig.json --noEmit && vite build --config apps/web/vite.config.ts",
+    "dev:web": "vite --config apps/web/vite.config.ts",
+    "test:audio": "vitest run --exclude '**/._*' packages/audio-engine services/render-worker",
+    "test:web": "vitest run --config apps/web/vitest.config.ts",
+    "spike:audio": "node services/render-worker/dist/spike.js"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.101.4",
+    "playwright": "1.62.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tone": "15.1.22"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "24.10.13",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "esbuild": "0.28.2",
+    "jsdom": "^28.1.0",
+    "typescript": "5.9.3",
+    "vite": "^8.2.1",
+    "vitest": "4.1.10"
+  }
+}

@@ -5,6 +5,7 @@ Load the checklist matching the current task. Do not apply every checklist mecha
 ## Vertical slice
 
 - Record and recheck the source-of-truth guide revision/hash.
+- Name the current roadmap gate and every covered `MF-Pxx`; do not change unlisted product requirements.
 - If doc-only, confirm explicit authorization before scaffolding product code.
 - Define user action and visible result.
 - Name the deterministic baseline and why an LLM is or is not needed.
@@ -13,6 +14,7 @@ Load the checklist matching the current task. Do not apply every checklist mecha
 - Identify budget, timeout, idempotency, checkpoint, Trace, Metric, Log, and Eval impact.
 - Cover API plus empty/loading/progress/error/resume UI states when user-facing.
 - Verify no unrelated behavior or files changed.
+- Update `IMPLEMENTATION_STATUS.md` only after runtime evidence exists; append actual evidence to `TECH_EVOLUTION.md` and do not mark a target contract complete from a Schema, unit test, or Spike alone.
 
 ## Greenfield or doc-only repository
 
@@ -68,6 +70,18 @@ Load the checklist matching the current task. Do not apply every checklist mecha
 - For canonical audio rendering, pin the shared AudioGraph/audio-engine version and Chromium resource profile; never silently fall back to a different-sounding renderer.
 - Test crash after side effect, duplicate event, timeout, cancellation, missing asset, and checksum mismatch.
 
+## Artifact lifecycle or storage pressure
+
+- Use only configured Artifact/temp roots; never accept a client path or silently fall back from the external Lean root to internal storage.
+- Record retention class (`durable|protected|rebuildable|ephemeral`) and availability (`available|evicted|missing|rehydrating`) separately.
+- Protect imported originals, current-Revision dependencies, selected final outputs, active jobs, and unresolved HITL candidates from cleanup.
+- Give rebuildable outputs a version-pinned `RebuildRecipe`, source references, checksum, expected size, and deterministic idempotency key.
+- Estimate required bytes before producing an Artifact and route through `StoragePressureGate` with project/global/temp quotas.
+- Define exactly one cleanup pass and one retry; never loop GC, rehydration, or generation without a hard bound.
+- Emit persistent pressure, eviction, rehydration, wait, resume, and failure events; expose the same state through API and UI.
+- Test quota boundaries, external-root disconnect/reconnect, protected-file survival, evicted rehydration, missing source, duplicate resume, and cleanup race behavior.
+- Treat full candidate IR as durable project state while compressed previews may expire; create lossless Masters/Stems on demand according to the approved retention policy.
+
 ## Audio import and time-stretch
 
 - Validate magic bytes, size, duration, codec, channels, rights declaration, and quota in quarantine.
@@ -96,6 +110,8 @@ Load the checklist matching the current task. Do not apply every checklist mecha
 - Support cancel, retry, resume, partial success, low-confidence analysis, and license errors.
 - Keep desktop editing usable with timeline overflow; mobile supports review/playback/approval.
 - Do not place secrets or unrestricted paths in browser state.
+- Represent `available`, `evicted`, `missing`, and `rehydrating` explicitly; offer rehydrate/retry only when the server contract permits it.
+- Show storage pressure and external-root unavailability without claiming an edit was lost; simple state-only edits may continue when they produce no Artifact.
 
 ## Eval and release
 
@@ -104,3 +120,22 @@ Load the checklist matching the current task. Do not apply every checklist mecha
 - For audio quality, keep deterministic feature checks separate from human A/B judgment.
 - Run focused unit tests, contract tests, integration path, failure injection, and document validation.
 - Record known gaps and do not call the slice complete when only the happy-path demo works.
+- Include external-root disconnect, quota exhaustion, cleanup eligibility, protected Artifact survival, checkpoint resume, and rebuild reproducibility in the recovery suite.
+
+## Stage-end storage hygiene
+
+Run after a small stage has passed its acceptance tests, not after every edit or while a build/test is active.
+
+- Freeze and print the keep set first: current tagged project images, running service images, PostgreSQL/Redis volumes, active external Artifact root, approved final/benchmark outputs, lockfiles, and the one current test environment needed for the next slice.
+- Inventory before mutation: `docker image ls`, `docker ps -a`, `docker system df -v`, `docker buildx du`, exact cache/output directories, symlinks, sizes, and free space. Resolve every deletion target to a specific project-owned path.
+- Remove obsolete project outputs by exact path: failed/older Spike runs, `.partial` files with no active Job lease, mistaken repository-local environments, and superseded generated fixtures. Keep the latest accepted evidence and its checksums.
+- Clear unused BuildKit cache only after confirming no build is active. Preserve tagged current images and required base/service images; do not use `docker system prune --volumes`, `docker image prune -a`, or remove a named image merely because no container is currently running from it.
+- Default to host-side Vite/TypeScript/Python checks for frontend, pure domain/application changes and unit tests. A source edit alone is not a Docker rebuild trigger. Rebuild only the affected target for Dockerfile/system dependency changes, container-relevant lockfile changes, migration/runtime wiring, or an accepted cross-service/stage gate; record why the rebuild was required.
+- Use an explicit hot-target allowlist during development. Warm only targets needed by the next accepted slice, then keep shared BuildKit near 1.5 GiB and never above 2 GiB merely for speculative reuse; if the hot set cannot fit, retain current runnable images and accept a later cold build.
+- At feature-complete, release-seal, or long-pause boundaries, clear all project-owned BuildKit cache after the final runtime evidence is captured. Lockfiles, current released images and build instructions are durable; build cache is not. Never apply this full cleanup to an unproven shared builder.
+- Prefer a project-owned builder only after its network path, persistent overhead, and cache isolation are verified on the current host. When the available builder is shared, use single-target builds and stop before global pruning if ownership cannot be proven; never retain a failing dedicated builder merely for architectural uniformity.
+- Do not mechanically create one image or one cache policy per future module. Record why the module needs process/image isolation, what layer is stable, whether data is durable or rebuildable, where it may live, and the measured storage/quality/cold-build tradeoff before choosing reuse, split, external cache, or on-demand installation.
+- Prune tool caches with their native scoped command where possible (`uv cache prune`, an explicit npm cache root). Keep dependency lockfiles; caches must remain reproducible rather than durable.
+- Never delete database volumes, imported originals, current-Revision dependencies, selected Masters, manifests/licenses, unresolved HITL candidates, or another project's named images/caches. If Docker cache ownership is mixed or unclear, stop and ask before global pruning.
+- On Colima, run filesystem trim only after successful deletion when reclaiming sparse host space is useful; trim is not a substitute for deletion and must not restart or resize the VM.
+- Re-inventory after cleanup and record bytes before/after, retained images/artifacts, and anything intentionally kept. Re-run readiness plus the smallest no-rebuild runtime smoke; a cleanup that forces an immediate full rebuild or breaks resume is not accepted.

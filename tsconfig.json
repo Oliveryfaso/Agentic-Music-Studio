@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node", "vitest/globals"],
+    "outDir": "dist"
+  },
+  "include": [
+    "packages/audio-engine/src/**/*.ts",
+    "packages/audio-engine/tests/**/*.ts",
+    "services/render-worker/src/**/*.ts",
+    "services/render-worker/tests/**/*.ts"
+  ]
+}

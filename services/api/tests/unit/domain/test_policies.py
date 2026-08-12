@@ -4,6 +4,8 @@ from motif_forge.domain import (
     AddTrackCommand,
     AddTrackPayload,
     ChangeImpact,
+    ImportAudioCommand,
+    ImportAudioPayload,
     MoveClipCommand,
     MoveClipPayload,
     SetTrackParamCommand,
@@ -65,3 +67,20 @@ def test_agent_main_timbre_replacement_requires_preview() -> None:
     )
 
     assert compute_change_impact((command,)) is ChangeImpact.L2
+
+
+def test_system_import_is_l1_but_agent_import_requires_preview() -> None:
+    payload = ImportAudioPayload(
+        track_id=uid(10),
+        clip_id=uid(20),
+        section_id=uid(30),
+        artifact_id=uid(40),
+        track_name="Imported Audio",
+        duration_tick=960,
+        source_duration_seconds=1.0,
+    )
+    system = ImportAudioCommand(payload=payload, **command_fields(actor_kind="system"))
+    agent = ImportAudioCommand(payload=payload, **command_fields(actor_kind="agent", sequence=1))
+
+    assert compute_change_impact((system,)) is ChangeImpact.L1
+    assert compute_change_impact((agent,)) is ChangeImpact.L2

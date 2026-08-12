@@ -146,8 +146,11 @@ class NoteClip(DomainModel):
 
 class TimeStretchRef(DomainModel):
     artifact_id: UUID
+    source_artifact_id: UUID
     preserve_pitch: Literal[True] = True
     ratio: float = Field(gt=0.0, le=8.0, allow_inf_nan=False)
+    source_bpm: float = Field(ge=20.0, le=300.0, allow_inf_nan=False)
+    target_bpm: float = Field(ge=20.0, le=300.0, allow_inf_nan=False)
     engine_version: str = Field(min_length=1, max_length=80)
 
 

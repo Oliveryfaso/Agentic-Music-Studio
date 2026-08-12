@@ -12,6 +12,7 @@
 4. 简单 AI 修改自动落地但可 Undo；创意性变化先展示范围、差异和试听。
 5. 科幻感用于解释声音与 Agent 状态，不牺牲密集工作区的可读性。
 6. 空、加载、部分成功、失败、冲突、取消和恢复都是正式页面状态。
+7. 精简存储不伪装成内容丢失：用户能区分可用、已回收、重建中、缺失和外置盘断开，并知道下一步。
 
 ## 2. 设计参考与转化
 
@@ -76,12 +77,12 @@ Motif Forge 不复制这些产品的控件外观；它将专业 DAW 的稳定结
 
 | 页面 | 主要任务 | 关键状态 |
 |---|---|---|
-| Project Home | 新建、导入、恢复 Run | 空项目、最近版本、失败 Run |
+| Project Home | 新建、导入、恢复 Run | 空项目、最近版本、失败 Run、存储压力/外置盘状态 |
 | Import Review | 检查音频、BPM/key、对齐 | 上传、分析、低置信度、拉伸 |
 | Brief / Plan | 输入需求并批准计划 | 验证、知识来源、Plan diff |
 | Compare | A/B 同步试听与选分支 | 候选部分失败、指标差异 |
 | Studio | 时间线编辑与 AI 局部操作 | Branch、Draft、Committed、PreviewCandidate、冲突 |
-| Export | 选择格式并获取产物 | 排队、渲染、质量警告、下载 |
+| Export | 按需选择 Master/Stem/MIDI 并获取产物 | 存储预检、重建、排队、渲染、质量警告、下载 |
 | Run Inspector | 查看 Graph/Tool/Job/成本/失败 | checkpoint、retry、partial |
 | Eval Lab | 跑 Eval/Baseline、看失败分类 | dataset/version/report |
 
@@ -107,7 +108,7 @@ Motif Forge 不复制这些产品的控件外观；它将专业 DAW 的稳定结
 
 ### 6.1 Server State
 
-TanStack Query 管理 Project、Branch、Revision、Run、PreviewCandidate、Asset、Export。Query cache 不是事实源；SSE 触发投影更新或 invalidation。`current_revision_id` 只展示 active branch head 的服务端投影。
+TanStack Query 管理 Project、Branch、Revision、Run、PreviewCandidate、Asset、Artifact、Export。Query cache 不是事实源；SSE 触发投影更新或 invalidation。`current_revision_id` 只展示 active branch head 的服务端投影。Artifact 使用服务端四态 `available | evicted | missing | rehydrating`；前端不得根据下载失败自行猜测状态。
 
 ### 6.2 Editor Draft
 
@@ -199,7 +200,7 @@ AI Panel 显示：
 ### 9.3 L2/L3
 
 - 使用洋红/紫色 Overlay 标出改变范围。
-- 展示 before/after 结构 diff、试听和依据。
+- 展示 before/after 结构 diff、完整时长压缩试听和依据；压缩试听只服务于审批，不代表最终 Master 规格。
 - 操作为 Approve、Reject、Keep as Branch；批准后 UI 等待新的 `revision.committed`，不把 Preview ID 当作 Revision ID。
 - 不显示原始 chain-of-thought；只显示结构化证据、知识来源和规则命中。
 
@@ -207,7 +208,13 @@ AI Panel 显示：
 
 Import Review 分阶段显示：上传 → 校验 → 解码 → 波形 → 分析 → 用户确认 → 拉伸。
 
+- 浏览器先限制 WAV/MP3/FLAC 与 256 MiB 上限，计算完整 SHA-256，再按服务端 Session `part_size_bytes` 顺序上传；Project、Upload Session 与 Import 各有稳定 Idempotency Key。首版 Web Crypto 需要 localhost/HTTPS 安全上下文，checksum 阶段会读取整个文件；大于上限的文件在读取前拒绝。
+- 权利类别与“我确认有权使用”必须显式选择，不能根据文件名推断。取消只中止浏览器侧尚未完成的 checksum/分块请求；已接受的孤立分块由 24 小时 Session TTL 回收。
+- Import thread 写入 URL `run` 参数；刷新后通过只读 checkpoint 投影恢复。只在 `waiting_worker` 每 1.5 秒轮询，进入 HITL/完成/失败即停止；不把轮询当 Graph resume。
+- 正常用户不需要输入 UUID；UUID 查询折叠为开发者入口。完成后用 normalized Artifact 读取 FeatureArtifact，用 source/final Artifact 分别试听原始与对齐版本。
+
 - BPM/key 低置信度使用 warning，并允许用户输入/拍点确认。
+- `confirm` 使用已检测 BPM；`override` 必须提供 30–300 BPM，可选同时覆盖 tonic/mode；`skip_alignment` 即使 BPM 未知也允许保留标准化版本；`cancel` 进入持久失败终态。
 - 拉伸开始后，原始音频仍可按原速度试听，并明确标记“尚未对齐”。
 - Derived Artifact 完成并通过质量检查后才提供“对齐后试听”。
 - 质量异常显示 ratio、检测结果和恢复原始 Clip 选项。
@@ -224,7 +231,25 @@ Import Review 分阶段显示：上传 → 校验 → 解码 → 波形 → 分�
 
 Run Inspector 使用 Graph 视图，但节点颜色必须有文字状态：queued、running、waiting human、retrying、partial、completed、failed、cancelled。
 
-## 12. 页面状态矩阵
+## 12. 存储状态与重建 UX
+
+全局 Storage Indicator 显示安全标签（`External Artifact Store` 或管理员配置的别名）、健康状态、剩余空间/项目配额和最近回收量，不展示绝对路径。Web 不能提交任意目录；Artifact Root 由本地部署配置并由服务端验证。用户需要改变位置时，UI 只引导到受控配置流程，不提供自由文本路径输入。
+
+Artifact 行为：
+
+| 状态 | 呈现与操作 |
+|---|---|
+| `available` | 正常试听/下载；可显示 retention 和大小 |
+| `evicted` | 显示“已回收，可重建”，禁用直接播放，提供 Rebuild；保留 diff、IR 和元数据 |
+| `missing` | 显示“来源或重建依赖缺失”，不能承诺自动恢复；提供定位受影响版本/替代素材 |
+| `rehydrating` | 显示持久 Job 进度、Cancel/View run；刷新后可恢复 |
+| Artifact Root disconnected/read-only | 顶部非模态持久警告，暂停上传/渲染/重建写入；仍允许浏览 Revision、IR 和已载入内存的本地 Draft |
+
+重建必须由 `POST /artifacts/{artifact_id}/rehydrate` 显式触发并显示真实 Run/Job 状态。播放一个 `evicted` Artifact 不得暗中启动大量重建；可以在用户确认后将单次“播放并重建”转换为同一显式动作。外置盘恢复后 UI 等待 `storage.root_restored` 或重新读取状态，不凭浏览器检测自行标记成功。
+
+Compare 页面始终基于完整 Candidate Snapshot/IR；A/B 音频使用完整时长的压缩试听。试听已回收时两侧分别显示 Rebuild，不把缺失的一侧判为音乐质量失败。Export 页面明确说明 Master WAV/Stem 按需渲染：默认不缓存全部 Stem，但用户选择后仍可获得合同规定的完整无损文件。
+
+## 13. 页面状态矩阵
 
 | 状态 | Studio 行为 |
 |---|---|
@@ -238,8 +263,14 @@ Run Inspector 使用 Graph 视图，但节点颜色必须有文字状态：queue
 | Budget exhausted | 展示最佳可播放版本与未解决问题 |
 | Run cancelled | 保留已提交版本和可复用 Artifact |
 | Time-stretch failed | 回退原始 Clip，不破坏项目 |
+| Import page refreshed | 从 URL thread 只读恢复稳定 checkpoint；不重复 Project、Upload、Job 或 Revision |
+| Storage pressure | 展示预计/可用容量；等待有界 GC 重算或让用户释放空间，不降低用户选定导出规格 |
+| Artifact evicted | 显示可重建状态和显式 Rebuild，不显示为永久丢失 |
+| Artifact rehydrating | 显示真实 Job 进度；刷新/SSE 重连后继续 |
+| Artifact missing | 指明受影响的 Preview/Revision/Export 与替代路径，不无限重试 |
+| External store disconnected | 暂停产生新 Artifact 的操作；提示重新连接同一受控存储，不自动写内置盘 |
 
-## 13. 响应式与移动端
+## 14. 响应式与移动端
 
 桌面最低目标宽度建议 1280px；低于该值：
 
@@ -247,9 +278,9 @@ Run Inspector 使用 Graph 视图，但节点颜色必须有文字状态：queue
 - Track Header 可缩窄但保留 mute/solo/名称。
 - Timeline 保持横向滚动，不压缩所有小节到屏幕内。
 
-移动端只实现：Project 列表、试听、Plan/Preview、A/B 选择、审批、Run 状态和下载。不承诺 Canvas 精细编辑。
+移动端只实现：Project 列表、试听、Plan/Preview、A/B 选择、审批、Run/重建状态、存储断开提示和下载。不承诺 Canvas 精细编辑或存储位置配置。
 
-## 14. 无障碍与键盘
+## 15. 无障碍与键盘
 
 - 播放/停止、撤销/重做、缩放、移动选择、分割、删除、打开 Inspector 有键盘命令。
 - Canvas selection 有 DOM live region/属性面板同步说明。
@@ -257,7 +288,7 @@ Run Inspector 使用 Graph 视图，但节点颜色必须有文字状态：queue
 - 对比度、非颜色状态、Reduced Motion、屏幕阅读器标签进入 UI 验收。
 - AudioContext 首次启动必须由用户手势触发，并给出可理解提示。
 
-## 15. 性能门槛
+## 16. 性能门槛
 
 在代表性设备上测试 5 分钟/12 轨：
 
@@ -267,7 +298,7 @@ Run Inspector 使用 Graph 视图，但节点颜色必须有文字状态：queue
 - 音频调度使用 Tone/Web Audio 时间，不使用 UI animation timer 作为音乐时钟。
 - 科幻动画在播放或拖拽压力下可自动降级。
 
-## 16. UX 验收清单
+## 17. UX 验收清单
 
 - 用户能区分 Branch、Draft、Committed Revision 与 PreviewCandidate。
 - L0/L1 有清晰 Undo；L2/L3 不会未经批准落地。
@@ -275,3 +306,5 @@ Run Inspector 使用 Graph 视图，但节点颜色必须有文字状态：queue
 - 所有错误都有下一步，终态能在刷新后恢复。
 - 长轨道名、空库、窄屏、横向 overflow 和大缩放范围正常。
 - 色彩和动画没有降低时间线可读性。
+- 用户能区分 `available/evicted/missing/rehydrating`，外置盘断开不会静默改写内置盘。
+- 回收候选试听后仍能显式重建；最终 Master WAV/选择的 Stem 仍可按需完整导出。

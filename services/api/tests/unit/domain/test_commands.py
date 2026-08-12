@@ -16,6 +16,8 @@ from motif_forge.domain import (
     DeleteNotesCommand,
     DeleteNotesPayload,
     DomainValidationError,
+    ImportAudioCommand,
+    ImportAudioPayload,
     LockedRange,
     MoveClipCommand,
     MoveClipPayload,
@@ -97,6 +99,31 @@ def test_command_batch_builds_track_clip_and_notes_without_mutating_base() -> No
 
     assert base.tracks == ()
     assert result.tracks[0].clips[0].notes == (note,)  # type: ignore[union-attr]
+
+
+def test_import_audio_atomically_creates_bounded_section_track_and_clip() -> None:
+    base = create_empty_arrangement(uid(1))
+    result = apply_command(
+        base,
+        ImportAudioCommand(
+            payload=ImportAudioPayload(
+                track_id=uid(10),
+                clip_id=uid(20),
+                section_id=uid(30),
+                artifact_id=uid(40),
+                track_name="Imported Texture",
+                duration_tick=2_001,
+                source_duration_seconds=2.084,
+            ),
+            **command_fields(0),
+        ),
+    )
+
+    assert result.duration_tick == 3_840
+    assert result.tracks[0].track_type is TrackType.AUDIO
+    clip = result.tracks[0].clips[0]
+    assert clip.artifact_id == uid(40)  # type: ignore[union-attr]
+    assert clip.duration_tick == 2_001
 
 
 def test_move_trim_split_and_clip_parameter_commands() -> None:

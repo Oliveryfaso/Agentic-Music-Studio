@@ -128,6 +128,69 @@ SoundFont 若进入 Core Sound Palette，先在受控资产构建流程中转换
 
 **边界**：首个业务纵切仍是纯领域 `ArrangementIR + EditorCommand + Revision`，人工编辑不经过 Graph。只使用 LangChain 的 Model/Message/Tool/Structured Output 边界与 LangGraph 显式 Graph API；Domain、事务、Job、渲染、重试 Policy 和权限不交给 `create_agent()` 黑盒。
 
+## ADR-011：Lean Storage Profile 与可重建 Artifact
+
+**决定**：首版默认使用 `Lean Storage Profile`。项目与 Graph 保存可复现的领域状态、生成配方和 lineage；大型派生音频按需渲染、有界保留并可以安全驱逐。这不改变 DeepSeek V4 Flash、四个音乐策略子图、Revision/HITL 或“1–5 分钟完整成曲”的产品目标。
+
+**存储边界**：
+
+- Artifact Root 是可配置的宿主机路径；项目相对 `var/artifacts` 只是 portable/CI/test 的代码级回退。本地 Lean Profile 首次配置默认引导用户选择可写外置卷并写入显式配置；如用户选内置盘也必须显式确认。文档、镜像和代码不硬编码个人绝对路径。
+- PostgreSQL 与容器 VM/必需镜像仍位于内置盘；音色包、导入、预览、渲染、导出和可重建缓存优先位于 Artifact Root。
+- 外置卷必须通过可写性、剩余空间、同文件系统原子 rename、checksum 和 symlink 边界探测。卷不可用时不得静默回落到内置盘，也不得把所有 Artifact 批量标记为 `missing`。
+
+**Artifact 生命周期**：Artifact metadata 分别保存 `lifecycle_class = durable | protected | rebuildable | ephemeral` 和 `availability = available | evicted | missing | rehydrating`。`evicted` 是按策略删除 bytes 但保留 metadata/配方的预期状态；`rehydrating` 是重建 Job 已受理但 bytes 尚不可用；`missing` 是未预期丢失或校验失败，必须进入错误和修复路由。
+
+- `protected`：用户原始导入、当前 Revision 引用、待审批候选必需的不可重建输入；自动清理禁止删除。
+- `durable`：最终选中 Master、manifest、license/provenance 以及长期保留的非可重建素材；只能通过显式用户操作或安全归档流程移除。
+- `rebuildable`：waveform peaks、分析、标准化/拉伸派生文件、旧 Revision 渲染缓存和未请求的 Stem；必须有完整 recipe、输入 hash、引擎/策略版本与 lineage 才能驱逐。
+- `ephemeral`：Job 临时文件、被拒绝/未选候选的压缩试听和中断残留；由 TTL 与 Job 终态清理。
+
+**渲染策略**：A/B 中两个候选都保留完整不可变 `CandidateSnapshot/ArrangementIR`，但默认只产生完整时长的 `candidate-preview.v1`（MP3 160 kbps）试听；局部 Repair/素材 audition 使用最多 15 秒的 `audition-lite.v1`（MP3 128 kbps）。选中候选后按需生成 `canonical-master.v1`（48 kHz stereo、PCM24 WAV），只在用户请求 Stem 导出时生成同规格逐轨 WAV。“支持完整产出”是导出能力合同，不是预先永久保存每个候选的全部 Stem。
+
+**音色分层**：四个 Style Pack 保持同时交付，但以紧凑的知识卡、符号示例、Synth Preset 和少量经审核 one-shot 为主。默认 `Core Sound Palette Lite` 目标 0.5–1 GiB；高采样层 multisample 作为可选 `HQ Instrument Pack` 安装到 Artifact Root，不进入首版必装与默认容器镜像。
+
+**预算与治理**：内置盘干净安装目标为 6–10 GiB，构建/升级临时峰值为 12–15 GiB，Build Cache 目标上限 2 GiB。Artifact Root 默认全局硬配额 10 GiB、单项目软配额 2 GiB、临时区硬配额 2 GiB，均可配置；压缩试听默认 TTL 24 小时，可重建派生缓存和终态 checkpoint 默认 TTL 7 天。`StoragePressureGate v1` 在 Upload/Render/Fan-out/Export 前使用确定性规则估算容量、清理已过期且可安全驱逐的内容，然后输出 `proceed | gc_then_retry | rehydrate_then_resume | wait_for_storage | fail`；模型不参与存储删除决策。
+
+## ADR-012：版本化音频质量档位与外置优先开发数据
+
+**决定**：所有派生音频通过版本化 `MediaQualityProfile` 生成，首版固定为 `source-original.v1`、`audition-lite.v1`、`candidate-preview.v1`、`working-pcm.v1`、`canonical-master.v1` 和 `canonical-stem.v1`。质量档位与精确媒体参数进入 Artifact metadata、recipe、cache key 和 trace；低质量试听不能覆盖原件或替代最终交付。
+
+**外置优先**：checkout、Web dependencies、音色包、导入、试听、波形/分析、派生音频、导出、音频 Eval fixture 与可迁移工具 cache 放在外置盘。只有 Colima/Docker VM、PostgreSQL/Redis 活跃 Volume、当前必需镜像和因文件系统兼容性必须本地保存的最小环境留在内置盘。外置 Root 不可用时停止新写入，不静默回落。
+
+**原因**：128/160 kbps 试听显著减少 A/B 与迭代缓存，而结构化 IR、Graph、HITL、可恢复 Worker 和最终 PCM24 导出合同不受影响。工作 PCM 保持 48 kHz/PCM16，以免连续编辑、time-stretch 与分析因有损重编码累计退化。
+
+## ADR-013：按变更频率分层镜像，资源模式逐模块评估
+
+**决定**：Media Worker 把 FFmpeg/toolchain 放在稳定基础层，再复制高频变化的 Python venv 与 migration；日常构建必须选择实际变化的 target，不默认重建 API、Media Worker 和 Chromium Worker 全集。未来模块不得机械照搬“一模块一镜像”或同一缓存策略，必须用运行隔离、稳定层复用、冷构建、缓存归属、外置可行性和质量影响作出单独决策。
+
+**本机验证边界**：曾以带 1.5 GB GC 上限的 `docker-container` builder 做可逆试验，但当前 Colima 代理路径无法让容器化 BuildKit 访问 Docker Hub；失败发生在拉取 base metadata 前，没有生成有效构建缓存。该 builder、容器和专用 BuildKit 镜像已移除，不为“形式上的隔离”保留额外常驻组件。本机继续使用已有 Colima builder；只有缓存记录能证明属于本项目时才执行容量 prune。
+
+**音频质量结论**：降低当前试听码率不会缩小 Docker。5 分钟 stereo PCM16 约 57.6 MB、PCM24 约 86.4 MB；同长度 MP3 160 kbps 约 6 MB、128 kbps 约 4.8 MB、96 kbps 约 3.6 MB。两个完整候选从 160 降至 128 kbps 仅再省约 2.4 MB，从 160 降至 96 kbps 约省 4.8 MB，却更容易损伤高频、瞬态和空间效果。首版因此维持 128/160 kbps 试听、PCM16 工作文件和 PCM24 最终文件，把收益重点放在 TTL、按需 Stem、外置 Root 和可重建缓存驱逐，而不是继续降低质量。
+
+## ADR-014：热路径白名单与封版零投机缓存
+
+**决定**：开发期 BuildKit 缓存使用显式热路径白名单，而不是“可能以后有用”的宽松保留。每个阶段结束前只从 API、Media Worker 与 Chromium Render Worker 中刷新下一阶段确定使用的 target；当前 tagged image、运行中 service image 和 lockfile 属于 keep set，旧 build context、失败构建、被替代的源码/依赖层属于 cold set。共享 Colima builder 的目标为约 1.5 GiB、硬上限 2 GiB；先按最后使用时间移除 cold records，再按 LRU 容量收口。若必要热集仍超过上限，优先保留可运行镜像并接受下一次冷构建，不为构建速度继续扩大预算。
+
+**封版规则**：项目功能完备、发布封版或长期停开发时，BuildKit cache 不属于交付物。保留当前发布镜像、数据库/Artifact 合同、lockfile、Dockerfile 和可复现说明，清空项目拥有的构建缓存。共享 builder 只有在所有权已证明时才能做全量清理；否则先迁移到可用的项目 builder，不能以封版为由删除其他项目数据。
+
+**实现约束**：最新 tagged image 写入 inline cache metadata，供受支持的 registry/publish 恢复路径使用；本机 shared builder 不假定能从 local tag 导入 cache。清理脚本必须显式 opt-in、拒绝可见活动构建、先后输出 inventory，不执行 volume prune、image prune 或数据库/Artifact 删除。
+
+## ADR-015：短前置收口门与纵切内优化
+
+**决定**：从已完成的 Import/Analysis/Alignment/Web Preview 纵切进入创作主链路前，只设置一次短的开发前收口门：同步“目标”与“当前事实”文档、复验基线、冻结单一 Parent Graph 演化方向，并把已验收工作形成可恢复的 Git checkpoint。通过后不设置独立的全仓重构阶段；Graph 合并、Router/Repository 拆分、OpenAPI DTO 生成、SSE 和 Trace 接线必须随使用它们的业务纵切完成。
+
+**原因**：当前底层可靠性工程领先于音乐创作能力。全面先重构会继续推迟完整作品，完全不收口又会把大量未提交状态、文档漂移和暂时双 Graph 放大到新链路。短门禁控制回退风险，纵切内优化则让边界由真实用例和测试驱动。
+
+**下一产品断点**：开发前收口后，优先完成不依赖 LLM 的 60–90 秒、4 轨、单候选 Synth Ambient Walking Skeleton：固定 Brief/模板 → PatternSpec → ArrangementIR → 正式 Chromium Render Job → Master WAV/MIDI/Project Manifest。这是内部验收里程碑，不降低首版 1–5 分钟、最多 12 轨、最多 2 候选和四个 Style Pack 同时交付的合同。
+
+**约束**：
+
+- 现有 `motif-forge-plan.v3` 必须作为 `generate` 子图并入唯一 Parent Graph；禁止新增第三个生产 Graph。
+- 除新增 Artifact 类型所必需的接线外，完整成曲 Walking Skeleton 通过前不继续扩建通用存储/恢复平台。
+- 不因文件行数单独发起重构；只有纵切触达且模块职责继续增长时，才在测试保护下提取该职责。
+- 自下一创作纵切起同步增加 Eval，不把评测推迟到产品功能全部完成之后。
+- 当前事实、下一路线和历史记录分别维护在 `IMPLEMENTATION_STATUS.md`、`NEXT_DEVELOPMENT_ROADMAP.md` 与 `TECH_EVOLUTION.md`，不得把目标合同误写成完成状态。
+
 ## 可逆的工程默认值
 
 以下选择不会改变核心合同，代码阶段可通过小型 Spike 调整：

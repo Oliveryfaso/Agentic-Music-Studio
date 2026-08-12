@@ -2,7 +2,7 @@
 
 > 产品工作名：**Motif Forge**（音乐动机锻造台）
 > 文档状态：**架构基线已批准，详细合同已拆分**
-> 当前阶段：**阶段 1 实施中**；先交付领域脊柱与框架化最小 Agent 纵切，再扩展音频与 Web Studio。
+> 当前阶段：**Import/Analysis/Alignment/Web Preview 纵切已完成，完整创作主链路尚未完成**。受控 WAV/MP3/FLAC Upload、FFmpeg 标准化、BPM/key 分析、低置信度 HITL、pitch-preserving BPM 对齐、PostgreSQL/Celery/Redis 持久任务、Artifact 四态/恢复和真实网页试听均已通过；30 秒 Chromium Worker 与三个内置 Synth Preset 仍是音频 Spike。下一开发入口是先完成版本治理收口，再实现不依赖 LLM 的 60–90 秒确定性完整成曲 Walking Skeleton，随后把现有 CompositionPlan Graph 并入唯一 Parent Graph 的 `generate` 分支。当前事实与精确路线分别见 `IMPLEMENTATION_STATUS.md` 和 `NEXT_DEVELOPMENT_ROADMAP.md`。
 
 ---
 
@@ -17,6 +17,8 @@
 5. [AGENT_GRAPH_SPEC.md](./AGENT_GRAPH_SPEC.md)：Graph State、Node、Edge、Reducer、HITL 与错误路由。
 6. [PERSISTENCE_AND_WORKER_SPEC.md](./PERSISTENCE_AND_WORKER_SPEC.md)：PostgreSQL、Celery、Redis、Outbox 和 Worker。
 7. [FRONTEND_UX_SPEC.md](./FRONTEND_UX_SPEC.md)：前端状态、Canvas/DOM、音频运行时与视觉语言。
+8. [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md)：当前代码事实、验收证据、技术债与开发断点。
+9. [NEXT_DEVELOPMENT_ROADMAP.md](./NEXT_DEVELOPMENT_ROADMAP.md)：从当前断点到首版的依赖顺序和阶段门。
 
 冲突时优先级为：已批准 Decision Log → 专项合同 → 本总指南。任何公共 Schema 变更仍需同步更新相关文档和迁移说明。
 
@@ -83,10 +85,10 @@
 - 首批四套知识包同时交付：`Synth Ambient`、`Minimal Electronic`、`Classical Chamber`、`Jazz Harmony & Improvisation`。
 - 一个明确的推理模型：DeepSeek V4 Flash；保留 Provider 接口，但不把“支持多模型”当首版目标。
 - 支持导入 WAV、MP3、FLAC；单个混音文件作为一条 Audio Track，多文件 Stem 可分别导入多轨。首版不自动做 stem separation。
-- 内置可直接使用的常见音色库，覆盖电子/合成器、基础鼓组、钢琴/键盘、贝斯、弦乐室内乐和基础爵士管乐；所有 Sample/SoundFont/Preset 都有明确许可。
+- 默认内置 0.5–1 GiB 的 `Core Sound Palette Lite`，覆盖电子/合成器、基础鼓组、键盘/贝斯、弦乐室内乐和基础爵士管乐的紧凑音色；高采样层 multisample 作为可选 HQ Pack，所有 Sample/SoundFont/Preset 都有明确许可。
 - DeepSeek 可以生成受约束的合成器音色、旋律和伴奏，也可以把自然语言音色描述转换成检索条件，从本地或许可 Allowlist 音源中寻找候选。
 - 基础钢琴卷帘、多轨时间线、混音与效果；不追求专业 DAW 的全部能力。
-- 首版产出包括 Master WAV、MP3、逐轨 Stem、MIDI、可继续编辑的项目文件、credits/license manifest 和 trace manifest。
+- 首版具备 Master WAV、MP3、逐轨 Stem、MIDI、可继续编辑的项目文件、credits/license manifest 和 trace manifest 的完整导出能力；Master WAV 与 Stem 按需渲染，不为每个候选预先永久保存。
 
 ### 2.4 明确不做
 
@@ -121,6 +123,12 @@ Agent 负责审美意图、结构规划、风格选择和基于证据的诊断�
 ### 3.5 所有创作步骤可追溯
 
 计划、知识来源、Prompt、模型、Schema、素材、渲染引擎、随机种子、评测和人工决策全部带版本。失败案例可复现，候选可比较，最终作品可说明来源。
+
+### 3.6 完整保留“事实与配方”，按需保留大型派生文件
+
+首版默认使用 `Lean Storage Profile`：Revision、CandidateSnapshot、CompositionPlan、MIDI/项目 manifest、Artifact metadata、recipe、lineage、license 和 provenance 是可复现的事实；waveform、分析、标准化/拉伸派生文件、候选试听、旧渲染和 Stem 是可治理的大型产物。驱逐只能由确定性规则发生，不能破坏当前 Revision、原始导入、人工审批或最终导出能力。
+
+音频质量使用版本化 `MediaQualityProfile`，不允许各节点临时决定码率：素材快速试听为 `audition-lite.v1`（最多 15 秒、MP3 128 kbps、保留源声道）；A/B 完整试听为 `candidate-preview.v1`（48 kHz stereo、MP3 160 kbps）；编辑、分析、time-stretch 和转码的工作中间件为 `working-pcm.v1`（48 kHz stereo PCM16 WAV）；最终选中 Master 为 `canonical-master.v1`（48 kHz stereo PCM24 WAV），Stem 只在显式导出时使用同规格生成。用户原始导入 `source-original.v1` 按原始 bytes/checksum 不可变保存，绝不以低质量副本覆盖。质量档位、codec、采样率、声道、bit depth/bitrate、编码器和版本都进入 Artifact metadata、recipe、cache key 与 trace。
 
 ---
 
@@ -162,7 +170,7 @@ flowchart TB
     EVENT --> GRAPH
 
     RUN --> DB["Metadata / Revisions / Checkpoints"]
-    RUN --> STORE["Artifact Store\nWAV / MIDI / JSON / Waveform"]
+    RUN --> STORE["Configurable Artifact Root\nWAV / MIDI / JSON / Waveform"]
     RENDER --> STORE
     GRAPH --> OBS["Trace / Metrics / Eval"]
 
@@ -372,6 +380,8 @@ flowchart TD
 
 每个候选使用独立 `CandidateState` 和 seed。fan-in 前按 `candidate_id` 排序，避免并发返回顺序影响结果。
 
+两个候选都保留完整、不可变的 `CandidateSnapshot/ArrangementIR`。Repair Loop 使用最多 15 秒的 `audition-lite.v1` 局部试听；进入 A/B 时默认为每个候选渲染完整时长的 `candidate-preview.v1`（MP3 160 kbps）预览，待选中后再按需渲染 canonical Master WAV 和 Stem。
+
 ### 6.5 自检与修复
 
 自检不是让模型反复说“我觉得更好了”，而是：
@@ -499,6 +509,9 @@ DeepSeek V4 Flash 当前承担的是**直接生成可执行音乐结构**，不�
 | 素材缺失或许可不允许 | 规则选择同类 Allowlist 素材；无替代则转人工 |
 | Worker crash、heartbeat 超时 | 重新入队未完成 Job；完成 Artifact 通过 checksum 去重 |
 | Revision 冲突 | 重新加载当前 Revision，重新计算 diff 与 ChangeImpact，不覆盖新版本 |
+| Artifact Root 不可用 | 暂停新的 Upload/Render/Export，不静默改用内置盘；恢复挂载后从 checkpoint 继续 |
+| 存储配额不足 | 先按 StoragePressureGate 清理过期 ephemeral/可安全驱逐 rebuildable；仍不足则转人工换 Root/配额或显式删除 |
+| Artifact 未预期丢失或校验失败 | 标记 `missing`并阻断依赖路径；不与正常 `evicted/rehydrating` 混淆 |
 | 存储损坏或预算耗尽 | 停止新增工作，保留最佳可播放结果和恢复说明 |
 
 简单判断由版本化 `RulePolicyDocument` 驱动，而不是交给 LLM：
@@ -760,13 +773,15 @@ DeepSeek V4 Flash 支持 JSON Output 和工具调用，但集成必须遵守以�
 
 ### 9.3 首版音色库与 AI 音色/旋律能力
 
-首版内置一套小而完整的 `Core Sound Palette`，优先保证四个 Style Pack 可以无需外部下载就完成整曲：
+首版内置 0.5–1 GiB 的 `Core Sound Palette Lite`，优先保证四个 Style Pack 可以无需外部下载就完成整曲：
 
 - 基础合成：sine/saw/square/triangle、mono/poly synth、sub bass、pluck、lead、pad、arp、noise/texture。
 - 电子节奏：kick、snare、clap、closed/open hi-hat、tom、cymbal、基础 percussion。
 - 键盘与贝斯：acoustic piano、electric piano、synth bass、upright/electric bass。
 - 古典室内乐：violin、viola、cello、基础 flute/clarinet，以及可用的 ensemble preset。
 - 爵士基础：piano/EP、upright bass、brush/stick drum kit、sax/trumpet 的基础音色。
+
+四个 Style Pack 本身主要是知识卡、符号模板、MIDI/MusicXML 示例、Synth Preset 和少量经审核 one-shot，目标总体控制在 100 MiB 量级。Lite 音色对古典弦乐、钢琴和爵士管乐的真实感会有上限，但不影响编曲、编辑、Graph、HITL 与完整导出。可选 3–10 GiB `HQ Instrument Pack` 只安装到可配置 Artifact Root，不进入默认镜像与首版必装。
 
 每个 Preset 都能调整 gain、pan、ADSR、filter cutoff/resonance、detune/unison、LFO、EQ、reverb 和 delay 中适用的一部分；不为了“参数多”暴露没有听觉意义或无法稳定渲染的选项。
 
@@ -798,9 +813,11 @@ DeepSeek 支持三类音色/旋律操作：
 - OfflineAudioContext：浏览器 Preview 与 Worker canonical WAV 的统一渲染语义。
 - AudioWorklet：只有需要自定义低延迟 DSP 时再引入。
 - 独立 Render Worker：通过受控 Chromium 执行相同 Tone/Web Audio 图，负责完整 Master/Stem、质量检查和 Artifact 写入。
-- FFmpeg：首版在 Worker 中完成 MP3 转码并规范采样率、声道与 metadata；不让 ffmpeg.wasm 承担完整工程主渲染。
+- FFmpeg：首版由受控 Python Media Task 完成 time-stretch、MP3 转码及采样率/声道/metadata 规范；Chromium Render Worker 只负责确定性 Web Audio 渲染，不重复内置完整系统 FFmpeg，也不让 ffmpeg.wasm 承担完整工程主渲染。
 
 Chromium canonical render 比独立原生渲染器消耗更多镜像、内存和 CPU。首版 Render Queue 默认并发 1，复用浏览器进程，并在实现前对 1/3/5 分钟、4/8/12 轨做冷/热启动、峰值内存、P50/P95 和取消性能 Spike。失败时不静默切换到听感不同的渲染器。
+
+A/B 前的候选渲染使用完整时长 `candidate-preview.v1`（48 kHz stereo、MP3 160 kbps），不为每个候选预生成 12 轨 WAV Stem。Repair、素材浏览和局部验证优先使用最多 15 秒的 `audition-lite.v1`（MP3 128 kbps）。用户选中后按需渲染 `canonical-master.v1`（48 kHz stereo、PCM24 WAV）；Stem 仅在显式导出时生成。低码率只用于可重建试听，不覆盖原始上传、工作 PCM 或最终 WAV；编码失败必须显式失败或重试，不能静默继续降码率。
 
 Celery 的 Python Render Task 通过唯一 `ChromiumRenderAdapter` 驱动 Playwright Chromium，加载固定的 loopback `render.html` 与 pinned `audio-engine` bundle。任务用 JSON `RenderBridgeRequest` 传递 IR/Candidate 引用、范围、输出角色和版本；页面把 WAV 二进制流式写入一次性、仅本机可访问的输出 sink，Python 再校验媒体属性、checksum 并注册 Artifact。完整音频不通过 base64、Redis、Graph State 或普通 Playwright JSON 返回。
 
@@ -814,7 +831,7 @@ Celery 的 Python Render Task 通过唯一 `ChromiumRenderAdapter` 驱动 Playwr
 
 首版方案：
 
-- 在 Render Worker 中使用 FFmpeg `atempo` 作为基线实现，输出新的 Derived WAV Artifact。
+- 在受控 Python Media Worker/Task 中使用 FFmpeg `atempo` 作为基线实现，输出新的 Derived WAV Artifact；它与 Chromium Render Worker 共享 Job/Artifact 合同，但不是同一个容器镜像职责。
 - 根据 `target_bpm / source_bpm` 计算 tempo ratio，保留 source/target BPM、算法版本和 checksum。
 - 原文件不可变；相同 input hash + ratio + engine version 命中缓存。
 - 完成后重新检测 duration、BPM、pitch/chroma deviation、transient smearing、click/pop 和 loudness。
@@ -845,9 +862,9 @@ Celery 的 Python Render Task 通过唯一 `ChromiumRenderAdapter` 驱动 Playwr
 1. **Project Home**：项目列表、新建、导入、最近版本、失败运行恢复。
 2. **Import Review**：上传状态、格式/版权校验、波形、BPM/key 置信度、项目 BPM 对齐和 pitch-preserving time-stretch 预览。
 3. **Brief / Plan**：Brief 表单、段落结构、能量曲线、配器、知识来源与计划审批。
-4. **Compare**：A/B 同步试听、指标和结构差异、采用一个或保留两个分支。
+4. **Compare**：A/B 同步试听完整时长压缩预览、指标和结构差异、采用一个或保留两个分支；候选渲染被驱逐时可由 recipe 重建。
 5. **Studio**：主要编辑工作区。
-6. **Export**：Master WAV/MP3、逐轨 Stem、MIDI、可编辑项目、credits/license/trace manifests 与 provenance。
+6. **Export**：按需渲染 Master WAV/MP3、逐轨 Stem，并交付 MIDI、可编辑项目、credits/license/trace manifests 与 provenance。
 7. **Run Inspector**：父 Graph/子图节点、规则命中、工具、Job、耗时、token、成本、错误、checkpoint 和 artifact，作为工程展示页。
 8. **Eval Lab**：运行 Eval Set、对比 Baseline、查看失败分类；可晚于 Studio 实现，但属于主项目验收范围。
 
@@ -887,6 +904,7 @@ Timeline、Clip、降采样波形、Automation 和 Piano Roll 主画布使用 Ca
 - API 不可用、Worker 失败、素材缺失、许可不允许、版本冲突。
 - 上传中断、文件损坏、解码失败、BPM/key 低置信度、time-stretch 失败或质量警告。
 - 取消、重试、从 checkpoint 恢复。
+- Artifact Root 未挂载、项目/全局配额不足、清理进度、Artifact `evicted/rehydrating/missing` 和重建失败。
 - 长轨道名、窄屏、时间线横向 overflow 和大缩放范围。
 
 ### 10.5 视觉语言
@@ -956,13 +974,38 @@ WAV、完整波形、长文档和大 MIDI 数组放 Artifact Store，不塞入 C
 
 渲染、分析和未来音乐生成属于长任务，不能阻塞 FastAPI 请求。API 在同一 PostgreSQL 事务中写 Job + Outbox，Dispatcher 发布 Redis，Celery Worker 写 Artifact 与持久事件，Resume Dispatcher 从同一 thread checkpoint 恢复 Graph。Redis 和 Celery result backend 都不是业务事实源。HITL 等待期间不占 Worker。
 
+Lean Storage 默认的容量目标：
+
+| 位置/类别 | 默认目标 |
+|---|---:|
+| 内置盘干净安装 | 6–10 GiB |
+| 构建/升级临时峰值 | 12–15 GiB |
+| Docker/BuildKit Build Cache | 开发期约 1.5 GiB 目标、2 GiB 硬上限；封版后项目缓存清空 |
+| `Core Sound Palette Lite` | 0.5–1 GiB |
+| 外置 Artifact Root 全局硬配额 | 10 GiB，可配置 |
+| 单项目软配额 | 2 GiB，可配置 |
+| 临时区硬配额 | 2 GiB，可配置 |
+| 可选 HQ Instrument Pack | 额外 3–10 GiB，只安装到 Artifact Root |
+
+项目相对 `var/artifacts` 只是 portable/CI/test 的代码级回退；本地 Lean Profile 的首次引导优先让用户选择可写外置卷并生成显式配置，选内置盘也要显式确认。代码、Compose 和文档不硬编码用户名、卷名或个人绝对路径。PostgreSQL/Redis 活数据、容器 VM 和必需镜像留在内置盘；导入、音色包、预览、渲染、导出和可重建缓存优先位于 Artifact Root。
+
+本地开发中，仓库 checkout、Web `node_modules`、音色包、原始导入、所有试听/波形/分析/派生音频、导出、音频 Eval fixture，以及可迁移的 npm/pnpm/Playwright cache 都应位于外置盘。内置盘只保留无法安全迁移的 Colima/Docker VM、PostgreSQL/Redis 活跃 Volume、当前必需镜像，以及因外置文件系统兼容性必须本地保存的最小 Python 环境/cache。外置 Root 断开时暂停写入，不回落到内置系统临时目录。
+
 ### 11.5 版本与 Artifact
 
 - 每次自动落地或人工批准的 Patch 都产生不可变 Revision。每个 Branch 的 `head_revision_id` 是该分支当前版本的唯一权威指针；Project 只保存 `active_branch_id`，API 的 `current_revision_id` 由 active branch head 投影。
 - CandidateSnapshot 保存 A/B 或 Patch 的不可变候选内容；PreviewCandidate 只保存审批生命周期并引用 Snapshot。批准时创建新的 Revision，拒绝/过期/失效不覆盖 Base。
-- Artifact 保存 content hash，重复渲染可命中缓存。
+- Artifact 保存 content hash、生命周期、可用性、recipe 和 lineage，重复渲染可命中缓存。
 - 同一 pinned Chromium Worker、版本、素材、采样率和 seed 的 canonical 渲染应具有稳定 checksum；浏览器 Preview 与 Worker Render 要求版本化特征/听感容差一致，不承诺跨平台逐字节相同。
-- 导出包含 Project、ArrangementIR、Master WAV/MP3、逐轨 Stem、MIDI、manifests 和必要的 trace refs。
+- 导出按需物化 Project、ArrangementIR、Master WAV/MP3、逐轨 Stem、MIDI、manifests 和必要的 trace refs；完整导出能力不要求内部永久保存每个历史候选的 Stem。
+
+Artifact 同时使用四级 `lifecycle_class` 与四态 `availability`：
+
+- `protected`：用户原始导入、当前 Revision 引用、待审批候选的必需输入；不可自动驱逐。
+- `durable`：选中 Master、manifests、license/provenance 和非可重建素材；只通过用户显式删除/归档移除。
+- `rebuildable`：peaks、analysis、normalized/time-stretch、旧 Revision render cache 和按需 Stem；只有 recipe 与输入 hash 完整才可驱逐。
+- `ephemeral`：Job scratch、中断残留、已拒绝/未选候选压缩试听；默认终态清理或最多保留 24 小时。
+- `availability = available | evicted | missing | rehydrating`：`evicted` 是有配方的预期驱逐，`rehydrating` 是重建中且尚不可读，`missing` 是非预期丢失/校验失败。外置 Root 暂时未挂载不等于全库 `missing`。
 
 ---
 
@@ -982,6 +1025,9 @@ WAV、完整波形、长文档和大 MIDI 数组放 Artifact Store，不塞入 C
 | 上传/Codec、非法音符、素材缺失 | 隔离或修复；需要用户文件/许可时 interrupt，不盲目重试 |
 | Time-stretch/Segment stitch 质量失败 | 保留原 Artifact，只修复或重渲对应 Segment |
 | Worker heartbeat 超时 | 重新入队未完成 Job，重复完成事件以 checksum 去重 |
+| Artifact Root 未配置/未挂载 | `ARTIFACT_ROOT_UNAVAILABLE`，interrupt 用户恢复或重新配置，不静默回落内置盘 |
+| 存储超配额 | 先清理到期 ephemeral/可安全驱逐 rebuildable；仍不足则 `STORAGE_QUOTA_EXCEEDED` 转人工 |
+| Artifact `evicted/rehydrating/missing` | evicted 按 recipe 重建；rehydrating 等待幂等 Job；missing 停止依赖路径并报 `ARTIFACT_MISSING` |
 | 用户信息不足 | interrupt |
 | 预算耗尽 | 返回当前最佳可播放版本与未解决问题 |
 
@@ -1011,6 +1057,20 @@ L0/L1 不等待 interrupt，但提交前后都写 Revision 与 Audit Event。恢
 - 连续无改善轮数。
 
 LangGraph recursion limit 只是最后保险，不能替代业务终止条件。
+
+### 12.4 StoragePressureGate v1
+
+Upload、Candidate fan-out 试听、Render、Time-stretch 和 Export 之前运行确定性 `StoragePressureGate v1`，不调用模型。它读取 Root 能力/剩余空间、项目/全局/临时区配额、预计输出 bytes、lifecycle/availability、TTL、Revision/Preview 引用和 Job 租约，只输出五个稳定路由：
+
+1. 空间足够 → `proceed`。
+2. 超软配额且有安全对象 → `gc_then_retry`；清理到期 `ephemeral`，再驱逐有完整 recipe 的 `rebuildable`，每个 operation 最多清理并重算一次。
+3. 请求依赖已正常驱逐 → `rehydrate_then_resume`，复用或创建幂等重建 Job 后从原 checkpoint 恢复。
+4. Root 不可用或清理后仍超硬配额 → `wait_for_storage`，等待用户换 Root、提升配额或显式删除/归档；不删除 `protected/durable`。
+5. Artifact 非预期丢失、配方不可恢复、用户取消或 deadline 到期 → `fail`，保留最近成功 Artifact 和恢复说明。
+
+候选使用 `candidate-preview.v1`，局部验证使用 `audition-lite.v1`，非必需 Stem 延迟生成；这些属于进入 `proceed` 前的确定性输出计划，不新增隐藏路由，也不降低用户要求的最终 WAV 规格。压缩试听默认保留 24 小时；未受保护的可重建派生缓存和终态 Run checkpoint 默认保留 7 天。Build Cache 不属于 Artifact Store：本地开发 Profile 以 API、Media Worker、Chromium Render Worker 中下一阶段确定使用的 target 为热路径白名单，目标约 1.5 GiB、硬上限 2 GiB；当前 tagged image 优先于投机性缓存，无法同时容纳时接受下一次冷构建。项目封版或长期停开发后清空项目拥有的 BuildKit cache，只保留发布镜像和可复现输入。共享 builder 归属不清时停止自动 prune，不通过删除其他项目缓存伪装达标。
+
+资源优化采用“模块级证据”而非固定部署模板。每个新增 Worker、模型 runtime、音色包或工具链都必须先记录：是否需要进程/镜像隔离、稳定层是什么、冷启动与重建成本、缓存能否明确归属、数据是否可重建、能否放外置盘，以及压缩对用户可感知质量的影响。只有这些事实相近时才复用现有模式。
 
 ---
 
@@ -1190,6 +1250,10 @@ LangGraph recursion limit 只是最后保险，不能替代业务终止条件。
 
 这里按前后依赖排序，不按周或日期排期。
 
+本节定义最终产品能力的依赖关系，不表示各项已经实现。当前代码状态以 `IMPLEMENTATION_STATUS.md` 为准；从当前断点开始的实际执行顺序以 `NEXT_DEVELOPMENT_ROADMAP.md` 为准。路线采用“短开发前收口门 + 后续纵切内优化”：先处理文档事实、版本 checkpoint 和单一 Graph 方向这类会造成返工的阻塞项；文件拆分、DTO 生成、SSE 和 Trace 接线随经过它们的业务纵切完成，不安排脱离用户价值的大重构阶段。
+
+每个“小阶段”完成验收后必须执行一次 **Stage-end Storage Hygiene Gate**：先冻结保留集合（最新具名镜像、运行服务、数据库卷、最终/基准 Artifact、锁文件和下阶段需要的唯一测试环境），再精确枚举镜像、BuildKit cache、旧 Spike、临时文件和工具 cache；只刷新下一阶段明确使用的 target，随后把开发期 BuildKit 收口到约 1.5 GiB、且不得仅为“也许会复用”超过 2 GiB。日常开发默认使用宿主机 Vite/TypeScript/Python 测试；源码变化本身不是 Docker 重建理由。只有 Dockerfile/系统依赖、影响容器的 lockfile、迁移/运行时接线，或明确的跨服务/阶段验收，才重建受影响的单个 target，并记录触发原因。只删除过期且可重建的项目产物，随后复核磁盘占用、readiness 和无需重建的最小 smoke。功能完备、发布封版或长期停开发时，项目拥有的构建缓存应全部清空；发布镜像、锁文件和构建说明才是保留项。禁止用 `docker system prune --volumes`、`docker image prune -a` 或模糊路径删除业务数据/其他项目镜像；Docker cache 归属不明确时先转人工确认。清理前后 bytes、保留项和恢复验证写入 `TECH_EVOLUTION.md`。
+
 ### 阶段 0：冻结合同与最小边界
 
 - 确认 `Motif Forge` 工作名；冻结四个首发知识包、DeepSeek V4 Flash 和 Docker Compose 完整演示档位。
@@ -1216,9 +1280,11 @@ LangGraph recursion limit 只是最后保险，不能替代业务终止条件。
 
 - 完成 Tempo/Section/Track/Clip/Note、命令、undo/redo、版本 diff 和 Pattern 编译。
 - 先执行 30 秒 Chromium Render Spike，再实现共享 AudioGraphCompiler、最小合成器、Sampler、Master/Stem 渲染和 WAV/MP3/MIDI 导出。
-- 建立首版 Core Sound Palette、Preset/Sample Catalog 与 license manifest。
+- 建立 0.5–1 GiB `Core Sound Palette Lite`、Preset/Sample Catalog 与 license manifest；HQ Instrument Pack 保持为可选外置包。
 - 实现 WAV/MP3/FLAC 导入、标准化、基础 BPM/key 分析和不可变 Artifact lineage。
 - 实现 Worker 端 pitch-preserving time-stretch、缓存和质量校验。
+- 实现可配置 Artifact Root、lifecycle/availability/recipe、StoragePressureGate v1 与驱逐—重建测试。
+- 实现版本化 MediaQualityProfile：128 kbps 局部 audition、160 kbps 完整候选、PCM16 working、PCM24 canonical，并验证低质量试听不会污染原件、cache key 或最终导出。
 
 验收：不依赖 LLM，也能导入音频、保持音高对齐 BPM、使用内置音色编辑/播放，并导出一首 1–5 分钟完整成曲及全部 manifests。
 
@@ -1327,6 +1393,7 @@ LangGraph recursion limit 只是最后保险，不能替代业务终止条件。
 | 版权不清晰 | Asset license allowlist、manifest、checksum、导出归因 |
 | Agent 自检无限循环 | BudgetGate、最大 revision、无改善终止、保留最佳版本 |
 | Worker/进程中断 | checkpoint、幂等 Job、内容寻址 Artifact、恢复测试 |
+| 内置盘被镜像、音色和中间 WAV 耗尽 | Lean Storage Profile、外置 Artifact Root、Lite/HQ 分层、压缩候选试听、按需 Master/Stem 和 StoragePressureGate |
 | 框架喧宾夺主 | 从脚手架引入最小框架，但保持纯领域首切片与原生手写 Loop Baseline；生产 AI 链路使用显式 Graph API，不用黑盒 Agent |
 
 ---
@@ -1358,6 +1425,7 @@ LangGraph recursion limit 只是最后保险，不能替代业务终止条件。
 21. **函数边界**：Agent 只调用 `simulate_edit_patch` 等纯函数/只读工具；`commit_revision`、`request_preview_render` 和外部下载只属于 Graph/Application。
 22. **Revision/Branch/Preview**：Revision 永远不可变；PreviewCandidate 不是 Revision；Branch head 是唯一当前指针，批准候选会创建新的 Revision。
 23. **框架引入时点**：LangChain Core、LangGraph 与 checkpointer 从初始脚手架进入；首个非 AI 领域切片不依赖 Graph，首条生产 AI 链路直接使用最小 MotifForgeGraph，并保留原生 DeepSeek Loop 作为契约 Baseline。
+24. **Lean Storage**：内置盘干净安装 6–10 GiB、构建/升级峰值 12–15 GiB；`var/artifacts` 只是 portable/CI/test 回退，本地 Lean Profile 优先引导到显式配置的外置卷。四级生命周期、四态可用性、recipe/lineage、Lite/HQ 分层、压缩候选试听、按需 Master/Stem 和 StoragePressureGate 不改变 DeepSeek、Graph、HITL 与完整产出合同。
 
 ---
 
@@ -1412,6 +1480,10 @@ LangGraph recursion limit 只是最后保险，不能替代业务终止条件。
 ---
 
 ## 21. 当前方案的最终摘要
+
+> 实施同步（2026-08-12）：阶段 2 的受控导入、基础分析、自动对齐与 Lean Storage 纵切已实现。Upload 使用分块 raw bytes、每 Session/Part checksum、WAV/MP3/FLAC magic gate 和不可变 `source-original.v1 + quarantined`；Media Worker 做 FFprobe 解码、48 kHz stereo PCM16 标准化，并用无大型依赖的 `import-analysis.v1` 基线生成 BPM/key/置信度。`waveform-peaks.v1`（最多 4096 个 min/max bucket）与 `imported-audio-analysis.v1` 已作为独立、内容寻址、可驱逐/可恢复 Feature Artifact 持久化，并可按源 Audio Artifact 发现和按 ID 读取。`import-analysis-policy.v1` 将高可信 BPM 偏差自动路由到保持音高的 FFmpeg time-stretch；低可信分析在同一 `motif-forge-parent.v1` checkpoint 中等待确认/覆盖/跳过/取消。对齐是同一个 PostgreSQL Run 的后续 Job，最终 L1 AudioClip 保存原/派生 Artifact 与 source/target BPM/engine lineage。存储门现已在 Upload/Import/time-stretch/rehydrate 前执行确定性 Root/配额/依赖检查，精确驱逐只接受数据库 Artifact ID 并保留完整 recipe；当前可执行重建覆盖 time-stretch Audio Artifact 与上述两个 Feature Profile，render/transcode recipe 仍需各自 Worker 纵切后启用。当前不再把复杂分析或通用存储扩建列为下一主线；先按 `NEXT_DEVELOPMENT_ROADMAP.md` 完成 G0 版本收口和 S1 确定性完整成曲，分析精度、temp ledger 与嵌套依赖按真实消费者和 Eval 证据增量完善。
+
+> Web 闭环同步（2026-08-12）：Import Review 已从手工 UUID 读取扩展为受控本地上传、权利确认、浏览器 SHA-256、分块 Session、Import Run URL 恢复、低置信度确认/覆盖/跳过/取消、原始/保持音高对齐 Range 试听与独立 Feature Review。`GET /api/v1/imports/{thread_id}` 只投影同一 PostgreSQL checkpoint，不重跑 Graph；音频内容只经 validated Artifact ID 解析，不公开外置盘路径。开发期仍是 host-first，本纵切只在跨服务验收点刷新 API target，没有重建 Media/Chromium Worker。
 
 建议按以下主线推进：
 

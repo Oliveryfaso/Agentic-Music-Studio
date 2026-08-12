@@ -7,9 +7,17 @@ import pytest
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
 from motif_forge.agent.graph import build_composition_plan_graph, initial_plan_state
+from motif_forge.agent.parent_graph import (
+    PARENT_TIME_STRETCH_RUN_TYPE,
+    build_parent_graph,
+    initial_time_stretch_state,
+)
 from motif_forge.agent.planner import PlannerError, StaticCompositionPlanner
 from motif_forge.agent.schemas import CompositionBrief, CompositionPlan
+from motif_forge.application.media_jobs import EnqueueMediaJobRequest, EnqueueMediaJobResult
+from motif_forge.domain.media_jobs import JobStatus, TimeStretchJobPayload
 from motif_forge.infrastructure.checkpoints import postgres_checkpointer
+from motif_forge.worker.outbox import OutboxMessage, ParentGraphResumePublisher
 
 from .conftest import IsolatedPostgresSchemas
 from .sample_data import valid_brief_payload, valid_plan_payload
@@ -34,6 +42,28 @@ def _must_not_run_planner() -> StaticCompositionPlanner:
 
 def _config(thread_id: str) -> RunnableConfig:
     return {"configurable": {"thread_id": thread_id}}
+
+
+class _FixedEnqueuer:
+    def __init__(self) -> None:
+        self.run_id = uuid4()
+        self.job_id = uuid4()
+        self.calls = 0
+
+    async def __call__(self, request: EnqueueMediaJobRequest) -> EnqueueMediaJobResult:
+        del request
+        self.calls += 1
+        return EnqueueMediaJobResult(
+            run_id=self.run_id,
+            job_id=self.job_id,
+            status=JobStatus.QUEUED,
+        )
+
+
+class _FailingEnqueuer:
+    async def __call__(self, request: EnqueueMediaJobRequest) -> EnqueueMediaJobResult:
+        del request
+        raise AssertionError("enqueue must not rerun after Parent Graph checkpoint recovery")
 
 
 def test_integration_agent_fixtures_match_strict_v1_schemas() -> None:
@@ -120,3 +150,81 @@ async def test_checkpoint_rows_are_isolated_by_postgres_schema(
         test_postgres_dsn, schema=isolated_postgres_schemas.primary
     ) as reopened_primary_saver:
         assert await reopened_primary_saver.aget_tuple(config) is not None
+
+
+@pytest.mark.asyncio
+async def test_parent_worker_resume_survives_restart_without_reenqueue(
+    test_postgres_dsn: str,
+    isolated_postgres_schemas: IsolatedPostgresSchemas,
+) -> None:
+    thread_id = f"parent-resume-{uuid4().hex}"
+    config = _config(thread_id)
+    enqueuer = _FixedEnqueuer()
+
+    async with postgres_checkpointer(
+        test_postgres_dsn, schema=isolated_postgres_schemas.primary
+    ) as first_saver:
+        graph = build_parent_graph(enqueuer, checkpointer=first_saver)
+        interrupted = await graph.ainvoke(
+            initial_time_stretch_state(
+                thread_id=thread_id,
+                project_id=uuid4(),
+                request=TimeStretchJobPayload(
+                    source_artifact_id=uuid4(),
+                    source_bpm=120,
+                    target_bpm=100,
+                ),
+            ),
+            config,
+        )
+        assert interrupted["phase"] == "waiting_worker"
+        assert enqueuer.calls == 1
+
+    artifact_id = uuid4()
+    async with postgres_checkpointer(
+        test_postgres_dsn, schema=isolated_postgres_schemas.primary
+    ) as reopened_saver:
+        reopened_graph = build_parent_graph(_FailingEnqueuer(), checkpointer=reopened_saver)
+        publisher = ParentGraphResumePublisher(reopened_graph)
+        await publisher.publish(
+            OutboxMessage(
+                event_id=uuid4(),
+                topic="graph.resume.requested",
+                dedupe_key=f"resume:{uuid4()}",
+                payload={
+                    "schema_version": "worker-resume.v1",
+                    "run_id": str(enqueuer.run_id),
+                    "thread_id": thread_id,
+                    "run_type": PARENT_TIME_STRETCH_RUN_TYPE,
+                    "resume_event_id": "worker-complete-after-restart",
+                    "job_id": str(enqueuer.job_id),
+                    "status": "succeeded",
+                    "artifact_id": str(artifact_id),
+                    "error_code": None,
+                },
+                attempts=1,
+            )
+        )
+        await publisher.publish(
+            OutboxMessage(
+                event_id=uuid4(),
+                topic="graph.resume.requested",
+                dedupe_key=f"resume-replay:{uuid4()}",
+                payload={
+                    "schema_version": "worker-resume.v1",
+                    "run_id": str(enqueuer.run_id),
+                    "thread_id": thread_id,
+                    "run_type": PARENT_TIME_STRETCH_RUN_TYPE,
+                    "resume_event_id": "worker-complete-after-restart",
+                    "job_id": str(enqueuer.job_id),
+                    "status": "succeeded",
+                    "artifact_id": str(artifact_id),
+                    "error_code": None,
+                },
+                attempts=2,
+            )
+        )
+        snapshot = await reopened_graph.aget_state(config)
+
+    assert snapshot.values["terminal_status"] == "succeeded"
+    assert snapshot.values["artifact_refs"] == [str(artifact_id)]

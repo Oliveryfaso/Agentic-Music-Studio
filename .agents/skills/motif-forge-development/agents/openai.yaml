@@ -1,4 +1,4 @@
 interface:
   display_name: "Motif Forge Development"
-  short_description: "规范 Motif Forge Agent、音频、规则、异常与评测开发流程"
+  short_description: "规范 Motif Forge Agent、音频、异常、评测与阶段存储清理"
   default_prompt: "Use $motif-forge-development to implement the next Motif Forge vertical slice with contracts, tests, traces, and documentation."

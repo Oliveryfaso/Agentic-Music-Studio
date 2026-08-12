@@ -1,29 +1,118 @@
 services:
   api:
+    image: motif-forge-api:local
     build:
       context: .
       dockerfile: services/api/Dockerfile
+      target: api
     env_file:
       - .env
+    environment:
+      MOTIF_FORGE_STORAGE_PROFILE: lean
+      MOTIF_FORGE_ARTIFACT_ROOT: /artifacts
+      MOTIF_FORGE_TEMP_ROOT: /artifacts/tmp
+    volumes:
+      - ${MOTIF_FORGE_ARTIFACT_HOST_ROOT:-./var/artifacts}:/artifacts
     ports:
       - "8000:8000"
     depends_on:
       migrate:
         condition: service_completed_successfully
+      storage-init:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
 
   migrate:
+    image: motif-forge-api:local
     build:
       context: .
       dockerfile: services/api/Dockerfile
-    command: ["uv", "run", "alembic", "upgrade", "head"]
+      target: api
+    command: ["alembic", "upgrade", "head"]
     env_file:
       - .env
     depends_on:
       postgres:
         condition: service_healthy
     restart: "no"
+
+  storage-init:
+    image: motif-forge-api:local
+    command:
+      [
+        "sh",
+        "-c",
+        "mkdir -p /artifacts/tmp/jobs /artifacts/quarantine/source-original /artifacts/protected/working-pcm /artifacts/derived/time-stretch /artifacts/rebuildable/features && chmod 1777 /artifacts/tmp /artifacts/tmp/jobs /artifacts/quarantine /artifacts/quarantine/source-original /artifacts/protected /artifacts/protected/working-pcm /artifacts/derived /artifacts/derived/time-stretch /artifacts/rebuildable /artifacts/rebuildable/features",
+      ]
+    volumes:
+      - ${MOTIF_FORGE_ARTIFACT_HOST_ROOT:-./var/artifacts}:/artifacts
+    restart: "no"
+
+  dispatcher:
+    image: motif-forge-api:local
+    command: ["python", "-m", "motif_forge.worker.dispatcher"]
+    env_file:
+      - .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  resume-dispatcher:
+    image: motif-forge-api:local
+    command: ["python", "-m", "motif_forge.worker.resume_dispatcher"]
+    env_file:
+      - .env
+    environment:
+      MOTIF_FORGE_STORAGE_PROFILE: lean
+      MOTIF_FORGE_ARTIFACT_ROOT: /artifacts
+      MOTIF_FORGE_TEMP_ROOT: /artifacts/tmp
+    volumes:
+      - ${MOTIF_FORGE_ARTIFACT_HOST_ROOT:-./var/artifacts}:/artifacts
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  media-worker:
+    image: motif-forge-media-worker:local
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+      target: media-worker
+    command:
+      [
+        "celery",
+        "-A",
+        "motif_forge.worker.celery_app:celery_app",
+        "worker",
+        "--queues=media",
+        "--concurrency=1",
+        "--prefetch-multiplier=1",
+        "--without-gossip",
+        "--without-mingle",
+        "--loglevel=INFO",
+      ]
+    env_file:
+      - .env
+    environment:
+      MOTIF_FORGE_STORAGE_PROFILE: lean
+      MOTIF_FORGE_ARTIFACT_ROOT: /artifacts
+      MOTIF_FORGE_TEMP_ROOT: /artifacts/tmp
+    volumes:
+      - ${MOTIF_FORGE_ARTIFACT_HOST_ROOT:-./var/artifacts}:/artifacts
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      storage-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 30s
 
   postgres:
     image: postgres:17-alpine

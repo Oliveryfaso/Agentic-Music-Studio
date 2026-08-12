@@ -12,7 +12,7 @@
 |---|---|---|---|
 | 项目事实 | PostgreSQL Revision | 不可变、可分支 | ArrangementIR、命令、审批 |
 | 流程状态 | LangGraph checkpoint | 单个有限 Run | phase、pending action、refs |
-| 大型产物 | Artifact Store + DB metadata | 内容寻址、不可变 | WAV、MIDI、peaks、analysis |
+| 大型产物 | Artifact Store + DB metadata | 内容寻址、不可变 bytes、生命周期可治理 | WAV、MIDI、peaks、analysis |
 | 页面运行时 | 浏览器内存 | 可丢弃、可重建 | selection、zoom、Tone nodes |
 
 任何页面或 Graph 状态都必须能通过 `project_id + revision_id + artifact refs` 重建。
@@ -277,8 +277,40 @@ CandidateSnapshot 创建后不允许原地修改；修复会创建新的 Snapsho
 - `artifact_id`、`sha256`、media type、byte size
 - content-addressed storage key；API 永不返回服务器绝对路径
 - producer/job/engine/schema versions
-- parent Artifact lineage
-- quarantine/ready/rejected/corrupt 状态
+- parent Artifact lineage、recipe ref/hash 和全部输入 Artifact hash
+- `lifecycle_class = durable | protected | rebuildable | ephemeral`
+- `availability = available | evicted | missing | rehydrating`
+- 与可用性独立的 `ingest_status = quarantine | ready | rejected | corrupt`
+
+Artifact 领域对象分为两个独立合同：
+
+- `AudioArtifact`：保存媒体 profile、container/codec、采样率、声道、时长、编码器与音频 lineage。
+- `FeatureArtifact`：保存 `source_audio_artifact_id/hash`、`feature_profile/schema_version` 与紧凑 JSON bytes 的 checksum；首版仅有 waveform peaks 和导入分析。Feature 永远是 `rebuildable`，不得塞入 Revision、Redis 消息或 Graph State。
+
+Import AudioArtifact 中的基础 analysis JSONB 暂时只是向后兼容的读取投影；独立 `FeatureArtifact` 才是 Studio 波形/分析生命周期、驱逐和恢复的事实源。
+
+`lifecycle_class` 定义可以由策略升级，但不能为了自动清理而降级保护：
+
+| 分类 | 内容 | 自动清理 |
+|---|---|---|
+| `protected` | 用户原始导入、当前 Revision 引用、待审批候选依赖的非可重建输入 | 禁止 |
+| `durable` | 最终选中 Master、导出 manifest、license/provenance 和长期非可重建素材 | 禁止，除非用户显式删除/归档 |
+| `rebuildable` | waveform/analysis、normalized/time-stretch 派生文件、旧 Revision 渲染缓存、按需 Stem | 只有 recipe 可验证且输入可用时才可驱逐 |
+| `ephemeral` | Job scratch、中断残留、已拒绝/未选候选压缩试听 | 按 TTL 和 Job 终态清理 |
+
+`available` 表示 bytes 存在且通过最近的存在性/checksum 校验；`evicted` 表示按策略删除 bytes，metadata、recipe 和 lineage 仍保留并可重建；`rehydrating` 表示幂等重建 Job 已创建，该 Artifact 在完成校验前仍不可读；`missing` 表示非预期丢失或校验失败。外置 Artifact Root 暂时不可用时，不批量把记录改成 `missing`，而是返回 Root 级错误并等待恢复。
+
+### RebuildRecipe
+
+只有完整配方才能让 Artifact 标记为 `rebuildable`，至少包含：
+
+- `recipe_id`、`recipe_kind`、`recipe_schema_version`、`recipe_hash`
+- ordered input Artifact refs/checksums 和所在 Revision/Candidate Snapshot ref
+- 规范化参数、seed、output role/range/format
+- engine/audio graph/Tone/Chromium/FFmpeg/Render Policy 版本
+- 预期媒体属性、资源上限和校验规则
+
+重建会创建新 Job，不修改原 recipe/lineage。如果某个输入为 `missing`、引擎版本不可得或许可不允许，不得将 Artifact 宣称为可重建。
 
 Artifact 先写临时文件、校验 checksum，再原子移动到内容寻址位置并注册 metadata。失败或事务中断产生的孤儿由安全清理任务按 retention policy 处理。
 
@@ -296,6 +328,9 @@ Artifact 先写临时文件、校验 checksum，再原子移动到内容寻址�
 - `TIME_STRETCH_NOT_READY`
 - `CHANGE_IMPACT_ESCALATED`
 - `RENDER_POLICY_REJECTED`
+- `ARTIFACT_ROOT_UNAVAILABLE`
+- `ARTIFACT_MISSING`
+- `STORAGE_QUOTA_EXCEEDED`
 
 Application 层将其映射为 HTTP Problem Detail、Graph route 和 Run Event。
 
@@ -305,3 +340,4 @@ Application 层将其映射为 HTTP Problem Detail、Graph route 和 Run Event�
 - Revision 原始 JSONB 不原地改写；迁移产生新的 system Revision。
 - 导出 Manifest 同时包含源 Revision Schema 和导出时迁移版本。
 - 不兼容迁移必须可 dry-run、可回滚 Project pointer，并有固定 fixture 测试。
+- 引入 `lifecycle_class`、`availability` 和 RebuildRecipe 时必须通过 Alembic 迁移；旧的 `ready` 记录只能在 bytes/checksum 探测后标记为 `available`，不能仅根据旧状态推断。
