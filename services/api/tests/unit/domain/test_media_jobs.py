@@ -13,6 +13,7 @@ from motif_forge.domain.media_jobs import (
     MediaQualityProfile,
     RebuildInputArtifact,
     RebuildRecipe,
+    RenderScope,
 )
 from pydantic import ValidationError
 
@@ -62,6 +63,9 @@ def test_canonical_master_rejects_lossy_or_pcm16_output() -> None:
     with pytest.raises(ValidationError, match="requires WAV PCM24"):
         _artifact(
             quality_profile=MediaQualityProfile.CANONICAL_MASTER_V1,
+            revision_id=uuid4(),
+            arrangement_hash="d" * 64,
+            render_scope=RenderScope.MASTER,
             container="wav",
             codec="pcm",
             bitrate_kbps=None,

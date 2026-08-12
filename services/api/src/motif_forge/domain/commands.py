@@ -16,9 +16,13 @@ from motif_forge.domain.ir import (
     AudioSourceKind,
     Clip,
     DomainModel,
+    KeyPoint,
+    MeterPoint,
     NoteClip,
     NoteEvent,
+    ProvenanceRef,
     Section,
+    TempoPoint,
     TimeStretchRef,
     Track,
     TrackRole,
@@ -61,6 +65,25 @@ class AddTrackPayload(DomainModel):
 class AddTrackCommand(CommandEnvelope):
     command_type: Literal["add_track"] = "add_track"
     payload: AddTrackPayload
+
+
+class InitializeCompositionPayload(DomainModel):
+    tempo: TempoPoint
+    meter: MeterPoint
+    key_map: tuple[KeyPoint, ...] = Field(min_length=1)
+    sections: tuple[Section, ...] = Field(min_length=1)
+    provenance: tuple[ProvenanceRef, ...] = Field(min_length=1)
+
+
+class InitializeCompositionCommand(CommandEnvelope):
+    command_type: Literal["initialize_composition"] = "initialize_composition"
+    payload: InitializeCompositionPayload
+
+    @model_validator(mode="after")
+    def require_generated_actor(self) -> Self:
+        if self.actor_kind == "human":
+            raise ValueError("composition initialization must use the generated-candidate path")
+        return self
 
 
 class DeleteTrackPayload(DomainModel):
@@ -252,7 +275,8 @@ class DeleteNotesCommand(CommandEnvelope):
 
 
 EditorCommand = Annotated[
-    AddTrackCommand
+    InitializeCompositionCommand
+    | AddTrackCommand
     | ImportAudioCommand
     | DeleteTrackCommand
     | AddClipCommand
@@ -455,6 +479,22 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
     # The discriminated command model guarantees the payload pairing at parse time. Pydantic's
     # plugin does not currently preserve that relationship when narrowing the union below.
     payload: Any = command.payload
+    if isinstance(command, InitializeCompositionCommand):
+        if arrangement.sections or arrangement.key_map or arrangement.tracks:
+            raise issue(
+                "COMPOSITION_ALREADY_INITIALIZED",
+                "arrangement_ir",
+                "composition initialization requires an empty project arrangement",
+            )
+        data = arrangement.model_dump(mode="python")
+        data.update(
+            tempo_map=(payload.tempo,),
+            time_signature_map=(payload.meter,),
+            key_map=payload.key_map,
+            sections=payload.sections,
+            provenance=payload.provenance,
+        )
+        return ArrangementIR.model_validate(data)
     if isinstance(command, ImportAudioCommand):
         if len(arrangement.tracks) >= MAX_TRACKS:
             raise issue("TRACK_LIMIT_EXCEEDED", "tracks", "v1 supports at most 12 tracks")

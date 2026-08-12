@@ -76,7 +76,9 @@ async def run_resume_dispatcher() -> None:
                 ),
                 storage_pressure_gate=RunStoragePressureGate(
                     inspect_root=LocalStorageRootInspector(settings.artifact_root),
-                    load_facts=PostgresStorageFactsLoader(storage_uow),
+                    load_facts=PostgresStorageFactsLoader(
+                        storage_uow, temp_root=settings.temp_root
+                    ),
                     collector=LocalArtifactCollector(
                         storage_uow, artifact_root=settings.artifact_root
                     ),

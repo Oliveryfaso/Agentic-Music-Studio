@@ -46,10 +46,11 @@ def _candidate(
     lifecycle: ArtifactLifecycle = ArtifactLifecycle.REBUILDABLE,
     protected: bool = False,
     last_access_offset: int = 0,
+    project_id: UUID | None = None,
 ) -> StorageCandidateFact:
     return StorageCandidateFact(
         artifact_id=uuid4(),
-        project_id=UUID(int=1),
+        project_id=project_id or UUID(int=1),
         byte_size=size_mib * MIB,
         lifecycle_class=lifecycle,
         availability=ArtifactAvailability.AVAILABLE,
@@ -149,6 +150,22 @@ def test_second_capacity_failure_waits_instead_of_looping_gc() -> None:
     assert decision.route is StorageRoute.WAIT_FOR_STORAGE
     assert decision.matched_rule_id == "STO-040"
     assert decision.error_code == "STORAGE_QUOTA_EXCEEDED"
+
+
+def test_project_quota_never_evicts_another_projects_artifact() -> None:
+    foreign = _candidate(size_mib=900, project_id=UUID(int=2))
+    decision = decide_storage_pressure(
+        _facts(
+            free_bytes=2_000 * MIB,
+            project_usage_bytes=1_990 * MIB,
+            estimated_artifact_bytes=100 * MIB,
+            estimated_temp_bytes=0,
+            cleanup_candidates=(foreign,),
+        )
+    )
+
+    assert decision.route is StorageRoute.WAIT_FOR_STORAGE
+    assert decision.cleanup_artifact_ids == ()
 
 
 def test_cleanup_is_rejected_when_total_candidates_cannot_satisfy_all_quotas() -> None:

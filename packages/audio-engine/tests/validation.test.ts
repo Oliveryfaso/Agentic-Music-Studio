@@ -4,6 +4,7 @@ import {
   BUILTIN_SYNTH_PRESETS,
   buildThirtySecondSpikeGraph,
   validateAudioGraphSpec,
+  encodeStereoPcm24,
 } from "../src/index.js";
 
 describe("AudioGraphSpec validation", () => {
@@ -41,5 +42,25 @@ describe("AudioGraphSpec validation", () => {
       };
       expect(() => validateAudioGraphSpec(candidate as typeof graph)).not.toThrow();
     }
+  });
+
+  it("encodes canonical stereo PCM24 with a correct RIFF header", () => {
+    const left = new Float32Array([-1, -0.5, 0, 0.5, 1]);
+    const right = new Float32Array([1, 0.5, 0, -0.5, -1]);
+    const buffer = {
+      numberOfChannels: 2,
+      length: left.length,
+      sampleRate: 48000,
+      getChannelData: (channel: number) => (channel === 0 ? left : right),
+    } as AudioBuffer;
+
+    const wav = encodeStereoPcm24(buffer);
+    const view = new DataView(wav.buffer, wav.byteOffset, wav.byteLength);
+
+    expect(String.fromCharCode(...wav.subarray(0, 4))).toBe("RIFF");
+    expect(view.getUint16(22, true)).toBe(2);
+    expect(view.getUint32(24, true)).toBe(48000);
+    expect(view.getUint16(34, true)).toBe(24);
+    expect(view.getUint32(40, true)).toBe(left.length * 2 * 3);
   });
 });

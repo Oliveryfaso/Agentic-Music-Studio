@@ -21,6 +21,7 @@ from motif_forge.domain.media_jobs import (
     ArtifactAvailability,
     ArtifactLifecycle,
     AudioArtifact,
+    ExportBundleArtifact,
     FeatureArtifact,
     FeatureProfile,
     FeatureRehydrateJobPayload,
@@ -47,6 +48,7 @@ class EnqueueMediaJobRequest(DomainModel):
     max_attempts: int = Field(default=3, ge=1, le=5)
     deadline_seconds: int = Field(default=900, ge=30, le=3600)
 
+
 class EnqueueMediaJobResult(DomainModel):
     run_id: UUID
     job_id: UUID
@@ -67,12 +69,41 @@ class EnqueueFollowupMediaJobRequest(DomainModel):
     deadline_seconds: int = Field(default=900, ge=30, le=3600)
 
 
+class CancelMediaJobRequest(DomainModel):
+    job_id: UUID
+    actor_id: str = Field(min_length=1, max_length=160)
+
+
 class WorkerEventResult(DomainModel):
     run_id: UUID
     job_id: UUID
     status: JobStatus
     artifact_id: UUID | None = None
     replayed: bool = False
+
+
+class CancelMediaJob:
+    """Persist an explicit cancellation that prevents or supersedes Worker completion."""
+
+    def __init__(
+        self,
+        uow_factory: MediaJobUnitOfWorkFactory,
+        *,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> None:
+        self._uow_factory = uow_factory
+        self._clock = clock
+
+    async def __call__(self, request: CancelMediaJobRequest) -> MediaJob:
+        async with self._uow_factory() as transaction:
+            job = await transaction.cancel_media_job(
+                request.job_id,
+                actor_id=request.actor_id,
+                now=self._clock(),
+            )
+            if job is None:
+                raise MediaJobNotFoundError
+            return job
 
 
 class StartArtifactRehydrationRequest(DomainModel):
@@ -491,7 +522,13 @@ class ApplyWorkerEvent:
                 if job.status is JobStatus.SUCCEEDED and event.artifact is not None:
                     result_id = job.result_artifact_id
                     if result_id is not None:
-                        persisted = await transaction.get_audio_artifact(result_id)
+                        persisted: AudioArtifact | FeatureArtifact | ExportBundleArtifact | None
+                        if isinstance(event.artifact, ExportBundleArtifact):
+                            persisted = await transaction.get_export_bundle_artifact(result_id)
+                        elif isinstance(event.artifact, FeatureArtifact):
+                            persisted = await transaction.get_feature_artifact(result_id)
+                        else:
+                            persisted = await transaction.get_audio_artifact(result_id)
                         if (
                             persisted is not None
                             and persisted.content_hash == event.artifact.content_hash
@@ -504,8 +541,10 @@ class ApplyWorkerEvent:
                 if artifact.source_job_id != job.job_id or artifact.project_id != job.project_id:
                     raise MediaJobStateConflictError("artifact does not belong to the target job")
                 artifact_profile = (
-                    artifact.quality_profile
-                    if hasattr(artifact, "quality_profile")
+                    MediaQualityProfile.EXPORT_BUNDLE_V1
+                    if isinstance(artifact, ExportBundleArtifact)
+                    else artifact.quality_profile
+                    if isinstance(artifact, AudioArtifact)
                     else artifact.feature_profile
                 )
                 expected_profile = job.output_quality_profile or job.output_feature_profile

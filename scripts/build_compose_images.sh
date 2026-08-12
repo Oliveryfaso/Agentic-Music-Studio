@@ -102,7 +102,7 @@ if [[ "$requested_target" == all || "$requested_target" == render-worker ]]; the
   docker buildx build \
     --load \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
-    --tag motif-forge-render-worker:spike \
+    --tag motif-forge-render-worker:local \
     --file "$context_root/services/render-worker/Dockerfile" \
     "$context_root"
 fi

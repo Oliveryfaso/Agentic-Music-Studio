@@ -1,6 +1,6 @@
 # Motif Forge
 
-Motif Forge is a local-first, agent-assisted instrumental composition workbench. The current runnable product supports controlled browser upload, durable audio import, BPM/key analysis with HITL, pitch-preserving alignment, Artifact recovery, and original/aligned Web preview. The immutable music-domain spine, DeepSeek planning graph, and Chromium audio engine also exist, but complete-song generation and the DAW-style Studio are not yet user-operable.
+Motif Forge is a local-first, agent-assisted instrumental composition workbench. The current browser product supports controlled upload, durable audio import, BPM/key analysis with HITL, pitch-preserving alignment, Artifact recovery, and original/aligned preview. The internal S1 path also generates and fully exports a deterministic 72-second, four-track composition through the real PostgreSQL Outbox, Redis/Celery and Chromium Worker chain. Agent-driven complete-song generation and the DAW-style Studio are not yet user-operable.
 
 Read documentation in this order:
 
@@ -75,10 +75,13 @@ If the host uses a localhost HTTP proxy, configure the Docker daemon proxy as de
 proxy alone does not configure the daemon inside Colima. Do not commit proxy addresses or
 credentials to this repository.
 
-`MOTIF_FORGE_ARTIFACT_ROOT` and `MOTIF_FORGE_TEMP_ROOT` should stay on the same filesystem so future
-Worker jobs can atomically promote completed files. The bootstrap script creates only the requested
-directories, verifies write access and a same-volume rename, removes its empty probe directory, and
-never edits `.env` or deletes existing content. The API now includes a deterministic root/quota
+The default local bootstrap keeps `MOTIF_FORGE_ARTIFACT_ROOT` and `MOTIF_FORGE_TEMP_ROOT` under one
+external storage root for simpler capacity accounting. S1 Render and MP3 promotion is also safe
+when the two roots become distinct container mounts: the Worker streams into a unique partial file
+inside the final Artifact directory, verifies size/checksum, then atomically renames on that final
+filesystem. The bootstrap script creates only the requested directories, verifies write access and
+a same-volume rename, removes its empty probe directory, and never edits `.env` or deletes existing
+content. The API now includes a deterministic root/quota
 gate, exact-ID safe eviction, pinned time-stretch Audio Artifact rehydration, and independent
 waveform/analysis Feature Artifacts with same-ID deterministic rehydration. It does not yet claim
 generic render/transcode rehydration or a complete temporary-file ledger.
@@ -134,10 +137,11 @@ volume on a particular macOS release, move only `PLAYWRIGHT_BROWSERS_PATH` back 
 the canonical Render Worker image, Docker engine data, PostgreSQL volume and Docker BuildKit cache
 remain inside the Docker VM. Do not bind-mount PostgreSQL onto exFAT.
 
-## 30-second audio Worker spike
+## Canonical Chromium Render Worker
 
 The pinned Render Worker image uses Playwright Chromium and the shared TypeScript audio engine to
-render a 30-second Master plus two isolated synth Stems. WAV bytes go through a one-time loopback
+render canonical Master or isolated Stem Jobs. S1 validates a 72-second four-track composition at
+48 kHz stereo PCM24. WAV bytes go through a one-time loopback
 sink directly to the explicit Artifact root; they never pass through Redis, Graph state, base64, or
 the repository. Build and run it with:
 
@@ -147,7 +151,8 @@ export MOTIF_FORGE_ARTIFACT_ROOT="$MOTIF_FORGE_DEV_STORAGE_ROOT/artifacts"
 scripts/run_audio_spike.sh
 ```
 
-The spike is constrained to 2 CPU, 1 GiB RAM, 256 processes and no external network. It validates
+The low-cost regression remains constrained to 2 CPU, 1 GiB RAM, 256 processes and no external
+network. It validates
 48 kHz stereo duration, non-silence, Stem isolation and repeat stability. Chromium floating DSP to
 PCM16 can differ at the one-LSB quantization boundary, so the report exposes both SHA-256 values and
 the bounded sample-difference metric instead of falsely claiming byte-identical output.
@@ -155,6 +160,23 @@ The Worker uses a pinned Node slim base plus Playwright's Chromium headless shel
 full multi-browser Playwright image; the accepted local image is 1.48 GB instead of 4.04 GB. FFmpeg
 time-stretch/transcode belongs to the controlled Python media-task boundary and is not duplicated in
 this Chromium-only image.
+
+With Compose running and migration head applied, the complete internal S1 acceptance path is:
+
+```bash
+export MOTIF_FORGE_POSTGRES_DSN='postgresql://motif_forge:motif_forge@127.0.0.1:5432/motif_forge'
+export MOTIF_FORGE_ARTIFACT_ROOT="$MOTIF_FORGE_DEV_STORAGE_ROOT/artifacts"
+export MOTIF_FORGE_RENDER_SERVICE_URL='http://127.0.0.1:8090'
+export MOTIF_FORGE_S1_APPROVAL_ACTOR='local-user:your-name'
+export MOTIF_FORGE_S1_APPROVAL_ASSERTION='I reviewed the generated composition and approve this export.'
+scripts/check_s1.sh
+```
+
+It creates an L3 Preview, records the caller-supplied human approval assertion, materializes an
+immutable Revision, and queues Master, four Stem, MP3 and Export Bundle Jobs. The Bundle is logical:
+it stores MIDI, Project/manifests and immutable references to the six Audio Artifacts instead of
+copying their bytes. The smoke verifies every checksum and Revision lineage. No DeepSeek key is
+required.
 
 Compose runs Alembic in a one-shot `migrate` service before starting the API. To execute the real
 PostgreSQL checkpoint and transaction tests from the host:
@@ -200,10 +222,12 @@ does not expose DSNs or secrets.
 
 ## Current implementation boundaries
 
-- The shared Tone.js/Chromium audio-engine spike and three built-in synth presets are implemented.
+- The shared Tone.js/Chromium audio engine, three built-in synth presets, deterministic four-track
+  composer and canonical PCM24 Master/Stem render service are implemented.
   PostgreSQL Run/Job/Outbox/Inbox/Artifact metadata and the deterministic Graph Worker-event gate
   are implemented. The PostgreSQL Outbox dispatcher, Redis/Celery media task and non-root FFmpeg
-  Worker execute persisted import and pitch-preserving time-stretch Jobs end to end.
+  Worker execute persisted import, pitch-preserving time-stretch, canonical render, MP3 transcode
+  and Export Bundle Jobs end to end.
 - Candidate Preview/Approval persistence is implemented but intentionally has no public HTTP route
   before preview rendering and Graph resume exist.
 - No API key is stored in source control or emitted through health responses.
@@ -224,11 +248,11 @@ does not expose DSNs or secrets.
 - CompositionPlan Graph is directly compiled only by tests; the API mounts the Import/Recovery
   Parent Graph. The roadmap requires mounting planning nodes as its `generate` subgraph rather than
   keeping two production orchestrators.
-- Complete-song Pattern compilation, production Render Jobs, full exports, four Style Packs,
-  Brief/Plan UI, DAW editing, A/B candidates, AI selection editing, and complete Eval/observability
-  remain incomplete.
-- The next feature slice is a deterministic 60–90 second, four-track Synth Ambient walking skeleton
-  that renders a complete song without an API key. It does not reduce the final 1–5 minute,
+- Complete-song Pattern compilation and full internal export are implemented for the fixed S1
+  Synth Ambient baseline. Agent-driven generation, four Style Packs, Brief/Plan UI, DAW editing,
+  A/B candidates, AI selection editing, and complete Eval/observability remain incomplete.
+- The next feature slice is S2: merge planning into the one Parent Graph, connect DeepSeek behind
+  PlanApproval, and retain deterministic fallback. It does not reduce the final 1–5 minute,
   12-track, two-candidate and four-Style-Pack contract.
 - LangGraph owns workflow state; project truth remains in immutable revisions.
 - DeepSeek V4 Flash live calls are opt-in; the default test suite uses HTTP fakes and incurs no cost.

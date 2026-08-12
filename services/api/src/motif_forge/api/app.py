@@ -344,7 +344,9 @@ def create_app(
         storage_uow = PostgresStorageUnitOfWork(session_factory)
         runtime_storage_gate = RunStoragePressureGate(
             inspect_root=LocalStorageRootInspector(runtime_settings.artifact_root),
-            load_facts=PostgresStorageFactsLoader(storage_uow),
+            load_facts=PostgresStorageFactsLoader(
+                storage_uow, temp_root=runtime_settings.temp_root
+            ),
             collector=LocalArtifactCollector(
                 storage_uow, artifact_root=runtime_settings.artifact_root
             ),

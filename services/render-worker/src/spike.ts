@@ -16,6 +16,7 @@ import { createBuiltinClickWav, LoopbackRenderServer, withTimeout } from "./runt
 type WavInfo = Readonly<{
   channels: number;
   sampleRate: number;
+  bitDepth: number;
   frames: number;
   durationSeconds: number;
 }>;
@@ -40,7 +41,7 @@ function inspectWav(bytes: Uint8Array): WavInfo {
   const bits = view.getUint16(34, true);
   const dataBytes = view.getUint32(40, true);
   const frames = dataBytes / (channels * (bits / 8));
-  return { channels, sampleRate, frames, durationSeconds: frames / sampleRate };
+  return { channels, sampleRate, bitDepth: bits, frames, durationSeconds: frames / sampleRate };
 }
 
 function comparePcm16Repeat(left: Uint8Array, right: Uint8Array): PcmRepeatComparison {
@@ -134,6 +135,7 @@ async function main(): Promise<void> {
       {
         requestVersion: "render-bridge-request.v1",
         requestId: "spike-master",
+        outputBitDepth: 24,
         graph,
       },
       60_000,
@@ -148,6 +150,7 @@ async function main(): Promise<void> {
       {
         requestVersion: "render-bridge-request.v1",
         requestId: "spike-pluck-stem",
+        outputBitDepth: 24,
         graph,
         renderTrackIds: ["pluck"],
       },
@@ -166,6 +169,7 @@ async function main(): Promise<void> {
       {
         requestVersion: "render-bridge-request.v1",
         requestId: "spike-pad-stem",
+        outputBitDepth: 24,
         graph,
         renderTrackIds: ["pad"],
       },
@@ -184,6 +188,7 @@ async function main(): Promise<void> {
       {
         requestVersion: "render-bridge-request.v1",
         requestId: "spike-master-repeat",
+        outputBitDepth: 24,
         graph,
       },
       60_000,

@@ -10,9 +10,10 @@ services:
     environment:
       MOTIF_FORGE_STORAGE_PROFILE: lean
       MOTIF_FORGE_ARTIFACT_ROOT: /artifacts
-      MOTIF_FORGE_TEMP_ROOT: /artifacts/tmp
+      MOTIF_FORGE_TEMP_ROOT: /temp
     volumes:
       - ${MOTIF_FORGE_ARTIFACT_HOST_ROOT:-./var/artifacts}:/artifacts
+      - ${MOTIF_FORGE_TEMP_ROOT:-./var/tmp}:/temp
     ports:
       - "8000:8000"
     depends_on:
@@ -43,10 +44,11 @@ services:
       [
         "sh",
         "-c",
-        "mkdir -p /artifacts/tmp/jobs /artifacts/quarantine/source-original /artifacts/protected/working-pcm /artifacts/derived/time-stretch /artifacts/rebuildable/features && chmod 1777 /artifacts/tmp /artifacts/tmp/jobs /artifacts/quarantine /artifacts/quarantine/source-original /artifacts/protected /artifacts/protected/working-pcm /artifacts/derived /artifacts/derived/time-stretch /artifacts/rebuildable /artifacts/rebuildable/features",
+        "mkdir -p /temp/jobs /artifacts/quarantine/source-original /artifacts/protected/working-pcm /artifacts/derived/time-stretch /artifacts/rebuildable/features && chmod 1777 /temp /temp/jobs /artifacts/quarantine /artifacts/quarantine/source-original /artifacts/protected /artifacts/protected/working-pcm /artifacts/derived /artifacts/derived/time-stretch /artifacts/rebuildable /artifacts/rebuildable/features",
       ]
     volumes:
       - ${MOTIF_FORGE_ARTIFACT_HOST_ROOT:-./var/artifacts}:/artifacts
+      - ${MOTIF_FORGE_TEMP_ROOT:-./var/tmp}:/temp
     restart: "no"
 
   dispatcher:
@@ -69,9 +71,10 @@ services:
     environment:
       MOTIF_FORGE_STORAGE_PROFILE: lean
       MOTIF_FORGE_ARTIFACT_ROOT: /artifacts
-      MOTIF_FORGE_TEMP_ROOT: /artifacts/tmp
+      MOTIF_FORGE_TEMP_ROOT: /temp
     volumes:
       - ${MOTIF_FORGE_ARTIFACT_HOST_ROOT:-./var/artifacts}:/artifacts
+      - ${MOTIF_FORGE_TEMP_ROOT:-./var/tmp}:/temp
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -101,9 +104,11 @@ services:
     environment:
       MOTIF_FORGE_STORAGE_PROFILE: lean
       MOTIF_FORGE_ARTIFACT_ROOT: /artifacts
-      MOTIF_FORGE_TEMP_ROOT: /artifacts/tmp
+      MOTIF_FORGE_TEMP_ROOT: /temp
+      MOTIF_FORGE_RENDER_SERVICE_URL: http://render-worker:8090
     volumes:
       - ${MOTIF_FORGE_ARTIFACT_HOST_ROOT:-./var/artifacts}:/artifacts
+      - ${MOTIF_FORGE_TEMP_ROOT:-./var/tmp}:/temp
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -111,6 +116,28 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+  render-worker:
+    image: motif-forge-render-worker:local
+    build:
+      context: .
+      dockerfile: services/render-worker/Dockerfile
+    environment:
+      MOTIF_FORGE_ARTIFACT_ROOT: /artifacts
+      MOTIF_FORGE_TEMP_ROOT: /temp
+      MOTIF_FORGE_RENDER_PORT: 8090
+    volumes:
+      - ${MOTIF_FORGE_ARTIFACT_HOST_ROOT:-./var/artifacts}:/artifacts
+      - ${MOTIF_FORGE_TEMP_ROOT:-./var/tmp}:/temp
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+    expose:
+      - "8090"
+    ports:
+      - "127.0.0.1:8090:8090"
     restart: unless-stopped
     stop_grace_period: 30s
 

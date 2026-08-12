@@ -23,4 +23,14 @@ await Promise.all([
     packages: "external",
     sourcemap: false,
   }),
+  build({
+    entryPoints: ["services/render-worker/src/service.ts"],
+    outfile: "services/render-worker/dist/service.js",
+    bundle: true,
+    format: "esm",
+    platform: "node",
+    target: "node20",
+    packages: "external",
+    sourcemap: false,
+  }),
 ]);

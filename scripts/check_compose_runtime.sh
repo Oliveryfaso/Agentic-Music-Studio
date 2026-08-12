@@ -18,7 +18,7 @@ fi
 docker compose config --quiet
 
 running_services="$(docker compose ps --services --status running)"
-for service_name in api dispatcher resume-dispatcher media-worker postgres redis; do
+for service_name in api dispatcher resume-dispatcher media-worker render-worker postgres redis; do
   if ! grep -Fxq "$service_name" <<<"$running_services"; then
     echo "Compose service is not running: $service_name" >&2
     exit 70
@@ -63,7 +63,7 @@ migration_version="$(
     psql -U motif_forge -d motif_forge -Atc \
     'select version_num from public.alembic_version;'
 )"
-if [[ "$migration_version" != "20260812_0009" ]]; then
+if [[ "$migration_version" != "20260812_0012" ]]; then
   echo "unexpected Alembic version: $migration_version" >&2
   exit 70
 fi
@@ -74,7 +74,18 @@ docker compose run --rm --no-deps api sh -c \
 docker compose exec -T media-worker sh -c \
   'test "$(id -u)" != "0" && test ! -e /usr/local/bin/uv && test ! -e /opt/venv/bin/uv && command -v ffmpeg >/dev/null && celery --version >/dev/null'
 
-test_dsn="${MOTIF_FORGE_TEST_POSTGRES_DSN:-postgresql://motif_forge:motif_forge@127.0.0.1:5432/motif_forge}"
-MOTIF_FORGE_TEST_POSTGRES_DSN="$test_dsn" scripts/check_postgres_integration.sh
+render_response="$(curl -fsS http://127.0.0.1:8090/health)"
+grep -Fq '"status":"ready"' <<<"$render_response"
+grep -Fq '"concurrency":1' <<<"$render_response"
 
-echo "Compose runtime contract passed: API, migration, PostgreSQL, Redis, Job Dispatcher, Resume Dispatcher, Media Worker, runtime images, and PostgreSQL integration tests."
+test_dsn="${MOTIF_FORGE_TEST_POSTGRES_DSN:-postgresql://motif_forge:motif_forge@127.0.0.1:5432/motif_forge}"
+restore_dispatchers() {
+  docker compose start dispatcher resume-dispatcher >/dev/null
+}
+trap restore_dispatchers EXIT
+docker compose stop dispatcher resume-dispatcher >/dev/null
+MOTIF_FORGE_TEST_POSTGRES_DSN="$test_dsn" scripts/check_postgres_integration.sh
+restore_dispatchers
+trap - EXIT
+
+echo "Compose runtime contract passed: API, migration, PostgreSQL, Redis, dispatchers, Media/Render Workers, runtime images, and PostgreSQL integration tests."

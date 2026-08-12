@@ -10,6 +10,7 @@ from uuid import UUID, uuid4
 from pydantic import Field, model_validator
 
 from motif_forge.domain.canonical import arrangement_content_hash
+from motif_forge.domain.commands import EditorCommand
 from motif_forge.domain.ir import ArrangementIR, DomainModel, create_empty_arrangement
 
 REVISION_SCHEMA_VERSION = "revision.v1"
@@ -123,6 +124,7 @@ class CandidateSnapshot(DomainModel):
     parent_candidate_snapshot_id: UUID | None = None
     candidate_ir: ArrangementIR
     candidate_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    commands: tuple[EditorCommand, ...] = ()
     command_batch_id: UUID | None = None
     materialization_command_ref: UUID | None = None
     structural_diff: tuple[StructuralDiffEntry, ...] = ()
@@ -256,6 +258,7 @@ def create_candidate_snapshot(
     base_revision: Revision,
     candidate_ir: ArrangementIR,
     candidate_id: UUID,
+    commands: tuple[EditorCommand, ...] = (),
     created_at: datetime,
     candidate_snapshot_id: UUID | None = None,
     source_run_id: UUID | None = None,
@@ -276,6 +279,7 @@ def create_candidate_snapshot(
         parent_candidate_snapshot_id=parent_candidate_snapshot_id,
         candidate_ir=candidate_ir,
         candidate_content_hash=arrangement_content_hash(candidate_ir),
+        commands=commands,
         structural_diff=structural_diff,
         versions=versions or VersionRefs(),
         created_at=created_at,

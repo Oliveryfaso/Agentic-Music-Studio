@@ -12,6 +12,7 @@ from uuid import UUID
 from motif_forge.domain.commands import EditorCommand
 from motif_forge.domain.media_jobs import (
     AudioArtifact,
+    ExportBundleArtifact,
     FeatureArtifact,
     FeatureProfile,
     MediaJob,
@@ -149,7 +150,13 @@ class MediaJobTransaction(Protocol):
 
     async def get_media_job(self, job_id: UUID, *, for_update: bool = False) -> MediaJob | None: ...
 
+    async def get_revision(self, revision_id: UUID) -> Revision | None: ...
+
     async def get_audio_artifact(self, artifact_id: UUID) -> AudioArtifact | None: ...
+
+    async def get_export_bundle_artifact(
+        self, artifact_id: UUID
+    ) -> ExportBundleArtifact | None: ...
 
     async def get_feature_artifact(self, artifact_id: UUID) -> FeatureArtifact | None: ...
 
@@ -168,6 +175,10 @@ class MediaJobTransaction(Protocol):
         worker_id: str,
         now: datetime,
         lease_expires_at: datetime,
+    ) -> MediaJob | None: ...
+
+    async def cancel_media_job(
+        self, job_id: UUID, *, actor_id: str, now: datetime
     ) -> MediaJob | None: ...
 
     async def heartbeat_media_job(
@@ -234,7 +245,7 @@ class MediaJobTransaction(Protocol):
         event: WorkerEvent,
         updated_job: MediaJob,
         run_status: RunStatus,
-        artifact: AudioArtifact | FeatureArtifact | None,
+        artifact: AudioArtifact | FeatureArtifact | ExportBundleArtifact | None,
         feature_artifacts: tuple[FeatureArtifact, ...],
         validated_source_artifact: AudioArtifact | None,
         consumer: str,
@@ -243,7 +254,7 @@ class MediaJobTransaction(Protocol):
         job_event_id: UUID,
         outbox_event_id: UUID,
         outbox_topic: str,
-    ) -> AudioArtifact | FeatureArtifact | None: ...
+    ) -> AudioArtifact | FeatureArtifact | ExportBundleArtifact | None: ...
 
 
 MediaJobUnitOfWorkFactory = Callable[[], MediaJobTransaction]

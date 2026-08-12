@@ -9,6 +9,7 @@ from motif_forge.application.storage import (
     LocalStorageRootInspector,
     RunStoragePressureGate,
     StorageRootSnapshot,
+    _directory_file_bytes,
 )
 from motif_forge.domain.media_jobs import ArtifactAvailability, ArtifactLifecycle
 from motif_forge.domain.storage import (
@@ -17,6 +18,21 @@ from motif_forge.domain.storage import (
     StorageRootHealth,
     StorageRoute,
 )
+
+
+def test_temp_usage_counts_regular_files_without_following_symlinks(tmp_path: Path) -> None:
+    temp_root = tmp_path / "temp"
+    temp_root.mkdir()
+    (temp_root / "one.partial").write_bytes(b"1234")
+    nested = temp_root / "nested"
+    nested.mkdir()
+    (nested / "two.partial").write_bytes(b"12")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "large").write_bytes(b"x" * 100)
+    (temp_root / "linked").symlink_to(outside, target_is_directory=True)
+
+    assert _directory_file_bytes(temp_root) == 6
 
 NOW = datetime(2026, 8, 12, tzinfo=UTC)
 MIB = 1024**2

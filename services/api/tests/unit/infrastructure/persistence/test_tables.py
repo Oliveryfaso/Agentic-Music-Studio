@@ -68,8 +68,8 @@ def test_alembic_has_single_reversible_head() -> None:
     config = Config(root / "alembic.ini")
     scripts = ScriptDirectory.from_config(config)
 
-    assert scripts.get_heads() == ["20260812_0009"]
-    migration = scripts.get_revision("20260812_0009")
+    assert scripts.get_heads() == ["20260812_0012"]
+    migration = scripts.get_revision("20260812_0012")
     assert migration is not None
     assert callable(migration.module.upgrade)
     assert callable(migration.module.downgrade)

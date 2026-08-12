@@ -12,11 +12,13 @@ from sqlalchemy import insert, select, update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from motif_forge.domain.ir import ArrangementIR
 from motif_forge.domain.media_jobs import (
     ArtifactAvailability,
     ArtifactLifecycle,
     ArtifactValidationStatus,
     AudioArtifact,
+    ExportBundleArtifact,
     FeatureArtifact,
     FeatureProfile,
     ImportedAudioAnalysis,
@@ -26,18 +28,22 @@ from motif_forge.domain.media_jobs import (
     MediaQualityProfile,
     MediaRun,
     RebuildRecipe,
+    RenderScope,
     RunStatus,
     WorkerEvent,
 )
+from motif_forge.domain.revisions import AuthorKind, ChangeImpact, Revision, VersionRefs
 from motif_forge.infrastructure.persistence.database import SessionFactory
 from motif_forge.infrastructure.persistence.tables import (
     AudioArtifactRow,
+    ExportBundleArtifactRow,
     FeatureArtifactRow,
     InboxReceiptRow,
     JobEventRow,
     MediaJobRow,
     MediaRunRow,
     OutboxEventRow,
+    RevisionRow,
     RunEventRow,
 )
 
@@ -45,6 +51,10 @@ from motif_forge.infrastructure.persistence.tables import (
 class PostgresMediaJobUnitOfWork:
     def __init__(self, session_factory: SessionFactory) -> None:
         self._session_factory = session_factory
+
+    @property
+    def session_factory(self) -> SessionFactory:
+        return self._session_factory
 
     def __call__(self) -> PostgresMediaJobTransaction:
         return PostgresMediaJobTransaction(self._session_factory())
@@ -93,6 +103,32 @@ class PostgresMediaJobTransaction:
         row = (await self._session.execute(statement)).scalar_one_or_none()
         return None if row is None else _job_from_row(row)
 
+    async def get_revision(self, revision_id: UUID) -> Revision | None:
+        row = (
+            await self._session.execute(select(RevisionRow).where(RevisionRow.id == revision_id))
+        ).scalar_one_or_none()
+        if row is None:
+            return None
+        return Revision(
+            revision_id=row.id,
+            project_id=row.project_id,
+            parent_revision_id=row.parent_id,
+            created_on_branch_id=row.created_on_branch_id,
+            arrangement_ir=ArrangementIR.model_validate_json(
+                json.dumps(row.arrangement_ir), strict=True
+            ),
+            content_hash=row.content_hash,
+            command_batch_id=row.command_batch_id,
+            change_impact_predicted=ChangeImpact(row.change_impact_predicted),
+            change_impact_actual=ChangeImpact(row.change_impact_actual),
+            author_kind=AuthorKind(row.author_kind),
+            created_by=row.created_by,
+            source_run_id=row.source_run_id,
+            reason_code=row.reason_code,
+            versions=VersionRefs.model_validate_json(json.dumps(row.versions), strict=True),
+            created_at=row.created_at,
+        )
+
     async def get_audio_artifact(self, artifact_id: UUID) -> AudioArtifact | None:
         row = (
             await self._session.execute(
@@ -100,6 +136,14 @@ class PostgresMediaJobTransaction:
             )
         ).scalar_one_or_none()
         return None if row is None else _artifact_from_row(row)
+
+    async def get_export_bundle_artifact(self, artifact_id: UUID) -> ExportBundleArtifact | None:
+        row = (
+            await self._session.execute(
+                select(ExportBundleArtifactRow).where(ExportBundleArtifactRow.id == artifact_id)
+            )
+        ).scalar_one_or_none()
+        return None if row is None else _export_bundle_from_row(row)
 
     async def get_feature_artifact(self, artifact_id: UUID) -> FeatureArtifact | None:
         row = (
@@ -204,6 +248,45 @@ class PostgresMediaJobTransaction:
                 event_type="job.started",
                 external_event_id=None,
                 payload={"attempt": row.attempts, "worker_id": worker_id},
+                created_at=now,
+            )
+        )
+        return _job_from_row(row)
+
+    async def cancel_media_job(
+        self, job_id: UUID, *, actor_id: str, now: datetime
+    ) -> MediaJob | None:
+        row = (
+            await self._session.execute(
+                select(MediaJobRow).where(MediaJobRow.id == job_id).with_for_update()
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            return None
+        if row.status in {
+            JobStatus.SUCCEEDED.value,
+            JobStatus.FAILED_TERMINAL.value,
+            JobStatus.CANCELLED.value,
+        }:
+            return _job_from_row(row)
+        row.status = JobStatus.CANCELLED.value
+        row.error_code = "MEDIA_JOB_CANCELLED"
+        row.lease_owner = None
+        row.lease_expires_at = None
+        row.heartbeat_at = now
+        row.updated_at = now
+        await self._session.execute(
+            update(MediaRunRow)
+            .where(MediaRunRow.id == row.run_id)
+            .values(status=RunStatus.FAILED.value, updated_at=now)
+        )
+        await self._session.execute(
+            insert(JobEventRow).values(
+                id=uuid4(),
+                job_id=row.id,
+                event_type="job.cancelled",
+                external_event_id=f"cancel:{row.id}:{actor_id}",
+                payload={"actor_id": actor_id},
                 created_at=now,
             )
         )
@@ -457,7 +540,7 @@ class PostgresMediaJobTransaction:
         event: WorkerEvent,
         updated_job: MediaJob,
         run_status: RunStatus,
-        artifact: AudioArtifact | FeatureArtifact | None,
+        artifact: AudioArtifact | FeatureArtifact | ExportBundleArtifact | None,
         feature_artifacts: tuple[FeatureArtifact, ...],
         validated_source_artifact: AudioArtifact | None,
         consumer: str,
@@ -466,21 +549,27 @@ class PostgresMediaJobTransaction:
         job_event_id: UUID,
         outbox_event_id: UUID,
         outbox_topic: str,
-    ) -> AudioArtifact | FeatureArtifact | None:
+    ) -> AudioArtifact | FeatureArtifact | ExportBundleArtifact | None:
         if validated_source_artifact is not None:
             await self._update_validated_source_artifact(validated_source_artifact)
         if isinstance(artifact, FeatureArtifact):
-            persisted_artifact: AudioArtifact | FeatureArtifact | None = (
-                await self._register_or_reuse_feature(artifact)
-            )
+            persisted_artifact: (
+                AudioArtifact | FeatureArtifact | ExportBundleArtifact | None
+            ) = await self._register_or_reuse_feature(artifact)
+        elif isinstance(artifact, ExportBundleArtifact):
+            persisted_artifact = await self._register_or_reuse_export_bundle(artifact)
         else:
             persisted_artifact = await self._register_or_reuse_artifact(artifact)
         for feature in feature_artifacts:
             await self._register_or_reuse_feature(feature)
-        if updated_job.job_type in {
-            MediaJobType.REHYDRATE,
-            MediaJobType.REHYDRATE_FEATURE,
-        } and updated_job.status is JobStatus.FAILED_TERMINAL:
+        if (
+            updated_job.job_type
+            in {
+                MediaJobType.REHYDRATE,
+                MediaJobType.REHYDRATE_FEATURE,
+            }
+            and updated_job.status is JobStatus.FAILED_TERMINAL
+        ):
             await self._release_failed_rehydration(updated_job)
         result_artifact_id = (
             persisted_artifact.artifact_id if persisted_artifact is not None else None
@@ -662,8 +751,26 @@ class PostgresMediaJobTransaction:
                 existing.byte_size = artifact.byte_size
                 existing.storage_key = artifact.storage_key
             return _feature_from_row(existing)
+        await self._session.execute(insert(FeatureArtifactRow).values(**_feature_values(artifact)))
+        return artifact
+
+    async def _register_or_reuse_export_bundle(
+        self, artifact: ExportBundleArtifact
+    ) -> ExportBundleArtifact:
+        existing = (
+            await self._session.execute(
+                select(ExportBundleArtifactRow).where(
+                    ExportBundleArtifactRow.project_id == artifact.project_id,
+                    ExportBundleArtifactRow.revision_id == artifact.revision_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing is not None:
+            if existing.content_hash != artifact.content_hash:
+                raise RuntimeError("Export Bundle revision identity changed")
+            return _export_bundle_from_row(existing)
         await self._session.execute(
-            insert(FeatureArtifactRow).values(**_feature_values(artifact))
+            insert(ExportBundleArtifactRow).values(**_export_bundle_values(artifact))
         )
         return artifact
 
@@ -747,6 +854,10 @@ def _artifact_values(artifact: AudioArtifact) -> dict[str, object]:
     return {
         "id": artifact.artifact_id,
         "project_id": artifact.project_id,
+        "revision_id": artifact.revision_id,
+        "arrangement_hash": artifact.arrangement_hash,
+        "render_scope": artifact.render_scope.value if artifact.render_scope is not None else None,
+        "render_track_ids": [str(item) for item in artifact.render_track_ids],
         "source_job_id": artifact.source_job_id,
         "source_upload_id": artifact.source_upload_id,
         "content_hash": artifact.content_hash,
@@ -816,6 +927,27 @@ def _feature_values(artifact: FeatureArtifact) -> dict[str, object]:
     }
 
 
+def _export_bundle_values(artifact: ExportBundleArtifact) -> dict[str, object]:
+    return {
+        "id": artifact.artifact_id,
+        "project_id": artifact.project_id,
+        "source_job_id": artifact.source_job_id,
+        "revision_id": artifact.revision_id,
+        "content_hash": artifact.content_hash,
+        "byte_size": artifact.byte_size,
+        "storage_prefix": artifact.storage_prefix,
+        "file_count": artifact.file_count,
+        "arrangement_hash": artifact.arrangement_hash,
+        "engine_version": artifact.engine_version,
+        "seed": artifact.seed,
+        "input_artifact_ids": [str(item) for item in artifact.input_artifact_ids],
+        "lifecycle_class": artifact.lifecycle_class.value,
+        "availability": artifact.availability.value,
+        "schema_version": artifact.schema_version,
+        "created_at": artifact.created_at,
+    }
+
+
 def _job_from_row(row: MediaJobRow) -> MediaJob:
     return MediaJob(
         job_id=row.id,
@@ -854,6 +986,10 @@ def _artifact_from_row(row: AudioArtifactRow) -> AudioArtifact:
     return AudioArtifact(
         artifact_id=row.id,
         project_id=row.project_id,
+        revision_id=row.revision_id,
+        arrangement_hash=row.arrangement_hash,
+        render_scope=RenderScope(row.render_scope) if row.render_scope is not None else None,
+        render_track_ids=tuple(UUID(item) for item in row.render_track_ids),
         source_job_id=row.source_job_id,
         source_upload_id=row.source_upload_id,
         content_hash=row.content_hash,
@@ -918,4 +1054,26 @@ def _feature_from_row(row: FeatureArtifactRow) -> FeatureArtifact:
         expires_at=row.expires_at,
         evicted_at=row.evicted_at,
         rehydration_job_id=row.rehydration_job_id,
+    )
+
+
+def _export_bundle_from_row(row: ExportBundleArtifactRow) -> ExportBundleArtifact:
+    return ExportBundleArtifact.model_validate(
+        {
+            "artifact_id": row.id,
+            "project_id": row.project_id,
+            "source_job_id": row.source_job_id,
+            "revision_id": row.revision_id,
+            "content_hash": row.content_hash,
+            "byte_size": row.byte_size,
+            "storage_prefix": row.storage_prefix,
+            "file_count": row.file_count,
+            "arrangement_hash": row.arrangement_hash,
+            "engine_version": row.engine_version,
+            "seed": row.seed,
+            "input_artifact_ids": tuple(UUID(item) for item in row.input_artifact_ids),
+            "lifecycle_class": row.lifecycle_class,
+            "availability": row.availability,
+            "created_at": row.created_at,
+        }
     )

@@ -17,7 +17,7 @@ Record the SHA-256 of `docs/PROJECT_GUIDE.md` at task start and recheck it befor
 
 ## Active gate
 
-`G0` closed with implementation checkpoint `6bf21f5` pushed to `origin/main`. The current gate is `S1` in `docs/NEXT_DEVELOPMENT_ROADMAP.md`: deterministic complete-song Walking Skeleton. Do not start S2 or a later product feature until S1 complete export, Eval, failure and recovery gates pass. Follow S1 → S7 in dependency order unless the user approves a documented route change.
+`G0` closed with implementation checkpoint `6bf21f5` pushed to `origin/main`. `S1` is complete and independently reverified: deterministic generation proves Revision-bound rendering, immutable protected output, storage/cancellation gates, probed MP3 metadata, disconnect cleanup and approval/command audit. `S2` is the only active gate; do not start S3 or later product work until the unified Generate Parent Graph passes.
 
 ## Scope and traceability
 

@@ -53,4 +53,28 @@ describe("render worker runtime", () => {
       await rm(root, { recursive: true });
     }
   });
+
+  it("cancels an unused sink and removes partial output", async () => {
+    const root = await mkdtemp(join(tmpdir(), "motif-forge-render-cancel-test-"));
+    const outputPath = join(root, "cancelled.wav");
+    const partialPath = `${outputPath}.partial`;
+    const server = new LoopbackRenderServer("/unused-page-bundle.js", createBuiltinClickWav());
+    await server.start();
+    try {
+      const token = "b".repeat(32);
+      server.registerSink(token, outputPath, 1024);
+      await import("node:fs/promises").then(({ writeFile }) => writeFile(partialPath, "partial"));
+      await server.cancelSink(token);
+
+      await expect(readFile(partialPath)).rejects.toThrow();
+      const response = await fetch(`${server.origin}/outputs/${token}`, {
+        method: "POST",
+        body: Buffer.from(createBuiltinClickWav()),
+      });
+      expect(response.status).toBe(404);
+    } finally {
+      await server.close();
+      await rm(root, { recursive: true });
+    }
+  });
 });

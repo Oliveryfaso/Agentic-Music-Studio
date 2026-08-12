@@ -205,14 +205,37 @@ def decide_storage_pressure(facts: StoragePressureFacts) -> StoragePressureDecis
             planned=planned,
             protected_count=protected_count,
         )
-    if eligible:
-        planned = sum(item.byte_size for item in eligible)
+    helpful = tuple(
+        item
+        for item in eligible
+        if (
+            facts.minimum_free_bytes + facts.estimated_artifact_bytes + facts.estimated_temp_bytes
+            > facts.free_bytes
+        )
+        or (
+            item.scope is StorageScope.TEMP
+            and facts.temp_usage_bytes + facts.estimated_temp_bytes > facts.temp_quota_bytes
+        )
+        or (
+            item.scope is StorageScope.ARTIFACT
+            and (
+                facts.global_usage_bytes + facts.estimated_artifact_bytes > facts.global_quota_bytes
+                or (
+                    item.project_id == facts.project_id
+                    and facts.project_usage_bytes + facts.estimated_artifact_bytes
+                    > facts.project_quota_bytes
+                )
+            )
+        )
+    )
+    if helpful:
+        planned = sum(item.byte_size for item in helpful)
         return _decision(
             facts,
             route=StorageRoute.GC_THEN_RETRY,
             rule="STO-020",
             explanation="STORAGE_PARTIAL_SAFE_COLLECTION_AVAILABLE",
-            cleanup=tuple(item.artifact_id for item in eligible),
+            cleanup=tuple(item.artifact_id for item in helpful),
             required=required,
             planned=planned,
             protected_count=protected_count,
@@ -292,6 +315,29 @@ def _select_candidates(
     for item in eligible:
         if enough():
             break
+        root_short = facts.free_bytes + root_reclaimed - total_output < facts.minimum_free_bytes
+        global_short = (
+            facts.global_usage_bytes + facts.estimated_artifact_bytes - artifact_reclaimed
+            > facts.global_quota_bytes
+        )
+        project_short = (
+            facts.project_usage_bytes + facts.estimated_artifact_bytes - project_reclaimed
+            > facts.project_quota_bytes
+        )
+        temp_short = (
+            facts.temp_usage_bytes + facts.estimated_temp_bytes - temp_reclaimed
+            > facts.temp_quota_bytes
+        )
+        helps = (
+            root_short
+            or (item.scope is StorageScope.TEMP and temp_short)
+            or (
+                item.scope is StorageScope.ARTIFACT
+                and (global_short or (project_short and item.project_id == facts.project_id))
+            )
+        )
+        if not helps:
+            continue
         selected.append(item)
         root_reclaimed += item.byte_size
         if item.scope is StorageScope.TEMP:

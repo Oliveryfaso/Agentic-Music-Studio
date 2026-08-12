@@ -341,23 +341,41 @@ class PostgresTransaction:
             )
         )
         await self._session.execute(insert(RevisionRow).values(**_revision_values(revision)))
-        await self._session.execute(
-            insert(RevisionCommandRow).values(
-                revision_id=revision.revision_id,
-                command_batch_id=batch_id,
-                command_id=command_id,
-                command_type="materialize_candidate",
-                schema_version="service-command.v1",
-                payload={
-                    "candidate_snapshot_id": str(snapshot.candidate_snapshot_id),
-                    "candidate_content_hash": snapshot.candidate_content_hash,
-                    "preview_id": str(preview.preview_id),
-                },
-                selection={},
-                actor_kind=revision.author_kind.value,
-                client_sequence=0,
+        if snapshot.commands:
+            commands = snapshot.commands
+        else:
+            await self._session.execute(
+                insert(RevisionCommandRow).values(
+                    revision_id=revision.revision_id,
+                    command_batch_id=batch_id,
+                    command_id=command_id,
+                    command_type="materialize_candidate",
+                    schema_version="service-command.v1",
+                    payload={
+                        "candidate_snapshot_id": str(snapshot.candidate_snapshot_id),
+                        "candidate_content_hash": snapshot.candidate_content_hash,
+                        "preview_id": str(preview.preview_id),
+                    },
+                    selection={},
+                    actor_kind=revision.author_kind.value,
+                    client_sequence=0,
+                )
             )
-        )
+            return
+        for command in commands:
+            await self._session.execute(
+                insert(RevisionCommandRow).values(
+                    revision_id=revision.revision_id,
+                    command_batch_id=batch_id,
+                    command_id=command.command_id,
+                    command_type=command.command_type,
+                    schema_version=command.schema_version,
+                    payload=command.payload.model_dump(mode="json"),
+                    selection=command.selection.model_dump(mode="json"),
+                    actor_kind=command.actor_kind,
+                    client_sequence=command.client_sequence,
+                )
+            )
 
     async def insert_approval(
         self,
@@ -473,6 +491,7 @@ def _candidate_snapshot_values(snapshot: CandidateSnapshot) -> dict[str, object]
         "parent_candidate_snapshot_id": snapshot.parent_candidate_snapshot_id,
         "candidate_ir": snapshot.candidate_ir.model_dump(mode="json"),
         "candidate_content_hash": snapshot.candidate_content_hash,
+        "commands": [command.model_dump(mode="json") for command in snapshot.commands],
         "command_batch_id": snapshot.command_batch_id,
         "materialization_command_ref": snapshot.materialization_command_ref,
         "structural_diff": [entry.model_dump(mode="json") for entry in snapshot.structural_diff],
@@ -499,6 +518,7 @@ def _candidate_snapshot_from_row(row: CandidateSnapshotRow) -> CandidateSnapshot
                 ),
                 "candidate_ir": row.candidate_ir,
                 "candidate_content_hash": row.candidate_content_hash,
+                "commands": row.commands,
                 "command_batch_id": (
                     None if row.command_batch_id is None else str(row.command_batch_id)
                 ),

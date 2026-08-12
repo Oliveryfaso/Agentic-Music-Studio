@@ -262,6 +262,7 @@ class CandidateSnapshotRow(Base):
     )
     candidate_ir: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     candidate_content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    commands: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False)
     command_batch_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
     materialization_command_ref: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
     structural_diff: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False)
@@ -474,6 +475,18 @@ class AudioArtifactRow(Base):
             "(source_job_id IS NULL) <> (source_upload_id IS NULL)",
             name="artifacts_exactly_one_source",
         ),
+        CheckConstraint(
+            """
+            (quality_profile IN ('canonical-master.v1', 'canonical-stem.v1', 'delivery-mp3.v1')
+             AND revision_id IS NOT NULL AND arrangement_hash IS NOT NULL
+             AND render_scope IS NOT NULL)
+            OR
+            (quality_profile NOT IN ('canonical-master.v1', 'canonical-stem.v1', 'delivery-mp3.v1')
+             AND revision_id IS NULL AND arrangement_hash IS NULL AND render_scope IS NULL
+             AND render_track_ids = '[]'::jsonb)
+            """,
+            name="artifacts_final_revision_lineage",
+        ),
         UniqueConstraint(
             "project_id",
             "content_hash",
@@ -487,6 +500,12 @@ class AudioArtifactRow(Base):
     project_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.projects.id"), nullable=False
     )
+    revision_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.project_revisions.id")
+    )
+    arrangement_hash: Mapped[str | None] = mapped_column(String(64))
+    render_scope: Mapped[str | None] = mapped_column(String(24))
+    render_track_ids: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
     source_job_id: Mapped[UUID | None] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.jobs.id"), nullable=True
     )
@@ -519,6 +538,37 @@ class AudioArtifactRow(Base):
     evicted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     rehydration_job_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
     schema_version: Mapped[str] = mapped_column(String(40), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ExportBundleArtifactRow(Base):
+    __tablename__ = "export_bundle_artifacts"
+    __table_args__ = (
+        UniqueConstraint("project_id", "revision_id", name="uq_export_bundles_project_revision"),
+        Index("ix_export_bundles_project_created", "project_id", "created_at"),
+    )
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    project_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.projects.id"), nullable=False
+    )
+    source_job_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.jobs.id"), nullable=False
+    )
+    revision_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.project_revisions.id"), nullable=False
+    )
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    byte_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    storage_prefix: Mapped[str] = mapped_column(String(500), nullable=False)
+    file_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    arrangement_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    engine_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    seed: Mapped[int] = mapped_column(Integer, nullable=False)
+    input_artifact_ids: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
+    lifecycle_class: Mapped[str] = mapped_column(String(24), nullable=False)
+    availability: Mapped[str] = mapped_column(String(24), nullable=False)
+    schema_version: Mapped[str] = mapped_column(String(48), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 

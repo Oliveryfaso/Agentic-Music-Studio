@@ -20,7 +20,7 @@ fi
 
 mkdir -p \
   "$storage_root/artifacts" \
-  "$storage_root/artifacts/tmp/jobs" \
+  "$storage_root/tmp/jobs" \
   "$storage_root/artifacts/quarantine/source-original" \
   "$storage_root/artifacts/protected/working-pcm" \
   "$storage_root/artifacts/derived/time-stretch" \
@@ -31,7 +31,7 @@ mkdir -p \
 
 # Bind mounts appear root-owned inside the Linux VM. Keep the Worker non-root by
 # granting write access only to the controlled Artifact namespaces it owns.
-chmod 1777 "$storage_root/artifacts/tmp" "$storage_root/artifacts/tmp/jobs"
+chmod 1777 "$storage_root/tmp" "$storage_root/tmp/jobs"
 chmod 1777 \
   "$storage_root/artifacts/quarantine" \
   "$storage_root/artifacts/quarantine/source-original" \

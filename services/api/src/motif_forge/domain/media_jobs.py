@@ -21,6 +21,8 @@ class MediaQualityProfile(StrEnum):
     WORKING_PCM_V1 = "working-pcm.v1"
     CANONICAL_MASTER_V1 = "canonical-master.v1"
     CANONICAL_STEM_V1 = "canonical-stem.v1"
+    DELIVERY_MP3_V1 = "delivery-mp3.v1"
+    EXPORT_BUNDLE_V1 = "export-bundle.v1"
 
 
 class FeatureProfile(StrEnum):
@@ -71,6 +73,106 @@ class MediaJobType(StrEnum):
     REHYDRATE = "rehydrate"
     REHYDRATE_FEATURE = "rehydrate_feature"
     TRANSCODE_AUDITION = "transcode_audition"
+    RENDER_CANONICAL = "render_canonical"
+    TRANSCODE_EXPORT = "transcode_export"
+    EXPORT_BUNDLE = "export_bundle"
+
+
+class RenderScope(StrEnum):
+    MASTER = "master"
+    STEM = "stem"
+
+
+class CanonicalRenderJobPayload(DomainModel):
+    schema_version: Literal["canonical-render-job.v1"] = "canonical-render-job.v1"
+    project_id: UUID
+    revision_id: UUID
+    render_scope: RenderScope
+    render_track_ids: tuple[UUID, ...]
+    quality_profile: Literal[
+        MediaQualityProfile.CANONICAL_MASTER_V1,
+        MediaQualityProfile.CANONICAL_STEM_V1,
+    ]
+    audio_graph: dict[str, Any]
+    audio_graph_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    arrangement_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    audio_engine_version: Literal["motif-forge-audio-engine.v1"]
+    seed: int = Field(ge=0, le=2**31 - 1)
+    timeout_seconds: int = Field(ge=30, le=600)
+    maximum_output_bytes: int = Field(ge=1_048_576, le=2_147_483_648)
+
+    @model_validator(mode="after")
+    def validate_render_contract(self) -> Self:
+        encoded = json.dumps(
+            self.audio_graph,
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+        if hashlib.sha256(encoded).hexdigest() != self.audio_graph_hash:
+            raise ValueError("audio_graph_hash must match canonical audio_graph JSON")
+        if self.audio_graph.get("engineVersion") != self.audio_engine_version:
+            raise ValueError("audio_engine_version must match AudioGraphSpec")
+        if self.audio_graph.get("sampleRate") != 48_000 or self.audio_graph.get("channels") != 2:
+            raise ValueError("canonical render requires 48 kHz stereo AudioGraphSpec")
+        if self.render_scope is RenderScope.MASTER:
+            if self.render_track_ids:
+                raise ValueError("master render cannot select individual tracks")
+            if self.quality_profile is not MediaQualityProfile.CANONICAL_MASTER_V1:
+                raise ValueError("master render requires canonical-master.v1")
+        elif len(self.render_track_ids) != 1:
+            raise ValueError("stem render requires exactly one track")
+        elif self.quality_profile is not MediaQualityProfile.CANONICAL_STEM_V1:
+            raise ValueError("stem render requires canonical-stem.v1")
+        return self
+
+
+class ExportMp3JobPayload(DomainModel):
+    schema_version: Literal["export-mp3-job.v1"] = "export-mp3-job.v1"
+    project_id: UUID
+    revision_id: UUID
+    source_artifact_id: UUID
+    source_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    bitrate_kbps: Literal[256] = 256
+    timeout_seconds: int = Field(ge=30, le=300)
+
+
+class BundleAudioInput(DomainModel):
+    artifact_id: UUID
+    quality_profile: Literal[
+        MediaQualityProfile.CANONICAL_MASTER_V1,
+        MediaQualityProfile.CANONICAL_STEM_V1,
+        MediaQualityProfile.DELIVERY_MP3_V1,
+    ]
+    content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    filename: str = Field(pattern=r"^[A-Za-z0-9._-]+$")
+
+
+class ExportBundleJobPayload(DomainModel):
+    schema_version: Literal["export-bundle-job.v1"] = "export-bundle-job.v1"
+    project_id: UUID
+    revision_id: UUID
+    seed: int = Field(ge=0, le=2**31 - 1)
+    arrangement_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    audio_inputs: tuple[BundleAudioInput, ...] = Field(min_length=6, max_length=6)
+    engine_version: Literal["motif-forge-audio-engine.v1"]
+    trace_refs: tuple[str, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_bundle_inputs(self) -> Self:
+        profiles = [item.quality_profile for item in self.audio_inputs]
+        if profiles.count(MediaQualityProfile.CANONICAL_MASTER_V1) != 1:
+            raise ValueError("bundle requires one canonical Master")
+        if profiles.count(MediaQualityProfile.DELIVERY_MP3_V1) != 1:
+            raise ValueError("bundle requires one delivery MP3")
+        if profiles.count(MediaQualityProfile.CANONICAL_STEM_V1) != 4:
+            raise ValueError("bundle requires four canonical Stems")
+        if len({item.artifact_id for item in self.audio_inputs}) != 6:
+            raise ValueError("bundle inputs must reference six unique Artifacts")
+        if len({item.filename for item in self.audio_inputs}) != 6:
+            raise ValueError("bundle filenames must be unique")
+        return self
 
 
 class ImportedAudioAnalysis(DomainModel):
@@ -266,9 +368,13 @@ class RebuildRecipe(DomainModel):
 
 
 class AudioArtifact(DomainModel):
-    schema_version: Literal["audio-artifact.v1"] = "audio-artifact.v1"
+    schema_version: Literal["audio-artifact.v2"] = "audio-artifact.v2"
     artifact_id: UUID
     project_id: UUID
+    revision_id: UUID | None = None
+    arrangement_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    render_scope: RenderScope | None = None
+    render_track_ids: tuple[UUID, ...] = ()
     source_job_id: UUID | None = None
     source_upload_id: UUID | None = None
     content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
@@ -302,6 +408,32 @@ class AudioArtifact(DomainModel):
     def validate_artifact_contract(self) -> Self:
         if (self.source_job_id is None) == (self.source_upload_id is None):
             raise ValueError("artifact requires exactly one source job or source upload")
+        final_profiles = {
+            MediaQualityProfile.CANONICAL_MASTER_V1,
+            MediaQualityProfile.CANONICAL_STEM_V1,
+            MediaQualityProfile.DELIVERY_MP3_V1,
+        }
+        if self.quality_profile in final_profiles and (
+            self.revision_id is None
+            or self.arrangement_hash is None
+            or self.render_scope is None
+        ):
+            raise ValueError("canonical and delivery outputs require revision lineage")
+        if self.quality_profile is MediaQualityProfile.CANONICAL_STEM_V1:
+            if self.render_scope is not RenderScope.STEM or len(self.render_track_ids) != 1:
+                raise ValueError("canonical Stem requires one structured track scope")
+        elif self.quality_profile in {
+            MediaQualityProfile.CANONICAL_MASTER_V1,
+            MediaQualityProfile.DELIVERY_MP3_V1,
+        } and (self.render_scope is not RenderScope.MASTER or self.render_track_ids):
+            raise ValueError("Master and MP3 outputs require whole-mix scope")
+        elif self.quality_profile not in final_profiles and (
+            self.revision_id is not None
+            or self.arrangement_hash is not None
+            or self.render_scope is not None
+            or self.render_track_ids
+        ):
+            raise ValueError("only canonical and delivery outputs carry render lineage")
         key_parts = self.storage_key.split("/")
         if self.storage_key.startswith("/") or ".." in key_parts or "" in key_parts:
             raise ValueError("storage_key must be a safe repository-relative key")
@@ -372,6 +504,9 @@ class AudioArtifact(DomainModel):
             MediaQualityProfile.CANONICAL_STEM_V1,
         }:
             self._require_pcm(bit_depth=24)
+        elif profile is MediaQualityProfile.DELIVERY_MP3_V1:
+            self._require_mp3(bitrate=256)
+            self._require_rate_and_channels()
         return self
 
     def _require_decoded_metadata(self) -> None:
@@ -445,12 +580,43 @@ class FeatureArtifact(DomainModel):
         return self
 
 
+class ExportBundleArtifact(DomainModel):
+    schema_version: Literal["export-bundle-artifact.v1"] = "export-bundle-artifact.v1"
+    artifact_id: UUID
+    project_id: UUID
+    source_job_id: UUID
+    revision_id: UUID
+    content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    byte_size: int = Field(gt=0)
+    storage_prefix: str = Field(min_length=1, max_length=500)
+    file_count: int = Field(ge=13, le=100)
+    arrangement_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    engine_version: Literal["motif-forge-audio-engine.v1"]
+    seed: int = Field(ge=0, le=2**31 - 1)
+    input_artifact_ids: tuple[UUID, ...] = Field(min_length=6, max_length=6)
+    lifecycle_class: Literal[ArtifactLifecycle.PROTECTED] = ArtifactLifecycle.PROTECTED
+    availability: Literal[ArtifactAvailability.AVAILABLE] = ArtifactAvailability.AVAILABLE
+    created_new: bool = False
+    created_at: datetime
+
+    @model_validator(mode="after")
+    def validate_bundle_artifact(self) -> Self:
+        parts = self.storage_prefix.split("/")
+        if self.storage_prefix.startswith("/") or ".." in parts or "" in parts:
+            raise ValueError("storage_prefix must be a safe repository-relative key")
+        if len(set(self.input_artifact_ids)) != 6:
+            raise ValueError("bundle must preserve six unique input Artifact refs")
+        if self.created_at.tzinfo is None or self.created_at.utcoffset() is None:
+            raise ValueError("created_at must be timezone-aware")
+        return self
+
+
 class WorkerEvent(DomainModel):
     schema_version: Literal["worker-event.v1"] = "worker-event.v1"
     event_id: str = Field(min_length=1, max_length=200)
     job_id: UUID
     event_type: Literal["job.completed", "job.failed_retryable", "job.failed_terminal"]
-    artifact: AudioArtifact | FeatureArtifact | None = None
+    artifact: AudioArtifact | FeatureArtifact | ExportBundleArtifact | None = None
     feature_artifacts: tuple[FeatureArtifact, ...] = ()
     validated_source_artifact: AudioArtifact | None = None
     error_code: str | None = Field(default=None, min_length=1, max_length=100)

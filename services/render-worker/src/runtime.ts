@@ -3,10 +3,11 @@ import { createWriteStream } from "node:fs";
 import { mkdir, readFile, rename, stat, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
 
-type OutputSink = Readonly<{
+type OutputSink = {
   finalPath: string;
   maximumBytes: number;
-}>;
+  cancelled: boolean;
+};
 
 export async function withTimeout<T>(
   operation: Promise<T>,
@@ -67,7 +68,18 @@ export class LoopbackRenderServer {
     if (!/^[a-f0-9]{32}$/.test(token) || this.#sinks.has(token)) {
       throw new Error("RENDER_OUTPUT_TOKEN_INVALID");
     }
-    this.#sinks.set(token, { finalPath, maximumBytes });
+    this.#sinks.set(token, { finalPath, maximumBytes, cancelled: false });
+  }
+
+  async cancelSink(token: string): Promise<void> {
+    const sink = this.#sinks.get(token);
+    if (sink === undefined) return;
+    sink.cancelled = true;
+    this.#sinks.delete(token);
+    await Promise.all([
+      unlink(`${sink.finalPath}.partial`).catch(() => undefined),
+      unlink(sink.finalPath).catch(() => undefined),
+    ]);
   }
 
   async close(): Promise<void> {
@@ -109,9 +121,12 @@ export class LoopbackRenderServer {
           response.writeHead(404).end();
           return;
         }
-        this.#sinks.delete(token);
-        await this.#receiveOutput(request, sink);
-        response.writeHead(201).end();
+        try {
+          await this.#receiveOutput(request, sink);
+          response.writeHead(201).end();
+        } finally {
+          if (this.#sinks.get(token) === sink) this.#sinks.delete(token);
+        }
         return;
       }
       response.writeHead(404).end();
@@ -139,7 +154,7 @@ export class LoopbackRenderServer {
         request.pipe(output);
       });
       const actual = (await stat(partialPath)).size;
-      if (actual !== received || actual < 44 || actual > sink.maximumBytes) {
+      if (sink.cancelled || actual !== received || actual < 44 || actual > sink.maximumBytes) {
         throw new Error("RENDER_OUTPUT_SIZE_INVALID");
       }
       await rename(partialPath, sink.finalPath);

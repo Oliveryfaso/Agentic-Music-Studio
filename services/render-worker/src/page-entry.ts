@@ -5,7 +5,10 @@ import {
   type RenderBridgeRequest,
   validateAudioGraphSpec,
 } from "../../../packages/audio-engine/src/index.js";
-import { encodeStereoPcm16 } from "../../../packages/audio-engine/src/wav.js";
+import {
+  encodeStereoPcm16,
+  encodeStereoPcm24,
+} from "../../../packages/audio-engine/src/wav.js";
 
 declare global {
   interface Window {
@@ -19,7 +22,10 @@ window.motifForgeRender = async (request) => {
   }
   validateAudioGraphSpec(request.graph);
   const buffer = await renderAudioGraphOffline(request.graph, request.renderTrackIds);
-  const wav = encodeStereoPcm16(buffer);
+  const wav =
+    request.outputBitDepth === 24
+      ? encodeStereoPcm24(buffer)
+      : encodeStereoPcm16(buffer);
   const response = await fetch(`/outputs/${encodeURIComponent(request.outputToken)}`, {
     method: "POST",
     headers: { "Content-Type": "audio/wav" },
@@ -35,6 +41,7 @@ window.motifForgeRender = async (request) => {
     durationSeconds: buffer.duration,
     sampleRate: buffer.sampleRate,
     channels: buffer.numberOfChannels,
+    bitDepth: request.outputBitDepth,
     peak: peakAmplitude(buffer),
   };
 };

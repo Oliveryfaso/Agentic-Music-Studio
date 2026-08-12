@@ -137,6 +137,7 @@ class CreateCommandPreview:
                 base_revision=base_revision,
                 candidate_ir=candidate_ir,
                 candidate_id=request.candidate_id,
+                commands=request.commands,
                 candidate_snapshot_id=self._id_factory(),
                 source_run_id=request.source_run_id,
                 structural_diff=request.structural_diff,
@@ -188,6 +189,7 @@ class DecidePreviewRequest(DomainModel):
     preview_id: UUID
     decision: PreviewDecision
     actor_id: str = Field(min_length=1, max_length=160)
+    approval_assertion: str = Field(min_length=16, max_length=300)
     idempotency_key: str = Field(min_length=8, max_length=160)
 
 

@@ -90,6 +90,7 @@ async def test_approve_materializes_once_and_idempotently_advances_branch() -> N
         preview_id=preview_id,
         decision=PreviewDecision.APPROVE,
         actor_id="user",
+        approval_assertion="approved after reviewing the preview",
         idempotency_key="approve-001",
     )
     decide = DecidePreview(transaction, clock=lambda: NOW + timedelta(minutes=1))
@@ -117,6 +118,7 @@ async def test_reject_keeps_branch_head_and_creates_no_revision() -> None:
             preview_id=preview_id,
             decision=PreviewDecision.REJECT,
             actor_id="user",
+            approval_assertion="rejected after reviewing the preview",
             idempotency_key="reject-001",
         )
     )
@@ -151,6 +153,7 @@ async def test_stale_approval_persists_superseded_then_returns_revision_conflict
                 preview_id=preview_id,
                 decision=PreviewDecision.APPROVE,
                 actor_id="user",
+                approval_assertion="approved after reviewing the preview",
                 idempotency_key="approve-stale",
             )
         )
@@ -171,6 +174,7 @@ async def test_expired_preview_is_terminal_without_materialization() -> None:
                 preview_id=preview_id,
                 decision=PreviewDecision.APPROVE,
                 actor_id="user",
+                approval_assertion="approved after reviewing the preview",
                 idempotency_key="approve-expired",
             )
         )

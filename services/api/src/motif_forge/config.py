@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     postgres_dsn: SecretStr | None = None
     redis_url: SecretStr | None = None
     media_worker_queue: str = Field(default="media", min_length=1, max_length=80)
+    render_service_url: str = Field(
+        default="http://render-worker:8090", min_length=8, max_length=240
+    )
     media_worker_soft_time_limit_seconds: int = Field(default=600, ge=30, le=1800)
     media_worker_hard_time_limit_seconds: int = Field(default=660, ge=31, le=1900)
     media_job_lease_seconds: int = Field(default=720, ge=60, le=2100)

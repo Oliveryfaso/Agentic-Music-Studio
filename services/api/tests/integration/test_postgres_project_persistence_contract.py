@@ -18,6 +18,10 @@ import pytest_asyncio
 from alembic import command as alembic_command
 from alembic.config import Config
 from motif_forge.agent.planner import PlannerResponse, PlannerUsage
+from motif_forge.application.composition import (
+    PrepareDeterministicCompositionPreview,
+    PrepareDeterministicCompositionPreviewRequest,
+)
 from motif_forge.application.errors import ChangeImpactEscalatedError, RevisionConflictError
 from motif_forge.application.media_jobs import (
     ApplyWorkerEvent,
@@ -34,6 +38,7 @@ from motif_forge.application.previews import (
     PreviewDecision,
 )
 from motif_forge.application.projects import CreateProject, CreateProjectRequest
+from motif_forge.application.rendering import compile_audio_graph
 from motif_forge.application.revisions import CommitCommandBatch, CommitCommandBatchRequest
 from motif_forge.application.storage import LocalArtifactCollector
 from motif_forge.config import Settings
@@ -42,9 +47,11 @@ from motif_forge.domain.ir import Track, TrackRole, TrackType
 from motif_forge.domain.media_jobs import (
     ArtifactLifecycle,
     AudioArtifact,
+    CanonicalRenderJobPayload,
     JobStatus,
     MediaJobType,
     MediaQualityProfile,
+    RenderScope,
     TimeStretchJobPayload,
     WorkerEvent,
 )
@@ -64,6 +71,7 @@ from motif_forge.infrastructure.persistence.tables import (
     BranchRow,
     CandidateSnapshotRow,
     CommandBatchRow,
+    ExportBundleArtifactRow,
     FeatureArtifactRow,
     IdempotencyRow,
     InboxReceiptRow,
@@ -143,6 +151,9 @@ async def _delete_exact_project(engine: AsyncEngine, project_id: UUID) -> None:
         )
         await connection.execute(
             delete(FeatureArtifactRow).where(FeatureArtifactRow.project_id == project_id)
+        )
+        await connection.execute(
+            delete(ExportBundleArtifactRow).where(ExportBundleArtifactRow.project_id == project_id)
         )
         await connection.execute(
             delete(AudioArtifactRow).where(AudioArtifactRow.project_id == project_id)
@@ -779,6 +790,7 @@ async def test_candidate_preview_approval_materializes_once_in_real_postgres(
             preview_id=preview.preview_id,
             decision=PreviewDecision.APPROVE,
             actor_id="integration-test",
+            approval_assertion="approved by integration operator after review",
             idempotency_key=f"approve-{uuid4().hex}",
         )
         approved = await DecidePreview(uow)(decision_request)
@@ -802,16 +814,160 @@ async def test_candidate_preview_approval_materializes_once_in_real_postgres(
                 .select_from(ApprovalRow)
                 .where(ApprovalRow.preview_id == preview.preview_id)
             )
-            materialize_command = await connection.scalar(
-                select(RevisionCommandRow.command_type).where(
-                    RevisionCommandRow.revision_id == approved.revision_id
-                )
+            materialize_commands = tuple(
+                (
+                    await connection.execute(
+                        select(RevisionCommandRow.command_type).where(
+                            RevisionCommandRow.revision_id == approved.revision_id
+                        )
+                    )
+                ).scalars()
             )
 
         assert branch_head == approved.revision_id
         assert preview_status == "approved"
         assert approval_count == 1
-        assert materialize_command == "materialize_candidate"
+        assert materialize_commands == ("add_track",)
+    finally:
+        await _delete_exact_project(persistence_engine, created.project_id)
+
+
+@pytest.mark.asyncio
+async def test_s1_approval_persists_original_generation_commands(
+    persistence_engine: AsyncEngine,
+) -> None:
+    uow = PostgresUnitOfWork(create_session_factory(persistence_engine))
+    created = await CreateProject(uow)(
+        CreateProjectRequest(
+            name="S1 command audit",
+            actor_id="integration-test",
+            idempotency_key=f"create-{uuid4().hex}",
+        )
+    )
+    try:
+        preview = await PrepareDeterministicCompositionPreview(uow)(
+            PrepareDeterministicCompositionPreviewRequest(
+                project_id=created.project_id,
+                branch_id=created.active_branch_id,
+                base_revision_id=created.root_revision_id,
+                seed=20260812,
+                actor_id="system:s1-composer",
+                idempotency_key=f"preview-{uuid4().hex}",
+            )
+        )
+        approved = await DecidePreview(uow)(
+            DecidePreviewRequest(
+                preview_id=preview.preview_id,
+                decision=PreviewDecision.APPROVE,
+                actor_id="local-user:integration",
+                approval_assertion="I reviewed and approve this generated composition",
+                idempotency_key=f"approve-{uuid4().hex}",
+            )
+        )
+        assert approved.revision_id is not None
+        async with persistence_engine.connect() as connection:
+            rows = (
+                await connection.execute(
+                    select(
+                        RevisionCommandRow.command_type,
+                        RevisionCommandRow.client_sequence,
+                    )
+                    .where(RevisionCommandRow.revision_id == approved.revision_id)
+                    .order_by(RevisionCommandRow.client_sequence)
+                )
+            ).all()
+        assert rows == [
+            ("initialize_composition", 0),
+            ("add_track", 1),
+            ("add_track", 2),
+            ("add_track", 3),
+            ("add_track", 4),
+        ]
+    finally:
+        await _delete_exact_project(persistence_engine, created.project_id)
+
+
+@pytest.mark.asyncio
+async def test_render_job_rejects_graph_not_compiled_from_persisted_revision(
+    persistence_engine: AsyncEngine,
+    test_postgres_dsn: str,
+    tmp_path: Path,
+) -> None:
+    sessions = create_session_factory(persistence_engine)
+    project_uow = PostgresUnitOfWork(sessions)
+    media_uow = PostgresMediaJobUnitOfWork(sessions)
+    created = await CreateProject(project_uow)(
+        CreateProjectRequest(
+            name="S1 render lineage",
+            actor_id="integration-test",
+            idempotency_key=f"create-{uuid4().hex}",
+        )
+    )
+    try:
+        preview = await PrepareDeterministicCompositionPreview(project_uow)(
+            PrepareDeterministicCompositionPreviewRequest(
+                project_id=created.project_id,
+                branch_id=created.active_branch_id,
+                base_revision_id=created.root_revision_id,
+                seed=20260812,
+                actor_id="system:s1-composer",
+                idempotency_key=f"preview-{uuid4().hex}",
+            )
+        )
+        approved = await DecidePreview(project_uow)(
+            DecidePreviewRequest(
+                preview_id=preview.preview_id,
+                decision=PreviewDecision.APPROVE,
+                actor_id="local-user:integration",
+                approval_assertion="I reviewed and approve this generated composition",
+                idempotency_key=f"approve-{uuid4().hex}",
+            )
+        )
+        assert approved.revision_id is not None
+        async with project_uow() as transaction:
+            revision = await transaction.get_revision(approved.revision_id)
+        assert revision is not None
+        projection = compile_audio_graph(revision.arrangement_ir)
+        tampered_graph = {**projection.graph, "durationSeconds": 1.0}
+        encoded = (
+            __import__("json").dumps(tampered_graph, separators=(",", ":"), sort_keys=True).encode()
+        )
+        payload = CanonicalRenderJobPayload(
+            project_id=created.project_id,
+            revision_id=approved.revision_id,
+            render_scope=RenderScope.MASTER,
+            render_track_ids=(),
+            quality_profile=MediaQualityProfile.CANONICAL_MASTER_V1,
+            audio_graph=tampered_graph,
+            audio_graph_hash=hashlib.sha256(encoded).hexdigest(),
+            arrangement_hash=revision.content_hash,
+            audio_engine_version="motif-forge-audio-engine.v1",
+            seed=20260812,
+            timeout_seconds=30,
+            maximum_output_bytes=1_048_576,
+        )
+        queued = await EnqueueMediaJob(media_uow)(
+            EnqueueMediaJobRequest(
+                project_id=created.project_id,
+                thread_id=f"s1-lineage-{uuid4().hex}",
+                run_type="parent.s1_render.v1",
+                job_type=MediaJobType.RENDER_CANONICAL,
+                input_payload=payload.model_dump(mode="json"),
+                output_quality_profile=MediaQualityProfile.CANONICAL_MASTER_V1,
+                idempotency_key=f"render-{uuid4().hex}",
+                deadline_seconds=300,
+            )
+        )
+        settings = Settings(
+            environment="test",
+            postgres_dsn=test_postgres_dsn,
+            artifact_root=tmp_path,
+            temp_root=tmp_path / "tmp",
+            storage_min_free_bytes=64 * 1024**2,
+        )
+        result = await execute_media_job(queued.job_id, settings=settings, worker_id="lineage-test")
+        assert result.status == JobStatus.FAILED_TERMINAL.value
+        assert result.error_code == "RENDER_REVISION_GRAPH_MISMATCH"
     finally:
         await _delete_exact_project(persistence_engine, created.project_id)
 

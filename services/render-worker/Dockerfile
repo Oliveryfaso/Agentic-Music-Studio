@@ -31,4 +31,4 @@ RUN npm run build:audio \
     && npm prune --omit=dev \
     && npm cache clean --force
 
-CMD ["node", "services/render-worker/dist/spike.js"]
+CMD ["node", "services/render-worker/dist/service.js"]

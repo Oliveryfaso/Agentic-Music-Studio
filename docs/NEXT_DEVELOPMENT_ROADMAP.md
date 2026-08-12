@@ -3,6 +3,7 @@
 > **For agentic workers:** 实施本路线中的具体纵切前，必须先为该纵切建立 `docs/superpowers/plans/YYYY-MM-DD-<slice>.md`，再使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 逐项执行。
 > 状态：已批准的主路线
 > 起点：受控 Upload → Import → 分析 HITL → 保持音高对齐 → Web Preview 已完成
+> 执行断点（2026-08-12）：G0、S1 已验收；S2 是唯一活动门，S3–S7 仍关闭。
 
 **目标：** 从当前可靠的导入底座，按最短依赖路径完成“可生成、可听、可编辑、可恢复、可评测”的 Agentic Music Studio。
 
@@ -125,6 +126,8 @@ G0 不包含：重写 API、拆分所有大文件、Graph 代码合并、引入�
 | S7 | 导出产品化复验和作品集演示 | Export bundle、Eval/Trace/Metric versions | export/release 路由 | WAV/MP3/Stem/MIDI/manifests | Export、Run Inspector、Eval Lab | 96+ Eval、P95、故障注入、CI/CD |
 
 ## 6. S1：确定性完整成曲 Walking Skeleton
+
+> 状态：**已完成**。72 秒、80 BPM、4/4、C major、四轨 Synth Ambient 固定作品已经由真实 Outbox/Redis/Celery/Chromium 队列链导出；Revision→AudioGraph 强绑定、Protected 输出不可变、StoragePressureGate、MP3 probe、断连取消及审批/命令审计已通过针对性测试和独立复审。
 
 **用户价值：** 首次证明 Motif Forge 能把结构化音乐计划变成一首完整可交付作品，而不仅能导入音频。
 

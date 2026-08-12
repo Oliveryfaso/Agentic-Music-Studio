@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from datetime import UTC, datetime
 from types import TracebackType
 from typing import Self
@@ -15,6 +16,7 @@ from motif_forge.domain.media_jobs import (
     ArtifactLifecycle,
     AudioArtifact,
     FeatureArtifact,
+    JobStatus,
 )
 from motif_forge.domain.storage import (
     StorageCandidateFact,
@@ -26,7 +28,9 @@ from motif_forge.infrastructure.persistence.database import SessionFactory
 from motif_forge.infrastructure.persistence.media_jobs import _artifact_from_row
 from motif_forge.infrastructure.persistence.tables import (
     AudioArtifactRow,
+    ExportBundleArtifactRow,
     FeatureArtifactRow,
+    MediaJobRow,
     PreviewCandidateRow,
     RevisionRow,
     StorageEventRow,
@@ -76,7 +80,35 @@ class PostgresStorageTransaction:
         tuple[StorageDependencyFact, ...],
         tuple[StorageCandidateFact, ...],
     ]:
-        del now
+        active_source_job_ids = set(
+            (
+                await self._session.execute(
+                    select(MediaJobRow.id).where(
+                        MediaJobRow.status == JobStatus.RUNNING.value,
+                        MediaJobRow.lease_expires_at.is_not(None),
+                        MediaJobRow.lease_expires_at > now,
+                    )
+                )
+            ).scalars()
+        )
+        active_job_payloads = (
+            (
+                await self._session.execute(
+                    select(MediaJobRow.input_payload).where(
+                        MediaJobRow.status == JobStatus.RUNNING.value,
+                        MediaJobRow.lease_expires_at.is_not(None),
+                        MediaJobRow.lease_expires_at > now,
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        active_artifact_refs = {
+            item
+            for payload in active_job_payloads
+            for item in _uuid_values(payload)
+        }
         audio_usage = (
             await self._session.execute(
                 select(
@@ -147,6 +179,28 @@ class PostgresStorageTransaction:
                 )
             )
         ).one()
+        bundle_usage = (
+            await self._session.execute(
+                select(
+                    func.coalesce(func.sum(ExportBundleArtifactRow.byte_size), 0),
+                    func.coalesce(
+                        func.sum(
+                            case(
+                                (
+                                    ExportBundleArtifactRow.project_id == project_id,
+                                    ExportBundleArtifactRow.byte_size,
+                                ),
+                                else_=0,
+                            )
+                        ),
+                        0,
+                    ),
+                ).where(
+                    ExportBundleArtifactRow.availability
+                    == ArtifactAvailability.AVAILABLE.value
+                )
+            )
+        ).one()
         rows = (
             await self._session.execute(
                 select(AudioArtifactRow).where(
@@ -174,7 +228,11 @@ class PostgresStorageTransaction:
                 recipe_complete=row.rebuild_recipe is not None,
                 rebuild_inputs_available=row.rebuild_recipe is not None,
                 protection_reasons=tuple(row.protection_reasons),
-                active_job_lease=False,
+                active_job_lease=(
+                    row.source_job_id in active_source_job_ids
+                    or row.rehydration_job_id in active_source_job_ids
+                    or row.id in active_artifact_refs
+                ),
                 last_accessed_at=row.last_accessed_at or row.created_at,
                 expires_at=row.expires_at,
             )
@@ -219,8 +277,8 @@ class PostgresStorageTransaction:
                 )
             )
         return (
-            int(audio_usage[0]) + int(feature_usage[0]),
-            int(audio_usage[1]) + int(feature_usage[1]),
+            int(audio_usage[0]) + int(feature_usage[0]) + int(bundle_usage[0]),
+            int(audio_usage[1]) + int(feature_usage[1]) + int(bundle_usage[1]),
             0,
             tuple(dependencies),
             candidates,
@@ -245,7 +303,6 @@ class PostgresStorageTransaction:
             ).scalar_one()
         )
         return count == len(set(input_ids))
-
     async def record_storage_decision(self, decision: StoragePressureDecision) -> None:
         sequence = int(
             (
@@ -423,3 +480,17 @@ class PostgresStorageTransaction:
             if input_count != len(input_ids):
                 return True
         return False
+
+
+def _uuid_values(value: object) -> set[UUID]:
+    found: set[UUID] = set()
+    if isinstance(value, dict):
+        for nested in value.values():
+            found.update(_uuid_values(nested))
+    elif isinstance(value, list):
+        for nested in value:
+            found.update(_uuid_values(nested))
+    elif isinstance(value, str):
+        with suppress(ValueError):
+            found.add(UUID(value))
+    return found

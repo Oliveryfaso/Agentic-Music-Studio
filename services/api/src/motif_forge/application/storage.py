@@ -163,8 +163,11 @@ def _mode_has_write_bit(mode: int) -> bool:
 
 
 class PostgresStorageFactsLoader:
-    def __init__(self, uow_factory: StorageUnitOfWorkFactory) -> None:
+    def __init__(
+        self, uow_factory: StorageUnitOfWorkFactory, *, temp_root: Path | None = None
+    ) -> None:
         self._uow_factory = uow_factory
+        self._temp_root = temp_root
 
     async def __call__(
         self, *, project_id: UUID, dependency_artifact_ids: tuple[UUID, ...]
@@ -176,11 +179,35 @@ class PostgresStorageFactsLoader:
         tuple[StorageCandidateFact, ...],
     ]:
         async with self._uow_factory() as transaction:
-            return await transaction.load_storage_facts(
-                project_id=project_id,
-                dependency_artifact_ids=dependency_artifact_ids,
-                now=datetime.now(UTC),
+            global_usage, project_usage, _, dependencies, candidates = (
+                await transaction.load_storage_facts(
+                    project_id=project_id,
+                    dependency_artifact_ids=dependency_artifact_ids,
+                    now=datetime.now(UTC),
+                )
             )
+        temp_usage = (
+            _directory_file_bytes(self._temp_root) if self._temp_root is not None else 0
+        )
+        return global_usage, project_usage, temp_usage, dependencies, candidates
+
+
+def _directory_file_bytes(root: Path) -> int:
+    if not root.is_dir() or root.is_symlink():
+        return 0
+    total = 0
+    for parent, directories, filenames in os.walk(root, followlinks=False):
+        directories[:] = [
+            name for name in directories if not (Path(parent) / name).is_symlink()
+        ]
+        for filename in filenames:
+            path = Path(parent) / filename
+            try:
+                if not path.is_symlink():
+                    total += path.stat().st_size
+            except OSError:
+                continue
+    return total
 
 
 class PersistentStorageEventRecorder:

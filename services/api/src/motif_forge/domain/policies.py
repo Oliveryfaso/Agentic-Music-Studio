@@ -11,6 +11,7 @@ from motif_forge.domain.commands import (
     DeleteTrackCommand,
     EditorCommand,
     ImportAudioCommand,
+    InitializeCompositionCommand,
     SetClipParamCommand,
     SetTrackParamCommand,
     UpdateNotesCommand,
@@ -26,6 +27,9 @@ def command_change_impact(command: EditorCommand) -> ChangeImpact:
     The command actor is authoritative input: an agent proposing creative material is
     escalated even when the same explicit gesture would be a bounded human edit.
     """
+
+    if isinstance(command, InitializeCompositionCommand):
+        return ChangeImpact.L3
 
     if isinstance(command, SetTrackParamCommand):
         if command.payload.parameter in {"mute", "solo", "gain_db", "pan"}:

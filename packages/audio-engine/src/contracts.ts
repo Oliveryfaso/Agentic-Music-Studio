@@ -61,6 +61,7 @@ export type RenderBridgeRequest = Readonly<{
   requestId: string;
   outputToken: string;
   graph: AudioGraphSpec;
+  outputBitDepth: 16 | 24;
   renderTrackIds?: readonly string[];
 }>;
 
@@ -71,6 +72,7 @@ export type RenderBridgeReceipt = Readonly<{
   durationSeconds: number;
   sampleRate: number;
   channels: number;
+  bitDepth: 16 | 24;
   peak: number;
 }>;
 
