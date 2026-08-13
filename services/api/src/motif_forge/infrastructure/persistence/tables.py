@@ -471,9 +471,10 @@ class AIRunRow(Base):
             "completion_tokens >= 0", name="ai_runs_completion_tokens_nonnegative"
         ),
         CheckConstraint(
-            "(status = 'waiting_approval') = "
-            "(pending_plan_id IS NOT NULL AND pending_plan_content_hash IS NOT NULL "
-            "AND pending_interrupt_ref IS NOT NULL)",
+            "(status = 'waiting_approval' AND pending_plan_id IS NOT NULL "
+            "AND pending_plan_content_hash IS NOT NULL AND pending_interrupt_ref IS NOT NULL) "
+            "OR (status <> 'waiting_approval' AND pending_plan_id IS NULL "
+            "AND pending_plan_content_hash IS NULL AND pending_interrupt_ref IS NULL)",
             name="ai_runs_waiting_approval_pending_plan",
         ),
         Index("ix_ai_runs_project_status", "project_id", "status"),

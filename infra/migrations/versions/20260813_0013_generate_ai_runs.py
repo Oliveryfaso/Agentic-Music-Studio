@@ -56,9 +56,10 @@ def upgrade() -> None:
             "project_id", "idempotency_key", name="uq_ai_runs_project_idempotency_key"
         ),
         sa.CheckConstraint(
-            "(status = 'waiting_approval') = "
-            "(pending_plan_id IS NOT NULL AND pending_plan_content_hash IS NOT NULL "
-            "AND pending_interrupt_ref IS NOT NULL)",
+            "(status = 'waiting_approval' AND pending_plan_id IS NOT NULL "
+            "AND pending_plan_content_hash IS NOT NULL AND pending_interrupt_ref IS NOT NULL) "
+            "OR (status <> 'waiting_approval' AND pending_plan_id IS NULL "
+            "AND pending_plan_content_hash IS NULL AND pending_interrupt_ref IS NULL)",
             name="ai_runs_waiting_approval_pending_plan",
         ),
         schema="app",

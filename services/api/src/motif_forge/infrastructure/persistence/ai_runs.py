@@ -411,6 +411,17 @@ class PostgresAIRunTransaction:
             )
         )
         await self._session.execute(
+            insert(AIRunActionIdempotencyRow).values(
+                id=UUID(bytes=secrets.token_bytes(16)),
+                parent_run_id=parent_run_id,
+                action="retry",
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                result_run_id=child.run_id,
+                created_at=now,
+            )
+        )
+        await self._session.execute(
             insert(OutboxEventRow).values(
                 id=outbox_event_id,
                 aggregate_type="ai_run",
@@ -427,17 +438,6 @@ class PostgresAIRunTransaction:
                 status="pending",
                 attempts=0,
                 available_at=now,
-                created_at=now,
-            )
-        )
-        await self._session.execute(
-            insert(AIRunActionIdempotencyRow).values(
-                id=UUID(bytes=secrets.token_bytes(16)),
-                parent_run_id=parent_run_id,
-                action="retry",
-                idempotency_key=idempotency_key,
-                request_hash=request_hash,
-                result_run_id=child.run_id,
                 created_at=now,
             )
         )

@@ -231,6 +231,16 @@ class AIRun(DomainModel):
     def validate_terminal_state(self) -> Self:
         if (self.status in _TERMINAL) != (self.terminal_at is not None):
             raise ValueError("terminal status and terminal_at must be present together")
+        pending = (
+            self.pending_plan_id,
+            self.pending_plan_content_hash,
+            self.pending_interrupt_ref,
+        )
+        if self.status is AIRunStatus.WAITING_APPROVAL:
+            if any(value is None for value in pending):
+                raise ValueError("waiting approval runs require a complete pending Plan interrupt")
+        elif any(value is not None for value in pending):
+            raise ValueError("only waiting approval runs may retain pending Plan fields")
         return self
 
     def transition(self, status: AIRunStatus, *, now: datetime) -> AIRun:

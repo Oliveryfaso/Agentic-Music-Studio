@@ -127,3 +127,16 @@ def test_run_uses_bound_parent_topology_contract() -> None:
     )
     assert run.graph_topology_version == PARENT_GRAPH_TOPOLOGY_VERSION
     assert run.state_schema_version == GENERATE_RUN_STATE_SCHEMA_VERSION
+
+
+def test_pending_plan_fields_must_match_waiting_approval_status() -> None:
+    with pytest.raises(ValidationError):
+        AIRun(
+            run_id=uuid4(), project_id=uuid4(), branch_id=uuid4(), base_revision_id=uuid4(),
+            thread_id="pending-contract", pending_plan_id=uuid4(),
+        )
+    with pytest.raises(ValidationError):
+        AIRun(
+            run_id=uuid4(), project_id=uuid4(), branch_id=uuid4(), base_revision_id=uuid4(),
+            thread_id="pending-contract", status=AIRunStatus.WAITING_APPROVAL,
+        )

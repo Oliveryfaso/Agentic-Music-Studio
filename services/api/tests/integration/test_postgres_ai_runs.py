@@ -53,6 +53,7 @@ from motif_forge.infrastructure.persistence.database import (
     create_session_factory,
 )
 from motif_forge.infrastructure.persistence.tables import (
+    AIRunActionIdempotencyRow,
     AIRunApprovalRow,
     AIRunEventRow,
     AIRunRow,
@@ -561,6 +562,9 @@ async def test_populated_0013_downgrades_to_0012(test_postgres_dsn: str) -> None
             removed_reservation = await connection.scalar(
                 text("SELECT to_regclass('app.ai_model_request_reservations')")
             )
+            removed_action_ledger = await connection.scalar(
+                text("SELECT to_regclass('app.ai_run_action_idempotency')")
+            )
         assert nullable == "NO"
         assert legacy_cost == 0
         assert removed is None
@@ -568,6 +572,87 @@ async def test_populated_0013_downgrades_to_0012(test_postgres_dsn: str) -> None
         assert removed_plan is None
         assert removed_event is None
         assert removed_reservation is None
+        assert removed_action_ledger is None
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_pending_plan_grouped_constraint_rejects_partial_tuples(test_postgres_dsn: str) -> None:
+    await asyncio.to_thread(_upgrade, test_postgres_dsn)
+    run_id, _, _, _, engine = await _seed_run(test_postgres_dsn, key=f"pending-{uuid4().hex}")
+    try:
+        for status, plan_id, content_hash, interrupt_ref in (
+            ("waiting_approval", None, "a" * 64, "server-ref-abcdefghijklmnopqrstuvwxyz"),
+            ("waiting_approval", uuid4(), None, "server-ref-abcdefghijklmnopqrstuvwxyz"),
+            ("waiting_approval", uuid4(), "a" * 64, None),
+            ("queued", uuid4(), None, None),
+            ("materializing", None, "a" * 64, None),
+            ("queued", uuid4(), "a" * 64, None),
+        ):
+            with pytest.raises(IntegrityError):
+                async with engine.begin() as connection:
+                    await connection.execute(
+                        text("UPDATE app.ai_runs SET status=:status, pending_plan_id=:plan_id, pending_plan_content_hash=:content_hash, pending_interrupt_ref=:interrupt_ref WHERE id=:id"),
+                        {"status": status, "plan_id": plan_id, "content_hash": content_hash, "interrupt_ref": interrupt_ref, "id": run_id},
+                    )
+        async with engine.connect() as connection:
+            state = await connection.execute(
+                text("SELECT status, pending_plan_id, pending_plan_content_hash, pending_interrupt_ref FROM app.ai_runs WHERE id=:id"),
+                {"id": run_id},
+            )
+        assert state.one() == ("queued", None, None, None)
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_retry_outbox_failure_rolls_back_child_event_and_action_ledger(
+    test_postgres_dsn: str,
+) -> None:
+    await asyncio.to_thread(_upgrade, test_postgres_dsn)
+    run_id, _, _, uow, engine = await _seed_run(test_postgres_dsn, key=f"retry-rollback-{uuid4().hex}")
+    retry_key = "retry-outbox-conflict"
+    try:
+        parent = await RequestAIRunAction(uow)(
+            run_id=run_id, action="cancel", expected_version=0, idempotency_key="cancel-for-retry"
+        )
+        now = datetime.now(UTC)
+        async with engine.begin() as connection:
+            await connection.execute(
+                insert(OutboxEventRow).values(
+                    id=uuid4(), aggregate_type="test", aggregate_id=uuid4(), topic="test",
+                    dedupe_key=f"ai-run:{run_id}:retry:{retry_key}", payload={}, status="pending",
+                    attempts=0, available_at=now, created_at=now,
+                )
+            )
+        with pytest.raises(IntegrityError):
+            await RequestAIRunAction(uow)(
+                run_id=run_id,
+                action="retry",
+                expected_version=parent.version,
+                idempotency_key=retry_key,
+            )
+        assert await _run(uow, run_id) == parent
+        async with engine.connect() as connection:
+            child_count = await connection.scalar(
+                select(func.count()).select_from(AIRunRow).where(AIRunRow.parent_run_id == run_id)
+            )
+            ledger_count = await connection.scalar(
+                select(func.count()).select_from(AIRunActionIdempotencyRow).where(
+                    AIRunActionIdempotencyRow.parent_run_id == run_id,
+                    AIRunActionIdempotencyRow.action == "retry",
+                    AIRunActionIdempotencyRow.idempotency_key == retry_key,
+                )
+            )
+            child_event_count = await connection.scalar(
+                select(func.count()).select_from(AIRunEventRow).where(
+                    AIRunEventRow.run_id.in_(
+                        select(AIRunRow.id).where(AIRunRow.parent_run_id == run_id)
+                    )
+                )
+            )
+        assert child_count == ledger_count == child_event_count == 0
     finally:
         await engine.dispose()
 
