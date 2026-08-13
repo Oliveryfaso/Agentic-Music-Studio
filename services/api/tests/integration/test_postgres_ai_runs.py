@@ -24,6 +24,7 @@ from motif_forge.application.ai_runs import (
     CreateAIRun,
     CreateAIRunRequest,
     ListAIRunEvents,
+    MarkAIRunPlanPending,
     PersistCompositionPlan,
     RecordAIRunApproval,
     RecordAIRunEvent,
@@ -181,6 +182,15 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
         assert (await PersistCompositionPlan(uow)(stored)).plan_id == stored.plan_id
         with pytest.raises(ApplicationError, match="PLAN_PROVENANCE_CONFLICT"):
             await PersistCompositionPlan(uow)(stored.model_copy(update={"provider": "other"}))
+        alternate_plan = _plan().model_copy(update={"bpm": 81})
+        alternate = stored.model_copy(
+            update={
+                "plan_id": uuid4(),
+                "plan": alternate_plan,
+                "content_hash": composition_plan_content_hash(alternate_plan),
+            }
+        )
+        await PersistCompositionPlan(uow)(alternate)
         event = await RecordAIRunEvent(uow)(
             AIRunEvent(
                 sequence=1,
@@ -210,14 +220,15 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
         assert [item.sequence for item in events] == sorted(item.sequence for item in events)
         assert [item.sequence for item in events][-2:] == [event.sequence, next_event.sequence]
         assert await ListAIRunEvents(uow)(run_id, after_sequence=event.sequence) == (next_event,)
-        async with uow() as transaction:
-            await transaction._session.execute(
-                text("UPDATE app.ai_runs SET status = 'waiting_approval', version = 1 WHERE id = :id"),
-                {"id": run_id},
-            )  # type: ignore[attr-defined]
+        pending = await MarkAIRunPlanPending(uow)(
+            run_id=run_id, plan_id=stored.plan_id, expected_version=0
+        )
         with pytest.raises(ApplicationError, match="AI_RUN_ACTION_INVALID"):
             await RequestAIRunAction(uow)(
-                run_id=run_id, action="resume", expected_version=1, idempotency_key="no-bypass"
+                run_id=run_id,
+                action="resume",
+                expected_version=pending.version,
+                idempotency_key="no-bypass",
             )
         with pytest.raises(ApplicationError, match="AI_RUN_APPROVAL_INVALID"):
             await RecordAIRunApproval(uow)(
@@ -225,9 +236,9 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
                 actor_id="human",
                 decision="approve",
                 assertion="too short",
-                expected_version=1,
+                expected_version=pending.version,
                 expected_plan_content_hash=stored.content_hash,
-                interrupt_ref=f"plan:{stored.content_hash}",
+                interrupt_ref=pending.pending_interrupt_ref,
             )
         with pytest.raises(ApplicationError, match="AI_RUN_APPROVAL_CONFLICT"):
             await RecordAIRunApproval(uow)(
@@ -235,18 +246,28 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
                 actor_id="human",
                 decision="approve",
                 assertion="I approve this composition after a full review.",
-                expected_version=1,
-                expected_plan_content_hash="0" * 64,
-                interrupt_ref="plan:" + "0" * 64,
+                expected_version=pending.version,
+                expected_plan_content_hash=alternate.content_hash,
+                interrupt_ref=pending.pending_interrupt_ref,
+            )
+        with pytest.raises(ApplicationError, match="AI_RUN_APPROVAL_CONFLICT"):
+            await RecordAIRunApproval(uow)(
+                run_id=run_id,
+                actor_id="human",
+                decision="approve",
+                assertion="I approve this composition after a full review.",
+                expected_version=pending.version,
+                expected_plan_content_hash=stored.content_hash,
+                interrupt_ref="forged-interrupt-reference-value",
             )
         approval = await RecordAIRunApproval(uow)(
             run_id=run_id,
             actor_id="human",
             decision="approve",
             assertion="I approve this composition after a full review.",
-            expected_version=1,
+            expected_version=pending.version,
             expected_plan_content_hash=stored.content_hash,
-            interrupt_ref=f"plan:{stored.content_hash}",
+            interrupt_ref=pending.pending_interrupt_ref,
         )
         assert approval.assertion_hash != "I approve this composition after a full review."
         async with uow() as transaction:
@@ -257,6 +278,9 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
         approved = await _run(uow, run_id)
         assert approved.status is AIRunStatus.MATERIALIZING
         assert approved.approval_assertion_hash == approval.assertion_hash
+        assert approved.pending_plan_id is None
+        assert approved.pending_plan_content_hash is None
+        assert approved.pending_interrupt_ref is None
         async with uow() as transaction:
             approval_count = await transaction._session.scalar(  # type: ignore[attr-defined]
                 select(func.count()).select_from(AIRunApprovalRow).where(AIRunApprovalRow.run_id == run_id)
@@ -273,9 +297,9 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
             actor_id="human",
             decision="approve",
             assertion="I approve this composition after a full review.",
-            expected_version=1,
+            expected_version=pending.version,
             expected_plan_content_hash=stored.content_hash,
-            interrupt_ref=f"plan:{stored.content_hash}",
+            interrupt_ref=pending.pending_interrupt_ref,
         )
         assert approved_replay.approval_id == approval.approval_id
         reservation = await ReserveModelRequest(uow)(run_id=run_id, kind=ModelRequestKind.INITIAL)
@@ -307,28 +331,26 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
         )
         rejected_plan = stored.model_copy(update={"plan_id": uuid4(), "run_id": rejected.run_id})
         await PersistCompositionPlan(uow)(rejected_plan)
-        async with uow() as transaction:
-            await transaction._session.execute(
-                text("UPDATE app.ai_runs SET status='waiting_approval', version=1 WHERE id=:id"),
-                {"id": rejected.run_id},
-            )  # type: ignore[attr-defined]
+        rejected_pending = await MarkAIRunPlanPending(uow)(
+            run_id=rejected.run_id, plan_id=rejected_plan.plan_id, expected_version=0
+        )
         rejection = await RecordAIRunApproval(uow)(
             run_id=rejected.run_id,
             actor_id="human",
             decision="reject",
             assertion="I reject this composition after a full review.",
-            expected_version=1,
+            expected_version=rejected_pending.version,
             expected_plan_content_hash=rejected_plan.content_hash,
-            interrupt_ref=f"plan:{rejected_plan.content_hash}",
+            interrupt_ref=rejected_pending.pending_interrupt_ref,
         )
         rejection_replay = await RecordAIRunApproval(uow)(
             run_id=rejected.run_id,
             actor_id="human",
             decision="reject",
             assertion="I reject this composition after a full review.",
-            expected_version=1,
+            expected_version=rejected_pending.version,
             expected_plan_content_hash=rejected_plan.content_hash,
-            interrupt_ref=f"plan:{rejected_plan.content_hash}",
+            interrupt_ref=rejected_pending.pending_interrupt_ref,
         )
         assert rejection_replay.approval_id == rejection.approval_id
         assert (await _run(uow, rejected.run_id)).status is AIRunStatus.REJECTED
@@ -372,29 +394,30 @@ async def test_project_scoped_and_concurrent_create_replay_and_action_replay(
 ) -> None:
     await asyncio.to_thread(_upgrade, test_postgres_dsn)
     engine = create_postgres_engine(test_postgres_dsn)
-    sessions = create_session_factory(engine)
-    first = await CreateProject(PostgresUnitOfWork(sessions))(
+    try:
+        sessions = create_session_factory(engine)
+        first = await CreateProject(PostgresUnitOfWork(sessions))(
         CreateProjectRequest(
             name=f"P {uuid4().hex}", actor_id="s2", idempotency_key=f"p-{uuid4().hex}"
         )
-    )
-    second = await CreateProject(PostgresUnitOfWork(sessions))(
+        )
+        second = await CreateProject(PostgresUnitOfWork(sessions))(
         CreateProjectRequest(
             name=f"P {uuid4().hex}", actor_id="s2", idempotency_key=f"p-{uuid4().hex}"
         )
-    )
-    uow = PostgresAIRunUnitOfWork(sessions)
-    request = CreateAIRunRequest(
+        )
+        uow = PostgresAIRunUnitOfWork(sessions)
+        request = CreateAIRunRequest(
         project_id=first.project_id,
         branch_id=first.active_branch_id,
         base_revision_id=first.root_revision_id,
         thread_id=f"thread-{uuid4().hex}",
         brief=_brief(),
         idempotency_key="project-scoped-key",
-    )
-    created, replayed = await asyncio.gather(CreateAIRun(uow)(request), CreateAIRun(uow)(request))
-    assert created.run_id == replayed.run_id
-    second_run = await CreateAIRun(uow)(
+        )
+        created, replayed = await asyncio.gather(CreateAIRun(uow)(request), CreateAIRun(uow)(request))
+        assert created.run_id == replayed.run_id
+        second_run = await CreateAIRun(uow)(
         CreateAIRunRequest(
             project_id=second.project_id,
             branch_id=second.active_branch_id,
@@ -403,10 +426,10 @@ async def test_project_scoped_and_concurrent_create_replay_and_action_replay(
             brief=_brief(),
             idempotency_key="project-scoped-key",
         )
-    )
-    assert second_run.run_id != created.run_id
-    with pytest.raises(ApplicationError, match="AI_RUN_IDENTITY_INVALID"):
-        await CreateAIRun(uow)(
+        )
+        assert second_run.run_id != created.run_id
+        with pytest.raises(ApplicationError, match="AI_RUN_IDENTITY_INVALID"):
+            await CreateAIRun(uow)(
             CreateAIRunRequest(
                 project_id=second.project_id,
                 branch_id=first.active_branch_id,
@@ -415,47 +438,84 @@ async def test_project_scoped_and_concurrent_create_replay_and_action_replay(
                 brief=_brief(),
                 idempotency_key=f"invalid-{uuid4().hex}",
             )
-        )
-    async with uow() as transaction:
-        invalid_count = await transaction._session.scalar(  # type: ignore[attr-defined]
+            )
+        async with uow() as transaction:
+            invalid_count = await transaction._session.scalar(  # type: ignore[attr-defined]
             select(func.count())
             .select_from(AIRunRow)
             .where(
                 AIRunRow.project_id == second.project_id,
                 AIRunRow.idempotency_key.like("invalid-%"),
             )
+            )
+        assert invalid_count == 0
+        cancelled = await RequestAIRunAction(uow)(
+        run_id=created.run_id, action="cancel", expected_version=0, idempotency_key="cancel-replay"
         )
-    assert invalid_count == 0
-    cancelled = await RequestAIRunAction(uow)(
+        assert cancelled.status is AIRunStatus.CANCELLED
+        replay_cancelled = await RequestAIRunAction(uow)(
         run_id=created.run_id, action="cancel", expected_version=0, idempotency_key="cancel-replay"
-    )
-    assert cancelled.status is AIRunStatus.CANCELLED
-    replay_cancelled = await RequestAIRunAction(uow)(
-        run_id=created.run_id, action="cancel", expected_version=0, idempotency_key="cancel-replay"
-    )
-    assert replay_cancelled.version == cancelled.version
-    child = await RequestAIRunAction(uow)(
+        )
+        assert replay_cancelled.version == cancelled.version
+        child = await RequestAIRunAction(uow)(
         run_id=created.run_id, action="retry", expected_version=cancelled.version, idempotency_key="retry-child"
-    )
-    child_replay = await RequestAIRunAction(uow)(
+        )
+        child_replay = await RequestAIRunAction(uow)(
         run_id=created.run_id, action="retry", expected_version=cancelled.version, idempotency_key="retry-child"
-    )
-    assert child_replay.run_id == child.run_id
-    assert child.parent_run_id == created.run_id
-    assert child.thread_id != created.thread_id
-    assert child.submitted_model_requests == child.prompt_tokens == child.completion_tokens == 0
-    assert (await _run(uow, created.run_id)) == cancelled
-    async with uow() as transaction:
-        retry_outbox_count = await transaction._session.scalar(  # type: ignore[attr-defined]
+        )
+        assert child_replay.run_id == child.run_id
+        assert child.parent_run_id == created.run_id
+        assert child.thread_id != created.thread_id
+        assert child.submitted_model_requests == child.prompt_tokens == child.completion_tokens == 0
+        assert (await _run(uow, created.run_id)) == cancelled
+        async with uow() as transaction:
+            retry_outbox_count = await transaction._session.scalar(  # type: ignore[attr-defined]
             select(func.count()).select_from(OutboxEventRow).where(
                 OutboxEventRow.aggregate_id == child.run_id,
-                OutboxEventRow.topic == "graph.retry.requested",
+                    OutboxEventRow.topic == "graph.retry.requested",
+                )
+            )
+            child_created_count = await transaction._session.scalar(  # type: ignore[attr-defined]
+                select(func.count()).select_from(AIRunEventRow).where(
+                    AIRunEventRow.run_id == child.run_id,
+                    AIRunEventRow.event_type == "ai_run.created",
+                )
+            )
+        assert retry_outbox_count == child_created_count == 1
+        with pytest.raises(ApplicationError, match="IDEMPOTENCY_KEY_REUSED"):
+            await RequestAIRunAction(uow)(
+                run_id=created.run_id,
+                action="retry",
+                expected_version=cancelled.version + 1,
+                idempotency_key="retry-child",
+            )
+        sibling = await CreateAIRun(uow)(
+            CreateAIRunRequest(
+                project_id=first.project_id,
+                branch_id=first.active_branch_id,
+                base_revision_id=first.root_revision_id,
+                thread_id=f"sibling-{uuid4().hex}",
+                brief=_brief(),
+                idempotency_key=f"sibling-{uuid4().hex}",
             )
         )
-    assert retry_outbox_count == 1
-    with pytest.raises(ApplicationError, match="MODEL_REQUEST_BUDGET_EXHAUSTED"):
-        await ReserveModelRequest(uow)(run_id=created.run_id, kind=ModelRequestKind.INITIAL)
-    await engine.dispose()
+        sibling_cancelled = await RequestAIRunAction(uow)(
+            run_id=sibling.run_id,
+            action="cancel",
+            expected_version=0,
+            idempotency_key="cancel-sibling",
+        )
+        sibling_child = await RequestAIRunAction(uow)(
+            run_id=sibling.run_id,
+            action="retry",
+            expected_version=sibling_cancelled.version,
+            idempotency_key="retry-child",
+        )
+        assert sibling_child.run_id != child.run_id
+        with pytest.raises(ApplicationError, match="MODEL_REQUEST_BUDGET_EXHAUSTED"):
+            await ReserveModelRequest(uow)(run_id=created.run_id, kind=ModelRequestKind.INITIAL)
+    finally:
+        await engine.dispose()
 
 
 @pytest.mark.asyncio
@@ -613,6 +673,45 @@ async def test_locked_branch_head_rejects_stale_and_other_branch_base(test_postg
                 )
             ) == 0
         assert commit.revision_id != root_id
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_retry_child_uses_advanced_branch_head(test_postgres_dsn: str) -> None:
+    await asyncio.to_thread(_upgrade, test_postgres_dsn)
+    run_id, project_id, root_id, uow, engine = await _seed_run(
+        test_postgres_dsn, key=f"retry-head-{uuid4().hex}"
+    )
+    try:
+        parent = await RequestAIRunAction(uow)(
+            run_id=run_id, action="cancel", expected_version=0, idempotency_key="cancel-parent"
+        )
+        branch_id = parent.branch_id
+        advanced = await CommitCommandBatch(PostgresUnitOfWork(create_session_factory(engine)))(
+            CommitCommandBatchRequest(
+                project_id=project_id,
+                branch_id=branch_id,
+                base_revision_id=root_id,
+                commands=(AddTrackCommand(
+                    command_id=uuid4(), actor_kind="human", client_sequence=0,
+                    payload=AddTrackPayload(track=Track(
+                        track_id=uuid4(), track_type=TrackType.INSTRUMENT,
+                        name="Retry Head", role=TrackRole.HARMONY, instrument_ref="builtin:piano",
+                    )),
+                ),),
+                actor_id="test", author_kind=AuthorKind.HUMAN, reason="RETRY_HEAD",
+                idempotency_key=f"advance-{uuid4().hex}",
+            )
+        )
+        child = await RequestAIRunAction(uow)(
+            run_id=run_id,
+            action="retry",
+            expected_version=parent.version,
+            idempotency_key="retry-after-advance",
+        )
+        assert child.base_revision_id == advanced.revision_id
+        assert (await _run(uow, run_id)) == parent
     finally:
         await engine.dispose()
 

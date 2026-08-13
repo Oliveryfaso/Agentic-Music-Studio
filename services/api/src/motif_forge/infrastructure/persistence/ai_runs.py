@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 from datetime import datetime
 from types import TracebackType
 from typing import Self
@@ -12,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from motif_forge.application.ai_runs import model_request_allowed
-from motif_forge.application.errors import ApplicationError
+from motif_forge.application.errors import ApplicationError, IdempotencyKeyReusedError
 from motif_forge.application.ports import IdempotencyHit
 from motif_forge.domain.ai_runs import (
     AIRun,
@@ -28,6 +29,7 @@ from motif_forge.domain.ai_runs import (
 )
 from motif_forge.infrastructure.persistence.database import SessionFactory
 from motif_forge.infrastructure.persistence.tables import (
+    AIRunActionIdempotencyRow,
     AIRunApprovalRow,
     AIRunEventRow,
     AIRunRow,
@@ -176,6 +178,53 @@ class PostgresAIRunTransaction:
         await self._session.execute(insert(CompositionPlanRow).values(**_plan_values(plan)))
         return plan
 
+    async def mark_ai_run_plan_pending(
+        self, *, run_id: UUID, plan_id: UUID, expected_version: int, now: datetime
+    ) -> AIRun:
+        row = (
+            await self._session.execute(
+                select(AIRunRow).where(AIRunRow.id == run_id).with_for_update()
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
+        plan = (
+            await self._session.execute(
+                select(CompositionPlanRow).where(
+                    CompositionPlanRow.id == plan_id, CompositionPlanRow.run_id == run_id
+                )
+            )
+        ).scalar_one_or_none()
+        if plan is None or row.version != expected_version:
+            raise ApplicationError(
+                "AI_RUN_VERSION_CONFLICT", "the AI run cannot wait for this plan"
+            )
+        current = _run_from_row(row)
+        if current.status not in {
+            AIRunStatus.QUEUED,
+            AIRunStatus.PLANNING,
+            AIRunStatus.WAITING_APPROVAL,
+        }:
+            raise ApplicationError(
+                "AI_RUN_ACTION_STATE_CONFLICT", "only a planning run can wait for a plan"
+            )
+        run = current.model_copy(
+            update={
+                "status": AIRunStatus.WAITING_APPROVAL,
+                "version": current.version + 1,
+                "updated_at": now,
+                "pending_plan_id": plan.id,
+                "pending_plan_content_hash": plan.content_hash,
+                "pending_interrupt_ref": secrets.token_urlsafe(32),
+            }
+        )
+        await self._session.execute(
+            update(AIRunRow)
+            .where(AIRunRow.id == run_id, AIRunRow.version == expected_version)
+            .values(**_run_values(run))
+        )
+        return run
+
     async def record_ai_run_event(self, event: AIRunEvent) -> AIRunEvent:
         if event.dedupe_key is not None:
             previous = (
@@ -228,15 +277,11 @@ class PostgresAIRunTransaction:
             raise ApplicationError(
                 "AI_RUN_VERSION_CONFLICT", "the AI run cannot accept this approval"
             )
-        plan = (
-            await self._session.execute(
-                select(CompositionPlanRow).where(
-                    CompositionPlanRow.run_id == approval.run_id,
-                    CompositionPlanRow.content_hash == approval.expected_plan_content_hash,
-                )
-            )
-        ).scalar_one_or_none()
-        if plan is None or approval.interrupt_ref != f"plan:{approval.expected_plan_content_hash}":
+        if (
+            row.pending_plan_id is None
+            or row.pending_plan_content_hash != approval.expected_plan_content_hash
+            or row.pending_interrupt_ref != approval.interrupt_ref
+        ):
             raise ApplicationError(
                 "AI_RUN_APPROVAL_CONFLICT",
                 "approval must bind the persisted pending plan interrupt",
@@ -247,7 +292,14 @@ class PostgresAIRunTransaction:
         run = (
             _run_from_row(row)
             .transition(target, now=approval.decided_at)
-            .model_copy(update={"approval_assertion_hash": approval.assertion_hash})
+            .model_copy(
+                update={
+                    "approval_assertion_hash": approval.assertion_hash,
+                    "pending_plan_id": None,
+                    "pending_plan_content_hash": None,
+                    "pending_interrupt_ref": None,
+                }
+            )
         )
         await self._session.execute(
             update(AIRunRow)
@@ -284,7 +336,9 @@ class PostgresAIRunTransaction:
         idempotency_key: str,
         child_run_id: UUID,
         child_thread_id: str,
+        created_event_id: UUID,
         outbox_event_id: UUID,
+        request_hash: str,
         now: datetime,
     ) -> AIRun:
         parent_row = (
@@ -297,14 +351,17 @@ class PostgresAIRunTransaction:
         parent = _run_from_row(parent_row)
         existing = (
             await self._session.execute(
-                select(AIRunRow).where(
-                    AIRunRow.parent_run_id == parent_run_id,
-                    AIRunRow.idempotency_key == idempotency_key,
+                select(AIRunActionIdempotencyRow).where(
+                    AIRunActionIdempotencyRow.parent_run_id == parent_run_id,
+                    AIRunActionIdempotencyRow.action == "retry",
+                    AIRunActionIdempotencyRow.idempotency_key == idempotency_key,
                 )
             )
         ).scalar_one_or_none()
         if existing is not None:
-            return _run_from_row(existing)
+            if existing.request_hash != request_hash:
+                raise IdempotencyKeyReusedError
+            return await self.read_ai_run(existing.result_run_id)
         if parent.version != expected_version or parent.status not in {
             AIRunStatus.FAILED,
             AIRunStatus.CANCELLED,
@@ -312,21 +369,47 @@ class PostgresAIRunTransaction:
             raise ApplicationError(
                 "AI_RUN_ACTION_STATE_CONFLICT", "only a terminal failed/cancelled run can retry"
             )
+        branch = (
+            await self._session.execute(
+                select(BranchRow)
+                .where(BranchRow.id == parent.branch_id, BranchRow.project_id == parent.project_id)
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
+        if branch is None:
+            raise ApplicationError("AI_RUN_IDENTITY_INVALID", "the parent branch is unavailable")
         child = AIRun(
             run_id=child_run_id,
             parent_run_id=parent.run_id,
             project_id=parent.project_id,
             branch_id=parent.branch_id,
-            base_revision_id=parent.base_revision_id,
+            base_revision_id=branch.head_revision_id,
             thread_id=child_thread_id,
             graph_topology_version=parent.graph_topology_version,
             state_schema_version=parent.state_schema_version,
             brief=parent.brief,
-            idempotency_key=idempotency_key,
+            idempotency_key=None,
             created_at=now,
             updated_at=now,
         )
         await self._session.execute(insert(AIRunRow).values(**_run_values(child)))
+        await self._session.execute(
+            insert(AIRunEventRow).values(
+                **_event_values(
+                    AIRunEvent(
+                        sequence=1,
+                        event_id=created_event_id,
+                        run_id=child.run_id,
+                        event_type="ai_run.created",
+                        phase="queued",
+                        payload={"thread_id": child.thread_id, "parent_run_id": str(parent_run_id)},
+                        dedupe_key="created",
+                        created_at=now,
+                    ),
+                    sequence=None,
+                )
+            )
+        )
         await self._session.execute(
             insert(OutboxEventRow).values(
                 id=outbox_event_id,
@@ -344,6 +427,17 @@ class PostgresAIRunTransaction:
                 status="pending",
                 attempts=0,
                 available_at=now,
+                created_at=now,
+            )
+        )
+        await self._session.execute(
+            insert(AIRunActionIdempotencyRow).values(
+                id=UUID(bytes=secrets.token_bytes(16)),
+                parent_run_id=parent_run_id,
+                action="retry",
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                result_run_id=child.run_id,
                 created_at=now,
             )
         )
@@ -577,6 +671,9 @@ def _run_from_row(row: AIRunRow) -> AIRun:
         version=row.version,
         idempotency_key=row.idempotency_key,
         approval_assertion_hash=row.approval_assertion_hash,
+        pending_plan_id=row.pending_plan_id,
+        pending_plan_content_hash=row.pending_plan_content_hash,
+        pending_interrupt_ref=row.pending_interrupt_ref,
         submitted_model_requests=row.submitted_model_requests,
         prompt_tokens=row.prompt_tokens,
         completion_tokens=row.completion_tokens,

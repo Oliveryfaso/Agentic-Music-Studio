@@ -462,9 +462,6 @@ class AIRunRow(Base):
         UniqueConstraint(
             "project_id", "idempotency_key", name="uq_ai_runs_project_idempotency_key"
         ),
-        UniqueConstraint(
-            "parent_run_id", "idempotency_key", name="uq_ai_runs_parent_idempotency_key"
-        ),
         CheckConstraint(
             "submitted_model_requests BETWEEN 0 AND 3",
             name="ai_runs_request_count_range",
@@ -472,6 +469,12 @@ class AIRunRow(Base):
         CheckConstraint("prompt_tokens >= 0", name="ai_runs_prompt_tokens_nonnegative"),
         CheckConstraint(
             "completion_tokens >= 0", name="ai_runs_completion_tokens_nonnegative"
+        ),
+        CheckConstraint(
+            "(status = 'waiting_approval') = "
+            "(pending_plan_id IS NOT NULL AND pending_plan_content_hash IS NOT NULL "
+            "AND pending_interrupt_ref IS NOT NULL)",
+            name="ai_runs_waiting_approval_pending_plan",
         ),
         Index("ix_ai_runs_project_status", "project_id", "status"),
     )
@@ -498,6 +501,11 @@ class AIRunRow(Base):
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     idempotency_key: Mapped[str | None] = mapped_column(String(160))
     approval_assertion_hash: Mapped[str | None] = mapped_column(String(64))
+    pending_plan_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.composition_plans.id")
+    )
+    pending_plan_content_hash: Mapped[str | None] = mapped_column(String(64))
+    pending_interrupt_ref: Mapped[str | None] = mapped_column(String(160))
     submitted_model_requests: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     prompt_tokens: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
     completion_tokens: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
@@ -524,6 +532,29 @@ class AIRunApprovalRow(Base):
     expected_plan_content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     interrupt_ref: Mapped[str] = mapped_column(String(160), nullable=False)
     decided_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AIRunActionIdempotencyRow(Base):
+    __tablename__ = "ai_run_action_idempotency"
+    __table_args__ = (
+        UniqueConstraint(
+            "parent_run_id", "action", "idempotency_key",
+            name="uq_ai_run_action_idempotency_parent_action_key",
+        ),
+    )
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    parent_run_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(f"{APP_SCHEMA}.ai_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    action: Mapped[str] = mapped_column(String(24), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    result_run_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.ai_runs.id"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class CompositionPlanRow(Base):

@@ -35,6 +35,9 @@ def upgrade() -> None:
         sa.Column("version", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("idempotency_key", sa.String(160)),
         sa.Column("approval_assertion_hash", sa.String(64)),
+        sa.Column("pending_plan_id", uuid),
+        sa.Column("pending_plan_content_hash", sa.String(64)),
+        sa.Column("pending_interrupt_ref", sa.String(160)),
         sa.Column("submitted_model_requests", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("prompt_tokens", sa.BigInteger(), nullable=False, server_default="0"),
         sa.Column("completion_tokens", sa.BigInteger(), nullable=False, server_default="0"),
@@ -52,9 +55,24 @@ def upgrade() -> None:
         sa.UniqueConstraint(
             "project_id", "idempotency_key", name="uq_ai_runs_project_idempotency_key"
         ),
-        sa.UniqueConstraint(
-            "parent_run_id", "idempotency_key", name="uq_ai_runs_parent_idempotency_key"
+        sa.CheckConstraint(
+            "(status = 'waiting_approval') = "
+            "(pending_plan_id IS NOT NULL AND pending_plan_content_hash IS NOT NULL "
+            "AND pending_interrupt_ref IS NOT NULL)",
+            name="ai_runs_waiting_approval_pending_plan",
         ),
+        schema="app",
+    )
+    op.create_table(
+        "ai_run_action_idempotency",
+        sa.Column("id", uuid, primary_key=True),
+        sa.Column("parent_run_id", uuid, sa.ForeignKey("app.ai_runs.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("action", sa.String(24), nullable=False),
+        sa.Column("idempotency_key", sa.String(160), nullable=False),
+        sa.Column("request_hash", sa.String(64), nullable=False),
+        sa.Column("result_run_id", uuid, sa.ForeignKey("app.ai_runs.id"), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.UniqueConstraint("parent_run_id", "action", "idempotency_key", name="uq_ai_run_action_idempotency_parent_action_key"),
         schema="app",
     )
     op.create_index("ix_ai_runs_project_status", "ai_runs", ["project_id", "status"], schema="app")
@@ -90,6 +108,15 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.UniqueConstraint("run_id", "content_hash", name="uq_composition_plans_run_hash"),
         schema="app",
+    )
+    op.create_foreign_key(
+        "fk_ai_runs_pending_plan_id_composition_plans",
+        "ai_runs",
+        "composition_plans",
+        ["pending_plan_id"],
+        ["id"],
+        source_schema="app",
+        referent_schema="app",
     )
     op.create_table(
         "ai_run_events",
@@ -168,6 +195,11 @@ def downgrade() -> None:
     op.drop_table("ai_model_request_reservations", schema="app")
     op.drop_index("ix_ai_run_events_run_sequence", table_name="ai_run_events", schema="app")
     op.drop_table("ai_run_events", schema="app")
+    op.execute(
+        "ALTER TABLE app.ai_runs DROP CONSTRAINT IF EXISTS "
+        "fk_ai_runs_pending_plan_id_composition_plans"
+    )
+    op.drop_table("ai_run_action_idempotency", schema="app")
     op.drop_table("composition_plans", schema="app")
     op.drop_table("ai_run_approvals", schema="app")
     op.drop_index("ix_ai_runs_project_status", table_name="ai_runs", schema="app")

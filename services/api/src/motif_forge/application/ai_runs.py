@@ -162,6 +162,24 @@ class PersistCompositionPlan:
             return await transaction.persist_composition_plan(persisted)
 
 
+class MarkAIRunPlanPending:
+    """Create the durable, server-authoritative approval interrupt for one Plan."""
+
+    def __init__(
+        self,
+        uow_factory: AIRunUnitOfWorkFactory,
+        *,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> None:
+        self._uow_factory, self._clock = uow_factory, clock
+
+    async def __call__(self, *, run_id: UUID, plan_id: UUID, expected_version: int) -> AIRun:
+        async with self._uow_factory() as transaction:
+            return await transaction.mark_ai_run_plan_pending(
+                run_id=run_id, plan_id=plan_id, expected_version=expected_version, now=self._clock()
+            )
+
+
 class RecordAIRunEvent:
     def __init__(self, uow_factory: AIRunUnitOfWorkFactory) -> None:
         self._uow_factory = uow_factory
@@ -206,13 +224,22 @@ class RequestAIRunAction:
             raise ApplicationError("AI_RUN_ACTION_INVALID", "unsupported AI run action")
         async with self._uow_factory() as transaction:
             if action == "retry":
+                action_hash = request_hash(
+                    {
+                        "parent_run_id": str(run_id),
+                        "action": action,
+                        "expected_version": expected_version,
+                    }
+                )
                 return await transaction.retry_ai_run(
                     parent_run_id=run_id,
                     expected_version=expected_version,
                     idempotency_key=idempotency_key,
                     child_run_id=self._id_factory(),
                     child_thread_id=f"retry-{self._id_factory()}",
+                    created_event_id=self._id_factory(),
                     outbox_event_id=self._id_factory(),
+                    request_hash=action_hash,
                     now=self._clock(),
                 )
             return await transaction.request_ai_run_action(

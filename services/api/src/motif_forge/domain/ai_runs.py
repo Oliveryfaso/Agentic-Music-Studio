@@ -216,6 +216,9 @@ class AIRun(DomainModel):
     version: int = Field(default=0, ge=0)
     idempotency_key: str | None = Field(default=None, min_length=8, max_length=160)
     approval_assertion_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    pending_plan_id: UUID | None = None
+    pending_plan_content_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    pending_interrupt_ref: str | None = Field(default=None, min_length=16, max_length=160)
     submitted_model_requests: int = Field(default=0, ge=0, le=MAX_MODEL_REQUESTS)
     prompt_tokens: int = Field(default=0, ge=0)
     completion_tokens: int = Field(default=0, ge=0)

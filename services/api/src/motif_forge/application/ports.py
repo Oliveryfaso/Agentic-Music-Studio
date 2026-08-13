@@ -358,6 +358,9 @@ class AIRunTransaction(Protocol):
     async def persist_composition_plan(
         self, plan: PersistedCompositionPlan
     ) -> PersistedCompositionPlan: ...
+    async def mark_ai_run_plan_pending(
+        self, *, run_id: UUID, plan_id: UUID, expected_version: int, now: datetime
+    ) -> AIRun: ...
     async def record_ai_run_event(self, event: AIRunEvent) -> AIRunEvent: ...
     async def record_ai_run_approval(
         self, *, approval: AIRunApproval, expected_version: int, outbox_event_id: UUID
@@ -370,7 +373,9 @@ class AIRunTransaction(Protocol):
         idempotency_key: str,
         child_run_id: UUID,
         child_thread_id: str,
+        created_event_id: UUID,
         outbox_event_id: UUID,
+        request_hash: str,
         now: datetime,
     ) -> AIRun: ...
     async def list_ai_run_events(
