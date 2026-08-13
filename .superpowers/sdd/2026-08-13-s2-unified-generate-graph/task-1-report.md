@@ -174,6 +174,69 @@ No remaining Task 1 concern. Directly invoking generic `alembic downgrade -1` fr
 database encountered a pre-existing 0012 artifact-constraint downgrade defect outside this task;
 the required populated `0013 -> 0012` rollback was instead executed and passed by the real test.
 
+## Review fix round 3 — final focused closure
+
+**Status:** DONE
+
+### RED
+
+```bash
+MOTIF_FORGE_TEST_POSTGRES_DSN='postgresql://motif_forge:motif_forge@localhost:5432/motif_forge_s2_task1' \
+  /private/tmp/motif-forge-s2-venv/bin/pytest -q services/api/tests/integration/test_postgres_ai_runs.py
+# 6 failed initially with PostgreSQL `UndefinedColumn: ai_runs.pending_plan_id`.
+```
+
+This was the expected schema RED after adding the authoritative pending-interrupt projection to the
+ORM before rebuilding the isolated migration database. The Plan A/B and forged-reference assertions
+then drove replacement of raw waiting-status test setup with the transaction-owned pending Plan API.
+
+### GREEN
+
+```bash
+# Fresh database: motif_forge_s2_task1_r3
+MOTIF_FORGE_POSTGRES_DSN='postgresql://motif_forge:motif_forge@localhost:5432/motif_forge_s2_task1_r3' \
+  /private/tmp/motif-forge-s2-venv/bin/alembic downgrade 20260812_0012
+MOTIF_FORGE_POSTGRES_DSN='postgresql://motif_forge:motif_forge@localhost:5432/motif_forge_s2_task1_r3' \
+  /private/tmp/motif-forge-s2-venv/bin/alembic upgrade head
+
+MOTIF_FORGE_TEST_POSTGRES_DSN='postgresql://motif_forge:motif_forge@localhost:5432/motif_forge_s2_task1_r3' \
+  /private/tmp/motif-forge-s2-venv/bin/pytest -q services/api/tests/integration/test_postgres_ai_runs.py
+# 7 passed
+
+/private/tmp/motif-forge-s2-venv/bin/pytest -q services/api/tests/unit/domain/test_ai_runs.py
+# 8 passed
+
+/private/tmp/motif-forge-s2-venv/bin/mypy <five Task 1 source files>
+# Success: no issues found in 5 source files
+
+/private/tmp/motif-forge-s2-venv/bin/ruff check <Task 1 source/tests/migration>
+# All checks passed
+
+git diff --check
+# clean
+```
+
+`ai_runs` now keeps the authoritative nullable pending Plan ID, content hash and server-generated
+unpredictable interrupt reference, with a grouped `waiting_approval` CHECK. The pending marker
+transaction locks the Run and Plan, advances status/version, and the approval transaction compares
+only these locked fields before consuming them atomically. PostgreSQL Plan A/B tests prove that a
+persisted alternate Plan or forged ref cannot approve the Run; only the server-issued A/ref pair
+can proceed.
+
+Retries now use a dedicated parent/action/idempotency ledger rather than the project create-key
+namespace. They lock the parent and current Branch, bind the child to the live head, create the
+child `ai_run.created` Event and retry Outbox atomically, and return the recorded child only when
+the request hash matches. Real PostgreSQL coverage includes same-project distinct parents sharing a
+retry key, conflict replay, child-event presence, and branch-head advancement. The migration adds
+and downgrades the action ledger; Task 1 inventory is now six tables: `ai_runs`,
+`ai_run_approvals`, `ai_run_action_idempotency`, `composition_plans`, `ai_run_events`, and
+`ai_model_request_reservations`.
+
+### Concerns
+
+None for Task 1. The guide SHA remains
+`21345f64304338777a9dd2603d34ad54448b6c4b82902bc743204ba1026c9f58`.
+
 ## Review fix round 1 — RED/GREEN audit
 
 ### RED
