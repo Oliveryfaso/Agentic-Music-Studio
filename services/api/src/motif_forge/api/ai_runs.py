@@ -18,11 +18,12 @@ from motif_forge.application.ai_runs import (
     CreateAIRunRequest,
     ListAIRunEvents,
     ReadAIRun,
+    ReadAIRunProjection,
     RecordAIRunApproval,
     RequestAIRunAction,
 )
 from motif_forge.application.errors import ApplicationError
-from motif_forge.application.ports import AIRunUnitOfWorkFactory
+from motif_forge.application.ports import AIRunProjection, AIRunUnitOfWorkFactory
 from motif_forge.domain.ai_runs import AIRun, AIRunEvent, AIRunStatus
 
 IdempotencyKey = Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=160)]
@@ -84,7 +85,7 @@ class AIRunData(ApiModel):
     error_code: str | None = None
 
 
-def run_data(run: AIRun) -> AIRunData:
+def run_data(run: AIRun, projection: AIRunProjection | None = None) -> AIRunData:
     return AIRunData(
         run_id=run.run_id, parent_run_id=run.parent_run_id, project_id=run.project_id,
         branch_id=run.branch_id, base_revision_id=run.base_revision_id,
@@ -97,6 +98,10 @@ def run_data(run: AIRun) -> AIRunData:
         model_usage_status=run.model_usage_status.value, cost_status=run.cost.status.value,
         cost_amount_microusd=run.cost.amount_microusd,
         cost_pricing_version=run.cost.pricing_version,
+        revision_id=projection.revision_id if projection else None,
+        bundle_id=projection.bundle_id if projection else None,
+        fallback_reason=projection.fallback_reason if projection else None,
+        error_code=projection.error_code if projection else None,
     )
 
 
@@ -127,13 +132,13 @@ def build_ai_run_router(uow: AIRunUnitOfWorkFactory) -> APIRouter:
 
     @router.get("/runs/{run_id}")
     async def read_run(run_id: UUID) -> dict[str, object]:
-        return {"data": run_data(await ReadAIRun(uow)(run_id)).model_dump(mode="json")}
+        projection = await ReadAIRunProjection(uow)(run_id)
+        return {"data": run_data(projection.run, projection).model_dump(mode="json")}
 
     @router.post("/runs/{run_id}/resume")
     async def resume_run(
         run_id: UUID, body: ResumeAIRunBody, idempotency_key: IdempotencyKey
     ) -> dict[str, object]:
-        del idempotency_key
         run = await ReadAIRun(uow)(run_id)
         if run.pending_plan_content_hash != body.expected_plan_hash:
             raise ApplicationError("PLAN_HASH_MISMATCH", "approval must bind the pending Plan")
@@ -144,6 +149,7 @@ def build_ai_run_router(uow: AIRunUnitOfWorkFactory) -> APIRouter:
             assertion=body.approval_assertion, expected_version=body.expected_version,
             expected_plan_content_hash=body.expected_plan_hash,
             interrupt_ref=run.pending_interrupt_ref, note=body.note,
+            idempotency_key=idempotency_key,
         )
         return {"data": run_data(await ReadAIRun(uow)(run_id)).model_dump(mode="json")}
 
@@ -183,6 +189,9 @@ def build_ai_run_router(uow: AIRunUnitOfWorkFactory) -> APIRouter:
                     if run.terminal_at is not None:
                         return
                 else:
+                    run = await ReadAIRun(uow)(run_id)
+                    if run.terminal_at is not None:
+                        return
                     yield ": heartbeat\n\n"
                 if await request.is_disconnected():
                     return

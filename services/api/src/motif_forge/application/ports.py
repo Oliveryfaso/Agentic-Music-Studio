@@ -52,6 +52,15 @@ class IdempotencyHit:
     result_payload: dict[str, object]
 
 
+@dataclass(frozen=True, slots=True)
+class AIRunProjection:
+    run: AIRun
+    revision_id: UUID | None = None
+    bundle_id: UUID | None = None
+    fallback_reason: str | None = None
+    error_code: str | None = None
+
+
 class ProjectTransaction(Protocol):
     async def __aenter__(self) -> Self: ...
 
@@ -357,6 +366,7 @@ class AIRunTransaction(Protocol):
         self, *, run: AIRun, created_event: AIRunEvent, outbox_event_id: UUID, request_hash: str
     ) -> None: ...
     async def read_ai_run(self, run_id: UUID) -> AIRun: ...
+    async def read_ai_run_projection(self, run_id: UUID) -> AIRunProjection: ...
     async def persist_composition_plan(
         self, plan: PersistedCompositionPlan
     ) -> PersistedCompositionPlan: ...
@@ -382,6 +392,17 @@ class AIRunTransaction(Protocol):
         assertion: str,
         note: str,
         expected_version: int,
+        outbox_event_id: UUID,
+    ) -> AIRunApproval: ...
+    async def record_idempotent_ai_run_approval(
+        self,
+        *,
+        approval: AIRunApproval,
+        assertion: str,
+        note: str,
+        expected_version: int,
+        idempotency_key: str,
+        request_hash: str,
         outbox_event_id: UUID,
     ) -> AIRunApproval: ...
     async def retry_ai_run(

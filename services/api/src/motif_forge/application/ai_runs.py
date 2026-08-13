@@ -11,7 +11,7 @@ from pydantic import Field
 from motif_forge.agent.schemas import CompositionBrief
 from motif_forge.application._hashing import request_hash
 from motif_forge.application.errors import ApplicationError, IdempotencyKeyReusedError
-from motif_forge.application.ports import AIRunUnitOfWorkFactory
+from motif_forge.application.ports import AIRunProjection, AIRunUnitOfWorkFactory
 from motif_forge.domain.ai_runs import (
     GENERATE_RUN_STATE_SCHEMA_VERSION,
     PARENT_GRAPH_TOPOLOGY_VERSION,
@@ -231,6 +231,15 @@ class ReadAIRun:
             return await transaction.read_ai_run(run_id)
 
 
+class ReadAIRunProjection:
+    def __init__(self, uow_factory: AIRunUnitOfWorkFactory) -> None:
+        self._uow_factory = uow_factory
+
+    async def __call__(self, run_id: UUID) -> AIRunProjection:
+        async with self._uow_factory() as transaction:
+            return await transaction.read_ai_run_projection(run_id)
+
+
 class ListAIRunEvents:
     def __init__(self, uow_factory: AIRunUnitOfWorkFactory) -> None:
         self._uow_factory = uow_factory
@@ -308,6 +317,7 @@ class RecordAIRunApproval:
         expected_plan_content_hash: str,
         interrupt_ref: str,
         note: str = "",
+        idempotency_key: str | None = None,
     ) -> AIRunApproval:
         if decision not in {"approve", "reject"}:
             raise ApplicationError(
@@ -330,6 +340,18 @@ class RecordAIRunApproval:
             decided_at=now,
         )
         async with self._uow_factory() as transaction:
+            if idempotency_key is not None:
+                fingerprint = request_hash({
+                    "run_id": str(run_id), "actor_id": actor_id, "decision": decision,
+                    "assertion": assertion,
+                    "expected_plan_content_hash": expected_plan_content_hash,
+                    "interrupt_ref": interrupt_ref, "note": note,
+                })
+                return await transaction.record_idempotent_ai_run_approval(
+                    approval=approval, assertion=assertion, note=note,
+                    expected_version=expected_version, idempotency_key=idempotency_key,
+                    request_hash=fingerprint, outbox_event_id=self._id_factory(),
+                )
             return await transaction.record_ai_run_approval(
                 approval=approval,
                 assertion=assertion,

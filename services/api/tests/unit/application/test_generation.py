@@ -126,6 +126,11 @@ class FakeAIRunTransaction:
             raise ApplicationError("AI_RUN_NOT_FOUND", "missing")
         return self.run
 
+    async def read_ai_run_projection(self, run_id: UUID):  # type: ignore[no-untyped-def]
+        from motif_forge.application.ports import AIRunProjection
+
+        return AIRunProjection(run=await self.read_ai_run(run_id))
+
     async def persist_composition_plan(
         self, plan: PersistedCompositionPlan
     ) -> PersistedCompositionPlan:
@@ -218,6 +223,13 @@ class FakeAIRunTransaction:
             update={"approval_assertion_hash": approval.assertion_hash}
         )
         return approval
+
+    async def record_idempotent_ai_run_approval(self, **kwargs):  # type: ignore[no-untyped-def]
+        return await self.record_ai_run_approval(
+            approval=kwargs["approval"], assertion=kwargs["assertion"], note=kwargs["note"],
+            expected_version=kwargs["expected_version"],
+            outbox_event_id=kwargs["outbox_event_id"],
+        )
 
 
 def _run(project_id: UUID, branch_id: UUID, revision_id: UUID) -> AIRun:

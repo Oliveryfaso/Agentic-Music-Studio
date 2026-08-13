@@ -92,6 +92,16 @@ async def test_persistent_sse_replays_after_last_id_across_app_recreation(
             assert first in text_body and second in text_body
             assert f"id: {replay_after}\n" not in text_body
             assert text_body.index(first) < text_body.index(second)
+
+            async with (
+                httpx.AsyncClient(transport=transport, base_url="http://test") as client,
+                client.stream(
+                    "GET", f"/api/v1/runs/{run.run_id}/events",
+                    headers={"Last-Event-ID": str(expected[-1])},
+                ) as response,
+            ):
+                terminal_reconnect = await asyncio.wait_for(response.aread(), timeout=1)
+            assert terminal_reconnect == b""
     finally:
         async with engine.begin() as connection:
             await connection.execute(

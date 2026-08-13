@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from motif_forge.application.ai_runs import model_request_allowed
 from motif_forge.application.errors import ApplicationError, IdempotencyKeyReusedError
-from motif_forge.application.ports import IdempotencyHit
+from motif_forge.application.ports import AIRunProjection, IdempotencyHit
 from motif_forge.domain.ai_runs import (
     AIRun,
     AIRunApproval,
@@ -40,7 +40,9 @@ from motif_forge.infrastructure.persistence.tables import (
     AIRunEventRow,
     AIRunRow,
     BranchRow,
+    CompositionMaterializationReceiptRow,
     CompositionPlanRow,
+    ExportBundleArtifactRow,
     ModelRequestReservationRow,
     OutboxEventRow,
     RevisionRow,
@@ -162,6 +164,82 @@ class PostgresAIRunTransaction:
         if row is None:
             raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
         return _run_from_row(row)
+
+    async def read_ai_run_projection(self, run_id: UUID) -> AIRunProjection:
+        run = await self.read_ai_run(run_id)
+        receipt = (
+            await self._session.execute(
+                select(CompositionMaterializationReceiptRow)
+                .where(CompositionMaterializationReceiptRow.run_id == run_id)
+                .order_by(CompositionMaterializationReceiptRow.created_at.desc())
+            )
+        ).scalars().first()
+        bundle = None
+        if receipt is not None:
+            bundle = (
+                await self._session.execute(
+                    select(ExportBundleArtifactRow)
+                    .where(ExportBundleArtifactRow.revision_id == receipt.revision_id)
+                    .order_by(ExportBundleArtifactRow.created_at.desc())
+                )
+            ).scalars().first()
+        plan = (
+            await self._session.execute(
+                select(CompositionPlanRow)
+                .where(CompositionPlanRow.run_id == run_id)
+                .order_by(CompositionPlanRow.created_at.desc())
+            )
+        ).scalars().first()
+        error_events = (
+            (
+                await self._session.execute(
+                    select(AIRunEventRow.payload)
+                    .where(AIRunEventRow.run_id == run_id)
+                    .order_by(AIRunEventRow.sequence.desc())
+                )
+            ).scalars().all()
+        )
+        error_code = next(
+            (str(payload["error_code"]) for payload in error_events
+             if isinstance(payload.get("error_code"), str)), None
+        )
+        return AIRunProjection(
+            run=run, revision_id=receipt.revision_id if receipt else None,
+            bundle_id=bundle.id if bundle else None,
+            fallback_reason=plan.fallback_reason if plan else None, error_code=error_code,
+        )
+
+    async def record_idempotent_ai_run_approval(
+        self, *, approval: AIRunApproval, assertion: str, note: str,
+        expected_version: int, idempotency_key: str, request_hash: str,
+        outbox_event_id: UUID,
+    ) -> AIRunApproval:
+        existing_key = (
+            await self._session.execute(
+                select(AIRunActionIdempotencyRow).where(
+                    AIRunActionIdempotencyRow.parent_run_id == approval.run_id,
+                    AIRunActionIdempotencyRow.action == "resume",
+                    AIRunActionIdempotencyRow.idempotency_key == idempotency_key,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing_key is not None:
+            if existing_key.request_hash != request_hash:
+                raise IdempotencyKeyReusedError
+            saved = await self.read_ai_run_approval(approval.run_id)
+            if saved is None:
+                raise ApplicationError("PERSISTENCE_INVARIANT_VIOLATION", "resume replay missing")
+            return saved
+        saved = await self.record_ai_run_approval(
+            approval=approval, assertion=assertion, note=note,
+            expected_version=expected_version, outbox_event_id=outbox_event_id,
+        )
+        await self._session.execute(insert(AIRunActionIdempotencyRow).values(
+            id=UUID(bytes=secrets.token_bytes(16)), parent_run_id=approval.run_id,
+            action="resume", idempotency_key=idempotency_key, request_hash=request_hash,
+            result_run_id=approval.run_id, created_at=approval.decided_at,
+        ))
+        return saved
 
     async def persist_composition_plan(
         self, plan: PersistedCompositionPlan
