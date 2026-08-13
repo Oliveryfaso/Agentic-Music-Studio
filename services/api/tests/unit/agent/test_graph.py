@@ -141,6 +141,29 @@ async def test_graph_repairs_invalid_plan_once_before_approval() -> None:
 
 
 @pytest.mark.asyncio
+async def test_standalone_graph_keeps_legacy_terminal_after_invalid_repair() -> None:
+    invalid = {"schema_version": "composition-plan.v1"}
+    graph = build_composition_plan_graph(
+        StaticCompositionPlanner(invalid, repaired_plan=invalid),
+        checkpointer=InMemorySaver(),
+    )
+
+    completed = await graph.ainvoke(
+        initial_plan_state(
+            run_id="run-invalid-repair",
+            thread_id="thread-invalid-repair",
+            brief_payload=valid_brief_payload(),
+        ),
+        {"configurable": {"thread_id": "thread-invalid-repair"}},
+    )
+
+    assert completed["terminal_status"] == "failed"
+    assert completed["error"]["code"] == "PLAN_SCHEMA_INVALID"
+    assert completed["counters"] == {"model_calls": 2, "total_tokens": 0}
+    assert "__interrupt__" not in completed
+
+
+@pytest.mark.asyncio
 async def test_graph_does_not_repair_after_model_call_budget_is_exhausted() -> None:
     graph = build_composition_plan_graph(
         StaticCompositionPlanner({"schema_version": "composition-plan.v1"}),

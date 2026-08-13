@@ -1,7 +1,12 @@
 import json
 
 import pytest
-from motif_forge.agent.planner import PlannerError, StaticCompositionPlanner
+from motif_forge.agent.planner import (
+    PlannerError,
+    PlannerResponse,
+    PlannerUsage,
+    StaticCompositionPlanner,
+)
 from motif_forge.agent.planning_subgraph import (
     build_composition_planning_subgraph,
     initial_planning_state,
@@ -89,6 +94,83 @@ async def test_planning_subgraph_repairs_invalid_plan_once() -> None:
 
     assert result["phase"] == "planning_complete"
     assert result["counters"] == {"model_calls": 2, "total_tokens": 0}
+    assert result["plan"]["schema_version"] == "composition-plan.v1"
+    assert "__interrupt__" not in result
+
+
+@pytest.mark.asyncio
+async def test_planning_subgraph_falls_back_after_one_invalid_repair() -> None:
+    invalid = {"schema_version": "composition-plan.v1"}
+    graph = build_composition_planning_subgraph(
+        StaticCompositionPlanner(invalid, repaired_plan=invalid)
+    )
+
+    result = await graph.ainvoke(
+        initial_planning_state(
+            run_id="planning-invalid-repair",
+            thread_id="planning-invalid-repair",
+            brief_payload=valid_brief_payload(),
+        )
+    )
+
+    assert result["phase"] == "planning_complete"
+    assert result["counters"] == {"model_calls": 2, "total_tokens": 0}
+    assert result["provider_metadata"]["provider"] == "deterministic"
+    assert result["fallback_reason"] == "PLAN_SCHEMA_INVALID_AFTER_REPAIR"
+    assert result["plan"]["schema_version"] == "composition-plan.v1"
+    assert "__interrupt__" not in result
+
+
+class _OverBudgetPlanner:
+    def __init__(self) -> None:
+        self.create_calls = 0
+        self.repair_calls = 0
+
+    async def create_plan(self, brief, *, allow_schema_repair=True):  # type: ignore[no-untyped-def]
+        del brief, allow_schema_repair
+        self.create_calls += 1
+        return PlannerResponse(
+            plan_payload=valid_plan_payload(),
+            usage=PlannerUsage(
+                prompt_tokens=200,
+                completion_tokens=100,
+                total_tokens=300,
+            ),
+        )
+
+    async def repair_plan(  # type: ignore[no-untyped-def]
+        self,
+        brief,
+        *,
+        invalid_payload,
+        validation_issues,
+    ):
+        del brief, invalid_payload, validation_issues
+        self.repair_calls += 1
+        raise AssertionError("repair must not run after post-call token overflow")
+
+
+@pytest.mark.asyncio
+async def test_planning_subgraph_discards_model_plan_after_token_overflow() -> None:
+    planner = _OverBudgetPlanner()
+    graph = build_composition_planning_subgraph(planner)
+
+    result = await graph.ainvoke(
+        initial_planning_state(
+            run_id="planning-token-overflow",
+            thread_id="planning-token-overflow",
+            brief_payload=valid_brief_payload(),
+            max_total_tokens=256,
+        )
+    )
+
+    assert planner.create_calls == 1
+    assert planner.repair_calls == 0
+    assert result["phase"] == "planning_complete"
+    assert result["counters"] == {"model_calls": 1, "total_tokens": 300}
+    assert result["usage"]["total_tokens"] == 300
+    assert result["provider_metadata"]["provider"] == "deterministic"
+    assert result["fallback_reason"] == "PROVIDER_REQUESTED_HUMAN"
     assert result["plan"]["schema_version"] == "composition-plan.v1"
     assert "__interrupt__" not in result
 

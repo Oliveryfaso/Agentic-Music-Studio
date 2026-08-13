@@ -359,7 +359,7 @@ class PlanningNodes:
             )
         brief = CompositionBrief.model_validate_json(json.dumps(brief_payload), strict=True)
         plan = build_fallback_plan(brief)
-        fallback_reason = state.get("error_policy", {}).get(
+        fallback_reason = state.get("fallback_reason") or state.get("error_policy", {}).get(
             "explanation_code", "MODEL_OUTPUT_UNUSABLE"
         )
         return {
@@ -472,6 +472,15 @@ def error_route(
     )
 
 
+def planning_terminal_route(
+    state: PlanningSubgraphState,
+) -> Literal["fallback", "terminal"]:
+    error = state.get("error") or {}
+    if error.get("code") == "PLAN_SCHEMA_INVALID" and state["repair_attempts"] >= 1:
+        return "fallback"
+    return "terminal"
+
+
 async def planning_complete(state: PlanningSubgraphState) -> PlanningResult:
     result = PlanningResult(
         phase="planning_complete",
@@ -576,20 +585,31 @@ def build_composition_planning_subgraph(
         del state
         return {}
 
+    async def planning_terminal_router(state: PlanningSubgraphState) -> dict[str, Any]:
+        if planning_terminal_route(state) == "fallback":
+            return {"fallback_reason": "PLAN_SCHEMA_INVALID_AFTER_REPAIR"}
+        return {}
+
     graph.add_node("PlanningComplete", planning_complete)
     graph.add_node("PlanningFailed", planning_failed)
     graph.add_node("PlanningFallbackRoute", planning_fallback_route)
+    graph.add_node("PlanningTerminalRouter", planning_terminal_router)
     add_planning_nodes_and_edges(
         graph,
         nodes,
         complete_target="PlanningComplete",
         fallback_target="DeterministicPlanFallback",
         human_error_target="PlanningFallbackRoute",
-        terminal_target="PlanningFailed",
+        terminal_target="PlanningTerminalRouter",
     )
     graph.add_conditional_edges(
         "PlanningFallbackRoute",
         lambda state: "fallback" if state.get("brief") is not None else "terminal",
+        {"fallback": "DeterministicPlanFallback", "terminal": "PlanningFailed"},
+    )
+    graph.add_conditional_edges(
+        "PlanningTerminalRouter",
+        planning_terminal_route,
         {"fallback": "DeterministicPlanFallback", "terminal": "PlanningFailed"},
     )
     graph.add_edge("PlanningComplete", END)
