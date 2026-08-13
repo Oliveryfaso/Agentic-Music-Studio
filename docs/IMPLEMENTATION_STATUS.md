@@ -69,7 +69,7 @@ S2 已完成前半段内部事实链：持久 AI Run/Plan/审批/预算、无副
 | 保持音高 time-stretch | 可运行的受限基线 | FFmpeg atempo、Artifact lineage、恢复和质量测试 | 尚不是专业弹性音频；复杂 tempo map 不在首版 |
 | Artifact 生命周期与 StoragePressureGate | 可运行 | 四态、配额、驱逐/重建、外置 Root | 暂不扩建通用缓存平台，按新 Artifact 类型增量接入 |
 | Tone.js AudioGraphCompiler | 内部完成 | ArrangementIR 投影、72 秒 PCM24 Master/Stem、10 项测试 | 仅 3 个 Synth Preset；尚无 Studio/runtime 投影 |
-| PatternSpec 与确定性 Composer | 内部完成 | 固定 S1 基线 + Synth Ambient Plan 兼容策略/确定性编译、版本化 Plan hash | 仅一个 Style Pack；尚未接 Render/Export 编排 |
+| PatternSpec 与确定性 Composer | 内部完成 | 固定 S1 基线 + Synth Ambient Plan 兼容策略/确定性编译、版本化 Plan hash、共享完整 Export cursor | 仅一个 Style Pack；尚未接 Parent Graph |
 | 完整成曲与导出 | 内部完成 | 72 秒作品、Master/MP3/四 Stem/MIDI/Project/13 项逻辑 Bundle | 尚无公共 API/Web；1–5 分钟和 12 轨留待产品验收 |
 | 四个 Style Pack 与 Theory Engine | 未开始 | 只有设计 | 缺知识卡、规则、示例、检索和许可资产 |
 | Web Import Review | 可运行 | 上传、分析确认、试听、恢复、窄屏 E2E | 尚未进入 Project Home、Brief/Plan 或 Timeline |
@@ -139,7 +139,7 @@ Checkpoint 前复验：Python `152 passed / 13 opt-in skipped`；真实 PostgreS
 
 后续每个可独立验收纵切都必须形成 Git checkpoint，不再跨多个阶段积累未提交业务代码。
 
-## 7. S1 验收事实与当前开发断点：S2 Task 6
+## 7. S1 验收事实与当前开发断点：S2 Task 7
 
 S1 已完成：固定作品为 24 bars、80 BPM、4/4、C major、四轨、72 秒；固定 seed 生成完整 ArrangementIR。L3 生成先创建 Candidate/Preview，再由调用者提供 16 字符以上审批断言，事务持久化 actor、审批 payload hash 和原始五条生成命令后物化 Revision。正式 Job 链输出 PCM24 Master（20,736,044 bytes）、四条 PCM24 Stem、经 FFprobe 验证时长/格式/码率/非静音的 256 kbps MP3、MIDI、Project JSON 与 credits/license/provenance/trace/export manifests。
 
@@ -159,6 +159,10 @@ S2 实施计划 Task 1–5 已独立复审通过：
 4. Synth Ambient Plan 策略、确定性编译器和 v1/v2 Plan hash 兼容；
 5. 原子 `approved Plan → Candidate/Preview → Revision`，包含 receipt、取消/并发/回放和 legacy fail-closed。
 
-**暂停断点：Task 6 尚未开始。** 下一次恢复从“复用 S1 的完整 Render/Transcode/Bundle 编排”开始；Task 6–12 已按作品集工程模式重写，之后仍需 Parent Graph、Dispatcher/API/SSE、代表性恢复/取消、16+ Eval、Compose smoke 和一次预算受控的真实 DeepSeek 付费验收。S2 不能提前标记完成。
+Task 6 已把 S1 的完整导出链抽为共享应用服务：严格七步 cursor 依次 enqueue Master、pad/melody/bass/rhythm Stem、MP3 与逻辑 Bundle；首个 Job 创建唯一 MediaRun，后续 Job 复用同一 Run。每次 enqueue/collect 都重新加载权威 Revision/Artifact，校验 Arrangement hash、render scope、track、quality、availability 与 source Job；cursor 只接受一致的有序前缀，重复 completion 不推进第二次。S1 smoke 已删除第二套 payload 构造并复用该服务。
+
+Task 6 验收为 focused unit `12 passed`、真实 PostgreSQL `1 passed`、Ruff、目标 Mypy、S1 script compile 与 `git diff --check` 通过；独立审查经唯一修复复审后为 `Spec PASS / Quality APPROVED`。本 Task 没有修改 Worker/Artifact/取消合同，没有重跑 S1 故障矩阵、Docker 或 DeepSeek API。
+
+**暂停断点：Task 7 尚未开始。** 下一次恢复从“把 generate 分支挂入唯一 Parent Graph v2”开始；之后仍需 Dispatcher/API/SSE、代表性恢复/取消、16+ Eval、Compose smoke 和一次预算受控的真实 DeepSeek 付费验收。S2 不能提前标记完成。
 
 具体前后顺序、阶段门和优化规则见 `NEXT_DEVELOPMENT_ROADMAP.md`。

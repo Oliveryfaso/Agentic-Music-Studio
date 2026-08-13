@@ -10,10 +10,16 @@ from uuid import UUID
 from pydantic import Field
 
 from motif_forge.domain.ir import ArrangementIR, DomainModel, NoteClip, Track, TrackRole
+from motif_forge.domain.media_jobs import (
+    CanonicalRenderJobPayload,
+    MediaQualityProfile,
+    RenderScope,
+)
+from motif_forge.domain.revisions import Revision
 from motif_forge.domain.timebase import ticks_to_seconds
 
 AUDIO_GRAPH_SCHEMA_VERSION = "audio-graph-spec.v1"
-AUDIO_ENGINE_VERSION = "motif-forge-audio-engine.v1"
+AUDIO_ENGINE_VERSION: Literal["motif-forge-audio-engine.v1"] = "motif-forge-audio-engine.v1"
 
 
 class AudioGraphProjection(DomainModel):
@@ -119,4 +125,40 @@ def compile_audio_graph(
         graph_hash=_canonical_hash(graph),
         render_track_ids=selected_ids,
         graph=graph,
+    )
+
+
+def build_canonical_render_payload(
+    revision: Revision,
+    *,
+    seed: int,
+    render_track_ids: tuple[UUID, ...] = (),
+) -> CanonicalRenderJobPayload:
+    """Reloaded Revision truth is the only input to a canonical render request."""
+
+    projection = compile_audio_graph(
+        revision.arrangement_ir,
+        render_track_ids=render_track_ids or None,
+    )
+    scope = RenderScope.STEM if render_track_ids else RenderScope.MASTER
+    quality = (
+        MediaQualityProfile.CANONICAL_STEM_V1
+        if render_track_ids
+        else MediaQualityProfile.CANONICAL_MASTER_V1
+    )
+    if projection.arrangement_hash != revision.content_hash:
+        raise ValueError("REVISION_ARRANGEMENT_HASH_MISMATCH")
+    return CanonicalRenderJobPayload(
+        project_id=revision.project_id,
+        revision_id=revision.revision_id,
+        render_scope=scope,
+        render_track_ids=render_track_ids,
+        quality_profile=quality,
+        audio_graph=projection.graph,
+        audio_graph_hash=projection.graph_hash,
+        arrangement_hash=projection.arrangement_hash,
+        audio_engine_version=AUDIO_ENGINE_VERSION,
+        seed=seed,
+        timeout_seconds=240,
+        maximum_output_bytes=64 * 1024 * 1024,
     )

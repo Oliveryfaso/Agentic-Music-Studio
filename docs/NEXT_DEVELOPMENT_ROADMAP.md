@@ -3,7 +3,7 @@
 > **For agentic workers:** 实施本路线中的具体纵切前，必须先为该纵切建立 `docs/superpowers/plans/YYYY-MM-DD-<slice>.md`，再使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 逐项执行。
 > 状态：已批准的主路线；S2 Task 6 起采用 ADR-016 作品集工程模式
 > 起点：受控 Upload → Import → 分析 HITL → 保持音高对齐 → Web Preview 已完成
-> 执行断点（2026-08-13）：G0、S1 已验收；S2 Task 1–5 已完成并独立复审通过，按用户要求暂停在 Task 6 之前。S2 仍是唯一活动门，S3–S7 仍关闭。
+> 执行断点（2026-08-13）：G0、S1 已验收；S2 Task 1–6 已完成并独立复审通过，按用户要求暂停在 Task 7 之前。S2 仍是唯一活动门，S3–S7 仍关闭。
 
 **目标：** 从当前可靠的导入底座，按最短依赖路径完成“可生成、可听、可编辑、可恢复、可评测”的 Agentic Music Studio。
 

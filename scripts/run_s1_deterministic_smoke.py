@@ -8,38 +8,29 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Literal
 from uuid import UUID, uuid4
 
 from motif_forge.application.composition import (
     PrepareDeterministicCompositionPreview,
     PrepareDeterministicCompositionPreviewRequest,
 )
-from motif_forge.application.media_jobs import (
-    EnqueueFollowupMediaJob,
-    EnqueueFollowupMediaJobRequest,
-    EnqueueMediaJob,
-    EnqueueMediaJobRequest,
+from motif_forge.application.generation import (
+    CollectCompleteExportArtifact,
+    CompleteExportCursor,
+    EnqueueNextCompleteExportJob,
 )
+from motif_forge.application.media_jobs import EnqueueFollowupMediaJob, EnqueueMediaJob
 from motif_forge.application.previews import (
     DecidePreview,
     DecidePreviewRequest,
     PreviewDecision,
 )
 from motif_forge.application.projects import CreateProject, CreateProjectRequest
-from motif_forge.application.rendering import compile_audio_graph
 from motif_forge.config import Settings
 from motif_forge.domain.media_jobs import (
     AudioArtifact,
-    BundleAudioInput,
-    CanonicalRenderJobPayload,
     ExportBundleArtifact,
-    ExportBundleJobPayload,
-    ExportMp3JobPayload,
     JobStatus,
-    MediaJobType,
-    MediaQualityProfile,
-    RenderScope,
 )
 from motif_forge.infrastructure.persistence.database import (
     PostgresUnitOfWork,
@@ -50,12 +41,9 @@ from motif_forge.infrastructure.persistence.media_jobs import PostgresMediaJobUn
 from motif_forge.worker.execution import execute_media_job
 
 SEED = 20260812
-ENGINE_VERSION: Literal["motif-forge-audio-engine.v1"] = "motif-forge-audio-engine.v1"
 
 
-async def _artifact_for_job(
-    uow: PostgresMediaJobUnitOfWork, job_id: UUID
-) -> AudioArtifact:
+async def _artifact_for_job(uow: PostgresMediaJobUnitOfWork, job_id: UUID) -> AudioArtifact:
     async with uow() as transaction:
         job = await transaction.get_media_job(job_id)
         if job is None or job.result_artifact_id is None:
@@ -66,9 +54,7 @@ async def _artifact_for_job(
     return artifact
 
 
-async def _bundle_for_job(
-    uow: PostgresMediaJobUnitOfWork, job_id: UUID
-) -> ExportBundleArtifact:
+async def _bundle_for_job(uow: PostgresMediaJobUnitOfWork, job_id: UUID) -> ExportBundleArtifact:
     async with uow() as transaction:
         job = await transaction.get_media_job(job_id)
         if job is None or job.result_artifact_id is None:
@@ -116,23 +102,6 @@ async def _wait_for_queued_job(*, job_id: UUID, settings: Settings) -> None:
         raise TimeoutError(f"S1 queued Job timed out: {job_id}")
     finally:
         await engine.dispose()
-
-
-def _bundle_input(
-    artifact: AudioArtifact, *, filename: str, profile: MediaQualityProfile
-) -> BundleAudioInput:
-    if artifact.quality_profile is not profile:
-        raise RuntimeError(f"S1 Artifact profile mismatch: {artifact.artifact_id}")
-    if artifact.revision_id is None or artifact.arrangement_hash is None:
-        raise RuntimeError(f"S1 Artifact revision lineage is missing: {artifact.artifact_id}")
-    return BundleAudioInput.model_validate(
-        {
-            "artifact_id": artifact.artifact_id,
-            "quality_profile": profile,
-            "content_hash": artifact.content_hash,
-            "filename": filename,
-        }
-    )
 
 
 async def main() -> None:
@@ -192,141 +161,30 @@ async def main() -> None:
             revision = await transaction.get_revision(revision_id)
         if revision is None:
             raise RuntimeError("S1 approved Revision is unavailable")
-        arrangement = revision.arrangement_ir
-
         thread_id = f"s1-smoke-{invocation}"
-        master_projection = compile_audio_graph(arrangement)
-        master_payload = CanonicalRenderJobPayload(
+        enqueue_export = EnqueueNextCompleteExportJob(
+            media_uow,
+            enqueue_first=EnqueueMediaJob(media_uow),
+            enqueue_followup=EnqueueFollowupMediaJob(media_uow),
+        )
+        collect_export = CollectCompleteExportArtifact(media_uow)
+        cursor = CompleteExportCursor(
             project_id=project.project_id,
             revision_id=revision_id,
-            render_scope=RenderScope.MASTER,
-            render_track_ids=(),
-            quality_profile=MediaQualityProfile.CANONICAL_MASTER_V1,
-            audio_graph=master_projection.graph,
-            audio_graph_hash=master_projection.graph_hash,
-            arrangement_hash=master_projection.arrangement_hash,
-            audio_engine_version=ENGINE_VERSION,
+            thread_id=thread_id,
             seed=SEED,
-            timeout_seconds=240,
-            maximum_output_bytes=64 * 1024 * 1024,
         )
-        first = await EnqueueMediaJob(media_uow)(
-            EnqueueMediaJobRequest(
-                project_id=project.project_id,
-                thread_id=thread_id,
-                run_type="s1_deterministic_smoke.v1",
-                job_type=MediaJobType.RENDER_CANONICAL,
-                input_payload=master_payload.model_dump(mode="json"),
-                output_quality_profile=MediaQualityProfile.CANONICAL_MASTER_V1,
-                idempotency_key=f"s1-master-{invocation}",
-                deadline_seconds=300,
-            )
-        )
-        await _execute_job(job_id=first.job_id, settings=settings)
-        master = await _artifact_for_job(media_uow, first.job_id)
-
-        stem_artifacts: list[AudioArtifact] = []
-        trace_refs = [f"run:{first.run_id}", f"job:{first.job_id}"]
-        for track in arrangement.tracks:
-            projection = compile_audio_graph(arrangement, render_track_ids=(track.track_id,))
-            payload = CanonicalRenderJobPayload(
-                project_id=project.project_id,
-                revision_id=revision_id,
-                render_scope=RenderScope.STEM,
-                render_track_ids=(track.track_id,),
-                quality_profile=MediaQualityProfile.CANONICAL_STEM_V1,
-                audio_graph=projection.graph,
-                audio_graph_hash=projection.graph_hash,
-                arrangement_hash=projection.arrangement_hash,
-                audio_engine_version=ENGINE_VERSION,
-                seed=SEED,
-                timeout_seconds=240,
-                maximum_output_bytes=64 * 1024 * 1024,
-            )
-            queued = await EnqueueFollowupMediaJob(media_uow)(
-                EnqueueFollowupMediaJobRequest(
-                    run_id=first.run_id,
-                    project_id=project.project_id,
-                    thread_id=thread_id,
-                    job_type=MediaJobType.RENDER_CANONICAL,
-                    input_payload=payload.model_dump(mode="json"),
-                    output_quality_profile=MediaQualityProfile.CANONICAL_STEM_V1,
-                    idempotency_key=f"s1-stem-{track.track_id}-{invocation}",
-                    deadline_seconds=300,
-                )
-            )
-            await _execute_job(job_id=queued.job_id, settings=settings)
-            stem_artifacts.append(await _artifact_for_job(media_uow, queued.job_id))
-            trace_refs.append(f"job:{queued.job_id}")
-
-        mp3_payload = ExportMp3JobPayload(
-            project_id=project.project_id,
-            revision_id=revision_id,
-            source_artifact_id=master.artifact_id,
-            source_content_hash=master.content_hash,
-            timeout_seconds=180,
-        )
-        mp3_job = await EnqueueFollowupMediaJob(media_uow)(
-            EnqueueFollowupMediaJobRequest(
-                run_id=first.run_id,
-                project_id=project.project_id,
-                thread_id=thread_id,
-                job_type=MediaJobType.TRANSCODE_EXPORT,
-                input_payload=mp3_payload.model_dump(mode="json"),
-                output_quality_profile=MediaQualityProfile.DELIVERY_MP3_V1,
-                idempotency_key=f"s1-mp3-{invocation}",
-                deadline_seconds=240,
-            )
-        )
-        await _execute_job(job_id=mp3_job.job_id, settings=settings)
-        mp3 = await _artifact_for_job(media_uow, mp3_job.job_id)
+        while cursor.pending_steps:
+            cursor = await enqueue_export(cursor)
+            assert cursor.pending_job_id is not None
+            await _execute_job(job_id=cursor.pending_job_id, settings=settings)
+            cursor = await collect_export(cursor)
+        if cursor.media_run_id is None or cursor.bundle_artifact_id is None:
+            raise RuntimeError("S1 shared export orchestration did not complete")
+        master = await _artifact_for_job(media_uow, cursor.completed_job_ids[0])
         if master.duration_seconds is None:
             raise RuntimeError("S1 Master duration metadata is missing")
-        trace_refs.append(f"job:{mp3_job.job_id}")
-
-        audio_inputs = (
-            _bundle_input(
-                master,
-                filename="master.wav",
-                profile=MediaQualityProfile.CANONICAL_MASTER_V1,
-            ),
-            _bundle_input(
-                mp3,
-                filename="master.mp3",
-                profile=MediaQualityProfile.DELIVERY_MP3_V1,
-            ),
-            *tuple(
-                _bundle_input(
-                    artifact,
-                    filename=f"stem-{track.track_id}.wav",
-                    profile=MediaQualityProfile.CANONICAL_STEM_V1,
-                )
-                for track, artifact in zip(arrangement.tracks, stem_artifacts, strict=True)
-            ),
-        )
-        bundle_payload = ExportBundleJobPayload(
-            project_id=project.project_id,
-            revision_id=revision_id,
-            seed=SEED,
-            arrangement_hash=revision.content_hash,
-            audio_inputs=audio_inputs,
-            engine_version=ENGINE_VERSION,
-            trace_refs=tuple(trace_refs),
-        )
-        bundle_job = await EnqueueFollowupMediaJob(media_uow)(
-            EnqueueFollowupMediaJobRequest(
-                run_id=first.run_id,
-                project_id=project.project_id,
-                thread_id=thread_id,
-                job_type=MediaJobType.EXPORT_BUNDLE,
-                input_payload=bundle_payload.model_dump(mode="json"),
-                output_quality_profile=MediaQualityProfile.EXPORT_BUNDLE_V1,
-                idempotency_key=f"s1-bundle-{invocation}",
-                deadline_seconds=240,
-            )
-        )
-        await _execute_job(job_id=bundle_job.job_id, settings=settings)
-        bundle = await _bundle_for_job(media_uow, bundle_job.job_id)
+        bundle = await _bundle_for_job(media_uow, cursor.completed_job_ids[-1])
         manifest_path = artifact_root / bundle.storage_prefix / "export-manifest.json"
         manifest = json.loads(manifest_path.read_text())
         if len(manifest["files"]) != 12:
@@ -336,10 +194,10 @@ async def main() -> None:
                 {
                     "project_id": str(project.project_id),
                     "revision_id": str(revision_id),
-                    "run_id": str(first.run_id),
+                    "run_id": str(cursor.media_run_id),
                     "duration_seconds": master.duration_seconds,
                     "master_bytes": master.byte_size,
-                    "stem_count": len(stem_artifacts),
+                    "stem_count": 4,
                     "bundle": bundle.model_dump(mode="json"),
                 },
                 ensure_ascii=False,

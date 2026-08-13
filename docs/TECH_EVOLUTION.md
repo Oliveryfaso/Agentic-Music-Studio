@@ -294,3 +294,12 @@
 - S2 Eval 从 24 条调整为至少 16 条代表性 Generate 案例，并保留两条主要 Baseline；最终四风格、AI 编辑和发布报告仍扩展到 `PROJECT_GUIDE.md` 规定的 96 条，不降低终局作品集指标。
 - 全 checkpoint 崩溃/取消/重复投递排列、所有历史 populated downgrade、长时间负载/P95、多租户、灾备与完整 OTel 平台进入 S7 后置硬化登记。真实数据损坏/越权/Secret 泄露、重复付费/副作用、不可恢复或相同缺陷第二次出现时，必须提前升级为阻塞项。
 - 本次只修改决策、状态、路线、S2 Tasks 6–12、Agent 指令和 README；没有修改业务代码、迁移、数据库、Artifact、Docker 或 DeepSeek 配置，`PROJECT_GUIDE.md` 最终产品合同保持不变。
+
+## 2026-08-13：S2 Task 6 共享完整成曲导出编排
+
+- 新增 checkpoint-safe `CompleteExportCursor`、`EnqueueNextCompleteExportJob`、`CollectCompleteExportArtifact` 与 `build_export_bundle_payload`，严格按 Master → pad/melody/bass/rhythm Stem → MP3 → logical Bundle 七步执行。Master 创建唯一 `MediaRun`，后续六步全部用既有 `EnqueueFollowupMediaJob` 复用同一 Run；应用层只构建 payload 和写 Job/Outbox，不执行 Worker。
+- `build_canonical_render_payload` 只从数据库重新加载的不可变 Revision 编译 AudioGraph。每次 enqueue/collect 都重新校验 Revision content hash，以及已完成 Artifact 的 project/revision/Arrangement、quality、scope、track、availability 与 source Job；cursor 模型拒绝跳步、乱序、重复 identity、计数或 pending/Run 不一致的 checkpoint。重复 completion 直接返回相同 cursor，不产生第二个 Job 或 Artifact ref。
+- Export Bundle payload 只含六个 `BundleAudioInput` Artifact/hash/profile/filename 引用，不含 storage path 或 audio bytes。Bundle completion 同样绑定 pending Job、Revision、Arrangement、seed 与精确输入 Artifact 集。S1 deterministic smoke 已移除自己的 Render/Transcode/Bundle payload 构造，改为循环调用共享服务；固定 S1 用户流程与 Worker/Artifact/取消合同未变。
+- TDD 先以缺失接口得到预期 RED，后补 source-job、cursor 恢复与前序 Artifact 重验证 RED/GREEN。最终 focused unit `12 passed`；真实 Compose PostgreSQL 边界 `1 passed`，证明权威 Revision payload、单 Run/Job/Outbox 与重复 enqueue；Ruff、目标 Mypy、S1 script compile、`git diff --check` 和 `PROJECT_GUIDE.md` SHA-256 `21345f64304338777a9dd2603d34ad54448b6c4b82902bc743204ba1026c9f58` 通过。
+- 唯一独立审查先发现 Bundle source Job 未绑定、cursor 可伪造跳步两个当前路径 Important；唯一修复轮补齐后，范围复审为 `Spec PASS / Quality APPROVED`，无剩余 blocker。本 Task 未重跑完整 S1 故障矩阵、未重建 Docker、未调用 DeepSeek，也未读取或输出 API Key。下一断点为 Task 7 Parent Graph v2 generate 挂载。
+- 范围化存储清理确认 PostgreSQL 中 Task 6 测试 Project 残留为 `0`，并删除了可重建的独立审查 scratch；本 Task 未生成业务 Artifact 或 Docker 数据。
