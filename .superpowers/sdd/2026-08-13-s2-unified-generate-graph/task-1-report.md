@@ -57,11 +57,11 @@ git diff --check
 ## Schema, migration, rollback
 
 Migration `20260813_0013` creates `app.ai_runs`, `app.ai_run_approvals`,
-`app.composition_plans`, `app.ai_run_events` (identity-backed `BIGINT` sequence), and
-`app.ai_model_request_reservations`. It adds all requested uniqueness and foreign-key
+`app.ai_run_action_idempotency`, `app.composition_plans`, `app.ai_run_events`
+(identity-backed `BIGINT` sequence), and `app.ai_model_request_reservations`. It adds all requested uniqueness and foreign-key
 relationships. The migration makes `observability.usage_ledger.estimated_cost_microusd` nullable,
 adds `cost_status` and `pricing_version`, and changes historical zero cost rows to unknown/null.
-Downgrade removes the four Task 1 tables and new ledger columns, restoring the prior non-null
+Downgrade removes the six Task 1 tables and new ledger columns, restoring the prior non-null
 cost column shape, targeting `20260812_0012`.
 
 ## Changed files
@@ -92,8 +92,8 @@ cost column shape, targeting `20260812_0012`.
 ## Commit
 
 Original Task 1 commit: `e0176d6929f92b700ea652be6c43eef369d1c469` —
-`feat: persist S2 AI runs and plans`. The review-fix commit is the current Git HEAD with subject
-`fix: harden S2 AI run persistence`; this avoids the stale pre-amend SHA previously recorded here.
+`feat: persist S2 AI runs and plans`. Review fix round 1 code commit:
+`32cdbedbc075d35e4d639547df7739d9a1a3f7fc` — `fix: harden S2 AI run persistence`.
 Review fix round 2 commit: `c7897d4add419ce0e7e185326e27187c73987a0c` —
 `fix: close S2 AI run ledger review gaps`.
 Review fix round 3 code commit: `b8390babf9fb5567d877eeca0834e5f5d4a18474` —
@@ -161,15 +161,16 @@ strictly monotonic events and `after_sequence` replay, approval/rejection hash b
 atomic write failure rollback of run/event/outbox/natural key, child-run retry, head/branch identity
 rejection with no Run side effects, reservation/usage accounting, and migration `0013 -> 0012` with
 an actual trace/span/NULL usage-ledger row restored to legacy cost `0`. The latter also asserts the
-five Task 1 tables are removed on rollback.
+six Task 1 tables are removed on rollback.
 
 ### Schema and rollback update
 
 `ai_runs` now includes `parent_run_id`, a parent/idempotency uniqueness guard, and deployed checks
 for `submitted_model_requests BETWEEN 0 AND 3` and nonnegative aggregate token counters.
 `ai_run_approvals` contains the expected Plan content hash and pending interrupt reference. The
-Task 1 table inventory is five tables: `ai_runs`, `ai_run_approvals`, `composition_plans`,
-`ai_run_events`, and `ai_model_request_reservations`. `downgrade()` removes all five and restores
+Task 1 table inventory is six tables: `ai_runs`, `ai_run_approvals`,
+`ai_run_action_idempotency`, `composition_plans`, `ai_run_events`, and
+`ai_model_request_reservations`. `downgrade()` removes all six and restores
 the legacy usage-ledger columns/value semantics at revision `20260812_0012`.
 
 ### Concerns
@@ -222,7 +223,7 @@ git diff --check
 
 `ai_runs` now keeps the authoritative nullable pending Plan ID, content hash and server-generated
 unpredictable interrupt reference, with a grouped `waiting_approval` CHECK. The pending marker
-transaction locks the Run and Plan, advances status/version, and the approval transaction compares
+transaction locks the Run and reads/verifies the immutable Plan, advances status/version, and the approval transaction compares
 only these locked fields before consuming them atomically. PostgreSQL Plan A/B tests prove that a
 persisted alternate Plan or forged ref cannot approve the Run; only the server-issued A/ref pair
 can proceed.
@@ -240,6 +241,38 @@ and downgrades the action ledger; Task 1 inventory is now six tables: `ai_runs`,
 
 None for Task 1. The guide SHA remains
 `21345f64304338777a9dd2603d34ad54448b6c4b82902bc743204ba1026c9f58`.
+
+## Review fix round 4 — final invariant and rollback closure
+
+**Status:** DONE
+
+### RED
+
+```bash
+/private/tmp/motif-forge-s2-venv/bin/ruff check <Task 1 files>
+# RED: malformed new PostgreSQL invariant/rollback tests initially failed parsing;
+# this exposed missing `finally` placement before implementation was completed.
+```
+
+The real acceptance additions target partial pending tuples, a retry Outbox collision after child,
+created-event, and action-ledger writes, and removal of the sixth table on downgrade.
+
+### GREEN
+
+```bash
+MOTIF_FORGE_TEST_POSTGRES_DSN='postgresql://motif_forge:motif_forge@localhost:5432/motif_forge_s2_task1_r3' \
+  /private/tmp/motif-forge-s2-venv/bin/pytest -q \
+  services/api/tests/integration/test_postgres_ai_runs.py \
+  services/api/tests/unit/domain/test_ai_runs.py
+# 18 passed
+```
+
+The pending CHECK and domain validator now use the explicit two-branch grouped invariant: waiting
+runs carry all three pending fields; every other status carries none. PostgreSQL directly rejects
+each partial waiting tuple and queued/materializing residue. The public retry use case now writes
+child, child-created Event, action ledger, then Outbox; a pre-existing Outbox dedupe collision
+proves all retry writes rollback while the parent remains unchanged. The populated downgrade test
+also proves `ai_run_action_idempotency` is absent at 0012.
 
 ## Review fix round 1 — RED/GREEN audit
 
