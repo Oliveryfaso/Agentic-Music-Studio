@@ -141,7 +141,10 @@ def build_canonical_render_payload(
         render_track_ids=render_track_ids or None,
     )
     scope = RenderScope.STEM if render_track_ids else RenderScope.MASTER
-    quality = (
+    quality: Literal[
+        MediaQualityProfile.CANONICAL_MASTER_V1,
+        MediaQualityProfile.CANONICAL_STEM_V1,
+    ] = (
         MediaQualityProfile.CANONICAL_STEM_V1
         if render_track_ids
         else MediaQualityProfile.CANONICAL_MASTER_V1
