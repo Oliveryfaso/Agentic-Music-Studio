@@ -349,7 +349,24 @@ async def test_generate_restart_after_approval_does_not_replan_or_rematerialize(
         waiting = await graph.ainvoke(
             initial_generate_state(thread_id=thread_id, request=request), config
         )
-        approved = await graph.ainvoke(
+        assert waiting["phase"] == "waiting_plan_approval"
+        assert persist.calls == 1
+        assert materialize.calls == export.calls == 0
+
+    async with postgres_checkpointer(
+        test_postgres_dsn, schema=isolated_postgres_schemas.primary
+    ) as reopened_saver:
+        reopened = build_parent_graph(
+            _FailingEnqueuer(),
+            checkpointer=reopened_saver,
+            generate_planner=_must_not_run_planner(),
+            persist_planning_result=_MustNotRun(),
+            record_plan_approval=approval,
+            materialize_approved_composition=materialize,
+            enqueue_next_complete_export_job=export.enqueue,
+            collect_complete_export_artifact=export.collect,
+        )
+        approved = await reopened.ainvoke(
             Command(
                 resume={
                     "decision": "approve",
@@ -363,20 +380,6 @@ async def test_generate_restart_after_approval_does_not_replan_or_rematerialize(
         )
         assert approved["phase"] == "waiting_generate_worker"
         assert persist.calls == materialize.calls == export.calls == 1
-
-    async with postgres_checkpointer(
-        test_postgres_dsn, schema=isolated_postgres_schemas.primary
-    ) as reopened_saver:
-        reopened = build_parent_graph(
-            _FailingEnqueuer(),
-            checkpointer=reopened_saver,
-            generate_planner=_must_not_run_planner(),
-            persist_planning_result=_MustNotRun(),
-            record_plan_approval=_MustNotRun(),
-            materialize_approved_composition=_MustNotRun(),
-            enqueue_next_complete_export_job=_MustNotRun(),
-            collect_complete_export_artifact=_MustNotRun(),
-        )
         snapshot = await reopened.aget_state(config)
 
     assert snapshot.values["phase"] == "waiting_generate_worker"

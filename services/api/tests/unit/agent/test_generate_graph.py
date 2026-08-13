@@ -22,6 +22,7 @@ from motif_forge.application.generation import (
 )
 from motif_forge.application.media_jobs import EnqueueMediaJobRequest, EnqueueMediaJobResult
 from motif_forge.domain.ai_runs import AIRunApproval, composition_plan_content_hash
+from motif_forge.domain.storage import StoragePressureDecision, StorageRoute
 
 from .sample_data import valid_brief_payload, valid_plan_payload
 
@@ -142,6 +143,31 @@ class _Export:
         return cursor.model_copy(update=update)
 
 
+class _StorageGate:
+    def __init__(self, route: StorageRoute) -> None:
+        self.route = route
+        self.calls = 0
+
+    async def __call__(self, **kwargs: object) -> StoragePressureDecision:
+        self.calls += 1
+        return StoragePressureDecision(
+            operation_id=str(kwargs["operation_id"]),
+            project_id=kwargs["project_id"],
+            route=self.route,
+            matched_rule_id="STO-001" if self.route is StorageRoute.WAIT_FOR_STORAGE else "STO-050",
+            explanation_code=(
+                "STORAGE_ROOT_NOT_READY"
+                if self.route is StorageRoute.WAIT_FOR_STORAGE
+                else "STORAGE_OPERATION_CANCELLED_OR_EXPIRED"
+            ),
+            error_code=(
+                "ARTIFACT_ROOT_UNAVAILABLE"
+                if self.route is StorageRoute.WAIT_FOR_STORAGE
+                else "STORAGE_QUOTA_EXCEEDED"
+            ),
+        )
+
+
 def _request(**brief_changes: object) -> GenerateRequest:
     brief = {**valid_brief_payload(), **brief_changes}
     return GenerateRequest(
@@ -154,7 +180,11 @@ def _request(**brief_changes: object) -> GenerateRequest:
     )
 
 
-def _services(*, planner: _CountingPlanner | None = None):  # type: ignore[no-untyped-def]
+def _services(  # type: ignore[no-untyped-def]
+    *,
+    planner: _CountingPlanner | None = None,
+    storage_gate: _StorageGate | None = None,
+):
     plan = CompositionPlan.model_validate_json(json.dumps(valid_plan_payload()), strict=True)
     planner = planner or _CountingPlanner(plan)
     persist = _Persist()
@@ -170,6 +200,7 @@ def _services(*, planner: _CountingPlanner | None = None):  # type: ignore[no-un
         materialize_approved_composition=materialize,
         enqueue_next_complete_export_job=export.enqueue,
         collect_complete_export_artifact=export.collect,
+        storage_pressure_gate=storage_gate,
     )
     return graph, planner, persist, approval, materialize, export
 
@@ -214,6 +245,48 @@ def test_initial_generate_state_is_parent_v2_and_compact() -> None:
     assert UUID(state["project_id"])
     assert "plan" not in state
     assert "arrangement_ir" not in state
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("schema", [None, "motif-forge-parent-state.v1"])
+async def test_generate_rejects_missing_or_wrong_parent_state_schema(schema: str | None) -> None:
+    graph, planner, persist, _, materialize, export = _services()
+    state = initial_generate_state(thread_id="invalid-state-schema", request=_request())
+    if schema is None:
+        state.pop("state_schema_version")
+    else:
+        state["state_schema_version"] = schema
+
+    result = await graph.ainvoke(state, _config("invalid-state-schema"))
+
+    assert result["terminal_status"] == "failed"
+    assert result["error_code"] == "STATE_SCHEMA_VERSION_UNSUPPORTED"
+    assert planner.calls == persist.calls == materialize.calls == export.enqueue_calls == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("route", "expected_phase", "expected_error"),
+    [
+        (StorageRoute.WAIT_FOR_STORAGE, "storage_wait_required", "ARTIFACT_ROOT_UNAVAILABLE"),
+        (StorageRoute.FAIL, "failed", "STORAGE_QUOTA_EXCEEDED"),
+    ],
+)
+async def test_generate_export_storage_gate_blocks_enqueue(
+    route: StorageRoute, expected_phase: str, expected_error: str
+) -> None:
+    storage = _StorageGate(route)
+    graph, _, _, _, materialize, export = _services(storage_gate=storage)
+    thread_id = f"generate-storage-{route.value}"
+    waiting = await graph.ainvoke(
+        initial_generate_state(thread_id=thread_id, request=_request()), _config(thread_id)
+    )
+    result = await graph.ainvoke(Command(resume=_approval_resume(waiting)), _config(thread_id))
+
+    assert result["phase"] == expected_phase
+    assert result["error_code"] == expected_error
+    assert materialize.calls == storage.calls == 1
+    assert export.enqueue_calls == 0
 
 
 @pytest.mark.asyncio

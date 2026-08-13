@@ -280,6 +280,8 @@ def build_parent_graph(
     async def validate_request(state: ParentGraphState) -> dict[str, Any]:
         if state.get("graph_topology_version") != PARENT_GRAPH_TOPOLOGY_VERSION:
             return {"phase": "failed", "error_code": "GRAPH_TOPOLOGY_VERSION_UNSUPPORTED"}
+        if state.get("state_schema_version") != PARENT_STATE_SCHEMA_VERSION:
+            return {"phase": "failed", "error_code": "STATE_SCHEMA_VERSION_UNSUPPORTED"}
         try:
             if state["operation"] == "generate":
                 if generate_nodes is None:
@@ -343,14 +345,18 @@ def build_parent_graph(
                 "storage_explanation_code": "STORAGE_GATE_NOT_CONFIGURED_TEST_ONLY",
             }
         estimated_bytes = _estimate_initial_output_bytes(state)
-        if state["operation"] == "import_audio":
+        if state["operation"] == "generate":
+            dependency_ids: tuple[UUID, ...] = ()
+        elif state["operation"] == "import_audio":
             dependency_id = IngestJobPayload.model_validate_json(
                 json.dumps(state["request_payload"]), strict=True
             ).source_artifact_id
+            dependency_ids = (dependency_id,)
         elif state["operation"] == "time_stretch":
             dependency_id = TimeStretchJobPayload.model_validate_json(
                 json.dumps(state["request_payload"]), strict=True
             ).source_artifact_id
+            dependency_ids = (dependency_id,)
         else:
             try:
                 dependency_id = RehydrateJobPayload.model_validate_json(
@@ -360,12 +366,13 @@ def build_parent_graph(
                 dependency_id = FeatureRehydrateJobPayload.model_validate_json(
                     json.dumps(state["request_payload"]), strict=True
                 ).source_artifact_id
+            dependency_ids = (dependency_id,)
         decision = await storage_pressure_gate(
             operation_id=f"{_idempotency_key(state)}:storage-v1",
             project_id=UUID(state["project_id"]),
             estimated_artifact_bytes=estimated_bytes,
             estimated_temp_bytes=estimated_bytes,
-            dependency_artifact_ids=(dependency_id,),
+            dependency_artifact_ids=dependency_ids,
         )
         update: dict[str, Any] = {
             "storage_policy_version": decision.policy_version,
@@ -385,9 +392,11 @@ def build_parent_graph(
             update["error_code"] = decision.error_code or "STORAGE_QUOTA_EXCEEDED"
         return update
 
-    def storage_route(state: ParentGraphState) -> Literal["enqueue", "human", "error"]:
+    def storage_route(
+        state: ParentGraphState,
+    ) -> Literal["enqueue", "generate_enqueue", "human", "error"]:
         if state.get("phase") == "storage_ready":
-            return "enqueue"
+            return "generate_enqueue" if state["operation"] == "generate" else "enqueue"
         if state.get("phase") == "storage_wait_required":
             return "human"
         return "error"
@@ -728,8 +737,8 @@ def build_parent_graph(
         )
         graph.add_conditional_edges(
             "MaterializeApprovedComposition",
-            lambda state: "enqueue" if state.get("phase") == "revision_materialized" else "error",
-            {"enqueue": "EnqueueCompleteExportStep", "error": "RouteError"},
+            lambda state: "storage" if state.get("phase") == "revision_materialized" else "error",
+            {"storage": "StoragePressureGate", "error": "RouteError"},
         )
         graph.add_conditional_edges(
             "EnqueueCompleteExportStep",
@@ -772,6 +781,9 @@ def build_parent_graph(
         storage_route,
         {
             "enqueue": "EnqueueInitialMediaJob",
+            "generate_enqueue": (
+                "EnqueueCompleteExportStep" if generate_nodes is not None else "RouteError"
+            ),
             "human": "StorageUnavailableInterrupt",
             "error": "RouteError",
         },
