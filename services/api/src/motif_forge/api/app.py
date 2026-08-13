@@ -26,6 +26,7 @@ from motif_forge.agent.parent_graph import (
     initial_artifact_rehydrate_state,
     initial_import_state,
 )
+from motif_forge.api.ai_runs import build_ai_run_router
 from motif_forge.application.audio_content import ResolveAudioContent
 from motif_forge.application.errors import ApplicationError, RevisionConflictError
 from motif_forge.application.features import ListAudioFeatures, ReadFeatureArtifact
@@ -36,7 +37,11 @@ from motif_forge.application.media_jobs import (
     LoadArtifactRehydration,
     StartArtifactRehydration,
 )
-from motif_forge.application.ports import UnitOfWorkFactory, UploadUnitOfWorkFactory
+from motif_forge.application.ports import (
+    AIRunUnitOfWorkFactory,
+    UnitOfWorkFactory,
+    UploadUnitOfWorkFactory,
+)
 from motif_forge.application.projects import CreateProject, CreateProjectRequest
 from motif_forge.application.revisions import CommitCommandBatch, CommitCommandBatchRequest
 from motif_forge.application.storage import (
@@ -61,6 +66,7 @@ from motif_forge.domain.media_jobs import ArtifactValidationStatus
 from motif_forge.domain.revisions import AuthorKind
 from motif_forge.domain.uploads import DeclaredAudioFormat, RightsDeclaration
 from motif_forge.infrastructure.checkpoints import postgres_checkpointer
+from motif_forge.infrastructure.persistence.ai_runs import PostgresAIRunUnitOfWork
 from motif_forge.infrastructure.persistence.database import (
     PostgresUnitOfWork,
     create_postgres_engine,
@@ -325,6 +331,7 @@ def create_app(
     *,
     uow_factory: UnitOfWorkFactory | None = None,
     upload_uow_factory: UploadUnitOfWorkFactory | None = None,
+    ai_run_uow_factory: AIRunUnitOfWorkFactory | None = None,
     readiness_probes: Mapping[str, Callable[[], Awaitable[bool]]] | None = None,
 ) -> FastAPI:
     runtime_settings = settings or get_settings()
@@ -332,6 +339,7 @@ def create_app(
     redis_client: Redis | None = None
     runtime_uow = uow_factory
     runtime_upload_uow = upload_uow_factory
+    runtime_ai_run_uow = ai_run_uow_factory
     runtime_media_uow = None
     runtime_storage_gate = None
     if runtime_uow is None and runtime_settings.postgres_dsn is not None:
@@ -340,6 +348,7 @@ def create_app(
         session_factory = create_session_factory(engine)
         runtime_uow = PostgresUnitOfWork(session_factory)
         runtime_upload_uow = PostgresUploadUnitOfWork(session_factory)
+        runtime_ai_run_uow = PostgresAIRunUnitOfWork(session_factory)
         runtime_media_uow = PostgresMediaJobUnitOfWork(session_factory)
         storage_uow = PostgresStorageUnitOfWork(session_factory)
         runtime_storage_gate = RunStoragePressureGate(
@@ -417,6 +426,8 @@ def create_app(
     app.state.upload_uow_factory = runtime_upload_uow
     app.state.upload_workspace = LocalUploadWorkspace(runtime_settings.artifact_root)
     app.state.parent_graph = None
+    if runtime_ai_run_uow is not None:
+        app.include_router(build_ai_run_router(runtime_ai_run_uow))
 
     @app.middleware("http")
     async def add_request_identity(

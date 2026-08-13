@@ -1,0 +1,37 @@
+"""Export the deterministic Motif Forge OpenAPI document for TypeScript generation."""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+VENV_PYTHON = ROOT / ".venv/bin/python"
+if sys.prefix == sys.base_prefix and VENV_PYTHON.exists():
+    raise SystemExit(
+        subprocess.call([str(VENV_PYTHON), str(Path(__file__).resolve())], env=os.environ)
+    )
+
+sys.path.insert(0, str(ROOT / "services/api/src"))
+
+from motif_forge.api.app import create_app  # noqa: E402
+from motif_forge.config import Settings  # noqa: E402
+
+
+class UnconfiguredAIRunUOW:
+    def __call__(self) -> object:
+        raise RuntimeError("OpenAPI export does not execute persistence")
+
+
+def main() -> None:
+    app = create_app(Settings(), ai_run_uow_factory=UnconfiguredAIRunUOW())  # type: ignore[arg-type]
+    Path("/private/tmp/motif-forge-openapi.json").write_text(
+        json.dumps(app.openapi(), sort_keys=True, separators=(",", ":")), encoding="utf-8"
+    )
+
+
+if __name__ == "__main__":
+    main()
