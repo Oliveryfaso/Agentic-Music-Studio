@@ -246,6 +246,34 @@ and downgrades the action ledger; Task 1 inventory is now six tables: `ai_runs`,
 None for Task 1. The guide SHA remains
 `21345f64304338777a9dd2603d34ad54448b6c4b82902bc743204ba1026c9f58`.
 
+## Review fix round 5 — pending cancellation and exact retry rollback
+
+**Status:** DONE
+
+### RED
+
+The new pending-to-cancel regression test exposed that `AIRun.transition()` retained the pending
+Plan tuple when leaving `waiting_approval`, creating a domain object rejected by PostgreSQL's grouped
+CHECK. The retry rollback test was also tightened to require exact IDs rather than infer Event
+absence from a vanished child row.
+
+### GREEN
+
+```bash
+MOTIF_FORGE_TEST_POSTGRES_DSN='postgresql://motif_forge:motif_forge@localhost:5432/motif_forge_s2_task1_r3' \
+  /private/tmp/motif-forge-s2-venv/bin/pytest -q \
+  services/api/tests/integration/test_postgres_ai_runs.py \
+  services/api/tests/unit/domain/test_ai_runs.py
+# 20 passed
+```
+
+Every transition out of `waiting_approval` now clears the pending Plan ID/hash/ref before it can be
+persisted. The real PostgreSQL public-action test verifies Plan persistence, pending marker, cancel,
+terminal timestamp, exactly one version increment, cleared tuple, one cancel Outbox, and replay
+without a duplicate Outbox. Retry rollback now injects deterministic child/event/outbox IDs and
+proves the exact Event is absent while the target dedupe key still contains exactly the pre-seeded
+Outbox row; parent and action-ledger assertions remain intact.
+
 ## Review fix round 4 — final invariant and rollback closure
 
 **Status:** DONE
