@@ -104,6 +104,10 @@ Review fix round 4 code commit: `be0c39ad501148bc05236ba65672b63d889ec8bc` —
 `fix: enforce S2 pending plan invariants`.
 Review fix round 4 evidence commit: `4ce31adb29b1e05a82e3df0efb72d52b3bb26869` —
 `docs: record S2 task 1 round four evidence`.
+Review fix round 5 code commit: `ff9e1c7dc850fce2887200c951dfee60cfca0135` —
+`fix: clear pending plans on S2 cancellation`.
+Review fix round 5 evidence commit: `3ccd94a33124a383f59e57eec8d15bceaa6dce90` —
+`docs: record S2 task 1 round five evidence`.
 
 ## Review fix round 2 — RED/GREEN audit
 
