@@ -38,6 +38,19 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    lossless_v2_exists = op.get_bind().scalar(
+        sa.text(
+            "SELECT EXISTS ("
+            "SELECT 1 FROM app.composition_plans "
+            "WHERE hash_version = 'composition-plan-hash.lossless-v2'"
+            ")"
+        )
+    )
+    if lossless_v2_exists:
+        raise RuntimeError(
+            "cannot downgrade 20260813_0015 while lossless-v2 CompositionPlans exist; "
+            "replan or remove those plans and every pending/approval reference first"
+        )
     op.drop_constraint(
         "composition_plans_hash_version_valid",
         "composition_plans",

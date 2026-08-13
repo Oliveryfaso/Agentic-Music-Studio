@@ -175,9 +175,7 @@ class PostgresAIRunTransaction:
                     "PLAN_PROVENANCE_CONFLICT",
                     "immutable plan content cannot be replayed with different provenance",
                 )
-            return plan.model_copy(
-                update={"plan_id": existing.id, "created_at": existing.created_at}
-            )
+            return _plan_from_row(existing)
         await self._session.execute(insert(CompositionPlanRow).values(**_plan_values(plan)))
         return plan
 
@@ -804,6 +802,7 @@ def _plan_provenance_values(
     return (
         plan.run_id,
         plan.content_hash,
+        plan.hash_version,
         plan.provider,
         plan.model,
         plan.prompt_version,
