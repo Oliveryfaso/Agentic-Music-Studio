@@ -206,7 +206,7 @@ There is no open-ended reflection loop.
 - identity: `run_id`, `thread_id`, `project_id`, `branch_id`, `base_revision_id`;
 - operation: `generate` plus existing operation variants;
 - input refs: normalized brief and brief hash;
-- planning refs: plan summary/hash, provider result category, validation issues;
+- planning refs: persisted Plan Artifact/row ID, Plan summary/hash, provider result category, validation issues;
 - approval: interrupt reference, decision, actor ID, assertion hash, timestamp;
 - materialization refs: candidate, preview, revision, command batch;
 - media refs: media run, current job, render scope cursor, artifact IDs;
@@ -221,12 +221,14 @@ It never stores audio bytes, waveform arrays, model reasoning, full trace payloa
 `PlanInputAdapter` maps the approved Parent fields into the planning subgraph state. `PlanOutputAdapter` accepts only:
 
 - a schema-valid `CompositionPlan` or deterministic fallback plan;
-- the plan hash and short summary;
+- the Plan persistence reference, hash, and short summary;
 - provider/model identifiers;
 - call, token, and latency measurements;
 - fallback reason or structured validation issues.
 
 The adapter rejects unknown fields. Reducers are defined only for fields that genuinely aggregate; sequential fields use overwrite semantics.
+
+The complete validated Plan is persisted in PostgreSQL before the planning subgraph returns. The Parent checkpoint stores its immutable reference, hash, and bounded summary rather than relying on a truncated summary for later compilation. The compiler reloads the Plan by ID and verifies the hash after resume.
 
 ### 7.3 Planning subgraph extraction
 
@@ -455,7 +457,19 @@ The new migration, expected to be `0013`, adds at minimum:
 
 The raw approval assertion is stored only where the existing audit contract requires it; otherwise a salted hash and bounded audit summary are preferred.
 
-### 13.2 `ai_run_events`
+### 13.2 `composition_plans`
+
+The full validated Plan is an immutable auditable input to the compiler and is not reconstructed from event text. It stores:
+
+- Plan ID, AI Run ID, schema version, and canonical hash;
+- normalized Plan JSON;
+- provider/model or deterministic fallback provenance;
+- prompt/schema/Style Pack versions and deterministic validation result;
+- usage reference and creation timestamp.
+
+The compiler must load this row by ID and verify its canonical hash before generating commands. A Plan row is created at most once for each accepted planning result through an idempotency key derived from Run ID and Plan hash.
+
+### 13.3 `ai_run_events`
 
 Events use a monotonic database sequence suitable for SSE replay and contain:
 
@@ -467,7 +481,7 @@ Events use a monotonic database sequence suitable for SSE replay and contain:
 
 Events never contain the API key, hidden reasoning, raw audio, or unbounded model responses.
 
-### 13.3 Model usage and cost truthfulness
+### 13.4 Model usage and cost truthfulness
 
 Usage records store provider-reported input, output, cache, and total tokens when available. Cost must not be recorded as zero merely because it is unknown.
 
