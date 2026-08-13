@@ -96,6 +96,10 @@ Original Task 1 commit: `e0176d6929f92b700ea652be6c43eef369d1c469` —
 `fix: harden S2 AI run persistence`; this avoids the stale pre-amend SHA previously recorded here.
 Review fix round 2 commit: `c7897d4add419ce0e7e185326e27187c73987a0c` —
 `fix: close S2 AI run ledger review gaps`.
+Review fix round 3 code commit: `b8390babf9fb5567d877eeca0834e5f5d4a18474` —
+`fix: bind S2 approvals to pending plans`.
+Review fix round 3 evidence commit: `7fbfab5298085ad8f64f69cc773be1f3f0e8cdde` —
+`docs: record S2 task 1 final closure`.
 
 ## Review fix round 2 — RED/GREEN audit
 
