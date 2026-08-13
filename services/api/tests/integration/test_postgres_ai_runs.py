@@ -42,6 +42,8 @@ from motif_forge.application.errors import ApplicationError
 from motif_forge.application.projects import CreateProject, CreateProjectRequest
 from motif_forge.application.revisions import CommitCommandBatch, CommitCommandBatchRequest
 from motif_forge.domain.ai_runs import (
+    PLAN_HASH_VERSION_V1,
+    PLAN_HASH_VERSION_V2,
     AIRun,
     AIRunEvent,
     AIRunStatus,
@@ -133,6 +135,152 @@ def _plan() -> CompositionPlan:
         texture="pad",
         confidence=0.8,
     )
+
+
+@pytest.mark.asyncio
+async def test_0015_preserves_legacy_plan_and_pending_approval_hash_references(
+    test_postgres_dsn: str,
+) -> None:
+    await asyncio.to_thread(_downgrade, test_postgres_dsn, "20260813_0014")
+    run_id, _, _, uow, engine = await _seed_run(
+        test_postgres_dsn, key=f"legacy-plan-hash-{uuid4().hex}"
+    )
+    try:
+        plan = _plan().model_copy(
+            update={
+                "sections": (
+                    _plan().sections[0].model_copy(update={"energy": 0.2500001}),
+                    _plan().sections[1],
+                )
+            }
+        )
+        legacy_hash = composition_plan_content_hash(
+            plan, hash_version=PLAN_HASH_VERSION_V1
+        )
+        plan_id, approval_id = uuid4(), uuid4()
+        interrupt_ref = f"server-ref-{uuid4().hex}"
+        async with engine.begin() as connection:
+            await connection.execute(
+                text(
+                    "INSERT INTO app.composition_plans "
+                    "(id, run_id, plan, content_hash, provider, model, prompt_version, "
+                    "schema_version, style_pack_version, created_at) "
+                    "VALUES (:id, :run_id, CAST(:plan AS jsonb), :hash, 'fallback', "
+                    "'deterministic', 'p1', 'composition-plan.v1', 's1', now())"
+                ),
+                {
+                    "id": plan_id,
+                    "run_id": run_id,
+                    "plan": plan.model_dump_json(),
+                    "hash": legacy_hash,
+                },
+            )
+            await connection.execute(
+                text(
+                    "UPDATE app.ai_runs SET status='waiting_approval', "
+                    "pending_plan_id=:plan_id, pending_plan_content_hash=:hash, "
+                    "pending_interrupt_ref=:interrupt WHERE id=:run_id"
+                ),
+                {
+                    "plan_id": plan_id,
+                    "hash": legacy_hash,
+                    "interrupt": interrupt_ref,
+                    "run_id": run_id,
+                },
+            )
+            await connection.execute(
+                text(
+                    "INSERT INTO app.ai_run_approvals "
+                    "(id, run_id, assertion_hash, decision, actor_id, "
+                    "expected_plan_content_hash, interrupt_ref, decided_at) "
+                    "VALUES (:id, :run_id, :assertion_hash, 'approve', 'legacy-test', "
+                    ":hash, :interrupt, now())"
+                ),
+                {
+                    "id": approval_id,
+                    "run_id": run_id,
+                    "assertion_hash": "a" * 64,
+                    "hash": legacy_hash,
+                    "interrupt": interrupt_ref,
+                },
+            )
+
+        await asyncio.to_thread(_upgrade, test_postgres_dsn, "20260813_0015")
+        async with engine.connect() as connection:
+            debug_row = (
+                await connection.execute(
+                    text(
+                        "SELECT plan, content_hash, hash_version FROM app.composition_plans "
+                        "WHERE id=:id"
+                    ),
+                    {"id": plan_id},
+                )
+            ).one()
+        debug_plan = CompositionPlan.model_validate(debug_row.plan, strict=False)
+        assert debug_row.hash_version == PLAN_HASH_VERSION_V1
+        assert debug_row.content_hash == composition_plan_content_hash(
+            debug_plan, hash_version=PLAN_HASH_VERSION_V1
+        ), (debug_row.content_hash, debug_row.hash_version, debug_plan.model_dump(mode="json"))
+
+        async with uow() as transaction:
+            loaded = await transaction.read_composition_plan(plan_id=plan_id, run_id=run_id)
+        async with engine.connect() as connection:
+            references = (
+                await connection.execute(
+                    text(
+                        "SELECT p.hash_version, p.content_hash, r.pending_plan_content_hash, "
+                        "a.expected_plan_content_hash FROM app.composition_plans p "
+                        "JOIN app.ai_runs r ON r.id=p.run_id "
+                        "JOIN app.ai_run_approvals a ON a.run_id=r.id WHERE p.id=:id"
+                    ),
+                    {"id": plan_id},
+                )
+            ).one()
+        assert loaded.hash_version == PLAN_HASH_VERSION_V1
+        assert loaded.content_hash == legacy_hash
+        assert references == (PLAN_HASH_VERSION_V1, legacy_hash, legacy_hash, legacy_hash)
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_new_lossless_v2_plan_round_trips_after_0015(test_postgres_dsn: str) -> None:
+    await asyncio.to_thread(_upgrade, test_postgres_dsn)
+    run_id, _, _, uow, engine = await _seed_run(
+        test_postgres_dsn, key=f"lossless-plan-hash-{uuid4().hex}"
+    )
+    try:
+        plan = _plan().model_copy(
+            update={
+                "sections": (
+                    _plan().sections[0].model_copy(update={"energy": 0.2500001}),
+                    _plan().sections[1],
+                )
+            }
+        )
+        stored = PersistedCompositionPlan(
+            plan_id=uuid4(),
+            run_id=run_id,
+            plan=plan,
+            content_hash=composition_plan_content_hash(plan),
+            provider="fallback",
+            model="deterministic",
+            prompt_version="p1",
+            schema_version="composition-plan.v1",
+            style_pack_version="s1",
+        )
+
+        written = await PersistCompositionPlan(uow)(stored)
+        async with uow() as transaction:
+            loaded = await transaction.read_composition_plan(
+                plan_id=stored.plan_id, run_id=run_id
+            )
+
+        assert written.hash_version == PLAN_HASH_VERSION_V2
+        assert loaded == written
+        assert loaded.plan.sections[0].energy == 0.2500001
+    finally:
+        await engine.dispose()
 
 
 async def _seed_run(

@@ -5,7 +5,7 @@ from __future__ import annotations
 import secrets
 from datetime import datetime
 from types import TracebackType
-from typing import Self
+from typing import Self, cast
 from uuid import UUID
 
 from sqlalchemy import insert, select, update
@@ -27,6 +27,8 @@ from motif_forge.domain.ai_runs import (
     ModelRequestReservationStatus,
     ModelUsageStatus,
     PersistedCompositionPlan,
+    PlanHashVersion,
+    composition_plan_content_hash,
 )
 from motif_forge.infrastructure.persistence.database import SessionFactory
 from motif_forge.infrastructure.persistence.tables import (
@@ -178,6 +180,21 @@ class PostgresAIRunTransaction:
             )
         await self._session.execute(insert(CompositionPlanRow).values(**_plan_values(plan)))
         return plan
+
+    async def read_composition_plan(
+        self, *, plan_id: UUID, run_id: UUID
+    ) -> PersistedCompositionPlan:
+        row = (
+            await self._session.execute(
+                select(CompositionPlanRow).where(
+                    CompositionPlanRow.id == plan_id,
+                    CompositionPlanRow.run_id == run_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            raise ApplicationError("PLAN_NOT_FOUND", "the CompositionPlan does not exist")
+        return _plan_from_row(row)
 
     async def mark_ai_run_plan_pending(
         self, *, run_id: UUID, plan_id: UUID, expected_version: int, now: datetime
@@ -743,6 +760,7 @@ def _plan_values(plan: PersistedCompositionPlan) -> dict[str, object]:
         "run_id": plan.run_id,
         "plan": plan.plan.model_dump(mode="json"),
         "content_hash": plan.content_hash,
+        "hash_version": plan.hash_version,
         "provider": plan.provider,
         "model": plan.model,
         "prompt_version": plan.prompt_version,
@@ -756,11 +774,20 @@ def _plan_values(plan: PersistedCompositionPlan) -> dict[str, object]:
 def _plan_from_row(row: CompositionPlanRow) -> PersistedCompositionPlan:
     from motif_forge.agent.schemas import CompositionPlan
 
+    parsed_plan = CompositionPlan.model_validate(row.plan, strict=False)
+    hash_version = cast(PlanHashVersion, row.hash_version)
+    expected_hash = composition_plan_content_hash(parsed_plan, hash_version=hash_version)
+    if row.content_hash != expected_hash:
+        raise ApplicationError(
+            "PLAN_HASH_MISMATCH",
+            f"stored CompositionPlan hash does not match {hash_version}",
+        )
     return PersistedCompositionPlan(
         plan_id=row.id,
         run_id=row.run_id,
-        plan=CompositionPlan.model_validate(row.plan),
+        plan=parsed_plan,
         content_hash=row.content_hash,
+        hash_version=hash_version,
         provider=row.provider,
         model=row.model,
         prompt_version=row.prompt_version,

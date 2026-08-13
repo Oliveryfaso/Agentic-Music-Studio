@@ -187,7 +187,9 @@ class PersistCompositionPlan:
         self._uow_factory = uow_factory
 
     async def __call__(self, persisted: PersistedCompositionPlan) -> PersistedCompositionPlan:
-        if persisted.content_hash != composition_plan_content_hash(persisted.plan):
+        if persisted.content_hash != composition_plan_content_hash(
+            persisted.plan, hash_version=persisted.hash_version
+        ):
             raise ApplicationError("PLAN_HASH_MISMATCH", "the CompositionPlan hash is invalid")
         async with self._uow_factory() as transaction:
             return await transaction.persist_composition_plan(persisted)

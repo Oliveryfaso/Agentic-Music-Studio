@@ -359,6 +359,9 @@ class AIRunTransaction(Protocol):
     async def persist_composition_plan(
         self, plan: PersistedCompositionPlan
     ) -> PersistedCompositionPlan: ...
+    async def read_composition_plan(
+        self, *, plan_id: UUID, run_id: UUID
+    ) -> PersistedCompositionPlan: ...
     async def mark_ai_run_plan_pending(
         self, *, run_id: UUID, plan_id: UUID, expected_version: int, now: datetime
     ) -> AIRun: ...

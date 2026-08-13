@@ -592,6 +592,9 @@ class CompositionPlanRow(Base):
     )
     plan: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    hash_version: Mapped[str] = mapped_column(
+        String(48), nullable=False, server_default="composition-plan-hash.lossless-v2"
+    )
     provider: Mapped[str] = mapped_column(String(80), nullable=False)
     model: Mapped[str] = mapped_column(String(120), nullable=False)
     prompt_version: Mapped[str] = mapped_column(String(80), nullable=False)

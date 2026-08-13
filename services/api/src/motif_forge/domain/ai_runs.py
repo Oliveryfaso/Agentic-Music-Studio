@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Self
+from typing import Literal, Self
 from uuid import UUID
 
 from pydantic import Field, model_validator
@@ -19,6 +20,11 @@ MAX_MODEL_REQUESTS = 3
 MAX_MODEL_TOKENS = 12_000
 PARENT_GRAPH_TOPOLOGY_VERSION = "motif-forge-parent.v2"
 GENERATE_RUN_STATE_SCHEMA_VERSION = "generate-run-state.v1"
+PlanHashVersion = Literal[
+    "composition-plan-hash.rounded-v1", "composition-plan-hash.lossless-v2"
+]
+PLAN_HASH_VERSION_V1: PlanHashVersion = "composition-plan-hash.rounded-v1"
+PLAN_HASH_VERSION_V2: PlanHashVersion = "composition-plan-hash.lossless-v2"
 
 
 class AIRunStatus(StrEnum):
@@ -121,11 +127,29 @@ _SAFE_USAGE_KEYS = frozenset(
 )
 
 
-def canonical_plan_json_bytes(plan: CompositionPlan) -> bytes:
-    """Serialize every validated Plan fact losslessly for immutable compiler identity."""
+def canonical_plan_json_bytes(
+    plan: CompositionPlan, *, hash_version: PlanHashVersion = PLAN_HASH_VERSION_V2
+) -> bytes:
+    """Serialize a validated Plan according to its persisted hash algorithm version."""
+
+    value: object = plan.model_dump(mode="json", exclude_none=False)
+    if hash_version == PLAN_HASH_VERSION_V1:
+        def normalize(legacy_value: object) -> object:
+            if isinstance(legacy_value, dict):
+                return {key: normalize(legacy_value[key]) for key in sorted(legacy_value)}
+            if isinstance(legacy_value, (list, tuple)):
+                return [normalize(item) for item in legacy_value]
+            if isinstance(legacy_value, float):
+                if not math.isfinite(legacy_value):
+                    raise ValueError("canonical JSON cannot contain NaN or Infinity")
+                rounded = round(legacy_value, 6)
+                return 0.0 if rounded == 0.0 else rounded
+            return legacy_value
+
+        value = normalize(value)
 
     return json.dumps(
-        plan.model_dump(mode="json", exclude_none=False),
+        value,
         allow_nan=False,
         ensure_ascii=False,
         separators=(",", ":"),
@@ -133,8 +157,10 @@ def canonical_plan_json_bytes(plan: CompositionPlan) -> bytes:
     ).encode("utf-8")
 
 
-def composition_plan_content_hash(plan: CompositionPlan) -> str:
-    return hashlib.sha256(canonical_plan_json_bytes(plan)).hexdigest()
+def composition_plan_content_hash(
+    plan: CompositionPlan, *, hash_version: PlanHashVersion = PLAN_HASH_VERSION_V2
+) -> str:
+    return hashlib.sha256(canonical_plan_json_bytes(plan, hash_version=hash_version)).hexdigest()
 
 
 def approval_assertion_hash(assertion: str) -> str:
@@ -281,6 +307,7 @@ class PersistedCompositionPlan(DomainModel):
     run_id: UUID
     plan: CompositionPlan
     content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    hash_version: PlanHashVersion = PLAN_HASH_VERSION_V2
     provider: str = Field(min_length=1, max_length=80)
     model: str = Field(min_length=1, max_length=120)
     prompt_version: str = Field(min_length=1, max_length=80)
@@ -291,7 +318,9 @@ class PersistedCompositionPlan(DomainModel):
 
     @model_validator(mode="after")
     def validate_hash(self) -> Self:
-        if self.content_hash != composition_plan_content_hash(self.plan):
+        if self.content_hash != composition_plan_content_hash(
+            self.plan, hash_version=self.hash_version
+        ):
             raise ValueError("content_hash must match canonical CompositionPlan")
         return self
 
