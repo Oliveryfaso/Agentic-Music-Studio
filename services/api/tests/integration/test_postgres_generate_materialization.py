@@ -5,7 +5,8 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
-from unittest.mock import patch
+from typing import Literal
+from unittest.mock import Mock, patch
 from uuid import UUID, uuid4
 
 import pytest
@@ -15,6 +16,8 @@ from motif_forge.agent.schemas import CompositionBrief, CompositionPlan
 from motif_forge.application.ai_runs import (
     CreateAIRun,
     CreateAIRunRequest,
+    MarkAIRunPlanPending,
+    PersistCompositionPlan,
     ReadAIRun,
     RecordAIRunApproval,
 )
@@ -26,6 +29,11 @@ from motif_forge.application.generation import (
     PersistPlanningResultRequest,
 )
 from motif_forge.application.projects import CreateProject, CreateProjectRequest
+from motif_forge.domain.ai_runs import (
+    PLAN_HASH_VERSION_V1,
+    PersistedCompositionPlan,
+    composition_plan_content_hash,
+)
 from motif_forge.domain.revisions import CandidateSnapshot, PreviewCandidate
 from motif_forge.infrastructure.persistence.ai_runs import PostgresAIRunUnitOfWork
 from motif_forge.infrastructure.persistence.database import (
@@ -69,7 +77,7 @@ def _brief() -> CompositionBrief:
     )
 
 
-def _plan() -> CompositionPlan:
+def _plan(*, development_energy: float = 0.68) -> CompositionPlan:
     return CompositionPlan.model_validate(
         {
             "genre": "synth_ambient",
@@ -94,7 +102,7 @@ def _plan() -> CompositionPlan:
                     "start_bar": 8,
                     "end_bar": 28,
                     "function": "Develop the pulse and motif",
-                    "energy": 0.68,
+                    "energy": development_energy,
                 },
                 {
                     "section_id": "resolution",
@@ -194,6 +202,8 @@ async def _delete_exact_project(engine: AsyncEngine, project_id: UUID, run_id: U
 
 async def _approved_materialization_fixture(
     test_postgres_dsn: str,
+    *,
+    decision: Literal["approve", "reject"] = "approve",
 ) -> tuple[
     AsyncEngine,
     SessionFactory,
@@ -247,7 +257,7 @@ async def _approved_materialization_fixture(
     await RecordAIRunApproval(ai_runs)(
         run_id=run.run_id,
         actor_id="integration-human",
-        decision="approve",
+        decision=decision,
         assertion=assertion,
         expected_version=pending.run_version,
         expected_plan_content_hash=pending.plan_hash,
@@ -358,9 +368,7 @@ async def test_real_postgres_approved_plan_materializes_one_revision_and_replays
             idempotency_key=f"materialize-{uuid4().hex}",
         )
         use_case = MaterializeApprovedComposition(
-            ai_runs,
-            projects,
-            materialization_uow_factory=PostgresCompositionMaterializationUnitOfWork(sessions),
+            PostgresCompositionMaterializationUnitOfWork(sessions),
         )
 
         first = await use_case(request)
@@ -583,9 +591,7 @@ async def test_real_postgres_branch_change_rolls_back_materialization_transactio
 
         with pytest.raises(RevisionConflictError):
             await MaterializeApprovedComposition(
-                ai_runs,
-                projects,
-                materialization_uow_factory=PostgresCompositionMaterializationUnitOfWork(sessions),
+                PostgresCompositionMaterializationUnitOfWork(sessions),
             )(request)
 
         async with engine.connect() as connection:
@@ -699,7 +705,7 @@ async def test_real_postgres_plan_pending_is_atomic_and_concurrent_replay_is_exa
 async def test_real_postgres_cancel_wins_run_lock_before_materialization(
     test_postgres_dsn: str,
 ) -> None:
-    engine, sessions, projects, ai_runs, request = await _approved_materialization_fixture(
+    engine, sessions, _projects, ai_runs, request = await _approved_materialization_fixture(
         test_postgres_dsn
     )
     cancel_transaction = ai_runs()
@@ -719,9 +725,7 @@ async def test_real_postgres_cancel_wins_run_lock_before_materialization(
         cancelled = await cancel
         materialize = asyncio.create_task(
             MaterializeApprovedComposition(
-                ai_runs,
-                projects,
-                materialization_uow_factory=PostgresCompositionMaterializationUnitOfWork(sessions),
+                PostgresCompositionMaterializationUnitOfWork(sessions),
             )(request)
         )
         await asyncio.sleep(0)
@@ -740,17 +744,38 @@ async def test_real_postgres_cancel_wins_run_lock_before_materialization(
 
 
 @pytest.mark.asyncio
+async def test_real_postgres_rejection_uses_atomic_authority_and_creates_no_writes(
+    test_postgres_dsn: str,
+) -> None:
+    engine, sessions, _projects, _ai_runs, request = await _approved_materialization_fixture(
+        test_postgres_dsn,
+        decision="reject",
+    )
+    compiler = Mock(side_effect=AssertionError("compiler must not run"))
+    try:
+        result = await MaterializeApprovedComposition(
+            PostgresCompositionMaterializationUnitOfWork(sessions),
+            compiler=compiler,
+        )(request)
+
+        assert result.status == "rejected"
+        compiler.assert_not_called()
+        assert await _materialization_counts(engine, request.run_id) == (0, 0, 0, 0, 0)
+    finally:
+        await _delete_exact_project(engine, request.project_id, request.run_id)
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
 async def test_real_postgres_concurrent_caller_keys_share_one_durable_receipt(
     test_postgres_dsn: str,
 ) -> None:
-    engine, sessions, projects, ai_runs, request = await _approved_materialization_fixture(
+    engine, sessions, _projects, _ai_runs, request = await _approved_materialization_fixture(
         test_postgres_dsn
     )
     try:
         use_case = MaterializeApprovedComposition(
-            ai_runs,
-            projects,
-            materialization_uow_factory=PostgresCompositionMaterializationUnitOfWork(sessions),
+            PostgresCompositionMaterializationUnitOfWork(sessions),
         )
         first, second = await asyncio.gather(
             use_case(request.model_copy(update={"idempotency_key": f"caller-a-{uuid4().hex}"})),
@@ -788,7 +813,7 @@ async def test_real_postgres_corrupt_plan_identity_fails_before_materialization(
     corruption_sql: str,
     error_code: str,
 ) -> None:
-    engine, sessions, projects, ai_runs, request = await _approved_materialization_fixture(
+    engine, sessions, _projects, _ai_runs, request = await _approved_materialization_fixture(
         test_postgres_dsn
     )
     try:
@@ -799,13 +824,96 @@ async def test_real_postgres_corrupt_plan_identity_fails_before_materialization(
             )
         with pytest.raises(ApplicationError, match=error_code):
             await MaterializeApprovedComposition(
-                ai_runs,
-                projects,
-                materialization_uow_factory=PostgresCompositionMaterializationUnitOfWork(sessions),
+                PostgresCompositionMaterializationUnitOfWork(sessions),
             )(request)
         assert await _materialization_counts(engine, request.run_id) == (0, 0, 0, 0, 0)
     finally:
         await _delete_exact_project(engine, request.project_id, request.run_id)
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_real_postgres_lossy_v1_plan_is_rejected_before_compiler_or_writes(
+    test_postgres_dsn: str,
+) -> None:
+    await asyncio.to_thread(_upgrade, test_postgres_dsn)
+    engine = create_postgres_engine(test_postgres_dsn)
+    sessions = create_session_factory(engine)
+    projects = PostgresUnitOfWork(sessions)
+    ai_runs = PostgresAIRunUnitOfWork(sessions)
+    project = await CreateProject(projects)(
+        CreateProjectRequest(
+            name=f"S2 legacy hash guard {uuid4().hex}",
+            actor_id="integration-human",
+            idempotency_key=f"project-{uuid4().hex}",
+        )
+    )
+    run = await CreateAIRun(ai_runs)(
+        CreateAIRunRequest(
+            project_id=project.project_id,
+            branch_id=project.active_branch_id,
+            base_revision_id=project.root_revision_id,
+            thread_id=f"generate-{uuid4().hex}",
+            brief=_brief(),
+            idempotency_key=f"run-{uuid4().hex}",
+        )
+    )
+    try:
+        plan = _plan(development_energy=0.2500001)
+        plan_hash = composition_plan_content_hash(plan, hash_version=PLAN_HASH_VERSION_V1)
+        persisted = PersistedCompositionPlan(
+            plan_id=uuid4(),
+            run_id=run.run_id,
+            plan=plan,
+            content_hash=plan_hash,
+            hash_version=PLAN_HASH_VERSION_V1,
+            provider="legacy",
+            model="legacy-rounded-planner",
+            prompt_version="composition-planner.v0",
+            schema_version=plan.schema_version,
+            style_pack_version="synth-ambient.v1",
+        )
+        await PersistCompositionPlan(ai_runs)(persisted)
+        pending = await MarkAIRunPlanPending(ai_runs)(
+            run_id=run.run_id,
+            plan_id=persisted.plan_id,
+            expected_version=run.version,
+        )
+        assert pending.pending_interrupt_ref is not None
+        assertion = "I approve this legacy composition after review."
+        await RecordAIRunApproval(ai_runs)(
+            run_id=run.run_id,
+            actor_id="integration-human",
+            decision="approve",
+            assertion=assertion,
+            expected_version=pending.version,
+            expected_plan_content_hash=plan_hash,
+            interrupt_ref=pending.pending_interrupt_ref,
+        )
+        request = MaterializeApprovedCompositionRequest(
+            run_id=run.run_id,
+            project_id=project.project_id,
+            branch_id=project.active_branch_id,
+            base_revision_id=project.root_revision_id,
+            plan_id=persisted.plan_id,
+            expected_plan_hash=plan_hash,
+            seed=20260813,
+            actor_id="integration-human",
+            approval_assertion=assertion,
+            idempotency_key=f"materialize-{uuid4().hex}",
+        )
+        compiler = Mock(side_effect=AssertionError("compiler must not run"))
+
+        with pytest.raises(ApplicationError, match="PLAN_HASH_VERSION_UNSAFE"):
+            await MaterializeApprovedComposition(
+                PostgresCompositionMaterializationUnitOfWork(sessions),
+                compiler=compiler,
+            )(request)
+
+        compiler.assert_not_called()
+        assert await _materialization_counts(engine, run.run_id) == (0, 0, 0, 0, 0)
+    finally:
+        await _delete_exact_project(engine, project.project_id, run.run_id)
         await engine.dispose()
 
 
@@ -837,7 +945,7 @@ async def test_real_postgres_composite_materialization_rolls_back_every_write(
     test_postgres_dsn: str,
     failure: str,
 ) -> None:
-    engine, sessions, projects, ai_runs, request = await _approved_materialization_fixture(
+    engine, sessions, _projects, _ai_runs, request = await _approved_materialization_fixture(
         test_postgres_dsn
     )
     alternate = uuid4()
@@ -869,9 +977,7 @@ async def test_real_postgres_composite_materialization_rolls_back_every_write(
             expected_error = RuntimeError
         with pytest.raises(expected_error):
             await MaterializeApprovedComposition(
-                ai_runs,
-                projects,
-                materialization_uow_factory=factory,
+                factory,
             )(request)
         assert await _materialization_counts(engine, request.run_id) == (0, 0, 0, 0, 0)
         async with engine.connect() as connection:
@@ -889,14 +995,12 @@ async def test_real_postgres_composite_materialization_rolls_back_every_write(
 async def test_0016_downgrade_refuses_durable_receipts_then_round_trips_when_empty(
     test_postgres_dsn: str,
 ) -> None:
-    engine, sessions, projects, ai_runs, request = await _approved_materialization_fixture(
+    engine, sessions, _projects, _ai_runs, request = await _approved_materialization_fixture(
         test_postgres_dsn
     )
     try:
         await MaterializeApprovedComposition(
-            ai_runs,
-            projects,
-            materialization_uow_factory=PostgresCompositionMaterializationUnitOfWork(sessions),
+            PostgresCompositionMaterializationUnitOfWork(sessions),
         )(request)
         with pytest.raises(RuntimeError, match=r"cannot downgrade 0016.*receipts exist"):
             await asyncio.to_thread(_downgrade, test_postgres_dsn, "20260813_0015")

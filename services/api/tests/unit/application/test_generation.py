@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from inspect import Parameter, signature
 from types import TracebackType
 from typing import Self
-from unittest.mock import AsyncMock, Mock
 from uuid import UUID, uuid4
 
 import pytest
 from motif_forge.agent.schemas import CompositionBrief, CompositionPlan
-from motif_forge.application.ai_runs import RecordAIRunApproval
 from motif_forge.application.errors import ApplicationError
 from motif_forge.application.generation import (
     LoadCompositionPlan,
@@ -17,7 +16,6 @@ from motif_forge.application.generation import (
     PersistPlanningResult,
     PersistPlanningResultRequest,
 )
-from motif_forge.application.projects import CreateProject, CreateProjectRequest
 from motif_forge.domain.ai_runs import (
     PLAN_HASH_VERSION_V1,
     AIRun,
@@ -26,10 +24,6 @@ from motif_forge.domain.ai_runs import (
     PersistedCompositionPlan,
     composition_plan_content_hash,
 )
-from motif_forge.domain.composition import compile_synth_ambient_plan
-from motif_forge.domain.revisions import ChangeImpact, PreviewStatus
-
-from .fakes import FakeTransaction
 
 NOW = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
 
@@ -301,28 +295,6 @@ async def test_load_rejects_tampered_persisted_plan_before_compiler() -> None:
 
 
 @pytest.mark.asyncio
-async def test_materialization_plan_hash_mismatch_stops_before_compiler_and_preview() -> None:
-    ai, projects, request = await _approved_fixture()
-    assert ai.approval is not None
-    forged_hash = "f" * 64
-    ai.approval = ai.approval.model_copy(update={"expected_plan_content_hash": forged_hash})
-    compiler = Mock(side_effect=AssertionError("compiler must not run"))
-    create_preview = AsyncMock(side_effect=AssertionError("preview must not run"))
-
-    with pytest.raises(ApplicationError, match="PLAN_HASH_MISMATCH"):
-        await MaterializeApprovedComposition(
-            ai,
-            projects,
-            compiler=compiler,
-            create_preview=create_preview,
-            clock=lambda: NOW,
-        )(request.model_copy(update={"expected_plan_hash": forged_hash}))
-
-    compiler.assert_not_called()
-    create_preview.assert_not_called()
-
-
-@pytest.mark.asyncio
 async def test_v1_collision_unsafe_plan_is_rejected_before_compilation() -> None:
     run = _run(UUID(int=1), UUID(int=2), UUID(int=3))
     ai = FakeAIRunTransaction(run)
@@ -350,148 +322,6 @@ async def test_v1_collision_unsafe_plan_is_rejected_before_compilation() -> None
         )
 
 
-async def _approved_fixture(
-    *, decision: str = "approve"
-) -> tuple[FakeAIRunTransaction, FakeTransaction, MaterializeApprovedCompositionRequest]:
-    projects = FakeTransaction()
-    root = await CreateProject(projects)(
-        CreateProjectRequest(
-            name="S2 generation", actor_id="human", idempotency_key="create-s2-project"
-        )
-    )
-    run = _run(root.project_id, root.active_branch_id, root.root_revision_id)
-    ai = FakeAIRunTransaction(run)
-    persisted_result = await PersistPlanningResult(ai, clock=lambda: NOW)(
-        PersistPlanningResultRequest(
-            run_id=run.run_id,
-            expected_run_version=0,
-            planning_result=_planning_result(),
-        )
-    )
-    assertion = "I approve this generated composition plan."
-    await RecordAIRunApproval(
-        ai,
-        id_factory=uuid4,
-        clock=lambda: NOW,
-    )(
-        run_id=run.run_id,
-        decision=decision,
-        actor_id="human",
-        assertion=assertion,
-        expected_version=persisted_result.run_version,
-        expected_plan_content_hash=persisted_result.plan_hash,
-        interrupt_ref=persisted_result.interrupt_ref,
-    )
-    request = MaterializeApprovedCompositionRequest(
-        run_id=run.run_id,
-        project_id=root.project_id,
-        branch_id=root.active_branch_id,
-        base_revision_id=root.root_revision_id,
-        plan_id=persisted_result.plan_id,
-        expected_plan_hash=persisted_result.plan_hash,
-        seed=20260813,
-        actor_id="human",
-        approval_assertion=assertion,
-        idempotency_key="materialize-s2-001",
-    )
-    return ai, projects, request
-
-
-@pytest.mark.asyncio
-async def test_rejection_never_calls_compiler_or_preview() -> None:
-    ai, projects, request = await _approved_fixture(decision="reject")
-    compiler = Mock(side_effect=AssertionError("compiler must not run"))
-
-    result = await MaterializeApprovedComposition(
-        ai,
-        projects,
-        compiler=compiler,
-        clock=lambda: NOW,
-    )(request)
-
-    assert result.status == "rejected"
-    compiler.assert_not_called()
-    assert not projects.previews
-    assert len(projects.revisions) == 1
-
-
-@pytest.mark.asyncio
-async def test_materialization_requires_matching_persisted_actor_assertion_and_plan_hash() -> None:
-    ai, projects, request = await _approved_fixture()
-    materialize = MaterializeApprovedComposition(ai, projects, clock=lambda: NOW)
-
-    for changed in (
-        {"actor_id": "forged-user"},
-        {"approval_assertion": "a different approval assertion"},
-        {"expected_plan_hash": "f" * 64},
-    ):
-        with pytest.raises(ApplicationError, match="AI_RUN_APPROVAL_CONFLICT"):
-            await materialize(request.model_copy(update=changed))
-
-    assert not projects.previews
-
-
-@pytest.mark.asyncio
-async def test_approved_plan_creates_complete_candidate_and_one_revision_on_replay() -> None:
-    ai, projects, request = await _approved_fixture()
-    materialize = MaterializeApprovedComposition(ai, projects, clock=lambda: NOW)
-
-    first = await materialize(request)
-    replay = await materialize(request)
-
-    assert first.status == "approved"
-    assert first.revision_id is not None
-    assert replay.revision_id == first.revision_id
-    assert replay.candidate_snapshot_id == first.candidate_snapshot_id
-    assert replay.replayed is True
-    snapshot = projects.candidate_snapshots[first.candidate_snapshot_id]
-    expected = compile_synth_ambient_plan(
-        request.project_id, brief=_brief(), plan=_plan(), seed=request.seed
-    )
-    assert snapshot.source_run_id == request.run_id
-    assert snapshot.commands == expected.commands
-    assert len(snapshot.commands) == 5
-    assert projects.branches[request.branch_id].head_revision_id == first.revision_id
-    assert len(projects.materializations) == 1
-
-
-@pytest.mark.asyncio
-async def test_concurrent_branch_change_creates_no_second_revision() -> None:
-    ai, projects, request = await _approved_fixture()
-    compiled = compile_synth_ambient_plan(
-        request.project_id, brief=_brief(), plan=_plan(), seed=request.seed
-    )
-    create_preview = AsyncMock()
-    create_preview.return_value = type(
-        "PreviewResult",
-        (),
-        {
-            "project_id": request.project_id,
-            "branch_id": request.branch_id,
-            "base_revision_id": request.base_revision_id,
-            "candidate_snapshot_id": uuid4(),
-            "preview_id": uuid4(),
-            "actual_change_impact": ChangeImpact.L3,
-            "status": PreviewStatus.PENDING,
-            "candidate_content_hash": compiled.content_hash,
-            "replayed": False,
-        },
-    )()
-    decide = AsyncMock(side_effect=ApplicationError("REVISION_CONFLICT", "branch changed"))
-
-    with pytest.raises(ApplicationError, match="REVISION_CONFLICT"):
-        await MaterializeApprovedComposition(
-            ai,
-            projects,
-            compiler=lambda *_args, **_kwargs: compiled,
-            create_preview=create_preview,
-            decide_preview=decide,
-            clock=lambda: NOW,
-        )(request)
-
-    assert len(projects.revisions) == 1
-
-
 def test_materialization_request_enforces_approval_fields() -> None:
     with pytest.raises(ValueError):
         MaterializeApprovedCompositionRequest(
@@ -506,3 +336,13 @@ def test_materialization_request_enforces_approval_fields() -> None:
             approval_assertion="too short",
             idempotency_key="materialize-key",
         )
+
+
+def test_materialization_constructor_requires_the_atomic_uow() -> None:
+    parameters = signature(MaterializeApprovedComposition).parameters
+
+    assert parameters["materialization_uow_factory"].default is Parameter.empty
+    assert "ai_run_uow_factory" not in parameters
+    assert "project_uow_factory" not in parameters
+    assert "create_preview" not in parameters
+    assert "decide_preview" not in parameters

@@ -1,6 +1,6 @@
 # Task 5 implementation report
 
-Status: DONE after independent-review fix round 1
+Status: DONE after independent-review fix round 2
 
 Base implementation commit: `fb17efb11ef48848f182b1895264a88803eadb3d`
 
@@ -17,6 +17,13 @@ Guide SHA-256: `21345f64304338777a9dd2603d34ad54448b6c4b82902bc743204ba1026c9f58
   verifies actor/assertion/hash/target identity; reruns the Task 4 policy/compiler; and commits the
   Candidate, Preview, approved immutable Revision, Branch CAS, project approvals/audit, durable
   receipt and bounded AI Run event in one `AsyncSession`.
+- The composite Unit of Work is now a required constructor dependency. The former optional
+  multi-transaction compatibility path and its injectable Preview/decision delegates were removed,
+  so approval and rejection have one Run-locked authority boundary and no non-atomic use-case
+  construction is possible.
+- `LoadCompositionPlan` and composite materialization share `verify_loaded_plan_identity`. Both
+  recompute the stored versioned digest; compilation additionally rejects legacy rounded-v1
+  identities whose v1 and lossless-v2 canonical bytes differ before compiler or Project writes.
 - The public `CreateCommandPreview` / `DecidePreview` paths and Task 5's composite transaction call
   the same transaction-scoped Preview core. The public path retains its auditable superseded result;
   Task 5 selects rollback-on-conflict. There is no alternate/direct Revision writer.
@@ -45,6 +52,11 @@ Guide SHA-256: `21345f64304338777a9dd2603d34ad54448b6c4b82902bc743204ba1026c9f58
 - **M1:** unit approved-state setup now uses public `RecordAIRunApproval` through a contract-enforcing
   fake rather than manually mutating approval/Run state.
 - **M2:** transaction evidence and the Task 5-to-Task 6 status boundary are now stated exactly.
+- **Round-2 C1:** the atomic UoW is mandatory and the complete stale-read/multi-commit path is gone;
+  a constructor-signature regression prevents reintroducing optional AI/Project/Preview seams.
+- **Round-2 I7:** real PostgreSQL proves an approved collision-unsafe rounded-v1 Plan returns
+  `PLAN_HASH_VERSION_UNSAFE`, does not call the compiler, and leaves zero Candidate, Preview,
+  generated Revision, receipt or materialization Event.
 
 ## TDD and focused PostgreSQL evidence
 
@@ -53,8 +65,8 @@ composite transaction/receipt, non-atomic Plan boundary, permissive JSONB load a
 provenance. Final focused evidence:
 
 ```text
-Task 5 PostgreSQL transaction/interleaving/migration tests: 10 passed
-Public Preview + composition + Task 5 unit tests: 16 passed
+Task 5 PostgreSQL transaction/interleaving/migration tests: 12 passed
+Public Preview + composition + Task 5 unit tests: 12 passed
 ```
 
 The success test additionally queries and agrees on exact receipt/event/output IDs, actor/assertion
@@ -64,8 +76,8 @@ Candidate/Revision versions, and `source_run_id`. Raw approval assertion text is
 ## Final verification
 
 ```text
-services/api/tests/unit + services/api/tests/eval: 393 passed
-Task 1 + Task 5 + PostgreSQL project contract: 34 passed, 1 optional Celery E2E skipped
+services/api/tests/unit + services/api/tests/eval: 389 passed
+Task 1 + Task 5 + PostgreSQL project contract: 36 passed, 1 optional Celery E2E skipped
 mypy motif_forge: Success, 80 source files
 ruff source/unit/eval/relevant integration/migration: All checks passed
 Alembic offline upgrade/downgrade SQL: 926 / 10 lines

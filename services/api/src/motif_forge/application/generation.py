@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
@@ -13,19 +13,14 @@ from pydantic import Field
 
 from motif_forge.agent.schemas import CompositionBrief, CompositionPlan, PlanningResult
 from motif_forge.application._hashing import request_hash
-from motif_forge.application.composition import PreparePlanDrivenCompositionPreview
 from motif_forge.application.errors import ApplicationError, RevisionConflictError
 from motif_forge.application.ports import (
     AIRunUnitOfWorkFactory,
     CompositionMaterializationUnitOfWorkFactory,
-    UnitOfWorkFactory,
 )
 from motif_forge.application.previews import (
     CreateCommandPreviewRequest,
-    CreateCommandPreviewResult,
-    DecidePreview,
     DecidePreviewRequest,
-    DecidePreviewResult,
     PreviewDecision,
     approve_preview_in_transaction,
     create_command_preview_in_transaction,
@@ -51,8 +46,6 @@ from motif_forge.domain.composition import (
 )
 from motif_forge.domain.ir import DomainModel
 from motif_forge.domain.revisions import (
-    ChangeImpact,
-    PreviewStatus,
     StructuralDiffEntry,
     VersionRefs,
 )
@@ -163,21 +156,36 @@ class LoadCompositionPlan:
     ) -> PersistedCompositionPlan:
         async with self._ai_run_uow_factory() as transaction:
             persisted = await transaction.read_composition_plan(plan_id=plan_id, run_id=run_id)
-        actual = composition_plan_content_hash(persisted.plan, hash_version=persisted.hash_version)
-        if actual != persisted.content_hash or persisted.content_hash != expected_plan_hash:
+        return verify_loaded_plan_identity(
+            persisted,
+            expected_plan_hash=expected_plan_hash,
+            require_compilation_safe=require_compilation_safe,
+        )
+
+
+def verify_loaded_plan_identity(
+    persisted: PersistedCompositionPlan,
+    *,
+    expected_plan_hash: str,
+    require_compilation_safe: bool = False,
+) -> PersistedCompositionPlan:
+    """Verify one persisted Plan identity before any consumer may compile it."""
+
+    actual = composition_plan_content_hash(persisted.plan, hash_version=persisted.hash_version)
+    if actual != persisted.content_hash or persisted.content_hash != expected_plan_hash:
+        raise ApplicationError(
+            "PLAN_HASH_MISMATCH",
+            "the immutable CompositionPlan does not match its approved identity",
+        )
+    if require_compilation_safe and persisted.hash_version == PLAN_HASH_VERSION_V1:
+        v1_bytes = canonical_plan_json_bytes(persisted.plan, hash_version=PLAN_HASH_VERSION_V1)
+        v2_bytes = canonical_plan_json_bytes(persisted.plan, hash_version=PLAN_HASH_VERSION_V2)
+        if v1_bytes != v2_bytes:
             raise ApplicationError(
-                "PLAN_HASH_MISMATCH",
-                "the immutable CompositionPlan does not match its approved identity",
+                "PLAN_HASH_VERSION_UNSAFE",
+                "this legacy Plan identity is lossy and must be replanned before compilation",
             )
-        if require_compilation_safe and persisted.hash_version == PLAN_HASH_VERSION_V1:
-            v1_bytes = canonical_plan_json_bytes(persisted.plan, hash_version=PLAN_HASH_VERSION_V1)
-            v2_bytes = canonical_plan_json_bytes(persisted.plan, hash_version=PLAN_HASH_VERSION_V2)
-            if v1_bytes != v2_bytes:
-                raise ApplicationError(
-                    "PLAN_HASH_VERSION_UNSAFE",
-                    "this legacy Plan identity is lossy and must be replanned before compilation",
-                )
-        return persisted
+    return persisted
 
 
 class MaterializeApprovedCompositionRequest(DomainModel):
@@ -204,8 +212,6 @@ class MaterializeApprovedCompositionResult(DomainModel):
 
 
 Compiler = Callable[..., CompositionBuild]
-CreatePreview = Callable[[CreateCommandPreviewRequest], Awaitable[CreateCommandPreviewResult]]
-Decide = Callable[[DecidePreviewRequest], Awaitable[DecidePreviewResult]]
 
 
 class MaterializeApprovedComposition:
@@ -213,127 +219,18 @@ class MaterializeApprovedComposition:
 
     def __init__(
         self,
-        ai_run_uow_factory: AIRunUnitOfWorkFactory,
-        project_uow_factory: UnitOfWorkFactory,
+        materialization_uow_factory: CompositionMaterializationUnitOfWorkFactory,
         *,
-        materialization_uow_factory: CompositionMaterializationUnitOfWorkFactory | None = None,
         compiler: Compiler = compile_synth_ambient_plan,
-        create_preview: CreatePreview | None = None,
-        decide_preview: Decide | None = None,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
-        self._ai_run_uow_factory = ai_run_uow_factory
-        self._project_uow_factory = project_uow_factory
         self._compiler = compiler
         self._materialization_uow_factory = materialization_uow_factory
         self._clock = clock
-        self._create_preview = create_preview or PreparePlanDrivenCompositionPreview(
-            project_uow_factory, clock=clock
-        )
-        self._decide_preview = decide_preview or DecidePreview(project_uow_factory, clock=clock)
 
     async def __call__(
         self, request: MaterializeApprovedCompositionRequest
     ) -> MaterializeApprovedCompositionResult:
-        if self._materialization_uow_factory is not None:
-            return await self._materialize_atomically(request)
-        run, approval = await self._load_authorization(request.run_id)
-        self._verify_request_identity(request, run, approval)
-        persisted = await LoadCompositionPlan(self._ai_run_uow_factory)(
-            run_id=request.run_id,
-            plan_id=request.plan_id,
-            expected_plan_hash=request.expected_plan_hash,
-            require_compilation_safe=approval.decision == "approve",
-        )
-        if approval.decision == "reject":
-            if run.status is not AIRunStatus.REJECTED:
-                raise ApplicationError(
-                    "AI_RUN_APPROVAL_CONFLICT", "the rejected decision is not authoritative"
-                )
-            return MaterializeApprovedCompositionResult(status="rejected", plan_id=request.plan_id)
-        if approval.decision != "approve" or run.status is not AIRunStatus.MATERIALIZING:
-            raise ApplicationError(
-                "AI_RUN_APPROVAL_CONFLICT", "the AI run has no materialization authorization"
-            )
-        if run.brief is None:
-            raise ApplicationError(
-                "BRIEF_NOT_FOUND", "the authoritative composition brief is missing"
-            )
-        try:
-            brief = CompositionBrief.model_validate_json(json.dumps(run.brief), strict=True)
-        except ValueError as exc:
-            raise ApplicationError(
-                "BRIEF_INVALID", "the authoritative composition brief is invalid"
-            ) from exc
-        try:
-            build = self._compiler(
-                request.project_id, brief=brief, plan=persisted.plan, seed=request.seed
-            )
-        except SynthAmbientCompilationError as exc:
-            raise ApplicationError(
-                "PLAN_STRATEGY_INCOMPATIBLE",
-                "the approved CompositionPlan no longer satisfies the strategy policy",
-            ) from exc
-        candidate_id = uuid5(
-            NAMESPACE_URL,
-            f"motif-forge:s2-candidate:{request.run_id}:{request.plan_id}:"
-            f"{request.expected_plan_hash}:{request.seed}",
-        )
-        key_digest = hashlib.sha256(
-            (
-                f"{request.run_id}:{request.plan_id}:{request.seed}:{request.idempotency_key}"
-            ).encode()
-        ).hexdigest()
-        preview = await self._create_preview(
-            CreateCommandPreviewRequest(
-                project_id=request.project_id,
-                branch_id=request.branch_id,
-                base_revision_id=request.base_revision_id,
-                candidate_id=candidate_id,
-                commands=build.commands,
-                actor_id=f"agent:plan-compiler:{request.run_id}",
-                idempotency_key=f"s2-preview:{key_digest}",
-                source_run_id=request.run_id,
-                structural_diff=(
-                    StructuralDiffEntry(
-                        operation="replace",
-                        path="/arrangement",
-                        summary="Materialize the approved Synth Ambient CompositionPlan",
-                    ),
-                ),
-            )
-        )
-        if preview.actual_change_impact is not ChangeImpact.L3:
-            raise ApplicationError(
-                "CHANGE_IMPACT_INVALID", "from-zero generation must remain an L3 change"
-            )
-        decision = await self._decide_preview(
-            DecidePreviewRequest(
-                preview_id=preview.preview_id,
-                decision=PreviewDecision.APPROVE,
-                actor_id=request.actor_id,
-                approval_assertion=request.approval_assertion,
-                idempotency_key=f"s2-approve:{key_digest}",
-            )
-        )
-        if decision.status is not PreviewStatus.APPROVED or decision.revision_id is None:
-            raise ApplicationError(
-                "MATERIALIZATION_FAILED", "approved candidate did not produce an immutable Revision"
-            )
-        return MaterializeApprovedCompositionResult(
-            status="approved",
-            plan_id=request.plan_id,
-            candidate_snapshot_id=preview.candidate_snapshot_id,
-            preview_id=preview.preview_id,
-            revision_id=decision.revision_id,
-            replayed=preview.replayed or decision.replayed,
-        )
-
-    async def _materialize_atomically(
-        self, request: MaterializeApprovedCompositionRequest
-    ) -> MaterializeApprovedCompositionResult:
-        if self._materialization_uow_factory is None:  # pragma: no cover - constructor route
-            raise RuntimeError("atomic materialization requires its PostgreSQL unit of work")
         fingerprint = request_hash(
             {
                 "schema": "composition-materialization.v1",
@@ -393,10 +290,12 @@ class MaterializeApprovedComposition:
             persisted = await transaction.read_composition_plan(
                 plan_id=request.plan_id, run_id=request.run_id
             )
-            if (
-                persisted.content_hash != request.expected_plan_hash
-                or persisted.style_pack_version != "synth-ambient.v1"
-            ):
+            verify_loaded_plan_identity(
+                persisted,
+                expected_plan_hash=request.expected_plan_hash,
+                require_compilation_safe=True,
+            )
+            if persisted.style_pack_version != "synth-ambient.v1":
                 raise ApplicationError(
                     "PLAN_IDENTITY_MISMATCH", "the Plan or Style Pack identity is invalid"
                 )
@@ -528,16 +427,6 @@ class MaterializeApprovedComposition:
                 revision_id=decision.revision_id,
                 receipt_id=receipt.receipt_id,
             )
-
-    async def _load_authorization(self, run_id: UUID) -> tuple[AIRun, AIRunApproval]:
-        async with self._ai_run_uow_factory() as transaction:
-            run = await transaction.read_ai_run(run_id)
-            approval = await transaction.read_ai_run_approval(run_id)
-        if approval is None:
-            raise ApplicationError(
-                "AI_RUN_APPROVAL_REQUIRED", "materialization requires a persisted human decision"
-            )
-        return run, approval
 
     @staticmethod
     def _verify_request_identity(
