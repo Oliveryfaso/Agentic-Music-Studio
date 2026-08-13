@@ -6,8 +6,10 @@ import pytest
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
 from motif_forge.agent.parent_graph import (
+    PARENT_GRAPH_TOPOLOGY_VERSION,
     PARENT_IMPORT_RUN_TYPE,
     PARENT_REHYDRATE_RUN_TYPE,
+    PARENT_STATE_SCHEMA_VERSION,
     PARENT_TIME_STRETCH_RUN_TYPE,
     build_parent_graph,
     initial_artifact_rehydrate_state,
@@ -274,8 +276,8 @@ async def test_parent_rejects_invalid_request_before_enqueue() -> None:
         "thread_id": "invalid-request",
         "project_id": "not-a-uuid",
         "operation": "time_stretch",
-        "graph_topology_version": "motif-forge-parent.v1",
-        "state_schema_version": "motif-forge-parent-state.v1",
+        "graph_topology_version": PARENT_GRAPH_TOPOLOGY_VERSION,
+        "state_schema_version": PARENT_STATE_SCHEMA_VERSION,
         "request_payload": {},
         "phase": "received",
     }

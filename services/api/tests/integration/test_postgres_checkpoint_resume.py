@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
+from motif_forge.agent.generate import GenerateRequest, initial_generate_state
 from motif_forge.agent.graph import build_composition_plan_graph, initial_plan_state
 from motif_forge.agent.parent_graph import (
     PARENT_TIME_STRETCH_RUN_TYPE,
@@ -14,7 +16,13 @@ from motif_forge.agent.parent_graph import (
 )
 from motif_forge.agent.planner import PlannerError, StaticCompositionPlanner
 from motif_forge.agent.schemas import CompositionBrief, CompositionPlan
+from motif_forge.application.generation import (
+    CompleteExportCursor,
+    MaterializeApprovedCompositionResult,
+    PersistPlanningResultResult,
+)
 from motif_forge.application.media_jobs import EnqueueMediaJobRequest, EnqueueMediaJobResult
+from motif_forge.domain.ai_runs import AIRunApproval, composition_plan_content_hash
 from motif_forge.domain.media_jobs import JobStatus, TimeStretchJobPayload
 from motif_forge.infrastructure.checkpoints import postgres_checkpointer
 from motif_forge.worker.outbox import OutboxMessage, ParentGraphResumePublisher
@@ -64,6 +72,78 @@ class _FailingEnqueuer:
     async def __call__(self, request: EnqueueMediaJobRequest) -> EnqueueMediaJobResult:
         del request
         raise AssertionError("enqueue must not rerun after Parent Graph checkpoint recovery")
+
+
+class _RestartPersist:
+    def __init__(self) -> None:
+        self.calls = 0
+        self.plan_id = uuid4()
+
+    async def __call__(self, request):  # type: ignore[no-untyped-def]
+        self.calls += 1
+        plan = CompositionPlan.model_validate_json(
+            json.dumps(request.planning_result["plan"]), strict=True
+        )
+        return PersistPlanningResultResult(
+            run_id=request.run_id,
+            plan_id=self.plan_id,
+            plan_hash=composition_plan_content_hash(plan),
+            interrupt_ref="postgres-generate-approval-v1",
+            run_version=1,
+        )
+
+
+class _RestartApproval:
+    async def __call__(self, **kwargs):  # type: ignore[no-untyped-def]
+        return AIRunApproval(
+            approval_id=uuid4(),
+            run_id=kwargs["run_id"],
+            assertion_hash="a" * 64,
+            decision=kwargs["decision"],
+            actor_id=kwargs["actor_id"],
+            expected_plan_content_hash=kwargs["expected_plan_content_hash"],
+            interrupt_ref=kwargs["interrupt_ref"],
+            decided_at=datetime.now(UTC),
+        )
+
+
+class _RestartMaterialize:
+    def __init__(self) -> None:
+        self.calls = 0
+        self.revision_id = uuid4()
+
+    async def __call__(self, request):  # type: ignore[no-untyped-def]
+        self.calls += 1
+        return MaterializeApprovedCompositionResult(
+            status="approved", plan_id=request.plan_id, revision_id=self.revision_id
+        )
+
+
+class _RestartExport:
+    def __init__(self) -> None:
+        self.run_id = uuid4()
+        self.job_id = uuid4()
+        self.calls = 0
+
+    async def enqueue(self, cursor: CompleteExportCursor) -> CompleteExportCursor:
+        self.calls += 1
+        return cursor.model_copy(
+            update={
+                "media_run_id": self.run_id,
+                "pending_job_id": self.job_id,
+                "pending_idempotency_key": "postgres-export-step-0",
+            }
+        )
+
+    async def collect(self, cursor: CompleteExportCursor, **kwargs):  # type: ignore[no-untyped-def]
+        del cursor, kwargs
+        raise AssertionError("restart boundary stops before worker completion")
+
+
+class _MustNotRun:
+    async def __call__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        del args, kwargs
+        raise AssertionError("persist/materialize/enqueue must not replay after restart")
 
 
 def test_integration_agent_fixtures_match_strict_v1_schemas() -> None:
@@ -228,3 +308,79 @@ async def test_parent_worker_resume_survives_restart_without_reenqueue(
 
     assert snapshot.values["terminal_status"] == "succeeded"
     assert snapshot.values["artifact_refs"] == [str(artifact_id)]
+
+
+@pytest.mark.asyncio
+async def test_generate_restart_after_approval_does_not_replan_or_rematerialize(
+    test_postgres_dsn: str,
+    isolated_postgres_schemas: IsolatedPostgresSchemas,
+) -> None:
+    thread_id = f"generate-restart-{uuid4().hex}"
+    config = _config(thread_id)
+    persist = _RestartPersist()
+    approval = _RestartApproval()
+    materialize = _RestartMaterialize()
+    export = _RestartExport()
+    plan = CompositionPlan.model_validate_json(json.dumps(valid_plan_payload()), strict=True)
+    request = GenerateRequest(
+        run_id=uuid4(),
+        project_id=uuid4(),
+        branch_id=uuid4(),
+        base_revision_id=uuid4(),
+        brief=CompositionBrief.model_validate_json(
+            json.dumps(valid_brief_payload()), strict=True
+        ),
+        seed=91,
+    )
+
+    async with postgres_checkpointer(
+        test_postgres_dsn, schema=isolated_postgres_schemas.primary
+    ) as first_saver:
+        graph = build_parent_graph(
+            _FailingEnqueuer(),
+            checkpointer=first_saver,
+            generate_planner=StaticCompositionPlanner(plan),
+            persist_planning_result=persist,
+            record_plan_approval=approval,
+            materialize_approved_composition=materialize,
+            enqueue_next_complete_export_job=export.enqueue,
+            collect_complete_export_artifact=export.collect,
+        )
+        waiting = await graph.ainvoke(
+            initial_generate_state(thread_id=thread_id, request=request), config
+        )
+        approved = await graph.ainvoke(
+            Command(
+                resume={
+                    "decision": "approve",
+                    "actor_id": "postgres-test",
+                    "approval_assertion": "I authorize this exact persisted plan.",
+                    "expected_plan_hash": waiting["plan_hash"],
+                    "note": "restart boundary",
+                }
+            ),
+            config,
+        )
+        assert approved["phase"] == "waiting_generate_worker"
+        assert persist.calls == materialize.calls == export.calls == 1
+
+    async with postgres_checkpointer(
+        test_postgres_dsn, schema=isolated_postgres_schemas.primary
+    ) as reopened_saver:
+        reopened = build_parent_graph(
+            _FailingEnqueuer(),
+            checkpointer=reopened_saver,
+            generate_planner=_must_not_run_planner(),
+            persist_planning_result=_MustNotRun(),
+            record_plan_approval=_MustNotRun(),
+            materialize_approved_composition=_MustNotRun(),
+            enqueue_next_complete_export_job=_MustNotRun(),
+            collect_complete_export_artifact=_MustNotRun(),
+        )
+        snapshot = await reopened.aget_state(config)
+
+    assert snapshot.values["phase"] == "waiting_generate_worker"
+    assert snapshot.values["pending_job_id"] == str(export.job_id)
+    assert snapshot.values["materialized_revision_id"] == str(materialize.revision_id)
+    assert snapshot.values["export_cursor"]["pending_job_id"] == str(export.job_id)
+    assert persist.calls == materialize.calls == export.calls == 1

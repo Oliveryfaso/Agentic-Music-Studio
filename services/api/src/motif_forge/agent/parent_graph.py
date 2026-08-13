@@ -14,7 +14,21 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import interrupt
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
+from motif_forge.agent.generate import (
+    PARENT_GRAPH_TOPOLOGY_VERSION,
+    PARENT_STATE_SCHEMA_VERSION,
+    GenerateNodes,
+    build_generate_nodes,
+)
+from motif_forge.agent.planner import CompositionPlanner
 from motif_forge.agent.worker_gate import wait_for_job_event
+from motif_forge.application.ai_runs import RecordAIRunApproval
+from motif_forge.application.generation import (
+    CollectCompleteExportArtifact,
+    EnqueueNextCompleteExportJob,
+    MaterializeApprovedComposition,
+    PersistPlanningResult,
+)
 from motif_forge.application.imports import (
     ImportAnalysisContext,
     MaterializeImportRequest,
@@ -36,8 +50,6 @@ from motif_forge.domain.media_jobs import (
 )
 from motif_forge.domain.storage import StoragePressureDecision, StorageRoute
 
-PARENT_GRAPH_TOPOLOGY_VERSION = "motif-forge-parent.v1"
-PARENT_STATE_SCHEMA_VERSION = "motif-forge-parent-state.v1"
 PARENT_TIME_STRETCH_RUN_TYPE = "parent.time_stretch.v1"
 PARENT_IMPORT_RUN_TYPE = "parent.import_audio.v1"
 PARENT_REHYDRATE_RUN_TYPE = "parent.artifact_rehydrate.v1"
@@ -106,7 +118,7 @@ class ImportAnalysisConfirmation(BaseModel):
 class ParentGraphState(TypedDict):
     thread_id: str
     project_id: str
-    operation: Literal["time_stretch", "import_audio", "artifact_rehydrate"]
+    operation: Literal["generate", "time_stretch", "import_audio", "artifact_rehydrate"]
     graph_topology_version: str
     state_schema_version: str
     request_payload: Mapping[str, Any]
@@ -137,6 +149,19 @@ class ParentGraphState(TypedDict):
     storage_explanation_code: NotRequired[str]
     storage_route: NotRequired[str]
     storage_gate_attempt: NotRequired[int]
+    plan_id: NotRequired[str]
+    plan_hash: NotRequired[str]
+    plan_summary: NotRequired[dict[str, object]]
+    plan_interrupt_ref: NotRequired[str]
+    run_version: NotRequired[int]
+    model_counters: NotRequired[dict[str, int]]
+    fallback_reason: NotRequired[str]
+    approval_decision: NotRequired[str]
+    approval_actor_id: NotRequired[str]
+    approval_assertion: NotRequired[str]
+    approval_note: NotRequired[str]
+    export_cursor: NotRequired[dict[str, object]]
+    media_run_id: NotRequired[str | None]
 
 
 def initial_time_stretch_state(
@@ -243,6 +268,12 @@ def build_parent_graph(
     enqueue_artifact_rehydration: ArtifactRehydrationEnqueuer | None = None,
     load_artifact_rehydration: ArtifactRehydrationLoader | None = None,
     storage_pressure_gate: StoragePressureGate | None = None,
+    generate_planner: CompositionPlanner | None = None,
+    persist_planning_result: PersistPlanningResult | None = None,
+    record_plan_approval: RecordAIRunApproval | None = None,
+    materialize_approved_composition: MaterializeApprovedComposition | None = None,
+    enqueue_next_complete_export_job: EnqueueNextCompleteExportJob | None = None,
+    collect_complete_export_artifact: CollectCompleteExportArtifact | None = None,
 ) -> CompiledStateGraph[ParentGraphState, None, ParentGraphState, ParentGraphState]:
     """Compile Import and standalone time-stretch inside one Parent topology."""
 
@@ -250,6 +281,10 @@ def build_parent_graph(
         if state.get("graph_topology_version") != PARENT_GRAPH_TOPOLOGY_VERSION:
             return {"phase": "failed", "error_code": "GRAPH_TOPOLOGY_VERSION_UNSUPPORTED"}
         try:
+            if state["operation"] == "generate":
+                if generate_nodes is None:
+                    return {"phase": "failed", "error_code": "GENERATE_NOT_CONFIGURED"}
+                return await generate_nodes.validate_generate(state)
             if state["operation"] == "time_stretch":
                 UUID(state["project_id"])
                 TimeStretchJobPayload.model_validate_json(
@@ -270,7 +305,11 @@ def build_parent_graph(
             return {"phase": "failed", "error_code": "PARENT_REQUEST_INVALID"}
         return {"phase": "request_validated"}
 
-    def validation_route(state: ParentGraphState) -> Literal["load", "storage", "error"]:
+    def validation_route(
+        state: ParentGraphState,
+    ) -> Literal["generate", "load", "storage", "error"]:
+        if state.get("phase") == "generate_validated":
+            return "generate"
         if state.get("phase") != "request_validated":
             return "error"
         return "load" if state["operation"] == "artifact_rehydrate" else "storage"
@@ -603,6 +642,33 @@ def build_parent_graph(
             "error_code": state.get("error_code", "PARENT_GRAPH_FAILED"),
         }
 
+    generate_nodes: GenerateNodes | None = None
+    if all(
+        item is not None
+        for item in (
+            generate_planner,
+            persist_planning_result,
+            record_plan_approval,
+            materialize_approved_composition,
+            enqueue_next_complete_export_job,
+            collect_complete_export_artifact,
+        )
+    ):
+        assert generate_planner is not None
+        assert persist_planning_result is not None
+        assert record_plan_approval is not None
+        assert materialize_approved_composition is not None
+        assert enqueue_next_complete_export_job is not None
+        assert collect_complete_export_artifact is not None
+        generate_nodes = build_generate_nodes(
+            generate_planner,
+            persist_planning_result=persist_planning_result,
+            record_plan_approval=record_plan_approval,
+            materialize_approved_composition=materialize_approved_composition,
+            enqueue_next_complete_export_job=enqueue_next_complete_export_job,
+            collect_complete_export_artifact=collect_complete_export_artifact,
+        )
+
     graph = StateGraph(ParentGraphState)
     graph.add_node("ValidateRequest", validate_request)
     graph.add_node("LoadArtifactMetadata", load_rehydration)
@@ -617,16 +683,85 @@ def build_parent_graph(
     graph.add_node("MaterializeImportRevision", materialize)
     graph.add_node("CompleteTimeStretch", complete_time_stretch)
     graph.add_node("RouteError", route_error)
+    if generate_nodes is not None:
+        graph.add_node("PlanInputAdapter", generate_nodes.plan_input_adapter)
+        graph.add_node("PlanOutputAdapter", generate_nodes.plan_output_adapter)
+        graph.add_node("PlanApproval", generate_nodes.approval_interrupt)
+        graph.add_node("MaterializeApprovedComposition", generate_nodes.materialize)
+        graph.add_node("EnqueueCompleteExportStep", generate_nodes.enqueue_export)
+        graph.add_node("WaitForGenerateJobEvent", generate_nodes.wait_for_export)
+        graph.add_node("CompleteGenerate", generate_nodes.complete)
     graph.add_edge(START, "ValidateRequest")
     graph.add_conditional_edges(
         "ValidateRequest",
         validation_route,
         {
+            "generate": "PlanInputAdapter" if generate_nodes is not None else "RouteError",
             "load": "LoadArtifactMetadata",
             "storage": "StoragePressureGate",
             "error": "RouteError",
         },
     )
+    if generate_nodes is not None:
+        graph.add_edge("PlanInputAdapter", "PlanOutputAdapter")
+        graph.add_conditional_edges(
+            "PlanOutputAdapter",
+            lambda state: (
+                "approval" if state.get("phase") == "waiting_plan_approval" else "error"
+            ),
+            {"approval": "PlanApproval", "error": "RouteError"},
+        )
+        graph.add_conditional_edges(
+            "PlanApproval",
+            lambda state: (
+                "materialize"
+                if state.get("phase") == "approved"
+                else "end"
+                if state.get("terminal_status") in {"rejected", "cancelled"}
+                else "error"
+            ),
+            {
+                "materialize": "MaterializeApprovedComposition",
+                "end": END,
+                "error": "RouteError",
+            },
+        )
+        graph.add_conditional_edges(
+            "MaterializeApprovedComposition",
+            lambda state: "enqueue" if state.get("phase") == "revision_materialized" else "error",
+            {"enqueue": "EnqueueCompleteExportStep", "error": "RouteError"},
+        )
+        graph.add_conditional_edges(
+            "EnqueueCompleteExportStep",
+            lambda state: (
+                "wait"
+                if state.get("phase") == "waiting_generate_worker"
+                else "complete"
+                if state.get("phase") == "completed"
+                else "error"
+            ),
+            {
+                "wait": "WaitForGenerateJobEvent",
+                "complete": "CompleteGenerate",
+                "error": "RouteError",
+            },
+        )
+        graph.add_conditional_edges(
+            "WaitForGenerateJobEvent",
+            lambda state: (
+                "enqueue"
+                if state.get("phase") == "export_step_collected"
+                else "wait"
+                if state.get("phase") == "waiting_generate_worker"
+                else "error"
+            ),
+            {
+                "enqueue": "EnqueueCompleteExportStep",
+                "wait": "WaitForGenerateJobEvent",
+                "error": "RouteError",
+            },
+        )
+        graph.add_edge("CompleteGenerate", END)
     graph.add_conditional_edges(
         "LoadArtifactMetadata",
         lambda state: "storage" if state.get("phase") == "request_validated" else "error",
