@@ -94,6 +94,8 @@ cost column shape, targeting `20260812_0012`.
 Original Task 1 commit: `e0176d6929f92b700ea652be6c43eef369d1c469` —
 `feat: persist S2 AI runs and plans`. The review-fix commit is the current Git HEAD with subject
 `fix: harden S2 AI run persistence`; this avoids the stale pre-amend SHA previously recorded here.
+Review fix round 2 commit: `c7897d4add419ce0e7e185326e27187c73987a0c` —
+`fix: close S2 AI run ledger review gaps`.
 
 ## Review fix round 2 — RED/GREEN audit
 
