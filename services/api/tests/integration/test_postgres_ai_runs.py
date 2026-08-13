@@ -10,10 +10,15 @@ from pathlib import Path
 from unittest.mock import patch
 from uuid import UUID, uuid4
 
+import httpx
 import pytest
 from alembic import command
 from alembic.config import Config
-from motif_forge.agent.planner import PersistentProviderBudgetLedger, PlannerUsage
+from motif_forge.agent.planner import (
+    PersistentProviderBudgetLedger,
+    PlannerUsage,
+    ProviderBudgetExceeded,
+)
 from motif_forge.agent.schemas import (
     CompositionBrief,
     CompositionPlan,
@@ -41,6 +46,7 @@ from motif_forge.domain.ai_runs import (
     AIRunEvent,
     AIRunStatus,
     ModelRequestKind,
+    ModelUsageStatus,
     PersistedCompositionPlan,
     composition_plan_content_hash,
 )
@@ -59,8 +65,10 @@ from motif_forge.infrastructure.persistence.tables import (
     AIRunEventRow,
     AIRunRow,
     BranchRow,
+    ModelRequestReservationRow,
     OutboxEventRow,
 )
+from motif_forge.providers.deepseek import DeepSeekJsonClient
 from sqlalchemy import func, insert, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -72,10 +80,10 @@ def _upgrade(dsn: str, revision: str = "head") -> None:
         command.upgrade(Config(root / "alembic.ini"), revision)
 
 
-def _downgrade(dsn: str) -> None:
+def _downgrade(dsn: str, revision: str = "-1") -> None:
     root = Path(__file__).resolve().parents[4]
     with patch.dict(os.environ, {"MOTIF_FORGE_POSTGRES_DSN": dsn}):
-        command.downgrade(Config(root / "alembic.ini"), "-1")
+        command.downgrade(Config(root / "alembic.ini"), revision)
 
 
 def _brief() -> CompositionBrief:
@@ -156,7 +164,10 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
     test_postgres_dsn: str,
 ) -> None:
     await asyncio.to_thread(_upgrade, test_postgres_dsn)
-    run_id, project_id, _, uow, engine = await _seed_run(test_postgres_dsn)
+    replay_key = f"s2-ai-run-{uuid4().hex}"
+    run_id, project_id, _, uow, engine = await _seed_run(
+        test_postgres_dsn, key=replay_key
+    )
     try:
         replay = await CreateAIRun(uow)(
             CreateAIRunRequest(
@@ -165,7 +176,7 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
                 base_revision_id=(await _run(uow, run_id)).base_revision_id,
                 thread_id=(await _run(uow, run_id)).thread_id,
                 brief=_brief(),
-                idempotency_key="s2-ai-run-key",
+                    idempotency_key=replay_key,
             )
         )
         assert replay.run_id == run_id
@@ -310,8 +321,13 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
             run_id=run_id,
             reservation_id=reservation.reservation_id,
             provider_operation_id=provider_operation_id,
+            usage_status=ModelUsageStatus.PARTIAL,
             prompt_tokens=5,
             completion_tokens=3,
+            total_tokens=8,
+            prompt_cache_hit_tokens=None,
+            prompt_cache_miss_tokens=None,
+            reasoning_tokens=None,
         )
         assert observed.prompt_tokens == 5
         with pytest.raises(ApplicationError, match="MODEL_USAGE_CONFLICT"):
@@ -319,8 +335,13 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
                 run_id=run_id,
                 reservation_id=reservation.reservation_id,
                 provider_operation_id=provider_operation_id,
+                usage_status=ModelUsageStatus.PARTIAL,
                 prompt_tokens=6,
                 completion_tokens=3,
+                total_tokens=9,
+                prompt_cache_hit_tokens=None,
+                prompt_cache_miss_tokens=None,
+                reasoning_tokens=None,
             )
         rejected = await CreateAIRun(uow)(
             CreateAIRunRequest(
@@ -404,8 +425,100 @@ async def test_provider_budget_adapter_survives_reconstruction_and_uses_run_ledg
         assert persisted.submitted_model_requests == 2
         assert persisted.prompt_tokens == 200
         assert persisted.completion_tokens == 50
+        assert persisted.total_tokens == 250
     finally:
         await engine.dispose()  # type: ignore[union-attr]
+
+
+@pytest.mark.asyncio
+async def test_real_pg_ledger_preserves_provider_total_and_missing_usage_fail_closed(
+    test_postgres_dsn: str,
+) -> None:
+    await asyncio.to_thread(_upgrade, test_postgres_dsn)
+    run_id, project_id, _, uow, engine = await _seed_run(
+        test_postgres_dsn, key=f"provider-truth-{uuid4().hex}"
+    )
+    posts = 0
+
+    def divergent_handler(request: httpx.Request) -> httpx.Response:
+        nonlocal posts
+        posts += 1
+        return httpx.Response(
+            200,
+            json={
+                "id": "divergent-total",
+                "choices": [{"finish_reason": "stop", "message": {"content": _plan().model_dump_json()}}],
+                "usage": {"prompt_tokens": 9_000, "completion_tokens": 2_000, "total_tokens": 12_001},
+            },
+        )
+
+    try:
+        ledger = PersistentProviderBudgetLedger(uow, run_id=run_id)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(divergent_handler)) as http_client:
+            client = DeepSeekJsonClient(
+                api_key="test-key", http_client=http_client, max_attempts=1,
+                run_id=run_id, budget_ledger=ledger,
+            )
+            with pytest.raises(ProviderBudgetExceeded, match="token budget"):
+                await client.complete_json(
+                    messages=[], output_model=CompositionPlan, thinking="enabled", max_tokens=512
+                )
+        reconstructed = PersistentProviderBudgetLedger(uow, run_id=run_id)
+        before = posts
+        with pytest.raises(ProviderBudgetExceeded):
+            await reconstructed.reserve_request(run_id=run_id, kind=ModelRequestKind.TRANSPORT_RETRY)
+        assert posts == before == 1
+        persisted = await _run(uow, run_id)
+        assert (persisted.prompt_tokens, persisted.completion_tokens, persisted.total_tokens) == (9_000, 2_000, 12_001)
+        assert persisted.model_usage_status is ModelUsageStatus.PARTIAL
+
+        missing_run_id, missing_project_id, _, missing_uow, missing_engine = await _seed_run(
+            test_postgres_dsn, key=f"provider-missing-{uuid4().hex}"
+        )
+        missing_posts = 0
+
+        def missing_handler(request: httpx.Request) -> httpx.Response:
+            nonlocal missing_posts
+            missing_posts += 1
+            return httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {"content": "not-json"}}]})
+
+        missing_ledger = PersistentProviderBudgetLedger(missing_uow, run_id=missing_run_id)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(missing_handler)) as http_client:
+            client = DeepSeekJsonClient(api_key="test-key", http_client=http_client, max_attempts=1, run_id=missing_run_id, budget_ledger=missing_ledger)
+            with pytest.raises(ProviderBudgetExceeded, match="usage facts"):
+                await client.complete_json(messages=[], output_model=CompositionPlan, thinking="enabled", max_tokens=512, schema_repair_attempts=1)
+        assert missing_posts == 1
+        missing_persisted = await _run(missing_uow, missing_run_id)
+        assert missing_persisted.model_usage_status is ModelUsageStatus.UNKNOWN
+        assert missing_persisted.total_tokens is None
+        async with missing_uow() as transaction:
+            reservations = (await transaction._session.execute(select(ModelRequestReservationRow).where(ModelRequestReservationRow.run_id == missing_run_id))).scalars().all()  # type: ignore[attr-defined]
+        assert len(reservations) == 1
+        assert reservations[0].usage_status == "unknown"
+        reconstructed_missing = PersistentProviderBudgetLedger(
+            missing_uow, run_id=missing_run_id
+        )
+        with pytest.raises(ProviderBudgetExceeded, match="usage facts"):
+            await reconstructed_missing.reserve_request(
+                run_id=missing_run_id, kind=ModelRequestKind.TRANSPORT_RETRY
+            )
+        assert missing_posts == 1
+    finally:
+        async with engine.begin() as connection:  # type: ignore[union-attr]
+            await connection.execute(
+                text(
+                    "DELETE FROM app.audit_events "
+                    "WHERE project_id IN (:project_id, :missing_project_id)"
+                ),
+                {
+                    "project_id": project_id,
+                    "missing_project_id": locals().get("missing_project_id", project_id),
+                },
+            )
+            await connection.execute(text("DELETE FROM app.projects WHERE id IN (:project_id, :missing_project_id)"), {"project_id": project_id, "missing_project_id": locals().get("missing_project_id", project_id)})
+        await engine.dispose()  # type: ignore[union-attr]
+        if "missing_engine" in locals():
+            await missing_engine.dispose()
 
 
 @pytest.mark.asyncio
@@ -585,7 +698,7 @@ async def test_populated_0013_downgrades_to_0012(test_postgres_dsn: str) -> None
                 ),
                 {"operation_id": operation_id, "span_id": span_id, "run_id": operation_id},
             )
-        await asyncio.to_thread(_downgrade, test_postgres_dsn)
+        await asyncio.to_thread(_downgrade, test_postgres_dsn, "20260812_0012")
         async with engine.connect() as connection:
             nullable = await connection.scalar(
                 text(

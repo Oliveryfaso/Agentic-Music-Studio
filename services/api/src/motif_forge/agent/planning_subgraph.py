@@ -41,7 +41,7 @@ class PlanningSubgraphState(TypedDict):
     plan_payload: NotRequired[dict[str, Any]]
     plan: NotRequired[dict[str, Any]]
     provider_metadata: NotRequired[dict[str, str]]
-    usage: NotRequired[dict[str, int]]
+    usage: NotRequired[dict[str, int | str | None]]
     budget: dict[str, int]
     counters: dict[str, int]
     validation_issues: NotRequired[list[str]]
@@ -217,12 +217,23 @@ class PlanningNodes:
             )
 
         usage = response.usage.as_dict()
-        cumulative_usage = {
-            key: state.get("usage", {}).get(key, 0) + value for key, value in usage.items()
+        previous_usage = state.get("usage", {})
+
+        def accumulate(key: str, value: int | None) -> int | None:
+            previous = previous_usage.get(key, 0)
+            return previous + value if isinstance(previous, int) and value is not None else None
+
+        cumulative_usage: dict[str, int | str | None] = {
+            key: accumulate(key, value) for key, value in usage.items()
         }
+        cumulative_usage["status"] = response.usage.status.value
         next_counters = {
             "model_calls": counters["model_calls"] + response.model_calls,
-            "total_tokens": counters["total_tokens"] + response.usage.total_tokens,
+            "total_tokens": (
+                counters["total_tokens"] + response.usage.total_tokens
+                if response.usage.total_tokens is not None
+                else counters["total_tokens"]
+            ),
         }
         update: dict[str, Any] = {
             "plan_payload": dict(response.plan_payload),

@@ -5,7 +5,7 @@ from motif_forge.application.ai_runs import (
     model_request_allowed,
     validate_model_usage_facts,
 )
-from motif_forge.domain.ai_runs import AIRunStatus, ModelRequestKind
+from motif_forge.domain.ai_runs import AIRunStatus, ModelRequestKind, ModelUsageStatus
 
 
 def test_model_request_budget_refuses_fourth_upstream_request() -> None:
@@ -35,4 +35,12 @@ def test_terminal_run_cannot_reserve_and_usage_facts_must_be_nonnegative() -> No
             run_status=AIRunStatus.CANCELLED,
         )
     with pytest.raises(ModelUsageFactError):
-        validate_model_usage_facts(prompt_tokens=-1, completion_tokens=0)
+        validate_model_usage_facts(
+            usage_status=ModelUsageStatus.PARTIAL,
+            prompt_tokens=-1,
+            completion_tokens=0,
+            total_tokens=0,
+            prompt_cache_hit_tokens=None,
+            prompt_cache_miss_tokens=None,
+            reasoning_tokens=None,
+        )

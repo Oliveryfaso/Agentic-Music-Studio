@@ -17,6 +17,7 @@ from motif_forge.domain.ir import DomainModel
 
 AI_RUN_SCHEMA_VERSION = "ai-run.v1"
 MAX_MODEL_REQUESTS = 3
+MAX_MODEL_TOKENS = 12_000
 PARENT_GRAPH_TOPOLOGY_VERSION = "motif-forge-parent.v2"
 GENERATE_RUN_STATE_SCHEMA_VERSION = "generate-run-state.v1"
 
@@ -49,6 +50,14 @@ class ModelRequestKind(StrEnum):
 class ModelRequestReservationStatus(StrEnum):
     RESERVED = "reserved"
     OBSERVED = "observed"
+
+
+class ModelUsageStatus(StrEnum):
+    """Completeness of the provider-reported usage facts."""
+
+    KNOWN = "known"
+    PARTIAL = "partial"
+    UNKNOWN = "unknown"
 
 
 _TERMINAL = frozenset(
@@ -220,8 +229,15 @@ class AIRun(DomainModel):
     pending_plan_content_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     pending_interrupt_ref: str | None = Field(default=None, min_length=16, max_length=160)
     submitted_model_requests: int = Field(default=0, ge=0, le=MAX_MODEL_REQUESTS)
-    prompt_tokens: int = Field(default=0, ge=0)
-    completion_tokens: int = Field(default=0, ge=0)
+    max_model_requests: int = Field(default=MAX_MODEL_REQUESTS, ge=1, le=MAX_MODEL_REQUESTS)
+    max_total_tokens: int = Field(default=MAX_MODEL_TOKENS, ge=1, le=MAX_MODEL_TOKENS)
+    model_usage_status: ModelUsageStatus = ModelUsageStatus.KNOWN
+    prompt_tokens: int | None = Field(default=0, ge=0)
+    completion_tokens: int | None = Field(default=0, ge=0)
+    total_tokens: int | None = Field(default=0, ge=0)
+    prompt_cache_hit_tokens: int | None = Field(default=0, ge=0)
+    prompt_cache_miss_tokens: int | None = Field(default=0, ge=0)
+    reasoning_tokens: int | None = Field(default=0, ge=0)
     cost: ModelCost = Field(default_factory=lambda: ModelCost(status=CostStatus.UNKNOWN))
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
@@ -316,7 +332,12 @@ class ModelRequestReservation(DomainModel):
     kind: ModelRequestKind
     status: ModelRequestReservationStatus = ModelRequestReservationStatus.RESERVED
     provider_operation_id: str | None = Field(default=None, min_length=1, max_length=200)
+    usage_status: ModelUsageStatus | None = None
     prompt_tokens: int | None = Field(default=None, ge=0)
     completion_tokens: int | None = Field(default=None, ge=0)
+    total_tokens: int | None = Field(default=None, ge=0)
+    prompt_cache_hit_tokens: int | None = Field(default=None, ge=0)
+    prompt_cache_miss_tokens: int | None = Field(default=None, ge=0)
+    reasoning_tokens: int | None = Field(default=None, ge=0)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     observed_at: datetime | None = None

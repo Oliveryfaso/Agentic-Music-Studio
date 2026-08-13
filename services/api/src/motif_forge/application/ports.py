@@ -15,6 +15,7 @@ from motif_forge.domain.ai_runs import (
     AIRunEvent,
     ModelRequestKind,
     ModelRequestReservation,
+    ModelUsageStatus,
     PersistedCompositionPlan,
 )
 from motif_forge.domain.commands import EditorCommand
@@ -400,8 +401,13 @@ class AIRunTransaction(Protocol):
         run_id: UUID,
         reservation_id: UUID,
         provider_operation_id: str,
-        prompt_tokens: int,
-        completion_tokens: int,
+        usage_status: ModelUsageStatus,
+        prompt_tokens: int | None,
+        completion_tokens: int | None,
+        total_tokens: int | None,
+        prompt_cache_hit_tokens: int | None,
+        prompt_cache_miss_tokens: int | None,
+        reasoning_tokens: int | None,
         now: datetime,
     ) -> ModelRequestReservation: ...
 

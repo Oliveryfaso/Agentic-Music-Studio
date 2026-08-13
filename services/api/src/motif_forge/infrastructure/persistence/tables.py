@@ -466,9 +466,23 @@ class AIRunRow(Base):
             "submitted_model_requests BETWEEN 0 AND 3",
             name="ai_runs_request_count_range",
         ),
-        CheckConstraint("prompt_tokens >= 0", name="ai_runs_prompt_tokens_nonnegative"),
         CheckConstraint(
-            "completion_tokens >= 0", name="ai_runs_completion_tokens_nonnegative"
+            "prompt_tokens IS NULL OR prompt_tokens >= 0",
+            name="ai_runs_prompt_tokens_nonnegative",
+        ),
+        CheckConstraint(
+            "completion_tokens IS NULL OR completion_tokens >= 0",
+            name="ai_runs_completion_tokens_nonnegative",
+        ),
+        CheckConstraint(
+            "total_tokens IS NULL OR total_tokens >= 0",
+            name="ai_runs_total_tokens_nonnegative",
+        ),
+        CheckConstraint("max_model_requests BETWEEN 1 AND 3", name="ai_runs_max_requests_range"),
+        CheckConstraint("max_total_tokens BETWEEN 1 AND 12000", name="ai_runs_max_tokens_range"),
+        CheckConstraint(
+            "model_usage_status IN ('known','partial','unknown')",
+            name="ai_runs_usage_status_valid",
         ),
         CheckConstraint(
             "(status = 'waiting_approval' AND pending_plan_id IS NOT NULL "
@@ -508,8 +522,15 @@ class AIRunRow(Base):
     pending_plan_content_hash: Mapped[str | None] = mapped_column(String(64))
     pending_interrupt_ref: Mapped[str | None] = mapped_column(String(160))
     submitted_model_requests: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    prompt_tokens: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
-    completion_tokens: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    max_model_requests: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    max_total_tokens: Mapped[int] = mapped_column(BigInteger, nullable=False, default=12_000)
+    model_usage_status: Mapped[str] = mapped_column(String(16), nullable=False, default="known")
+    prompt_tokens: Mapped[int | None] = mapped_column(BigInteger, default=0)
+    completion_tokens: Mapped[int | None] = mapped_column(BigInteger, default=0)
+    total_tokens: Mapped[int | None] = mapped_column(BigInteger, default=0)
+    prompt_cache_hit_tokens: Mapped[int | None] = mapped_column(BigInteger, default=0)
+    prompt_cache_miss_tokens: Mapped[int | None] = mapped_column(BigInteger, default=0)
+    reasoning_tokens: Mapped[int | None] = mapped_column(BigInteger, default=0)
     cost_status: Mapped[str] = mapped_column(String(24), nullable=False, default="unknown")
     cost_microusd: Mapped[int | None] = mapped_column(BigInteger)
     pricing_version: Mapped[str | None] = mapped_column(String(80))
@@ -611,6 +632,14 @@ class ModelRequestReservationRow(Base):
             name="reservation_prompt_tokens_nonnegative",
         ),
         CheckConstraint(
+            "total_tokens IS NULL OR total_tokens >= 0",
+            name="reservation_total_tokens_nonnegative",
+        ),
+        CheckConstraint(
+            "usage_status IS NULL OR usage_status IN ('known','partial','unknown')",
+            name="reservation_usage_status_valid",
+        ),
+        CheckConstraint(
             "completion_tokens IS NULL OR completion_tokens >= 0",
             name="reservation_completion_tokens_nonnegative",
         ),
@@ -625,8 +654,13 @@ class ModelRequestReservationRow(Base):
     request_kind: Mapped[str] = mapped_column(String(24), nullable=False)
     status: Mapped[str] = mapped_column(String(24), nullable=False)
     provider_operation_id: Mapped[str | None] = mapped_column(String(200), unique=True)
+    usage_status: Mapped[str | None] = mapped_column(String(16))
     prompt_tokens: Mapped[int | None] = mapped_column(BigInteger)
     completion_tokens: Mapped[int | None] = mapped_column(BigInteger)
+    total_tokens: Mapped[int | None] = mapped_column(BigInteger)
+    prompt_cache_hit_tokens: Mapped[int | None] = mapped_column(BigInteger)
+    prompt_cache_miss_tokens: Mapped[int | None] = mapped_column(BigInteger)
+    reasoning_tokens: Mapped[int | None] = mapped_column(BigInteger)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
@@ -909,6 +943,12 @@ class TraceSpanRow(ObservabilityBase):
 
 class UsageLedgerRow(ObservabilityBase):
     __tablename__ = "usage_ledger"
+    __table_args__ = (
+        CheckConstraint(
+            "usage_status IN ('known','partial','unknown')",
+            name="usage_ledger_usage_status_valid",
+        ),
+    )
 
     operation_id: Mapped[str] = mapped_column(String(200), primary_key=True)
     trace_span_id: Mapped[UUID] = mapped_column(
@@ -921,12 +961,13 @@ class UsageLedgerRow(ObservabilityBase):
     provider: Mapped[str] = mapped_column(String(80), nullable=False)
     model: Mapped[str] = mapped_column(String(120), nullable=False)
     model_calls: Mapped[int] = mapped_column(Integer, nullable=False)
-    prompt_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
-    completion_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
-    total_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
-    prompt_cache_hit_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
-    prompt_cache_miss_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
-    reasoning_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
+    usage_status: Mapped[str] = mapped_column(String(16), nullable=False, default="known")
+    prompt_tokens: Mapped[int | None] = mapped_column(Integer)
+    completion_tokens: Mapped[int | None] = mapped_column(Integer)
+    total_tokens: Mapped[int | None] = mapped_column(Integer)
+    prompt_cache_hit_tokens: Mapped[int | None] = mapped_column(Integer)
+    prompt_cache_miss_tokens: Mapped[int | None] = mapped_column(Integer)
+    reasoning_tokens: Mapped[int | None] = mapped_column(Integer)
     estimated_cost_microusd: Mapped[int | None] = mapped_column(BigInteger)
     cost_status: Mapped[str] = mapped_column(String(24), nullable=False, default="unknown")
     pricing_version: Mapped[str | None] = mapped_column(String(80))

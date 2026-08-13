@@ -21,6 +21,7 @@ from motif_forge.domain.ai_runs import (
     AIRunStatus,
     ModelRequestKind,
     ModelRequestReservation,
+    ModelUsageStatus,
     PersistedCompositionPlan,
     approval_assertion_hash,
     composition_plan_content_hash,
@@ -63,9 +64,32 @@ def model_request_allowed(
         raise ModelRequestBudgetError("schema and strategy repair share one request allowance")
 
 
-def validate_model_usage_facts(*, prompt_tokens: int, completion_tokens: int) -> None:
-    if prompt_tokens < 0 or completion_tokens < 0:
+def validate_model_usage_facts(
+    *,
+    usage_status: ModelUsageStatus,
+    prompt_tokens: int | None,
+    completion_tokens: int | None,
+    total_tokens: int | None,
+    prompt_cache_hit_tokens: int | None,
+    prompt_cache_miss_tokens: int | None,
+    reasoning_tokens: int | None,
+) -> None:
+    facts = (
+        prompt_tokens,
+        completion_tokens,
+        total_tokens,
+        prompt_cache_hit_tokens,
+        prompt_cache_miss_tokens,
+        reasoning_tokens,
+    )
+    if any(value is not None and value < 0 for value in facts):
         raise ModelUsageFactError("provider token counts must be nonnegative")
+    if usage_status is ModelUsageStatus.UNKNOWN and any(value is not None for value in facts):
+        raise ModelUsageFactError("unknown usage cannot carry provider token facts")
+    if usage_status is not ModelUsageStatus.UNKNOWN and all(value is None for value in facts):
+        raise ModelUsageFactError("known or partial usage requires a provider token fact")
+    if total_tokens is None and prompt_tokens is not None and completion_tokens is not None:
+        raise ModelUsageFactError("derivable total tokens must be recorded explicitly")
 
 
 class CreateAIRunRequest(DomainModel):
@@ -75,6 +99,8 @@ class CreateAIRunRequest(DomainModel):
     thread_id: str = Field(min_length=1, max_length=160)
     brief: CompositionBrief
     idempotency_key: str = Field(min_length=8, max_length=160)
+    max_model_requests: int = Field(default=3, ge=1, le=3)
+    max_total_tokens: int = Field(default=12_000, ge=1, le=12_000)
     graph_topology_version: str = Field(
         default=PARENT_GRAPH_TOPOLOGY_VERSION, min_length=1, max_length=80
     )
@@ -120,6 +146,8 @@ class CreateAIRun:
                     idempotency_key=request.idempotency_key,
                     graph_topology_version=request.graph_topology_version,
                     state_schema_version=request.state_schema_version,
+                    max_model_requests=request.max_model_requests,
+                    max_total_tokens=request.max_total_tokens,
                     created_at=now,
                     updated_at=now,
                 )
@@ -335,16 +363,34 @@ class RecordModelUsage:
         run_id: UUID,
         reservation_id: UUID,
         provider_operation_id: str,
-        prompt_tokens: int,
-        completion_tokens: int,
+        usage_status: ModelUsageStatus,
+        prompt_tokens: int | None,
+        completion_tokens: int | None,
+        total_tokens: int | None,
+        prompt_cache_hit_tokens: int | None,
+        prompt_cache_miss_tokens: int | None,
+        reasoning_tokens: int | None,
     ) -> ModelRequestReservation:
-        validate_model_usage_facts(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens)
+        validate_model_usage_facts(
+            usage_status=usage_status,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            prompt_cache_hit_tokens=prompt_cache_hit_tokens,
+            prompt_cache_miss_tokens=prompt_cache_miss_tokens,
+            reasoning_tokens=reasoning_tokens,
+        )
         async with self._uow_factory() as transaction:
             return await transaction.record_model_usage(
                 run_id=run_id,
                 reservation_id=reservation_id,
                 provider_operation_id=provider_operation_id,
+                usage_status=usage_status,
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
+                prompt_cache_hit_tokens=prompt_cache_hit_tokens,
+                prompt_cache_miss_tokens=prompt_cache_miss_tokens,
+                reasoning_tokens=reasoning_tokens,
                 now=self._clock(),
             )

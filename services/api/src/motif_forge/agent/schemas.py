@@ -182,7 +182,7 @@ class PlanningResult(TypedDict):
     phase: Literal["planning_complete", "planning_failed"]
     plan: NotRequired[dict[str, object]]
     provider_metadata: NotRequired[dict[str, str]]
-    usage: NotRequired[dict[str, int]]
+    usage: NotRequired[dict[str, int | str | None]]
     counters: dict[str, int]
     fallback_reason: NotRequired[str]
     warnings: NotRequired[list[str]]

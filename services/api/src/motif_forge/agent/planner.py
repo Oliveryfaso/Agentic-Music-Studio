@@ -8,19 +8,24 @@ from typing import Any, Protocol
 from uuid import UUID
 
 from motif_forge.agent.schemas import CompositionBrief, CompositionPlan
-from motif_forge.domain.ai_runs import ModelRequestKind, ModelRequestReservation
+from motif_forge.domain.ai_runs import (
+    ModelRequestKind,
+    ModelRequestReservation,
+    ModelUsageStatus,
+)
 
 
 @dataclass(frozen=True, slots=True)
 class PlannerUsage:
-    prompt_tokens: int = 0
-    completion_tokens: int = 0
-    total_tokens: int = 0
-    prompt_cache_hit_tokens: int = 0
-    prompt_cache_miss_tokens: int = 0
-    reasoning_tokens: int = 0
+    status: ModelUsageStatus = ModelUsageStatus.KNOWN
+    prompt_tokens: int | None = 0
+    completion_tokens: int | None = 0
+    total_tokens: int | None = 0
+    prompt_cache_hit_tokens: int | None = 0
+    prompt_cache_miss_tokens: int | None = 0
+    reasoning_tokens: int | None = 0
 
-    def as_dict(self) -> dict[str, int]:
+    def as_dict(self) -> dict[str, int | None]:
         return {
             "prompt_tokens": self.prompt_tokens,
             "completion_tokens": self.completion_tokens,
@@ -36,13 +41,17 @@ class ModelBudgetSnapshot:
     """Truthful persisted model spend observed for one finite AI Run."""
 
     submitted_requests: int
-    total_tokens: int
+    total_tokens: int | None
+    usage_status: ModelUsageStatus = ModelUsageStatus.KNOWN
     max_requests: int = 3
     max_total_tokens: int = 12_000
 
 
 class ProviderBudgetLedger(Protocol):
     """Persistent budget boundary invoked around every provider submission."""
+
+    max_requests: int
+    max_total_tokens: int
 
     async def reserve_request(
         self, *, run_id: UUID, kind: ModelRequestKind
@@ -134,6 +143,14 @@ class ProviderBudgetExceeded(PlannerError):
             snapshot,
         )
 
+    @classmethod
+    def unknown_usage(cls, snapshot: ModelBudgetSnapshot) -> ProviderBudgetExceeded:
+        return cls(
+            "MODEL_TOKEN_USAGE_UNKNOWN",
+            "DeepSeek omitted the usage facts required to continue this paid AI Run safely.",
+            snapshot,
+        )
+
 
 class PersistentProviderBudgetLedger:
     """Adapter from provider calls to Task 1's PostgreSQL-backed AI Run ledger."""
@@ -152,12 +169,24 @@ class PersistentProviderBudgetLedger:
             ReserveModelRequest,
         )
 
+        if not 1 <= max_requests <= 3:
+            raise ValueError("S2 model request budget must be between 1 and 3")
+        if not 1 <= max_total_tokens <= 12_000:
+            raise ValueError("S2 total token budget must be between 1 and 12000")
         self._reserve = ReserveModelRequest(uow_factory)
         self._record = RecordModelUsage(uow_factory)
         self._read = ReadAIRun(uow_factory)
         self._run_id = run_id
         self._max_requests = max_requests
         self._max_total_tokens = max_total_tokens
+
+    @property
+    def max_requests(self) -> int:
+        return self._max_requests
+
+    @property
+    def max_total_tokens(self) -> int:
+        return self._max_total_tokens
 
     async def reserve_request(
         self, *, run_id: UUID, kind: ModelRequestKind
@@ -173,6 +202,8 @@ class PersistentProviderBudgetLedger:
                 suggested_route="terminal",
             )
         snapshot = await self._snapshot()
+        if snapshot.total_tokens is None:
+            raise ProviderBudgetExceeded.unknown_usage(snapshot)
         if snapshot.total_tokens >= snapshot.max_total_tokens:
             raise ProviderBudgetExceeded.tokens(snapshot)
         try:
@@ -188,19 +219,37 @@ class PersistentProviderBudgetLedger:
             run_id=self._run_id,
             reservation_id=reservation_id,
             provider_operation_id=f"provider-reservation:{reservation_id}",
+            usage_status=usage.status,
             prompt_tokens=usage.prompt_tokens,
             completion_tokens=usage.completion_tokens,
+            total_tokens=usage.total_tokens,
+            prompt_cache_hit_tokens=usage.prompt_cache_hit_tokens,
+            prompt_cache_miss_tokens=usage.prompt_cache_miss_tokens,
+            reasoning_tokens=usage.reasoning_tokens,
         )
         snapshot = await self._snapshot()
-        if snapshot.total_tokens > snapshot.max_total_tokens:
+        if (
+            snapshot.total_tokens is not None
+            and snapshot.total_tokens > snapshot.max_total_tokens
+        ):
             raise ProviderBudgetExceeded.tokens(snapshot)
         return snapshot
 
     async def _snapshot(self) -> ModelBudgetSnapshot:
         run = await self._read(self._run_id)
+        if (
+            run.max_model_requests != self._max_requests
+            or run.max_total_tokens != self._max_total_tokens
+        ):
+            raise PlannerError(
+                "MODEL_RUN_BUDGET_MISMATCH",
+                "The requested model budget does not match the persisted AI Run budget.",
+                category="internal",
+            )
         return ModelBudgetSnapshot(
             submitted_requests=run.submitted_model_requests,
-            total_tokens=run.prompt_tokens + run.completion_tokens,
+            total_tokens=run.total_tokens,
+            usage_status=run.model_usage_status,
             max_requests=self._max_requests,
             max_total_tokens=self._max_total_tokens,
         )

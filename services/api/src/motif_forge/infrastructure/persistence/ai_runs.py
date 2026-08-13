@@ -25,6 +25,7 @@ from motif_forge.domain.ai_runs import (
     ModelRequestKind,
     ModelRequestReservation,
     ModelRequestReservationStatus,
+    ModelUsageStatus,
     PersistedCompositionPlan,
 )
 from motif_forge.infrastructure.persistence.database import SessionFactory
@@ -579,8 +580,13 @@ class PostgresAIRunTransaction:
         run_id: UUID,
         reservation_id: UUID,
         provider_operation_id: str,
-        prompt_tokens: int,
-        completion_tokens: int,
+        usage_status: ModelUsageStatus,
+        prompt_tokens: int | None,
+        completion_tokens: int | None,
+        total_tokens: int | None,
+        prompt_cache_hit_tokens: int | None,
+        prompt_cache_miss_tokens: int | None,
+        reasoning_tokens: int | None,
         now: datetime,
     ) -> ModelRequestReservation:
         row = (
@@ -603,6 +609,11 @@ class PostgresAIRunTransaction:
                 reservation.provider_operation_id != provider_operation_id
                 or reservation.prompt_tokens != prompt_tokens
                 or reservation.completion_tokens != completion_tokens
+                or reservation.usage_status != usage_status
+                or reservation.total_tokens != total_tokens
+                or reservation.prompt_cache_hit_tokens != prompt_cache_hit_tokens
+                or reservation.prompt_cache_miss_tokens != prompt_cache_miss_tokens
+                or reservation.reasoning_tokens != reasoning_tokens
             ):
                 raise ApplicationError(
                     "MODEL_USAGE_CONFLICT",
@@ -622,8 +633,13 @@ class PostgresAIRunTransaction:
             update={
                 "status": ModelRequestReservationStatus.OBSERVED,
                 "provider_operation_id": provider_operation_id,
+                "usage_status": usage_status,
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
+                "total_tokens": total_tokens,
+                "prompt_cache_hit_tokens": prompt_cache_hit_tokens,
+                "prompt_cache_miss_tokens": prompt_cache_miss_tokens,
+                "reasoning_tokens": reasoning_tokens,
                 "observed_at": now,
             }
         )
@@ -632,12 +648,37 @@ class PostgresAIRunTransaction:
             .where(ModelRequestReservationRow.id == reservation_id)
             .values(**_reservation_values(observed))
         )
+        def aggregate(previous: int | None, current: int | None) -> int | None:
+            return previous + current if previous is not None and current is not None else None
+
+        run_row = (
+            await self._session.execute(
+                select(AIRunRow).where(AIRunRow.id == run_id).with_for_update()
+            )
+        ).scalar_one()
+        prior_status = ModelUsageStatus(run_row.model_usage_status)
+        aggregate_status = (
+            ModelUsageStatus.UNKNOWN
+            if ModelUsageStatus.UNKNOWN in {prior_status, usage_status}
+            else ModelUsageStatus.PARTIAL
+            if ModelUsageStatus.PARTIAL in {prior_status, usage_status}
+            else ModelUsageStatus.KNOWN
+        )
         await self._session.execute(
             update(AIRunRow)
             .where(AIRunRow.id == run_id)
             .values(
-                prompt_tokens=AIRunRow.prompt_tokens + prompt_tokens,
-                completion_tokens=AIRunRow.completion_tokens + completion_tokens,
+                model_usage_status=aggregate_status.value,
+                prompt_tokens=aggregate(run_row.prompt_tokens, prompt_tokens),
+                completion_tokens=aggregate(run_row.completion_tokens, completion_tokens),
+                total_tokens=aggregate(run_row.total_tokens, total_tokens),
+                prompt_cache_hit_tokens=aggregate(
+                    run_row.prompt_cache_hit_tokens, prompt_cache_hit_tokens
+                ),
+                prompt_cache_miss_tokens=aggregate(
+                    run_row.prompt_cache_miss_tokens, prompt_cache_miss_tokens
+                ),
+                reasoning_tokens=aggregate(run_row.reasoning_tokens, reasoning_tokens),
                 updated_at=now,
             )
         )
@@ -675,8 +716,15 @@ def _run_from_row(row: AIRunRow) -> AIRun:
         pending_plan_content_hash=row.pending_plan_content_hash,
         pending_interrupt_ref=row.pending_interrupt_ref,
         submitted_model_requests=row.submitted_model_requests,
+        max_model_requests=row.max_model_requests,
+        max_total_tokens=row.max_total_tokens,
+        model_usage_status=ModelUsageStatus(row.model_usage_status),
         prompt_tokens=row.prompt_tokens,
         completion_tokens=row.completion_tokens,
+        total_tokens=row.total_tokens,
+        prompt_cache_hit_tokens=row.prompt_cache_hit_tokens,
+        prompt_cache_miss_tokens=row.prompt_cache_miss_tokens,
+        reasoning_tokens=row.reasoning_tokens,
         cost=ModelCost(
             status=CostStatus(row.cost_status),
             amount_microusd=row.cost_microusd,
@@ -771,8 +819,13 @@ def _reservation_values(reservation: ModelRequestReservation) -> dict[str, objec
         "request_kind": reservation.kind.value,
         "status": reservation.status.value,
         "provider_operation_id": reservation.provider_operation_id,
+        "usage_status": reservation.usage_status.value if reservation.usage_status else None,
         "prompt_tokens": reservation.prompt_tokens,
         "completion_tokens": reservation.completion_tokens,
+        "total_tokens": reservation.total_tokens,
+        "prompt_cache_hit_tokens": reservation.prompt_cache_hit_tokens,
+        "prompt_cache_miss_tokens": reservation.prompt_cache_miss_tokens,
+        "reasoning_tokens": reservation.reasoning_tokens,
         "created_at": reservation.created_at,
         "observed_at": reservation.observed_at,
     }
@@ -786,8 +839,13 @@ def _reservation_from_row(row: ModelRequestReservationRow) -> ModelRequestReserv
         kind=ModelRequestKind(row.request_kind),
         status=ModelRequestReservationStatus(row.status),
         provider_operation_id=row.provider_operation_id,
+        usage_status=ModelUsageStatus(row.usage_status) if row.usage_status else None,
         prompt_tokens=row.prompt_tokens,
         completion_tokens=row.completion_tokens,
+        total_tokens=row.total_tokens,
+        prompt_cache_hit_tokens=row.prompt_cache_hit_tokens,
+        prompt_cache_miss_tokens=row.prompt_cache_miss_tokens,
+        reasoning_tokens=row.reasoning_tokens,
         created_at=row.created_at,
         observed_at=row.observed_at,
     )
@@ -830,6 +888,8 @@ def _ai_run_request_hash(row: AIRunRow) -> str:
             "base_revision_id": str(row.base_revision_id),
             "thread_id": row.thread_id,
             "brief": row.brief,
+            "max_model_requests": row.max_model_requests,
+            "max_total_tokens": row.max_total_tokens,
             "graph_topology_version": row.graph_topology_version,
             "state_schema_version": row.state_schema_version,
         }

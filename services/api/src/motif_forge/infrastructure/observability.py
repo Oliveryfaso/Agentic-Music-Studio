@@ -79,6 +79,7 @@ class PostgresTelemetryRecorder:
                     provider=record.provider,
                     model=record.model,
                     model_calls=response.model_calls,
+                    usage_status=usage.status.value,
                     prompt_tokens=usage.prompt_tokens,
                     completion_tokens=usage.completion_tokens,
                     total_tokens=usage.total_tokens,

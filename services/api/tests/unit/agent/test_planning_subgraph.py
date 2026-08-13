@@ -12,6 +12,7 @@ from motif_forge.agent.planning_subgraph import (
     initial_planning_state,
 )
 from motif_forge.agent.schemas import CompositionPlan
+from motif_forge.domain.ai_runs import ModelUsageStatus
 
 from .sample_data import valid_brief_payload, valid_plan_payload
 
@@ -148,6 +149,42 @@ class _OverBudgetPlanner:
         del brief, invalid_payload, validation_issues
         self.repair_calls += 1
         raise AssertionError("repair must not run after post-call token overflow")
+
+
+class _UnknownUsagePlanner(_OverBudgetPlanner):
+    async def create_plan(self, brief, *, allow_schema_repair=True):  # type: ignore[no-untyped-def]
+        del brief, allow_schema_repair
+        self.create_calls += 1
+        return PlannerResponse(
+            plan_payload=valid_plan_payload(),
+            usage=PlannerUsage(
+                status=ModelUsageStatus.UNKNOWN,
+                prompt_tokens=None,
+                completion_tokens=None,
+                total_tokens=None,
+                prompt_cache_hit_tokens=None,
+                prompt_cache_miss_tokens=None,
+                reasoning_tokens=None,
+            ),
+        )
+
+
+@pytest.mark.asyncio
+async def test_planning_subgraph_exposes_unknown_usage_without_fabricating_tokens() -> None:
+    graph = build_composition_planning_subgraph(_UnknownUsagePlanner())
+
+    result = await graph.ainvoke(
+        initial_planning_state(
+            run_id="planning-unknown-usage",
+            thread_id="planning-unknown-usage",
+            brief_payload=valid_brief_payload(),
+        )
+    )
+
+    assert result["usage"]["status"] == "unknown"
+    assert result["usage"]["total_tokens"] is None
+    assert result["counters"]["total_tokens"] == 0
+    assert result["plan"]["schema_version"] == "composition-plan.v1"
 
 
 @pytest.mark.asyncio
