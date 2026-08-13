@@ -141,10 +141,12 @@ class PostgresAIRunTransaction:
                 topic="graph.start.requested",
                 dedupe_key=f"ai-run:{run.run_id}:graph.start.requested",
                 payload={
-                    "schema_version": "graph-start-request.v1",
+                    "schema_version": "graph-action.v1",
+                    "action": "start",
                     "run_id": str(run.run_id),
                     "thread_id": run.thread_id,
-                    "run_type": "generate",
+                    "run_type": "parent.generate.v1",
+                    "decision": None,
                 },
                 status="pending",
                 attempts=0,
@@ -356,7 +358,13 @@ class PostgresAIRunTransaction:
         return event.model_copy(update={"sequence": result.scalar_one()})
 
     async def record_ai_run_approval(
-        self, *, approval: AIRunApproval, expected_version: int, outbox_event_id: UUID
+        self,
+        *,
+        approval: AIRunApproval,
+        assertion: str,
+        note: str,
+        expected_version: int,
+        outbox_event_id: UUID,
     ) -> AIRunApproval:
         row = (
             await self._session.execute(
@@ -426,9 +434,18 @@ class PostgresAIRunTransaction:
                     topic="graph.resume.requested",
                     dedupe_key=f"ai-run:{run.run_id}:approval:{approval.approval_id}",
                     payload={
-                        "schema_version": "graph-action-request.v1",
+                        "schema_version": "graph-action.v1",
                         "run_id": str(run.run_id),
                         "action": "resume",
+                        "thread_id": run.thread_id,
+                        "run_type": "parent.generate.v1",
+                        "decision": {
+                            "decision": approval.decision,
+                            "actor_id": approval.actor_id,
+                            "approval_assertion": assertion,
+                            "expected_plan_hash": approval.expected_plan_content_hash,
+                            "note": note,
+                        },
                     },
                     status="pending",
                     attempts=0,
@@ -536,14 +553,15 @@ class PostgresAIRunTransaction:
                 id=outbox_event_id,
                 aggregate_type="ai_run",
                 aggregate_id=child.run_id,
-                topic="graph.retry.requested",
+                topic="graph.start.requested",
                 dedupe_key=f"ai-run:{parent_run_id}:retry:{idempotency_key}",
                 payload={
-                    "schema_version": "graph-start-request.v1",
+                    "schema_version": "graph-action.v1",
+                    "action": "start",
                     "run_id": str(child.run_id),
-                    "parent_run_id": str(parent_run_id),
                     "thread_id": child.thread_id,
-                    "run_type": "generate",
+                    "run_type": "parent.generate.v1",
+                    "decision": None,
                 },
                 status="pending",
                 attempts=0,
@@ -624,10 +642,12 @@ class PostgresAIRunTransaction:
                 topic=f"graph.{action}.requested",
                 dedupe_key=f"ai-run:{run_id}:{action}:{idempotency_key}",
                 payload={
-                    "schema_version": "graph-action-request.v1",
+                    "schema_version": "graph-action.v1",
                     "run_id": str(run_id),
                     "action": action,
-                    "expected_version": expected_version,
+                    "thread_id": run.thread_id,
+                    "run_type": "parent.generate.v1",
+                    "decision": None,
                 },
                 status="pending",
                 attempts=0,

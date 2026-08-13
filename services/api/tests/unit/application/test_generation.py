@@ -195,10 +195,12 @@ class FakeAIRunTransaction:
         self,
         *,
         approval: AIRunApproval,
+        assertion: str,
+        note: str,
         expected_version: int,
         outbox_event_id: UUID,
     ) -> AIRunApproval:
-        del outbox_event_id
+        del assertion, note, outbox_event_id
         if self.approval is not None:
             return self.approval
         if (

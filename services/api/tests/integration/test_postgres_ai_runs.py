@@ -146,6 +146,21 @@ async def test_0015_preserves_legacy_plan_and_pending_approval_hash_references(
         test_postgres_dsn, key=f"legacy-plan-hash-{uuid4().hex}"
     )
     try:
+        async with uow() as transaction:
+            start_payload = await transaction._session.scalar(  # type: ignore[attr-defined]
+                select(OutboxEventRow.payload).where(
+                    OutboxEventRow.aggregate_id == run_id,
+                    OutboxEventRow.topic == "graph.start.requested",
+                )
+            )
+        assert start_payload == {
+            "schema_version": "graph-action.v1",
+            "action": "start",
+            "run_id": str(run_id),
+            "thread_id": (await _run(uow, run_id)).thread_id,
+            "run_type": "parent.generate.v1",
+            "decision": None,
+        }
         plan = _plan().model_copy(
             update={
                 "sections": (
@@ -674,7 +689,27 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
                     OutboxEventRow.topic == "graph.resume.requested",
                 )
             )
+            resume_payload = await transaction._session.scalar(  # type: ignore[attr-defined]
+                select(OutboxEventRow.payload).where(
+                    OutboxEventRow.aggregate_id == run_id,
+                    OutboxEventRow.topic == "graph.resume.requested",
+                )
+            )
         assert approval_count == resume_count == 1
+        assert resume_payload == {
+            "schema_version": "graph-action.v1",
+            "action": "resume",
+            "run_id": str(run_id),
+            "thread_id": approved.thread_id,
+            "run_type": "parent.generate.v1",
+            "decision": {
+                "decision": "approve",
+                "actor_id": "human",
+                "approval_assertion": "I approve this composition after a full review.",
+                "expected_plan_hash": stored.content_hash,
+                "note": "",
+            },
+        }
         approved_replay = await RecordAIRunApproval(uow)(
             run_id=run_id,
             actor_id="human",
@@ -1086,7 +1121,7 @@ async def test_project_scoped_and_concurrent_create_replay_and_action_replay(
             retry_outbox_count = await transaction._session.scalar(  # type: ignore[attr-defined]
             select(func.count()).select_from(OutboxEventRow).where(
                 OutboxEventRow.aggregate_id == child.run_id,
-                    OutboxEventRow.topic == "graph.retry.requested",
+                    OutboxEventRow.topic == "graph.start.requested",
                 )
             )
             child_created_count = await transaction._session.scalar(  # type: ignore[attr-defined]
@@ -1095,7 +1130,34 @@ async def test_project_scoped_and_concurrent_create_replay_and_action_replay(
                     AIRunEventRow.event_type == "ai_run.created",
                 )
             )
+            cancel_payload = await transaction._session.scalar(  # type: ignore[attr-defined]
+                select(OutboxEventRow.payload).where(
+                    OutboxEventRow.aggregate_id == created.run_id,
+                    OutboxEventRow.topic == "graph.cancel.requested",
+                )
+            )
+            retry_payload = await transaction._session.scalar(  # type: ignore[attr-defined]
+                select(OutboxEventRow.payload).where(
+                    OutboxEventRow.aggregate_id == child.run_id,
+                )
+            )
         assert retry_outbox_count == child_created_count == 1
+        assert cancel_payload == {
+            "schema_version": "graph-action.v1",
+            "action": "cancel",
+            "run_id": str(created.run_id),
+            "thread_id": created.thread_id,
+            "run_type": "parent.generate.v1",
+            "decision": None,
+        }
+        assert retry_payload == {
+            "schema_version": "graph-action.v1",
+            "action": "start",
+            "run_id": str(child.run_id),
+            "thread_id": child.thread_id,
+            "run_type": "parent.generate.v1",
+            "decision": None,
+        }
         with pytest.raises(ApplicationError, match="IDEMPOTENCY_KEY_REUSED"):
             await RequestAIRunAction(uow)(
                 run_id=created.run_id,

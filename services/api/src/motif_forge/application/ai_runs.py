@@ -307,6 +307,7 @@ class RecordAIRunApproval:
         expected_version: int,
         expected_plan_content_hash: str,
         interrupt_ref: str,
+        note: str = "",
     ) -> AIRunApproval:
         if decision not in {"approve", "reject"}:
             raise ApplicationError(
@@ -331,6 +332,8 @@ class RecordAIRunApproval:
         async with self._uow_factory() as transaction:
             return await transaction.record_ai_run_approval(
                 approval=approval,
+                assertion=assertion,
+                note=note,
                 expected_version=expected_version,
                 outbox_event_id=self._id_factory(),
             )
