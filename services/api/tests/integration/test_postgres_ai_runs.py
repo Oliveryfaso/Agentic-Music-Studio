@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
 from uuid import UUID, uuid4
@@ -32,21 +33,34 @@ from motif_forge.application.ai_runs import (
 )
 from motif_forge.application.errors import ApplicationError
 from motif_forge.application.projects import CreateProject, CreateProjectRequest
+from motif_forge.application.revisions import CommitCommandBatch, CommitCommandBatchRequest
 from motif_forge.domain.ai_runs import (
+    AIRun,
     AIRunEvent,
     AIRunStatus,
     ModelRequestKind,
     PersistedCompositionPlan,
     composition_plan_content_hash,
 )
+from motif_forge.domain.commands import AddTrackCommand, AddTrackPayload
+from motif_forge.domain.ir import Track, TrackRole, TrackType
+from motif_forge.domain.revisions import AuthorKind
 from motif_forge.infrastructure.persistence.ai_runs import PostgresAIRunUnitOfWork
 from motif_forge.infrastructure.persistence.database import (
     PostgresUnitOfWork,
     create_postgres_engine,
     create_session_factory,
 )
-from motif_forge.infrastructure.persistence.tables import AIRunApprovalRow, AIRunRow
-from sqlalchemy import func, select, text
+from motif_forge.infrastructure.persistence.tables import (
+    AIRunApprovalRow,
+    AIRunEventRow,
+    AIRunRow,
+    BranchRow,
+    OutboxEventRow,
+)
+from sqlalchemy import func, insert, select, text
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 
 def _upgrade(dsn: str, revision: str = "head") -> None:
@@ -112,7 +126,7 @@ def _plan() -> CompositionPlan:
 
 async def _seed_run(
     dsn: str, *, key: str = "s2-ai-run-key"
-) -> tuple[UUID, UUID, UUID, PostgresAIRunUnitOfWork]:
+) -> tuple[UUID, UUID, UUID, PostgresAIRunUnitOfWork, AsyncEngine]:
     engine = create_postgres_engine(dsn)
     sessions = create_session_factory(engine)
     project = await CreateProject(PostgresUnitOfWork(sessions))(
@@ -131,7 +145,7 @@ async def _seed_run(
             idempotency_key=key,
         )
     )
-    return run.run_id, project.project_id, project.root_revision_id, run_uow
+    return run.run_id, project.project_id, project.root_revision_id, run_uow, engine
 
 
 @pytest.mark.asyncio
@@ -139,93 +153,195 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
     test_postgres_dsn: str,
 ) -> None:
     await asyncio.to_thread(_upgrade, test_postgres_dsn)
-    run_id, project_id, _, uow = await _seed_run(test_postgres_dsn)
-    replay = await CreateAIRun(uow)(
-        CreateAIRunRequest(
-            project_id=project_id,
-            branch_id=(await _run(uow, run_id)).branch_id,
-            base_revision_id=(await _run(uow, run_id)).base_revision_id,
-            thread_id=(await _run(uow, run_id)).thread_id,
-            brief=_brief(),
-            idempotency_key="s2-ai-run-key",
+    run_id, project_id, _, uow, engine = await _seed_run(test_postgres_dsn)
+    try:
+        replay = await CreateAIRun(uow)(
+            CreateAIRunRequest(
+                project_id=project_id,
+                branch_id=(await _run(uow, run_id)).branch_id,
+                base_revision_id=(await _run(uow, run_id)).base_revision_id,
+                thread_id=(await _run(uow, run_id)).thread_id,
+                brief=_brief(),
+                idempotency_key="s2-ai-run-key",
+            )
         )
-    )
-    assert replay.run_id == run_id
-    plan = _plan()
-    stored = PersistedCompositionPlan(
-        plan_id=uuid4(),
-        run_id=run_id,
-        plan=plan,
-        content_hash=composition_plan_content_hash(plan),
-        provider="fallback",
-        model="deterministic",
-        prompt_version="p1",
-        schema_version="composition-plan.v1",
-        style_pack_version="s1",
-    )
-    assert (await PersistCompositionPlan(uow)(stored)).plan_id == stored.plan_id
-    with pytest.raises(ApplicationError, match="PLAN_PROVENANCE_CONFLICT"):
-        await PersistCompositionPlan(uow)(stored.model_copy(update={"provider": "other"}))
-    event = await RecordAIRunEvent(uow)(
-        AIRunEvent(
-            sequence=1,
-            event_id=uuid4(),
+        assert replay.run_id == run_id
+        plan = _plan()
+        stored = PersistedCompositionPlan(
+            plan_id=uuid4(),
             run_id=run_id,
-            event_type="model.completed",
-            phase="planning",
-            payload={"prompt_tokens": 4, "completion_tokens": 2},
-            dedupe_key="usage",
+            plan=plan,
+            content_hash=composition_plan_content_hash(plan),
+            provider="fallback",
+            model="deterministic",
+            prompt_version="p1",
+            schema_version="composition-plan.v1",
+            style_pack_version="s1",
         )
-    )
-    replay_event = await RecordAIRunEvent(uow)(
-        event.model_copy(update={"event_id": uuid4(), "sequence": 1})
-    )
-    assert replay_event.sequence == event.sequence
-    events = await ListAIRunEvents(uow)(run_id)
-    assert [item.sequence for item in events] == sorted(item.sequence for item in events)
-    async with uow() as transaction:
-        await transaction._session.execute(
-            text("UPDATE app.ai_runs SET status = 'waiting_approval', version = 1 WHERE id = :id"),
-            {"id": run_id},
-        )  # type: ignore[attr-defined]
-    approval = await RecordAIRunApproval(uow)(
-        run_id=run_id,
-        actor_id="human",
-        decision="approve",
-        assertion="I approve after review",
-        expected_version=1,
-    )
-    assert approval.assertion_hash != "I approve after review"
-    async with uow() as transaction:
-        stored_hash = await transaction._session.scalar(  # type: ignore[attr-defined]
-            select(AIRunApprovalRow.assertion_hash).where(AIRunApprovalRow.run_id == run_id)
+        assert (await PersistCompositionPlan(uow)(stored)).plan_id == stored.plan_id
+        with pytest.raises(ApplicationError, match="PLAN_PROVENANCE_CONFLICT"):
+            await PersistCompositionPlan(uow)(stored.model_copy(update={"provider": "other"}))
+        event = await RecordAIRunEvent(uow)(
+            AIRunEvent(
+                sequence=1,
+                event_id=uuid4(),
+                run_id=run_id,
+                event_type="model.completed",
+                phase="planning",
+                payload={"prompt_tokens": 4, "completion_tokens": 2},
+                dedupe_key="usage",
+            )
         )
-    assert stored_hash == approval.assertion_hash
-    approved_replay = await RecordAIRunApproval(uow)(
-        run_id=run_id,
-        actor_id="human",
-        decision="approve",
-        assertion="I approve after review",
-        expected_version=1,
-    )
-    assert approved_replay.approval_id == approval.approval_id
-    reservation = await ReserveModelRequest(uow)(run_id=run_id, kind=ModelRequestKind.INITIAL)
-    observed = await RecordModelUsage(uow)(
-        run_id=run_id,
-        reservation_id=reservation.reservation_id,
-        provider_operation_id="provider-op-1",
-        prompt_tokens=5,
-        completion_tokens=3,
-    )
-    assert observed.prompt_tokens == 5
-    with pytest.raises(ApplicationError, match="MODEL_USAGE_CONFLICT"):
-        await RecordModelUsage(uow)(
+        replay_event = await RecordAIRunEvent(uow)(
+            event.model_copy(update={"event_id": uuid4(), "sequence": 1})
+        )
+        assert replay_event.sequence == event.sequence
+        next_event = await RecordAIRunEvent(uow)(
+            event.model_copy(
+                update={
+                    "event_id": uuid4(),
+                    "event_type": "plan.persisted",
+                    "dedupe_key": "plan",
+                }
+            )
+        )
+        assert next_event.sequence > event.sequence
+        events = await ListAIRunEvents(uow)(run_id)
+        assert [item.sequence for item in events] == sorted(item.sequence for item in events)
+        assert [item.sequence for item in events][-2:] == [event.sequence, next_event.sequence]
+        assert await ListAIRunEvents(uow)(run_id, after_sequence=event.sequence) == (next_event,)
+        async with uow() as transaction:
+            await transaction._session.execute(
+                text("UPDATE app.ai_runs SET status = 'waiting_approval', version = 1 WHERE id = :id"),
+                {"id": run_id},
+            )  # type: ignore[attr-defined]
+        with pytest.raises(ApplicationError, match="AI_RUN_ACTION_INVALID"):
+            await RequestAIRunAction(uow)(
+                run_id=run_id, action="resume", expected_version=1, idempotency_key="no-bypass"
+            )
+        with pytest.raises(ApplicationError, match="AI_RUN_APPROVAL_INVALID"):
+            await RecordAIRunApproval(uow)(
+                run_id=run_id,
+                actor_id="human",
+                decision="approve",
+                assertion="too short",
+                expected_version=1,
+                expected_plan_content_hash=stored.content_hash,
+                interrupt_ref=f"plan:{stored.content_hash}",
+            )
+        with pytest.raises(ApplicationError, match="AI_RUN_APPROVAL_CONFLICT"):
+            await RecordAIRunApproval(uow)(
+                run_id=run_id,
+                actor_id="human",
+                decision="approve",
+                assertion="I approve this composition after a full review.",
+                expected_version=1,
+                expected_plan_content_hash="0" * 64,
+                interrupt_ref="plan:" + "0" * 64,
+            )
+        approval = await RecordAIRunApproval(uow)(
+            run_id=run_id,
+            actor_id="human",
+            decision="approve",
+            assertion="I approve this composition after a full review.",
+            expected_version=1,
+            expected_plan_content_hash=stored.content_hash,
+            interrupt_ref=f"plan:{stored.content_hash}",
+        )
+        assert approval.assertion_hash != "I approve this composition after a full review."
+        async with uow() as transaction:
+            stored_hash = await transaction._session.scalar(  # type: ignore[attr-defined]
+                select(AIRunApprovalRow.assertion_hash).where(AIRunApprovalRow.run_id == run_id)
+            )
+        assert stored_hash == approval.assertion_hash
+        approved = await _run(uow, run_id)
+        assert approved.status is AIRunStatus.MATERIALIZING
+        assert approved.approval_assertion_hash == approval.assertion_hash
+        async with uow() as transaction:
+            approval_count = await transaction._session.scalar(  # type: ignore[attr-defined]
+                select(func.count()).select_from(AIRunApprovalRow).where(AIRunApprovalRow.run_id == run_id)
+            )
+            resume_count = await transaction._session.scalar(  # type: ignore[attr-defined]
+                select(func.count()).select_from(OutboxEventRow).where(
+                    OutboxEventRow.aggregate_id == run_id,
+                    OutboxEventRow.topic == "graph.resume.requested",
+                )
+            )
+        assert approval_count == resume_count == 1
+        approved_replay = await RecordAIRunApproval(uow)(
+            run_id=run_id,
+            actor_id="human",
+            decision="approve",
+            assertion="I approve this composition after a full review.",
+            expected_version=1,
+            expected_plan_content_hash=stored.content_hash,
+            interrupt_ref=f"plan:{stored.content_hash}",
+        )
+        assert approved_replay.approval_id == approval.approval_id
+        reservation = await ReserveModelRequest(uow)(run_id=run_id, kind=ModelRequestKind.INITIAL)
+        observed = await RecordModelUsage(uow)(
             run_id=run_id,
             reservation_id=reservation.reservation_id,
             provider_operation_id="provider-op-1",
-            prompt_tokens=6,
+            prompt_tokens=5,
             completion_tokens=3,
         )
+        assert observed.prompt_tokens == 5
+        with pytest.raises(ApplicationError, match="MODEL_USAGE_CONFLICT"):
+            await RecordModelUsage(uow)(
+                run_id=run_id,
+                reservation_id=reservation.reservation_id,
+                provider_operation_id="provider-op-1",
+                prompt_tokens=6,
+                completion_tokens=3,
+            )
+        rejected = await CreateAIRun(uow)(
+            CreateAIRunRequest(
+                project_id=project_id,
+                branch_id=approved.branch_id,
+                base_revision_id=approved.base_revision_id,
+                thread_id=f"reject-{uuid4().hex}",
+                brief=_brief(),
+                idempotency_key=f"reject-{uuid4().hex}",
+            )
+        )
+        rejected_plan = stored.model_copy(update={"plan_id": uuid4(), "run_id": rejected.run_id})
+        await PersistCompositionPlan(uow)(rejected_plan)
+        async with uow() as transaction:
+            await transaction._session.execute(
+                text("UPDATE app.ai_runs SET status='waiting_approval', version=1 WHERE id=:id"),
+                {"id": rejected.run_id},
+            )  # type: ignore[attr-defined]
+        rejection = await RecordAIRunApproval(uow)(
+            run_id=rejected.run_id,
+            actor_id="human",
+            decision="reject",
+            assertion="I reject this composition after a full review.",
+            expected_version=1,
+            expected_plan_content_hash=rejected_plan.content_hash,
+            interrupt_ref=f"plan:{rejected_plan.content_hash}",
+        )
+        rejection_replay = await RecordAIRunApproval(uow)(
+            run_id=rejected.run_id,
+            actor_id="human",
+            decision="reject",
+            assertion="I reject this composition after a full review.",
+            expected_version=1,
+            expected_plan_content_hash=rejected_plan.content_hash,
+            interrupt_ref=f"plan:{rejected_plan.content_hash}",
+        )
+        assert rejection_replay.approval_id == rejection.approval_id
+        assert (await _run(uow, rejected.run_id)).status is AIRunStatus.REJECTED
+        async with uow() as transaction:
+            rejected_resume = await transaction._session.scalar(  # type: ignore[attr-defined]
+                select(func.count()).select_from(OutboxEventRow).where(
+                    OutboxEventRow.aggregate_id == rejected.run_id,
+                    OutboxEventRow.topic == "graph.resume.requested",
+                )
+            )
+        assert rejected_resume == 0
+    finally:
+        await engine.dispose()  # type: ignore[union-attr]
 
 
 @pytest.mark.asyncio
@@ -233,18 +349,21 @@ async def test_reservation_budget_terminal_and_cross_project_identity(
     test_postgres_dsn: str,
 ) -> None:
     await asyncio.to_thread(_upgrade, test_postgres_dsn)
-    run_id, _, _, uow = await _seed_run(test_postgres_dsn, key=f"key-{uuid4().hex}")
-    await ReserveModelRequest(uow)(run_id=run_id, kind=ModelRequestKind.INITIAL)
-    await ReserveModelRequest(uow)(run_id=run_id, kind=ModelRequestKind.SCHEMA_REPAIR)
-    with pytest.raises(ApplicationError, match="MODEL_REQUEST_BUDGET_EXHAUSTED"):
-        await ReserveModelRequest(uow)(run_id=run_id, kind=ModelRequestKind.STRATEGY_REPAIR)
-    await ReserveModelRequest(uow)(run_id=run_id, kind=ModelRequestKind.TRANSPORT_RETRY)
-    with pytest.raises(ApplicationError, match="MODEL_REQUEST_BUDGET_EXHAUSTED"):
+    run_id, _, _, uow, engine = await _seed_run(test_postgres_dsn, key=f"key-{uuid4().hex}")
+    try:
+        await ReserveModelRequest(uow)(run_id=run_id, kind=ModelRequestKind.INITIAL)
+        await ReserveModelRequest(uow)(run_id=run_id, kind=ModelRequestKind.SCHEMA_REPAIR)
+        with pytest.raises(ApplicationError, match="MODEL_REQUEST_BUDGET_EXHAUSTED"):
+            await ReserveModelRequest(uow)(run_id=run_id, kind=ModelRequestKind.STRATEGY_REPAIR)
         await ReserveModelRequest(uow)(run_id=run_id, kind=ModelRequestKind.TRANSPORT_RETRY)
-    with pytest.raises(ApplicationError, match="AI_RUN_ACTION_STATE_CONFLICT"):
-        await RequestAIRunAction(uow)(
-            run_id=run_id, action="resume", expected_version=0, idempotency_key="action-key"
-        )
+        with pytest.raises(ApplicationError, match="MODEL_REQUEST_BUDGET_EXHAUSTED"):
+            await ReserveModelRequest(uow)(run_id=run_id, kind=ModelRequestKind.TRANSPORT_RETRY)
+        with pytest.raises(ApplicationError, match="AI_RUN_ACTION_INVALID"):
+            await RequestAIRunAction(uow)(
+                run_id=run_id, action="resume", expected_version=0, idempotency_key="action-key"
+            )
+    finally:
+        await engine.dispose()  # type: ignore[union-attr]
 
 
 @pytest.mark.asyncio
@@ -315,6 +434,25 @@ async def test_project_scoped_and_concurrent_create_replay_and_action_replay(
         run_id=created.run_id, action="cancel", expected_version=0, idempotency_key="cancel-replay"
     )
     assert replay_cancelled.version == cancelled.version
+    child = await RequestAIRunAction(uow)(
+        run_id=created.run_id, action="retry", expected_version=cancelled.version, idempotency_key="retry-child"
+    )
+    child_replay = await RequestAIRunAction(uow)(
+        run_id=created.run_id, action="retry", expected_version=cancelled.version, idempotency_key="retry-child"
+    )
+    assert child_replay.run_id == child.run_id
+    assert child.parent_run_id == created.run_id
+    assert child.thread_id != created.thread_id
+    assert child.submitted_model_requests == child.prompt_tokens == child.completion_tokens == 0
+    assert (await _run(uow, created.run_id)) == cancelled
+    async with uow() as transaction:
+        retry_outbox_count = await transaction._session.scalar(  # type: ignore[attr-defined]
+            select(func.count()).select_from(OutboxEventRow).where(
+                OutboxEventRow.aggregate_id == child.run_id,
+                OutboxEventRow.topic == "graph.retry.requested",
+            )
+        )
+    assert retry_outbox_count == 1
     with pytest.raises(ApplicationError, match="MODEL_REQUEST_BUDGET_EXHAUSTED"):
         await ReserveModelRequest(uow)(run_id=created.run_id, kind=ModelRequestKind.INITIAL)
     await engine.dispose()
@@ -325,16 +463,25 @@ async def test_populated_0013_downgrades_to_0012(test_postgres_dsn: str) -> None
     await asyncio.to_thread(_upgrade, test_postgres_dsn)
     engine = create_postgres_engine(test_postgres_dsn)
     try:
+        trace_id, span_id, operation_id = uuid4(), uuid4(), f"downgrade-{uuid4().hex}"
         async with engine.begin() as connection:
             await connection.execute(
                 text(
-                    "INSERT INTO observability.traces (id, run_id, thread_id, trace_name, status, started_at, updated_at) VALUES (gen_random_uuid(), 's2-downgrade', 'thread', 'test', 'succeeded', now(), now()) ON CONFLICT DO NOTHING"
-                )
+                    "INSERT INTO observability.traces (id, run_id, thread_id, trace_name, status, started_at, updated_at) VALUES (:id, :run_id, 'thread', 'test', 'succeeded', now(), now())"
+                ),
+                {"id": trace_id, "run_id": operation_id},
             )
             await connection.execute(
                 text(
-                    "UPDATE observability.usage_ledger SET estimated_cost_microusd = NULL WHERE estimated_cost_microusd = 0"
-                )
+                    "INSERT INTO observability.trace_spans (id, trace_id, operation_id, run_id, node, span_kind, status, safe_summary, started_at, ended_at, latency_ms) VALUES (:id, :trace_id, :operation_id, :run_id, 'test', 'model', 'succeeded', '{}'::jsonb, now(), now(), 0)"
+                ),
+                {"id": span_id, "trace_id": trace_id, "operation_id": operation_id, "run_id": operation_id},
+            )
+            await connection.execute(
+                text(
+                    "INSERT INTO observability.usage_ledger (operation_id, trace_span_id, run_id, node, provider, model, model_calls, prompt_tokens, completion_tokens, total_tokens, prompt_cache_hit_tokens, prompt_cache_miss_tokens, reasoning_tokens, estimated_cost_microusd, created_at) VALUES (:operation_id, :span_id, :run_id, 'test', 'provider', 'model', 1, 1, 2, 3, 0, 0, 0, NULL, now())"
+                ),
+                {"operation_id": operation_id, "span_id": span_id, "run_id": operation_id},
             )
         await asyncio.to_thread(_downgrade, test_postgres_dsn)
         async with engine.connect() as connection:
@@ -343,7 +490,129 @@ async def test_populated_0013_downgrades_to_0012(test_postgres_dsn: str) -> None
                     "SELECT is_nullable FROM information_schema.columns WHERE table_schema='observability' AND table_name='usage_ledger' AND column_name='estimated_cost_microusd'"
                 )
             )
+            legacy_cost = await connection.scalar(
+                text("SELECT estimated_cost_microusd FROM observability.usage_ledger WHERE operation_id=:operation_id"),
+                {"operation_id": operation_id},
+            )
+            removed = await connection.scalar(text("SELECT to_regclass('app.ai_runs')"))
+            removed_approval = await connection.scalar(text("SELECT to_regclass('app.ai_run_approvals')"))
+            removed_plan = await connection.scalar(text("SELECT to_regclass('app.composition_plans')"))
+            removed_event = await connection.scalar(text("SELECT to_regclass('app.ai_run_events')"))
+            removed_reservation = await connection.scalar(
+                text("SELECT to_regclass('app.ai_model_request_reservations')")
+            )
         assert nullable == "NO"
+        assert legacy_cost == 0
+        assert removed is None
+        assert removed_approval is None
+        assert removed_plan is None
+        assert removed_event is None
+        assert removed_reservation is None
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_atomic_create_failure_and_database_budget_constraints(test_postgres_dsn: str) -> None:
+    await asyncio.to_thread(_upgrade, test_postgres_dsn)
+    run_id, project_id, root_id, uow, engine = await _seed_run(
+        test_postgres_dsn, key=f"constraints-{uuid4().hex}"
+    )
+    try:
+        conflict_run_id, conflict_key = uuid4(), f"rollback-{uuid4().hex}"
+        now = datetime.now(UTC)
+        async with uow() as transaction:
+            await transaction._session.execute(  # type: ignore[attr-defined]
+                insert(OutboxEventRow).values(
+                    id=uuid4(), aggregate_type="ai_run", aggregate_id=uuid4(),
+                    topic="test", dedupe_key=f"ai-run:{conflict_run_id}:graph.start.requested",
+                    payload={}, status="pending", attempts=0, available_at=now, created_at=now,
+                )
+            )
+        failed_run = AIRun(
+            run_id=conflict_run_id, project_id=project_id,
+            branch_id=(await _run(uow, run_id)).branch_id, base_revision_id=root_id,
+            thread_id=f"rollback-{uuid4().hex}", idempotency_key=conflict_key,
+        )
+        with pytest.raises(IntegrityError):
+            async with uow() as transaction:
+                await transaction.create_ai_run(
+                    run=failed_run,
+                    created_event=AIRunEvent(
+                        sequence=1, event_id=uuid4(), run_id=conflict_run_id,
+                        event_type="ai_run.created", phase="queued", payload={}, dedupe_key="created",
+                    ),
+                    outbox_event_id=uuid4(), request_hash="x" * 64,
+                )
+        async with engine.connect() as connection:
+            assert await connection.scalar(select(func.count()).select_from(AIRunRow).where(AIRunRow.id == conflict_run_id)) == 0
+            assert await connection.scalar(
+                select(func.count()).select_from(AIRunEventRow).where(AIRunEventRow.run_id == conflict_run_id)
+            ) == 0
+            assert await connection.scalar(select(func.count()).select_from(OutboxEventRow).where(OutboxEventRow.aggregate_id == conflict_run_id)) == 0
+        with pytest.raises(IntegrityError):
+            async with engine.begin() as connection:
+                await connection.execute(text("UPDATE app.ai_runs SET submitted_model_requests=4 WHERE id=:id"), {"id": run_id})
+        with pytest.raises(IntegrityError):
+            async with engine.begin() as connection:
+                await connection.execute(text("UPDATE app.ai_runs SET prompt_tokens=-1 WHERE id=:id"), {"id": run_id})
+        with pytest.raises(IntegrityError):
+            async with engine.begin() as connection:
+                await connection.execute(text("INSERT INTO app.ai_model_request_reservations (id, run_id, request_ordinal, request_kind, status, prompt_tokens, completion_tokens, created_at) VALUES (:id, :run_id, 99, 'initial', 'reserved', -1, 0, now())"), {"id": uuid4(), "run_id": run_id})
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_locked_branch_head_rejects_stale_and_other_branch_base(test_postgres_dsn: str) -> None:
+    await asyncio.to_thread(_upgrade, test_postgres_dsn)
+    run_id, project_id, root_id, uow, engine = await _seed_run(
+        test_postgres_dsn, key=f"head-{uuid4().hex}"
+    )
+    try:
+        initial = await _run(uow, run_id)
+        commit = await CommitCommandBatch(PostgresUnitOfWork(create_session_factory(engine)))(
+            CommitCommandBatchRequest(
+                project_id=project_id, branch_id=initial.branch_id, base_revision_id=root_id,
+                commands=(AddTrackCommand(
+                    command_id=uuid4(), actor_kind="human", client_sequence=0,
+                    payload=AddTrackPayload(track=Track(
+                        track_id=uuid4(), track_type=TrackType.INSTRUMENT,
+                        name="Head Test", role=TrackRole.HARMONY, instrument_ref="builtin:piano",
+                    )),
+                ),),
+                actor_id="test", author_kind=AuthorKind.HUMAN, reason="HEAD_TEST",
+                idempotency_key=f"commit-{uuid4().hex}",
+            )
+        )
+        other_branch_id = uuid4()
+        async with engine.begin() as connection:
+            await connection.execute(
+                insert(BranchRow).values(
+                    id=other_branch_id, project_id=project_id, name=f"other-{uuid4().hex}",
+                    head_revision_id=root_id, base_revision_id=root_id,
+                    created_at=datetime.now(UTC), updated_at=datetime.now(UTC), created_by="test",
+                )
+            )
+        for branch_id, revision_id, label in (
+            (initial.branch_id, root_id, "stale"),
+            (other_branch_id, commit.revision_id, "other-branch"),
+        ):
+            with pytest.raises(ApplicationError, match="AI_RUN_BASE_REVISION_CONFLICT"):
+                await CreateAIRun(uow)(
+                    CreateAIRunRequest(
+                        project_id=project_id, branch_id=branch_id, base_revision_id=revision_id,
+                        thread_id=f"{label}-{uuid4().hex}", brief=_brief(),
+                        idempotency_key=f"{label}-{uuid4().hex}",
+                    )
+                )
+        async with engine.connect() as connection:
+            assert await connection.scalar(
+                select(func.count()).select_from(AIRunRow).where(
+                    AIRunRow.project_id == project_id, AIRunRow.id.not_in([run_id])
+                )
+            ) == 0
+        assert commit.revision_id != root_id
     finally:
         await engine.dispose()
 

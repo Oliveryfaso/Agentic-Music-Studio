@@ -362,6 +362,17 @@ class AIRunTransaction(Protocol):
     async def record_ai_run_approval(
         self, *, approval: AIRunApproval, expected_version: int, outbox_event_id: UUID
     ) -> AIRunApproval: ...
+    async def retry_ai_run(
+        self,
+        *,
+        parent_run_id: UUID,
+        expected_version: int,
+        idempotency_key: str,
+        child_run_id: UUID,
+        child_thread_id: str,
+        outbox_event_id: UUID,
+        now: datetime,
+    ) -> AIRun: ...
     async def list_ai_run_events(
         self, run_id: UUID, *, after_sequence: int
     ) -> tuple[AIRunEvent, ...]: ...

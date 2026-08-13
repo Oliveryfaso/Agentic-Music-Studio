@@ -56,8 +56,8 @@ git diff --check
 
 ## Schema, migration, rollback
 
-Migration `20260813_0013` creates `app.ai_runs`, `app.composition_plans`,
-`app.ai_run_events` (identity-backed `BIGINT` sequence), and
+Migration `20260813_0013` creates `app.ai_runs`, `app.ai_run_approvals`,
+`app.composition_plans`, `app.ai_run_events` (identity-backed `BIGINT` sequence), and
 `app.ai_model_request_reservations`. It adds all requested uniqueness and foreign-key
 relationships. The migration makes `observability.usage_ledger.estimated_cost_microusd` nullable,
 adds `cost_status` and `pricing_version`, and changes historical zero cost rows to unknown/null.
@@ -84,8 +84,8 @@ cost column shape, targeting `20260812_0012`.
   enforced across schema and strategy repair.
 - Outbox start/action payloads contain only stable IDs, thread/action/version and schema labels;
   no prompt, response, reasoning, or secret fields are persisted in events/reservations.
-- `MOTIF_FORGE_TEST_POSTGRES_DSN` is absent in this environment. The real PostgreSQL test exists
-  and is safely skipped rather than using SQLite or implicit credentials. This is the sole concern.
+- Initial PostgreSQL evidence was deferred until review round 2; real PostgreSQL evidence is now
+  recorded below and did not use SQLite or implicit credentials.
 - Initial `uv run` migration invocation was blocked by inherited AppleDouble files in the checked-in
   local `.venv`; the required SQL rendering was completed with the provided isolated Python venv.
 
@@ -94,6 +94,83 @@ cost column shape, targeting `20260812_0012`.
 Original Task 1 commit: `e0176d6929f92b700ea652be6c43eef369d1c469` —
 `feat: persist S2 AI runs and plans`. The review-fix commit is the current Git HEAD with subject
 `fix: harden S2 AI run persistence`; this avoids the stale pre-amend SHA previously recorded here.
+
+## Review fix round 2 — RED/GREEN audit
+
+**Status:** DONE
+
+### RED
+
+```bash
+MOTIF_FORGE_TEST_POSTGRES_DSN='postgresql://motif_forge:motif_forge@localhost:5432/motif_forge_s2_task1' \
+  /private/tmp/motif-forge-s2-venv/bin/pytest -q \
+  services/api/tests/integration/test_postgres_ai_runs.py
+# 4 failed before the AppleDouble migration artifact was removed; Alembic reported
+# SyntaxError: source code string cannot contain null bytes for the exact `._0013` file.
+```
+
+The new red cases then drove the approval-resume bypass closure, assertion-length validation,
+approval projection/hash write, rejection terminal handling, head-revision validation, child retry,
+and deployed PostgreSQL constraints. The migration artifact was removed exactly before test runs;
+it is not source and was not committed.
+
+### GREEN
+
+```bash
+MOTIF_FORGE_TEST_POSTGRES_DSN='postgresql://motif_forge:motif_forge@localhost:5432/motif_forge_s2_task1' \
+  /private/tmp/motif-forge-s2-venv/bin/pytest -q \
+  services/api/tests/integration/test_postgres_ai_runs.py
+# 6 passed
+
+/private/tmp/motif-forge-s2-venv/bin/pytest -q \
+  services/api/tests/unit/domain/test_ai_runs.py
+# 8 passed
+
+/private/tmp/motif-forge-s2-venv/bin/mypy \
+  services/api/src/motif_forge/domain/ai_runs.py \
+  services/api/src/motif_forge/application/ai_runs.py \
+  services/api/src/motif_forge/application/ports.py \
+  services/api/src/motif_forge/infrastructure/persistence/ai_runs.py \
+  services/api/src/motif_forge/infrastructure/persistence/tables.py
+# Success: no issues found in 5 source files
+
+/private/tmp/motif-forge-s2-venv/bin/ruff check <Task 1 source and tests>
+# All checks passed
+
+MOTIF_FORGE_POSTGRES_DSN='postgresql://motif_forge:motif_forge@localhost:5432/motif_forge_s2_task1' \
+  /private/tmp/motif-forge-s2-venv/bin/alembic upgrade head --sql \
+  >/private/tmp/motif-forge-s2-review2-up.sql
+MOTIF_FORGE_POSTGRES_DSN='postgresql://motif_forge:motif_forge@localhost:5432/motif_forge_s2_task1' \
+  /private/tmp/motif-forge-s2-venv/bin/alembic downgrade \
+  20260813_0013:20260812_0012 --sql \
+  >/private/tmp/motif-forge-s2-review2-down.sql
+# rendered: 793 / 32 lines
+
+git diff --check
+# clean
+```
+
+The real PostgreSQL tests prove idempotent/concurrent create, immutable plan provenance,
+strictly monotonic events and `after_sequence` replay, approval/rejection hash binding and replay,
+atomic write failure rollback of run/event/outbox/natural key, child-run retry, head/branch identity
+rejection with no Run side effects, reservation/usage accounting, and migration `0013 -> 0012` with
+an actual trace/span/NULL usage-ledger row restored to legacy cost `0`. The latter also asserts the
+five Task 1 tables are removed on rollback.
+
+### Schema and rollback update
+
+`ai_runs` now includes `parent_run_id`, a parent/idempotency uniqueness guard, and deployed checks
+for `submitted_model_requests BETWEEN 0 AND 3` and nonnegative aggregate token counters.
+`ai_run_approvals` contains the expected Plan content hash and pending interrupt reference. The
+Task 1 table inventory is five tables: `ai_runs`, `ai_run_approvals`, `composition_plans`,
+`ai_run_events`, and `ai_model_request_reservations`. `downgrade()` removes all five and restores
+the legacy usage-ledger columns/value semantics at revision `20260812_0012`.
+
+### Concerns
+
+No remaining Task 1 concern. Directly invoking generic `alembic downgrade -1` from the shared test
+database encountered a pre-existing 0012 artifact-constraint downgrade defect outside this task;
+the required populated `0013 -> 0012` rollback was instead executed and passed by the real test.
 
 ## Review fix round 1 — RED/GREEN audit
 

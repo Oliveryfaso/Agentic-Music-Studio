@@ -3,6 +3,8 @@ from uuid import uuid4
 
 import pytest
 from motif_forge.domain.ai_runs import (
+    GENERATE_RUN_STATE_SCHEMA_VERSION,
+    PARENT_GRAPH_TOPOLOGY_VERSION,
     AIRun,
     AIRunEvent,
     AIRunStatus,
@@ -97,11 +99,11 @@ def test_ai_run_persists_graph_and_state_compatibility_versions() -> None:
         branch_id=uuid4(),
         base_revision_id=uuid4(),
         thread_id="generate-abc",
-        graph_topology_version="motif-forge-graph.v1",
-        state_schema_version="generate-run-state.v1",
+        graph_topology_version=PARENT_GRAPH_TOPOLOGY_VERSION,
+        state_schema_version=GENERATE_RUN_STATE_SCHEMA_VERSION,
     )
-    assert run.graph_topology_version == "motif-forge-graph.v1"
-    assert approval_assertion_hash("approved after review") != "approved after review"
+    assert run.graph_topology_version == PARENT_GRAPH_TOPOLOGY_VERSION
+    assert approval_assertion_hash("approved after a full review") != "approved after a full review"
 
 
 def test_ai_run_action_transitions_are_finite() -> None:
@@ -116,3 +118,12 @@ def test_ai_run_action_transitions_are_finite() -> None:
     assert queued.transition_for_action("cancel", now=now).status is AIRunStatus.CANCELLED
     with pytest.raises(ValueError):
         queued.transition_for_action("resume", now=now)
+
+
+def test_run_uses_bound_parent_topology_contract() -> None:
+    run = AIRun(
+        run_id=uuid4(), project_id=uuid4(), branch_id=uuid4(),
+        base_revision_id=uuid4(), thread_id="generate-contract",
+    )
+    assert run.graph_topology_version == PARENT_GRAPH_TOPOLOGY_VERSION
+    assert run.state_schema_version == GENERATE_RUN_STATE_SCHEMA_VERSION

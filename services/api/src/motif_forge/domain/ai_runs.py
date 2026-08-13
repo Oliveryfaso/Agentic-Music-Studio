@@ -17,6 +17,8 @@ from motif_forge.domain.ir import DomainModel
 
 AI_RUN_SCHEMA_VERSION = "ai-run.v1"
 MAX_MODEL_REQUESTS = 3
+PARENT_GRAPH_TOPOLOGY_VERSION = "motif-forge-parent.v2"
+GENERATE_RUN_STATE_SCHEMA_VERSION = "generate-run-state.v1"
 
 
 class AIRunStatus(StrEnum):
@@ -86,8 +88,6 @@ _ACTION_TRANSITIONS: dict[str, dict[AIRunStatus, AIRunStatus]] = {
         AIRunStatus.MATERIALIZING: AIRunStatus.CANCELLED,
         AIRunStatus.WAITING_WORKER: AIRunStatus.CANCELLED,
     },
-    "resume": {AIRunStatus.WAITING_APPROVAL: AIRunStatus.MATERIALIZING},
-    "retry": {AIRunStatus.FAILED: AIRunStatus.QUEUED},
 }
 _SENSITIVE_KEYS = frozenset(
     {
@@ -193,17 +193,24 @@ class AIRunApproval(DomainModel):
     assertion_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     decision: str = Field(min_length=1, max_length=24)
     actor_id: str = Field(min_length=1, max_length=160)
+    expected_plan_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    interrupt_ref: str = Field(min_length=1, max_length=160)
     decided_at: datetime
 
 
 class AIRun(DomainModel):
     run_id: UUID
+    parent_run_id: UUID | None = None
     project_id: UUID
     branch_id: UUID
     base_revision_id: UUID
     thread_id: str = Field(min_length=1, max_length=160)
-    graph_topology_version: str = Field(default="motif-forge-graph.v1", min_length=1, max_length=80)
-    state_schema_version: str = Field(default="generate-run-state.v1", min_length=1, max_length=80)
+    graph_topology_version: str = Field(
+        default=PARENT_GRAPH_TOPOLOGY_VERSION, min_length=1, max_length=80
+    )
+    state_schema_version: str = Field(
+        default=GENERATE_RUN_STATE_SCHEMA_VERSION, min_length=1, max_length=80
+    )
     brief: dict[str, object] | None = None
     status: AIRunStatus = AIRunStatus.QUEUED
     version: int = Field(default=0, ge=0)
@@ -239,15 +246,6 @@ class AIRun(DomainModel):
         target = _ACTION_TRANSITIONS.get(action, {}).get(self.status)
         if target is None:
             raise ValueError(f"invalid AI run action: {action} from {self.status}")
-        if action == "retry":
-            return self.model_copy(
-                update={
-                    "status": target,
-                    "version": self.version + 1,
-                    "updated_at": now,
-                    "terminal_at": None,
-                }
-            )
         return self.transition(target, now=now)
 
 

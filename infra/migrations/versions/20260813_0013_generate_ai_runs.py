@@ -27,6 +27,7 @@ def upgrade() -> None:
             "base_revision_id", uuid, sa.ForeignKey("app.project_revisions.id"), nullable=False
         ),
         sa.Column("thread_id", sa.String(160), nullable=False),
+        sa.Column("parent_run_id", uuid, sa.ForeignKey("app.ai_runs.id")),
         sa.Column("graph_topology_version", sa.String(80), nullable=False),
         sa.Column("state_schema_version", sa.String(80), nullable=False),
         sa.Column("brief", jsonb),
@@ -43,8 +44,16 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("terminal_at", sa.DateTime(timezone=True)),
+        sa.CheckConstraint(
+            "submitted_model_requests BETWEEN 0 AND 3", name="ai_runs_request_count_range"
+        ),
+        sa.CheckConstraint("prompt_tokens >= 0", name="ai_runs_prompt_tokens_nonnegative"),
+        sa.CheckConstraint("completion_tokens >= 0", name="ai_runs_completion_tokens_nonnegative"),
         sa.UniqueConstraint(
             "project_id", "idempotency_key", name="uq_ai_runs_project_idempotency_key"
+        ),
+        sa.UniqueConstraint(
+            "parent_run_id", "idempotency_key", name="uq_ai_runs_parent_idempotency_key"
         ),
         schema="app",
     )
@@ -58,6 +67,8 @@ def upgrade() -> None:
         sa.Column("assertion_hash", sa.String(64), nullable=False),
         sa.Column("decision", sa.String(24), nullable=False),
         sa.Column("actor_id", sa.String(160), nullable=False),
+        sa.Column("expected_plan_content_hash", sa.String(64), nullable=False),
+        sa.Column("interrupt_ref", sa.String(160), nullable=False),
         sa.Column("decided_at", sa.DateTime(timezone=True), nullable=False),
         sa.UniqueConstraint("run_id", name="uq_ai_run_approvals_run"),
         schema="app",
@@ -112,6 +123,14 @@ def upgrade() -> None:
         sa.Column("completion_tokens", sa.BigInteger()),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("observed_at", sa.DateTime(timezone=True)),
+        sa.CheckConstraint(
+            "prompt_tokens IS NULL OR prompt_tokens >= 0",
+            name="reservation_prompt_tokens_nonnegative",
+        ),
+        sa.CheckConstraint(
+            "completion_tokens IS NULL OR completion_tokens >= 0",
+            name="reservation_completion_tokens_nonnegative",
+        ),
         sa.UniqueConstraint(
             "run_id", "request_ordinal", name="uq_ai_model_request_reservations_ordinal"
         ),

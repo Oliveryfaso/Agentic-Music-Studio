@@ -13,6 +13,8 @@ from motif_forge.application._hashing import request_hash
 from motif_forge.application.errors import ApplicationError, IdempotencyKeyReusedError
 from motif_forge.application.ports import AIRunUnitOfWorkFactory
 from motif_forge.domain.ai_runs import (
+    GENERATE_RUN_STATE_SCHEMA_VERSION,
+    PARENT_GRAPH_TOPOLOGY_VERSION,
     AIRun,
     AIRunApproval,
     AIRunEvent,
@@ -73,8 +75,12 @@ class CreateAIRunRequest(DomainModel):
     thread_id: str = Field(min_length=1, max_length=160)
     brief: CompositionBrief
     idempotency_key: str = Field(min_length=8, max_length=160)
-    graph_topology_version: str = Field(default="motif-forge-graph.v1", min_length=1, max_length=80)
-    state_schema_version: str = Field(default="generate-run-state.v1", min_length=1, max_length=80)
+    graph_topology_version: str = Field(
+        default=PARENT_GRAPH_TOPOLOGY_VERSION, min_length=1, max_length=80
+    )
+    state_schema_version: str = Field(
+        default=GENERATE_RUN_STATE_SCHEMA_VERSION, min_length=1, max_length=80
+    )
 
 
 class CreateAIRun:
@@ -196,9 +202,19 @@ class RequestAIRunAction:
     async def __call__(
         self, *, run_id: UUID, action: str, expected_version: int, idempotency_key: str
     ) -> AIRun:
-        if action not in {"resume", "cancel", "retry"}:
+        if action not in {"cancel", "retry"}:
             raise ApplicationError("AI_RUN_ACTION_INVALID", "unsupported AI run action")
         async with self._uow_factory() as transaction:
+            if action == "retry":
+                return await transaction.retry_ai_run(
+                    parent_run_id=run_id,
+                    expected_version=expected_version,
+                    idempotency_key=idempotency_key,
+                    child_run_id=self._id_factory(),
+                    child_thread_id=f"retry-{self._id_factory()}",
+                    outbox_event_id=self._id_factory(),
+                    now=self._clock(),
+                )
             return await transaction.request_ai_run_action(
                 run_id=run_id,
                 action=action,
@@ -229,10 +245,17 @@ class RecordAIRunApproval:
         decision: str,
         assertion: str,
         expected_version: int,
+        expected_plan_content_hash: str,
+        interrupt_ref: str,
     ) -> AIRunApproval:
         if decision not in {"approve", "reject"}:
             raise ApplicationError(
                 "AI_RUN_APPROVAL_INVALID", "approval decision must be approve or reject"
+            )
+        if not 16 <= len(assertion) <= 300:
+            raise ApplicationError(
+                "AI_RUN_APPROVAL_INVALID",
+                "approval assertion must be between 16 and 300 characters",
             )
         now = self._clock()
         approval = AIRunApproval(
@@ -241,6 +264,8 @@ class RecordAIRunApproval:
             assertion_hash=approval_assertion_hash(assertion),
             decision=decision,
             actor_id=actor_id,
+            expected_plan_content_hash=expected_plan_content_hash,
+            interrupt_ref=interrupt_ref,
             decided_at=now,
         )
         async with self._uow_factory() as transaction:

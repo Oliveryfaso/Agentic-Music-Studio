@@ -109,12 +109,16 @@ class PostgresAIRunTransaction:
                 "AI_RUN_IDENTITY_INVALID",
                 "branch and base revision must belong to the requested project",
             )
+        if branch.head_revision_id != run.base_revision_id:
+            raise ApplicationError(
+                "AI_RUN_BASE_REVISION_CONFLICT",
+                "base revision must be the locked branch head",
+            )
         try:
             await self._session.execute(insert(AIRunRow).values(**_run_values(run)))
         except IntegrityError as exc:
             # A concurrent identical request wins by reading the project-scoped natural key.
-            # The failed statement leaves PostgreSQL's transaction aborted, so a savepoint is
-            # used by the caller's nested transaction when availability matters.
+            # The outer UoW rolls back, then CreateAIRun opens a fresh UoW to replay it.
             raise ApplicationError(
                 "AI_RUN_CREATE_RACE", "concurrent AI run creation must be replayed"
             ) from exc
@@ -213,6 +217,8 @@ class PostgresAIRunTransaction:
                 saved.assertion_hash != approval.assertion_hash
                 or saved.decision != approval.decision
                 or saved.actor_id != approval.actor_id
+                or saved.expected_plan_content_hash != approval.expected_plan_content_hash
+                or saved.interrupt_ref != approval.interrupt_ref
             ):
                 raise ApplicationError(
                     "AI_RUN_APPROVAL_CONFLICT", "approval assertion does not match"
@@ -222,18 +228,36 @@ class PostgresAIRunTransaction:
             raise ApplicationError(
                 "AI_RUN_VERSION_CONFLICT", "the AI run cannot accept this approval"
             )
+        plan = (
+            await self._session.execute(
+                select(CompositionPlanRow).where(
+                    CompositionPlanRow.run_id == approval.run_id,
+                    CompositionPlanRow.content_hash == approval.expected_plan_content_hash,
+                )
+            )
+        ).scalar_one_or_none()
+        if plan is None or approval.interrupt_ref != f"plan:{approval.expected_plan_content_hash}":
+            raise ApplicationError(
+                "AI_RUN_APPROVAL_CONFLICT",
+                "approval must bind the persisted pending plan interrupt",
+            )
         target = (
             AIRunStatus.MATERIALIZING if approval.decision == "approve" else AIRunStatus.REJECTED
         )
-        run = _run_from_row(row).transition(target, now=approval.decided_at)
+        run = (
+            _run_from_row(row)
+            .transition(target, now=approval.decided_at)
+            .model_copy(update={"approval_assertion_hash": approval.assertion_hash})
+        )
         await self._session.execute(
             update(AIRunRow)
             .where(AIRunRow.id == run.run_id, AIRunRow.version == expected_version)
             .values(**_run_values(run))
         )
         await self._session.execute(insert(AIRunApprovalRow).values(**_approval_values(approval)))
-        await self._session.execute(
-            insert(OutboxEventRow).values(
+        if approval.decision == "approve":
+            await self._session.execute(
+                insert(OutboxEventRow).values(
                 id=outbox_event_id,
                 aggregate_type="ai_run",
                 aggregate_id=run.run_id,
@@ -248,9 +272,82 @@ class PostgresAIRunTransaction:
                 attempts=0,
                 available_at=approval.decided_at,
                 created_at=approval.decided_at,
+                )
+            )
+        return approval
+
+    async def retry_ai_run(
+        self,
+        *,
+        parent_run_id: UUID,
+        expected_version: int,
+        idempotency_key: str,
+        child_run_id: UUID,
+        child_thread_id: str,
+        outbox_event_id: UUID,
+        now: datetime,
+    ) -> AIRun:
+        parent_row = (
+            await self._session.execute(
+                select(AIRunRow).where(AIRunRow.id == parent_run_id).with_for_update()
+            )
+        ).scalar_one_or_none()
+        if parent_row is None:
+            raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
+        parent = _run_from_row(parent_row)
+        existing = (
+            await self._session.execute(
+                select(AIRunRow).where(
+                    AIRunRow.parent_run_id == parent_run_id,
+                    AIRunRow.idempotency_key == idempotency_key,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing is not None:
+            return _run_from_row(existing)
+        if parent.version != expected_version or parent.status not in {
+            AIRunStatus.FAILED,
+            AIRunStatus.CANCELLED,
+        }:
+            raise ApplicationError(
+                "AI_RUN_ACTION_STATE_CONFLICT", "only a terminal failed/cancelled run can retry"
+            )
+        child = AIRun(
+            run_id=child_run_id,
+            parent_run_id=parent.run_id,
+            project_id=parent.project_id,
+            branch_id=parent.branch_id,
+            base_revision_id=parent.base_revision_id,
+            thread_id=child_thread_id,
+            graph_topology_version=parent.graph_topology_version,
+            state_schema_version=parent.state_schema_version,
+            brief=parent.brief,
+            idempotency_key=idempotency_key,
+            created_at=now,
+            updated_at=now,
+        )
+        await self._session.execute(insert(AIRunRow).values(**_run_values(child)))
+        await self._session.execute(
+            insert(OutboxEventRow).values(
+                id=outbox_event_id,
+                aggregate_type="ai_run",
+                aggregate_id=child.run_id,
+                topic="graph.retry.requested",
+                dedupe_key=f"ai-run:{parent_run_id}:retry:{idempotency_key}",
+                payload={
+                    "schema_version": "graph-start-request.v1",
+                    "run_id": str(child.run_id),
+                    "parent_run_id": str(parent_run_id),
+                    "thread_id": child.thread_id,
+                    "run_type": "generate",
+                },
+                status="pending",
+                attempts=0,
+                available_at=now,
+                created_at=now,
             )
         )
-        return approval
+        return child
 
     async def list_ai_run_events(
         self, run_id: UUID, *, after_sequence: int
@@ -278,6 +375,12 @@ class PostgresAIRunTransaction:
         outbox_event_id: UUID,
         now: datetime,
     ) -> AIRun:
+        if action == "resume":
+            raise ApplicationError(
+                "AI_RUN_ACTION_INVALID", "approval is the only path that can resume a run"
+            )
+        if action != "cancel":
+            raise ApplicationError("AI_RUN_ACTION_INVALID", "unsupported AI run action")
         row = (
             await self._session.execute(
                 select(AIRunRow).where(AIRunRow.id == run_id).with_for_update()
@@ -466,6 +569,7 @@ def _run_from_row(row: AIRunRow) -> AIRun:
         branch_id=row.branch_id,
         base_revision_id=row.base_revision_id,
         thread_id=row.thread_id,
+        parent_run_id=row.parent_run_id,
         graph_topology_version=row.graph_topology_version,
         state_schema_version=row.state_schema_version,
         brief=row.brief,
@@ -599,6 +703,8 @@ def _approval_values(approval: AIRunApproval) -> dict[str, object]:
         "assertion_hash": approval.assertion_hash,
         "decision": approval.decision,
         "actor_id": approval.actor_id,
+        "expected_plan_content_hash": approval.expected_plan_content_hash,
+        "interrupt_ref": approval.interrupt_ref,
         "decided_at": approval.decided_at,
     }
 
@@ -610,6 +716,8 @@ def _approval_from_row(row: AIRunApprovalRow) -> AIRunApproval:
         assertion_hash=row.assertion_hash,
         decision=row.decision,
         actor_id=row.actor_id,
+        expected_plan_content_hash=row.expected_plan_content_hash,
+        interrupt_ref=row.interrupt_ref,
         decided_at=row.decided_at,
     )
 
