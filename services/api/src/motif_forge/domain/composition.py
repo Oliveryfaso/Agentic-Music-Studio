@@ -9,6 +9,8 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 
 from pydantic import ConfigDict, Field, model_validator
 
+from motif_forge.agent.schemas import CompositionPlan
+from motif_forge.domain.ai_runs import composition_plan_content_hash
 from motif_forge.domain.canonical import arrangement_content_hash
 from motif_forge.domain.commands import (
     AddTrackCommand,
@@ -41,6 +43,7 @@ from motif_forge.domain.ir import (
 from motif_forge.domain.timebase import ticks_to_seconds
 
 COMPOSER_VERSION = "s1-deterministic-composer.v1"
+SYNTH_AMBIENT_COMPILER_VERSION = "synth-ambient-compiler.v1"
 S1_BPM = 80.0
 S1_BARS = 24
 S1_BAR_TICKS = PPQ * 4
@@ -406,6 +409,359 @@ def build_s1_composition(project_id: UUID, *, seed: int) -> CompositionBuild:
         arrangement=arrangement,
         content_hash=arrangement_content_hash(arrangement),
         duration_seconds=float(ticks_to_seconds(arrangement.duration_tick, bpm=str(S1_BPM))),
+    )
+
+
+_MODE_INTERVALS: dict[MusicalMode, tuple[int, ...]] = {
+    MusicalMode.MAJOR: (0, 2, 4, 5, 7, 9, 11),
+    MusicalMode.MINOR: (0, 2, 3, 5, 7, 8, 10),
+    MusicalMode.DORIAN: (0, 2, 3, 5, 7, 9, 10),
+    MusicalMode.PHRYGIAN: (0, 1, 3, 5, 7, 8, 10),
+    MusicalMode.LYDIAN: (0, 2, 4, 6, 7, 9, 11),
+    MusicalMode.MIXOLYDIAN: (0, 2, 4, 5, 7, 9, 10),
+    MusicalMode.LOCRIAN: (0, 1, 3, 5, 6, 8, 10),
+}
+_TONIC_PITCH_CLASS = {
+    "C": 0,
+    "C#": 1,
+    "Db": 1,
+    "D": 2,
+    "D#": 3,
+    "Eb": 3,
+    "E": 4,
+    "F": 5,
+    "F#": 6,
+    "Gb": 6,
+    "G": 7,
+    "G#": 8,
+    "Ab": 8,
+    "A": 9,
+    "A#": 10,
+    "Bb": 10,
+    "B": 11,
+}
+CanonicalTonic = Literal["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+_CANONICAL_TONIC: tuple[CanonicalTonic, ...] = (
+    "C",
+    "C#",
+    "D",
+    "D#",
+    "E",
+    "F",
+    "F#",
+    "G",
+    "G#",
+    "A",
+    "A#",
+    "B",
+)
+
+
+def _plan_patterns(
+    project_id: UUID, plan: CompositionPlan, seed: int, plan_hash: str
+) -> tuple[PatternSpec, ...]:
+    patterns: list[PatternSpec] = []
+    for section_index, section in enumerate(plan.sections):
+        bar_count = section.end_bar - section.start_bar
+        energy_band = min(3, int(section.energy * 4))
+        grids = {
+            PatternRole.PAD: (0,),
+            PatternRole.MELODY: (
+                (0, 8),
+                (0, 4, 8, 12),
+                (0, 3, 6, 9, 12, 15),
+                (0, 2, 4, 6, 8, 10, 12, 14),
+            )[energy_band],
+            PatternRole.BASS: ((0,), (0, 8), (0, 6, 12), (0, 4, 8, 12))[energy_band],
+            PatternRole.RHYTHM: (
+                (0, 8),
+                (0, 4, 8, 12),
+                (0, 2, 6, 8, 10, 14),
+                (0, 2, 4, 6, 8, 10, 12, 14),
+            )[energy_band],
+        }
+        for role_index, role in enumerate(PatternRole):
+            variation_seed = (
+                seed * 1_103 + section_index * 97 + role_index * 31 + energy_band * 17
+            ) % (2**31)
+            progression = tuple(
+                ((section_index * 2 + bar + energy_band + variation_seed % 3) % 7) + 1
+                for bar in range(bar_count)
+            )
+            patterns.append(
+                PatternSpec(
+                    pattern_id=_stable_id(
+                        project_id,
+                        "synth-ambient-pattern",
+                        plan_hash,
+                        seed,
+                        section.section_id,
+                        role,
+                    ),
+                    section_id=_stable_id(
+                        project_id, "synth-ambient-section", plan_hash, section.section_id
+                    ),
+                    track_role=role,
+                    bar_range=BarRange(start_bar=section.start_bar, end_bar=section.end_bar),
+                    chord_degrees=progression,
+                    rhythm_grid=grids[role],
+                    register=_ROLE_REGISTER[role],
+                    density=round(min(1.0, 0.15 + section.energy * 0.8), 6),
+                    syncopation=(
+                        round(section.energy * 0.3, 6)
+                        if role in {PatternRole.MELODY, PatternRole.RHYTHM}
+                        else 0.0
+                    ),
+                    variation_seed=variation_seed,
+                    locked_constraints=(
+                        f"key:{plan.key.tonic}-{plan.key.mode}",
+                        "meter:4/4",
+                        f"tempo:{plan.bpm}",
+                        f"energy:{section.energy:.6f}",
+                    ),
+                )
+            )
+    return tuple(patterns)
+
+
+def _pitch_for_degree(
+    degree: int, *, tonic_pitch_class: int, intervals: tuple[int, ...], register: MidiRegister
+) -> int:
+    target_pitch_class = (tonic_pitch_class + intervals[(degree - 1) % 7]) % 12
+    candidates = tuple(
+        pitch
+        for pitch in range(register.low_midi, register.high_midi + 1)
+        if pitch % 12 == target_pitch_class
+    )
+    if not candidates:
+        raise ValueError("the selected key cannot be realized inside the supported MIDI register")
+    midpoint = (register.low_midi + register.high_midi) / 2
+    return min(candidates, key=lambda pitch: (abs(pitch - midpoint), pitch))
+
+
+def _compile_plan_pattern(
+    project_id: UUID,
+    pattern: PatternSpec,
+    *,
+    tonic_pitch_class: int,
+    intervals: tuple[int, ...],
+) -> tuple[NoteEvent, ...]:
+    notes: list[NoteEvent] = []
+    bar_count = pattern.bar_range.end_bar - pattern.bar_range.start_bar
+    for bar_offset in range(bar_count):
+        degree = pattern.chord_degrees[bar_offset]
+        if pattern.track_role is PatternRole.PAD:
+            for voice, degree_offset in enumerate((0, 2, 4)):
+                pitch = _pitch_for_degree(
+                    degree + degree_offset,
+                    tonic_pitch_class=tonic_pitch_class,
+                    intervals=intervals,
+                    register=pattern.midi_register,
+                )
+                notes.append(
+                    NoteEvent(
+                        note_id=_stable_id(
+                            project_id, pattern.pattern_id, "pad", bar_offset, voice
+                        ),
+                        pitch=pitch,
+                        start_tick=bar_offset * S1_BAR_TICKS,
+                        duration_tick=S1_BAR_TICKS - 60,
+                        velocity=min(96, 48 + int(pattern.density * 28) + voice * 3),
+                        articulation=Articulation.LEGATO,
+                    )
+                )
+            continue
+
+        for step_index, grid_step in enumerate(pattern.rhythm_grid):
+            local_start = bar_offset * S1_BAR_TICKS + grid_step * (PPQ // 4)
+            remaining_in_bar = (bar_offset + 1) * S1_BAR_TICKS - local_start
+            if pattern.track_role is PatternRole.MELODY:
+                selector = (pattern.variation_seed + bar_offset * 5 + step_index * 3) % 7
+                pitch = _pitch_for_degree(
+                    degree + selector,
+                    tonic_pitch_class=tonic_pitch_class,
+                    intervals=intervals,
+                    register=pattern.midi_register,
+                )
+                duration = min(PPQ * 3 // 4, remaining_in_bar)
+                velocity = min(112, 60 + int(pattern.density * 30) + selector % 4)
+                articulation = Articulation.NORMAL
+                label = "melody"
+            elif pattern.track_role is PatternRole.BASS:
+                pitch = _pitch_for_degree(
+                    degree + (4 if step_index else 0),
+                    tonic_pitch_class=tonic_pitch_class,
+                    intervals=intervals,
+                    register=pattern.midi_register,
+                )
+                duration = min(PPQ * 3 // 2, remaining_in_bar)
+                velocity = min(112, 62 + int(pattern.density * 28))
+                articulation = Articulation.NORMAL
+                label = "bass"
+            else:
+                pitch = 36
+                duration = min(PPQ // 8, remaining_in_bar)
+                velocity = 88 if grid_step == 0 else min(82, 52 + int(pattern.density * 26))
+                articulation = Articulation.STACCATO
+                label = "rhythm"
+            notes.append(
+                NoteEvent(
+                    note_id=_stable_id(
+                        project_id, pattern.pattern_id, label, bar_offset, step_index
+                    ),
+                    pitch=pitch,
+                    start_tick=local_start,
+                    duration_tick=duration,
+                    velocity=velocity,
+                    articulation=articulation,
+                )
+            )
+    return tuple(notes)
+
+
+def _plan_track(
+    project_id: UUID,
+    *,
+    plan_hash: str,
+    seed: int,
+    role: PatternRole,
+    patterns: tuple[PatternSpec, ...],
+    tonic_pitch_class: int,
+    intervals: tuple[int, ...],
+) -> Track:
+    role_patterns = tuple(pattern for pattern in patterns if pattern.track_role is role)
+    return Track(
+        track_id=_stable_id(project_id, "synth-ambient-track", plan_hash, role),
+        track_type=TrackType.INSTRUMENT,
+        name=_TRACK_NAMES[role],
+        role=_ROLE_TO_TRACK_ROLE[role],
+        gain_db=-6.0 if role is PatternRole.PAD else -4.0,
+        pan=-0.12 if role is PatternRole.PAD else (0.12 if role is PatternRole.MELODY else 0.0),
+        instrument_ref=_INSTRUMENTS[role],
+        clips=tuple(
+            NoteClip(
+                clip_id=_stable_id(
+                    project_id, "synth-ambient-clip", plan_hash, seed, pattern.section_id, role
+                ),
+                start_tick=pattern.bar_range.start_bar * S1_BAR_TICKS,
+                duration_tick=(pattern.bar_range.end_bar - pattern.bar_range.start_bar)
+                * S1_BAR_TICKS,
+                notes=_compile_plan_pattern(
+                    project_id,
+                    pattern,
+                    tonic_pitch_class=tonic_pitch_class,
+                    intervals=intervals,
+                ),
+            )
+            for pattern in role_patterns
+        ),
+    )
+
+
+def compile_synth_ambient_plan(
+    project_id: UUID, *, plan: CompositionPlan, seed: int
+) -> CompositionBuild:
+    """Compile one validated Synth Ambient plan through audited editor commands."""
+
+    if not 0 <= seed <= 2**31 - 1:
+        raise ValueError("seed must be between 0 and 2^31-1")
+    if plan.genre != "synth_ambient" or plan.meter != "4/4":
+        raise ValueError("Synth Ambient compilation requires a synth_ambient 4/4 plan")
+    roles = tuple(sorted(item.role.casefold().strip() for item in plan.instrumentation))
+    if roles != ("bass", "melody", "pad", "rhythm"):
+        raise ValueError("Synth Ambient compilation requires one supported instrument per role")
+    if any(section.end_bar - section.start_bar > 32 for section in plan.sections):
+        raise ValueError("Synth Ambient sections cannot exceed the PatternSpec v1 bar limit")
+
+    duration_seconds = plan.duration_bars * 4 * 60 / plan.bpm
+    if duration_seconds > 300:
+        raise ValueError("compiled composition duration exceeds the first-release limit")
+    plan_hash = composition_plan_content_hash(plan)
+    mode = MusicalMode(plan.key.mode)
+    tonic_pitch_class = _TONIC_PITCH_CLASS[plan.key.tonic]
+    intervals = _MODE_INTERVALS[mode]
+    sections = tuple(
+        Section(
+            section_id=_stable_id(
+                project_id, "synth-ambient-section", plan_hash, section.section_id
+            ),
+            start_tick=section.start_bar * S1_BAR_TICKS,
+            end_tick=section.end_bar * S1_BAR_TICKS,
+            label=section.name,
+            function=section.function,
+            energy=section.energy,
+        )
+        for section in plan.sections
+    )
+    patterns = _plan_patterns(project_id, plan, seed, plan_hash)
+    initialize = InitializeCompositionCommand(
+        command_id=_stable_id(project_id, "synth-ambient-command", plan_hash, seed, "initialize"),
+        actor_kind="agent",
+        client_sequence=0,
+        selection=Selection(start_tick=0, end_tick=plan.duration_bars * S1_BAR_TICKS),
+        payload=InitializeCompositionPayload(
+            tempo=TempoPoint(bpm=float(plan.bpm)),
+            meter=MeterPoint(numerator=4, denominator=4),
+            key_map=(
+                KeyPoint(
+                    tick=0,
+                    tonic=_CANONICAL_TONIC[tonic_pitch_class],
+                    mode=mode,
+                    confidence=plan.confidence,
+                    source=SYNTH_AMBIENT_COMPILER_VERSION,
+                ),
+            ),
+            sections=sections,
+            provenance=(
+                ProvenanceRef(
+                    kind="knowledge",
+                    ref=f"composition-plan:{plan_hash}",
+                    version=plan.schema_version,
+                ),
+                ProvenanceRef(
+                    kind="engine",
+                    ref="motif-forge-synth-ambient-compiler",
+                    version=SYNTH_AMBIENT_COMPILER_VERSION,
+                ),
+                ProvenanceRef(
+                    kind="knowledge",
+                    ref="style-pack:synth-ambient",
+                    version="synth-ambient.v1",
+                ),
+            ),
+        ),
+    )
+    track_commands = tuple(
+        AddTrackCommand(
+            command_id=_stable_id(
+                project_id, "synth-ambient-command", plan_hash, seed, "track", role
+            ),
+            actor_kind="agent",
+            client_sequence=index,
+            selection=Selection(start_tick=0, end_tick=plan.duration_bars * S1_BAR_TICKS),
+            payload=AddTrackPayload(
+                track=_plan_track(
+                    project_id,
+                    plan_hash=plan_hash,
+                    seed=seed,
+                    role=role,
+                    patterns=patterns,
+                    tonic_pitch_class=tonic_pitch_class,
+                    intervals=intervals,
+                )
+            ),
+        )
+        for index, role in enumerate(PatternRole, start=1)
+    )
+    commands: tuple[EditorCommand, ...] = (initialize, *track_commands)
+    arrangement = apply_commands(create_empty_arrangement(project_id), commands)
+    return CompositionBuild(
+        seed=seed,
+        patterns=patterns,
+        commands=commands,
+        arrangement=arrangement,
+        content_hash=arrangement_content_hash(arrangement),
+        duration_seconds=float(duration_seconds),
     )
 
 

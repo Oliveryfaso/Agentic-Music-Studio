@@ -3,6 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 import pytest
+from motif_forge.domain.canonical import canonical_json_bytes
 from motif_forge.domain.commands import (
     InitializeCompositionCommand,
     apply_commands,
@@ -52,6 +53,8 @@ def test_s1_composer_builds_complete_audited_four_track_arrangement() -> None:
     build = build_s1_composition(PROJECT_ID, seed=20260812)
 
     assert build.schema_version == "composition-build.v1"
+    assert build.content_hash == "b73283de2c2a57f70abccfd0ece2546d16fda5f2cfb40c699b4ce1eb3056779b"
+    assert len(canonical_json_bytes(build.arrangement)) == 52196
     assert len(build.patterns) == 16
     assert isinstance(build.commands[0], InitializeCompositionCommand)
     assert command_change_impact(build.commands[0]) is ChangeImpact.L3

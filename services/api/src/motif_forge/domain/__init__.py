@@ -44,12 +44,14 @@ from motif_forge.domain.commands import (
 )
 from motif_forge.domain.composition import (
     COMPOSER_VERSION,
+    SYNTH_AMBIENT_COMPILER_VERSION,
     BarRange,
     CompositionBuild,
     MidiRegister,
     PatternRole,
     PatternSpec,
     build_s1_composition,
+    compile_synth_ambient_plan,
     validate_s1_arrangement,
 )
 from motif_forge.domain.errors import DomainIssue, DomainValidationError
@@ -133,6 +135,12 @@ from motif_forge.domain.storage import (
     StorageScope,
     decide_storage_pressure,
 )
+from motif_forge.domain.synth_ambient import (
+    SYNTH_AMBIENT_POLICY_VERSION,
+    StrategyIssue,
+    StrategyValidation,
+    validate_synth_ambient_plan,
+)
 from motif_forge.domain.timebase import (
     beats_to_ticks,
     seconds_to_ticks,
@@ -147,6 +155,8 @@ __all__ = [
     "MAX_TRACKS",
     "PPQ",
     "STORAGE_PRESSURE_POLICY_VERSION",
+    "SYNTH_AMBIENT_COMPILER_VERSION",
+    "SYNTH_AMBIENT_POLICY_VERSION",
     "AddClipCommand",
     "AddClipPayload",
     "AddNotesCommand",
@@ -225,6 +235,8 @@ __all__ = [
     "StorageRootHealth",
     "StorageRoute",
     "StorageScope",
+    "StrategyIssue",
+    "StrategyValidation",
     "StructuralDiffEntry",
     "TempoPoint",
     "TimeStretchJobPayload",
@@ -247,6 +259,7 @@ __all__ = [
     "canonical_dict",
     "canonical_json_bytes",
     "command_change_impact",
+    "compile_synth_ambient_plan",
     "compute_change_impact",
     "create_candidate_snapshot",
     "create_empty_arrangement",
@@ -261,4 +274,5 @@ __all__ = [
     "validate_command",
     "validate_commands",
     "validate_s1_arrangement",
+    "validate_synth_ambient_plan",
 ]
