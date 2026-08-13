@@ -194,6 +194,14 @@ class PostgresAIRunTransaction:
             raise ApplicationError("PLAN_NOT_FOUND", "the CompositionPlan does not exist")
         return _plan_from_row(row)
 
+    async def read_ai_run_approval(self, run_id: UUID) -> AIRunApproval | None:
+        row = (
+            await self._session.execute(
+                select(AIRunApprovalRow).where(AIRunApprovalRow.run_id == run_id)
+            )
+        ).scalar_one_or_none()
+        return None if row is None else _approval_from_row(row)
+
     async def mark_ai_run_plan_pending(
         self, *, run_id: UUID, plan_id: UUID, expected_version: int, now: datetime
     ) -> AIRun:
@@ -211,11 +219,25 @@ class PostgresAIRunTransaction:
                 )
             )
         ).scalar_one_or_none()
-        if plan is None or row.version != expected_version:
+        if plan is None:
             raise ApplicationError(
                 "AI_RUN_VERSION_CONFLICT", "the AI run cannot wait for this plan"
             )
         current = _run_from_row(row)
+        if current.status is AIRunStatus.WAITING_APPROVAL:
+            if (
+                current.pending_plan_id == plan.id
+                and current.pending_plan_content_hash == plan.content_hash
+            ):
+                return current
+            raise ApplicationError(
+                "AI_RUN_PLAN_CONFLICT",
+                "the AI run is already waiting for a different CompositionPlan",
+            )
+        if row.version != expected_version:
+            raise ApplicationError(
+                "AI_RUN_VERSION_CONFLICT", "the AI run cannot wait for this plan"
+            )
         if current.status not in {
             AIRunStatus.QUEUED,
             AIRunStatus.PLANNING,

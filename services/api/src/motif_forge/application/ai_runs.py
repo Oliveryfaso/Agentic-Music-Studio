@@ -312,10 +312,10 @@ class RecordAIRunApproval:
             raise ApplicationError(
                 "AI_RUN_APPROVAL_INVALID", "approval decision must be approve or reject"
             )
-        if not 16 <= len(assertion) <= 300:
+        if not 16 <= len(assertion) <= 500:
             raise ApplicationError(
                 "AI_RUN_APPROVAL_INVALID",
-                "approval assertion must be between 16 and 300 characters",
+                "approval assertion must be between 16 and 500 characters",
             )
         now = self._clock()
         approval = AIRunApproval(

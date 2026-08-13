@@ -9,7 +9,11 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 from pydantic import Field
 
 from motif_forge.application.ports import UnitOfWorkFactory
-from motif_forge.application.previews import CreateCommandPreview, CreateCommandPreviewRequest
+from motif_forge.application.previews import (
+    CreateCommandPreview,
+    CreateCommandPreviewRequest,
+    CreateCommandPreviewResult,
+)
 from motif_forge.domain.composition import build_s1_composition
 from motif_forge.domain.ir import ArrangementIR, DomainModel
 from motif_forge.domain.revisions import (
@@ -103,3 +107,30 @@ class PrepareDeterministicCompositionPreview:
             duration_seconds=build.duration_seconds,
             replayed=preview.replayed,
         )
+
+
+class PreparePlanDrivenCompositionPreview:
+    """Route a precompiled, policy-validated Plan build through the existing L3 Preview path."""
+
+    def __init__(
+        self,
+        uow_factory: UnitOfWorkFactory,
+        *,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> None:
+        self._create = CreateCommandPreview(
+            uow_factory,
+            clock=clock,
+            versions=VersionRefs(
+                policy="change-impact.v1",
+                audio_engine="motif-forge-audio-engine.v1",
+                graph="motif-forge-parent.v2",
+                knowledge="synth-ambient.v1",
+                assets="builtin-seed-palette.v1",
+            ),
+        )
+
+    async def __call__(self, request: CreateCommandPreviewRequest) -> CreateCommandPreviewResult:
+        """Create the immutable Candidate/Preview without writing a Revision."""
+
+        return await self._create(request)

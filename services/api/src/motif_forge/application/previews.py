@@ -189,7 +189,7 @@ class DecidePreviewRequest(DomainModel):
     preview_id: UUID
     decision: PreviewDecision
     actor_id: str = Field(min_length=1, max_length=160)
-    approval_assertion: str = Field(min_length=16, max_length=300)
+    approval_assertion: str = Field(min_length=16, max_length=500)
     idempotency_key: str = Field(min_length=8, max_length=160)
 
 
