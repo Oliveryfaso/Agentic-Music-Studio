@@ -221,14 +221,13 @@ It never stores audio bytes, waveform arrays, model reasoning, full trace payloa
 `PlanInputAdapter` maps the approved Parent fields into the planning subgraph state. `PlanOutputAdapter` accepts only:
 
 - a schema-valid `CompositionPlan` or deterministic fallback plan;
-- the Plan persistence reference, hash, and short summary;
 - provider/model identifiers;
 - call, token, and latency measurements;
 - fallback reason or structured validation issues.
 
 The adapter rejects unknown fields. Reducers are defined only for fields that genuinely aggregate; sequential fields use overwrite semantics.
 
-The complete validated Plan is persisted in PostgreSQL before the planning subgraph returns. The Parent checkpoint stores its immutable reference, hash, and bounded summary rather than relying on a truncated summary for later compilation. The compiler reloads the Plan by ID and verifies the hash after resume.
+Immediately after the side-effect-free planning subgraph returns, `PlanOutputAdapter` validates its result again, persists the complete Plan in PostgreSQL, and returns the immutable Plan reference, hash, and bounded summary to Parent state before approval. The compiler reloads the Plan by ID and verifies the hash after resume. A small Plan object may exist in the planning subgraph checkpoint, but audio, IR, and unbounded model messages never do.
 
 ### 7.3 Planning subgraph extraction
 
