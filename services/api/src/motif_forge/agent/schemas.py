@@ -7,7 +7,7 @@ The downstream deterministic music compiler owns realization.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Annotated, Literal
+from typing import Annotated, Literal, NotRequired, TypedDict
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -174,6 +174,19 @@ class CompositionPlan(StrictSchema):
             ):
                 raise ValueError("instrument exit section cannot precede entry section")
         return self
+
+
+class PlanningResult(TypedDict):
+    """Bounded, side-effect-free terminal output from composition planning."""
+
+    phase: Literal["planning_complete", "planning_failed"]
+    plan: NotRequired[dict[str, object]]
+    provider_metadata: NotRequired[dict[str, str]]
+    usage: NotRequired[dict[str, int]]
+    counters: dict[str, int]
+    fallback_reason: NotRequired[str]
+    warnings: NotRequired[list[str]]
+    error: NotRequired[dict[str, object]]
 
 
 class ApprovalDecision(StrictSchema):
