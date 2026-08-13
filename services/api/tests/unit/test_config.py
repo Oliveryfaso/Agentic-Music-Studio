@@ -64,3 +64,33 @@ def test_lean_storage_profile_rejects_implicit_relative_roots() -> None:
             artifact_root=Path("var/artifacts"),
             temp_root=Path("var/tmp"),
         )
+
+
+def test_deepseek_defaults_are_exact_and_secret_safe() -> None:
+    secret = "sk-config-secret"
+    settings = Settings(environment="test", deepseek_api_key=secret)
+
+    assert settings.deepseek_model == "deepseek-v4-flash"
+    assert settings.deepseek_base_url == "https://api.deepseek.com"
+    assert settings.deepseek_max_attempts == 3
+    assert settings.deepseek_max_output_tokens == 2400
+    assert settings.deepseek_max_total_tokens == 12_000
+    assert secret not in repr(settings)
+    assert secret not in str(settings)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("deepseek_model", "deepseek-chat"),
+        ("deepseek_base_url", "http://api.deepseek.com"),
+        ("deepseek_max_attempts", 4),
+        ("deepseek_max_output_tokens", 9000),
+        ("deepseek_max_total_tokens", 12_001),
+    ],
+)
+def test_deepseek_contract_rejects_unsafe_or_unbudgeted_settings(
+    field: str, value: str | int
+) -> None:
+    with pytest.raises(ValidationError):
+        Settings(environment="test", **{field: value})

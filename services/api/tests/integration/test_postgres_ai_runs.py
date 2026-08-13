@@ -13,6 +13,7 @@ from uuid import UUID, uuid4
 import pytest
 from alembic import command
 from alembic.config import Config
+from motif_forge.agent.planner import PersistentProviderBudgetLedger, PlannerUsage
 from motif_forge.agent.schemas import (
     CompositionBrief,
     CompositionPlan,
@@ -304,10 +305,11 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
         )
         assert approved_replay.approval_id == approval.approval_id
         reservation = await ReserveModelRequest(uow)(run_id=run_id, kind=ModelRequestKind.INITIAL)
+        provider_operation_id = f"provider-op-{run_id}"
         observed = await RecordModelUsage(uow)(
             run_id=run_id,
             reservation_id=reservation.reservation_id,
-            provider_operation_id="provider-op-1",
+            provider_operation_id=provider_operation_id,
             prompt_tokens=5,
             completion_tokens=3,
         )
@@ -316,7 +318,7 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
             await RecordModelUsage(uow)(
                 run_id=run_id,
                 reservation_id=reservation.reservation_id,
-                provider_operation_id="provider-op-1",
+                provider_operation_id=provider_operation_id,
                 prompt_tokens=6,
                 completion_tokens=3,
             )
@@ -363,6 +365,45 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
                 )
             )
         assert rejected_resume == 0
+    finally:
+        await engine.dispose()  # type: ignore[union-attr]
+
+
+@pytest.mark.asyncio
+async def test_provider_budget_adapter_survives_reconstruction_and_uses_run_ledger(
+    test_postgres_dsn: str,
+) -> None:
+    await asyncio.to_thread(_upgrade, test_postgres_dsn)
+    run_id, _, _, uow, engine = await _seed_run(
+        test_postgres_dsn, key=f"provider-budget-{uuid4().hex}"
+    )
+    try:
+        first_process = PersistentProviderBudgetLedger(uow, run_id=run_id)
+        initial = await first_process.reserve_request(
+            run_id=run_id, kind=ModelRequestKind.INITIAL
+        )
+        first_snapshot = await first_process.record_usage(
+            reservation_id=initial.reservation_id,
+            usage=PlannerUsage(prompt_tokens=120, completion_tokens=30, total_tokens=150),
+        )
+        assert first_snapshot.submitted_requests == 1
+        assert first_snapshot.total_tokens == 150
+
+        reconstructed = PersistentProviderBudgetLedger(uow, run_id=run_id)
+        retry = await reconstructed.reserve_request(
+            run_id=run_id, kind=ModelRequestKind.TRANSPORT_RETRY
+        )
+        second_snapshot = await reconstructed.record_usage(
+            reservation_id=retry.reservation_id,
+            usage=PlannerUsage(prompt_tokens=80, completion_tokens=20, total_tokens=100),
+        )
+
+        assert second_snapshot.submitted_requests == 2
+        assert second_snapshot.total_tokens == 250
+        persisted = await _run(uow, run_id)
+        assert persisted.submitted_model_requests == 2
+        assert persisted.prompt_tokens == 200
+        assert persisted.completion_tokens == 50
     finally:
         await engine.dispose()  # type: ignore[union-attr]
 
