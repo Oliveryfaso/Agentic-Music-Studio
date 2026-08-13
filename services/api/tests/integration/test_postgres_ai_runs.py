@@ -136,7 +136,7 @@ def _plan() -> CompositionPlan:
 
 
 async def _seed_run(
-    dsn: str, *, key: str = "s2-ai-run-key"
+    dsn: str, *, key: str = "s2-ai-run-key", max_model_requests: int = 3
 ) -> tuple[UUID, UUID, UUID, PostgresAIRunUnitOfWork, AsyncEngine]:
     engine = create_postgres_engine(dsn)
     sessions = create_session_factory(engine)
@@ -154,6 +154,7 @@ async def _seed_run(
             thread_id=f"generate-{uuid4().hex}",
             brief=_brief(),
             idempotency_key=key,
+            max_model_requests=max_model_requests,
         )
     )
     return run.run_id, project.project_id, project.root_revision_id, run_uow, engine
@@ -395,7 +396,7 @@ async def test_provider_budget_adapter_survives_reconstruction_and_uses_run_ledg
     test_postgres_dsn: str,
 ) -> None:
     await asyncio.to_thread(_upgrade, test_postgres_dsn)
-    run_id, _, _, uow, engine = await _seed_run(
+    run_id, project_id, _, uow, engine = await _seed_run(
         test_postgres_dsn, key=f"provider-budget-{uuid4().hex}"
     )
     try:
@@ -427,6 +428,94 @@ async def test_provider_budget_adapter_survives_reconstruction_and_uses_run_ledg
         assert persisted.completion_tokens == 50
         assert persisted.total_tokens == 250
     finally:
+        async with engine.begin() as connection:  # type: ignore[union-attr]
+            await connection.execute(
+                text("DELETE FROM app.audit_events WHERE project_id=:project_id"),
+                {"project_id": project_id},
+            )
+            await connection.execute(
+                text("DELETE FROM app.projects WHERE id=:project_id"),
+                {"project_id": project_id},
+            )
+            assert (
+                await connection.scalar(
+                    text("SELECT count(*) FROM app.ai_runs WHERE id=:run_id"),
+                    {"run_id": run_id},
+                )
+            ) == 0
+            assert (
+                await connection.scalar(
+                    text("SELECT count(*) FROM app.projects WHERE id=:project_id"),
+                    {"project_id": project_id},
+                )
+            ) == 0
+        await engine.dispose()  # type: ignore[union-attr]
+
+
+@pytest.mark.asyncio
+async def test_locked_one_request_run_blocks_transport_retry_before_second_post(
+    test_postgres_dsn: str,
+) -> None:
+    await asyncio.to_thread(_upgrade, test_postgres_dsn)
+    run_id, project_id, _, uow, engine = await _seed_run(
+        test_postgres_dsn,
+        key=f"provider-one-request-{uuid4().hex}",
+        max_model_requests=1,
+    )
+    posts = 0
+
+    def unavailable(request: httpx.Request) -> httpx.Response:
+        nonlocal posts
+        posts += 1
+        return httpx.Response(503)
+
+    async def no_sleep(delay: float) -> None:
+        del delay
+
+    try:
+        ledger = PersistentProviderBudgetLedger(uow, run_id=run_id, max_requests=1)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(unavailable)) as http_client:
+            client = DeepSeekJsonClient(
+                api_key="test-key",
+                http_client=http_client,
+                max_attempts=2,
+                run_id=run_id,
+                budget_ledger=ledger,
+                    sleep=no_sleep,
+            )
+            with pytest.raises(ProviderBudgetExceeded, match="request budget"):
+                await client.complete_json(
+                    messages=[], output_model=CompositionPlan, thinking="enabled", max_tokens=512
+                )
+        assert posts == 1
+        reconstructed = PersistentProviderBudgetLedger(
+            uow, run_id=run_id, max_requests=1
+        )
+        with pytest.raises(ProviderBudgetExceeded, match="request budget"):
+            await reconstructed.reserve_request(
+                run_id=run_id, kind=ModelRequestKind.TRANSPORT_RETRY
+            )
+        async with uow() as transaction:
+            reservations = (
+                await transaction._session.execute(  # type: ignore[attr-defined]
+                    select(ModelRequestReservationRow).where(
+                        ModelRequestReservationRow.run_id == run_id
+                    )
+                )
+            ).scalars().all()
+        assert len(reservations) == 1
+        assert reservations[0].request_kind == "initial"
+        assert posts == 1
+    finally:
+        async with engine.begin() as connection:  # type: ignore[union-attr]
+            await connection.execute(
+                text("DELETE FROM app.audit_events WHERE project_id=:project_id"),
+                {"project_id": project_id},
+            )
+            await connection.execute(
+                text("DELETE FROM app.projects WHERE id=:project_id"),
+                {"project_id": project_id},
+            )
         await engine.dispose()  # type: ignore[union-attr]
 
 

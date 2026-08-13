@@ -204,6 +204,8 @@ class PersistentProviderBudgetLedger:
         snapshot = await self._snapshot()
         if snapshot.total_tokens is None:
             raise ProviderBudgetExceeded.unknown_usage(snapshot)
+        if snapshot.submitted_requests >= snapshot.max_requests:
+            raise ProviderBudgetExceeded.requests(snapshot)
         if snapshot.total_tokens >= snapshot.max_total_tokens:
             raise ProviderBudgetExceeded.tokens(snapshot)
         try:

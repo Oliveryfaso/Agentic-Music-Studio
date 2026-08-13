@@ -14,6 +14,17 @@ def test_model_request_budget_refuses_fourth_upstream_request() -> None:
             submitted_model_requests=3,
             prior_request_kinds=(ModelRequestKind.INITIAL,) * 3,
             requested_kind=ModelRequestKind.TRANSPORT_RETRY,
+            max_model_requests=3,
+        )
+
+
+def test_model_request_budget_honors_locked_lower_run_ceiling() -> None:
+    with pytest.raises(ModelRequestBudgetError):
+        model_request_allowed(
+            submitted_model_requests=1,
+            prior_request_kinds=(ModelRequestKind.INITIAL,),
+            requested_kind=ModelRequestKind.TRANSPORT_RETRY,
+            max_model_requests=1,
         )
 
 

@@ -46,6 +46,7 @@ def model_request_allowed(
     submitted_model_requests: int,
     prior_request_kinds: tuple[ModelRequestKind, ...],
     requested_kind: ModelRequestKind,
+    max_model_requests: int = 3,
     run_status: AIRunStatus | None = None,
 ) -> None:
     if run_status in {
@@ -55,9 +56,11 @@ def model_request_allowed(
         AIRunStatus.CANCELLED,
     }:
         raise ModelRequestBudgetError("terminal AI runs cannot reserve model requests")
-    if submitted_model_requests >= 3:
+    if not 1 <= max_model_requests <= 3:
+        raise ModelRequestBudgetError("the persisted model request ceiling is invalid")
+    if submitted_model_requests >= max_model_requests:
         raise ModelRequestBudgetError(
-            "the run has already reserved its three upstream model requests"
+            "the run has already reserved its locked upstream model request budget"
         )
     repairs = {ModelRequestKind.SCHEMA_REPAIR, ModelRequestKind.STRATEGY_REPAIR}
     if requested_kind in repairs and any(kind in repairs for kind in prior_request_kinds):

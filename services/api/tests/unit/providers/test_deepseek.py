@@ -22,6 +22,7 @@ from motif_forge.domain.ai_runs import (
 )
 from motif_forge.providers.deepseek import (
     COMPOSITION_PROMPT_VERSION,
+    SYNTH_AMBIENT_PROMPT,
     DeepSeekCompositionPlanner,
     DeepSeekConfigurationError,
     DeepSeekJsonClient,
@@ -453,15 +454,23 @@ async def test_schema_repair_encodes_previous_model_content_in_one_json_envelope
         )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
-        client = DeepSeekJsonClient(api_key="test-key", http_client=http_client, max_attempts=1)
-        await client.complete_json(
-            messages=[],
-            output_model=CompositionPlan,
-            thinking="enabled",
-            max_tokens=512,
-            schema_repair_attempts=1,
+        planner = DeepSeekCompositionPlanner(
+            DeepSeekJsonClient(api_key="test-key", http_client=http_client, max_attempts=1),
+            prompt_text=SYNTH_AMBIENT_PROMPT,
+        )
+        await planner.create_plan(
+            CompositionBrief.model_validate_json(
+                json.dumps(valid_brief_payload()), strict=True
+            )
         )
 
+    repair_messages = requests[1]["messages"]  # type: ignore[index]
+    system_message = repair_messages[0]["content"]
+    assert "Every user message" in system_message
+    for kind in ("composition_brief", "schema_repair", "strategy_repair"):
+        assert kind in system_message
+    assert repair_messages[1]["role"] == "user"
+    assert json.loads(repair_messages[1]["content"])["kind"] == "composition_brief"
     repair_message = requests[1]["messages"][-1]["content"]  # type: ignore[index]
     envelope = json.loads(repair_message)
     assert envelope["kind"] == "schema_repair"

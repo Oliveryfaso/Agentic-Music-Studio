@@ -554,6 +554,7 @@ class PostgresAIRunTransaction:
             submitted_model_requests=row.submitted_model_requests,
             prior_request_kinds=kinds,
             requested_kind=kind,
+            max_model_requests=row.max_model_requests,
             run_status=AIRunStatus(row.status),
         )
         ordinal = row.submitted_model_requests + 1
