@@ -9,6 +9,13 @@ from types import TracebackType
 from typing import Protocol, Self
 from uuid import UUID
 
+from motif_forge.domain.ai_runs import (
+    AIRun,
+    AIRunEvent,
+    ModelRequestKind,
+    ModelRequestReservation,
+    PersistedCompositionPlan,
+)
 from motif_forge.domain.commands import EditorCommand
 from motif_forge.domain.media_jobs import (
     AudioArtifact,
@@ -330,3 +337,53 @@ class StorageTransaction(Protocol):
 
 
 StorageUnitOfWorkFactory = Callable[[], StorageTransaction]
+
+
+class AIRunTransaction(Protocol):
+    async def __aenter__(self) -> Self: ...
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None: ...
+    async def get_ai_run_idempotency(
+        self, *, project_id: UUID, key: str
+    ) -> IdempotencyHit | None: ...
+    async def create_ai_run(
+        self, *, run: AIRun, created_event: AIRunEvent, outbox_event_id: UUID, request_hash: str
+    ) -> None: ...
+    async def read_ai_run(self, run_id: UUID) -> AIRun: ...
+    async def persist_composition_plan(
+        self, plan: PersistedCompositionPlan
+    ) -> PersistedCompositionPlan: ...
+    async def record_ai_run_event(self, event: AIRunEvent) -> AIRunEvent: ...
+    async def list_ai_run_events(
+        self, run_id: UUID, *, after_sequence: int
+    ) -> tuple[AIRunEvent, ...]: ...
+    async def request_ai_run_action(
+        self,
+        *,
+        run_id: UUID,
+        action: str,
+        expected_version: int,
+        idempotency_key: str,
+        outbox_event_id: UUID,
+        now: datetime,
+    ) -> AIRun: ...
+    async def reserve_model_request(
+        self, *, run_id: UUID, kind: ModelRequestKind, reservation_id: UUID, now: datetime
+    ) -> ModelRequestReservation: ...
+    async def record_model_usage(
+        self,
+        *,
+        run_id: UUID,
+        reservation_id: UUID,
+        provider_operation_id: str,
+        prompt_tokens: int,
+        completion_tokens: int,
+        now: datetime,
+    ) -> ModelRequestReservation: ...
+
+
+AIRunUnitOfWorkFactory = Callable[[], AIRunTransaction]

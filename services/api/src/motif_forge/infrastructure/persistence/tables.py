@@ -456,6 +456,108 @@ class OutboxEventRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class AIRunRow(Base):
+    __tablename__ = "ai_runs"
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id", "idempotency_key", name="uq_ai_runs_project_idempotency_key"
+        ),
+        Index("ix_ai_runs_project_status", "project_id", "status"),
+    )
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    project_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(f"{APP_SCHEMA}.projects.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    branch_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.project_branches.id"), nullable=False
+    )
+    base_revision_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.project_revisions.id"), nullable=False
+    )
+    thread_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    brief: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    idempotency_key: Mapped[str | None] = mapped_column(String(160))
+    approval_assertion_hash: Mapped[str | None] = mapped_column(String(64))
+    submitted_model_requests: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    prompt_tokens: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    completion_tokens: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    cost_status: Mapped[str] = mapped_column(String(24), nullable=False, default="unknown")
+    cost_microusd: Mapped[int | None] = mapped_column(BigInteger)
+    pricing_version: Mapped[str | None] = mapped_column(String(80))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    terminal_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class CompositionPlanRow(Base):
+    __tablename__ = "composition_plans"
+    __table_args__ = (
+        UniqueConstraint("run_id", "content_hash", name="uq_composition_plans_run_hash"),
+    )
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    run_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(f"{APP_SCHEMA}.ai_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    plan: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    provider: Mapped[str] = mapped_column(String(80), nullable=False)
+    model: Mapped[str] = mapped_column(String(120), nullable=False)
+    prompt_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    schema_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    style_pack_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    fallback_reason: Mapped[str | None] = mapped_column(String(240))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AIRunEventRow(Base):
+    __tablename__ = "ai_run_events"
+    __table_args__ = (
+        UniqueConstraint("run_id", "event_type", "dedupe_key", name="uq_ai_run_events_dedupe"),
+        Index("ix_ai_run_events_run_sequence", "run_id", "sequence"),
+    )
+    sequence: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    event_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), unique=True, nullable=False)
+    run_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(f"{APP_SCHEMA}.ai_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    event_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    phase: Mapped[str] = mapped_column(String(80), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    dedupe_key: Mapped[str | None] = mapped_column(String(240))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ModelRequestReservationRow(Base):
+    __tablename__ = "ai_model_request_reservations"
+    __table_args__ = (
+        UniqueConstraint(
+            "run_id", "request_ordinal", name="uq_ai_model_request_reservations_ordinal"
+        ),
+    )
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    run_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(f"{APP_SCHEMA}.ai_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    request_ordinal: Mapped[int] = mapped_column(Integer, nullable=False)
+    request_kind: Mapped[str] = mapped_column(String(24), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), nullable=False)
+    provider_operation_id: Mapped[str | None] = mapped_column(String(200), unique=True)
+    prompt_tokens: Mapped[int | None] = mapped_column(BigInteger)
+    completion_tokens: Mapped[int | None] = mapped_column(BigInteger)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class InboxReceiptRow(Base):
     __tablename__ = "inbox_receipts"
     __table_args__ = (
@@ -752,5 +854,7 @@ class UsageLedgerRow(ObservabilityBase):
     prompt_cache_hit_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
     prompt_cache_miss_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
     reasoning_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
-    estimated_cost_microusd: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    estimated_cost_microusd: Mapped[int | None] = mapped_column(BigInteger)
+    cost_status: Mapped[str] = mapped_column(String(24), nullable=False, default="unknown")
+    pricing_version: Mapped[str | None] = mapped_column(String(80))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

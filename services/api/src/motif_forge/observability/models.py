@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Literal, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol
 
-from motif_forge.agent.planner import PlannerResponse
+if TYPE_CHECKING:
+    from motif_forge.agent.planner import PlannerResponse
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,3 +36,15 @@ class TelemetryRecorder(Protocol):
 class NullTelemetryRecorder:
     async def record_model_call(self, record: ModelCallRecord) -> None:
         del record
+
+
+@dataclass(frozen=True, slots=True)
+class UsageRecord:
+    operation_id: str
+    provider: str
+    model: str
+    input_tokens: int
+    output_tokens: int
+    estimated_cost_microusd: int | None
+    cost_status: Literal["known", "unknown", "not_applicable"] = "unknown"
+    pricing_version: str | None = None

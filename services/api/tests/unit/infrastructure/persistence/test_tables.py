@@ -14,7 +14,12 @@ from motif_forge.infrastructure.persistence.database import (
     create_postgres_engine,
     normalize_postgres_dsn,
 )
-from motif_forge.infrastructure.persistence.tables import APP_SCHEMA, Base
+from motif_forge.infrastructure.persistence.tables import (
+    APP_SCHEMA,
+    AIRunEventRow,
+    Base,
+    UsageLedgerRow,
+)
 
 
 def test_business_tables_are_isolated_in_app_schema() -> None:
@@ -39,6 +44,10 @@ def test_business_tables_are_isolated_in_app_schema() -> None:
         "app.artifacts",
         "app.feature_artifacts",
         "app.storage_events",
+        "app.ai_runs",
+        "app.composition_plans",
+        "app.ai_run_events",
+        "app.ai_model_request_reservations",
     }.issubset(Base.metadata.tables)
 
 
@@ -68,8 +77,14 @@ def test_alembic_has_single_reversible_head() -> None:
     config = Config(root / "alembic.ini")
     scripts = ScriptDirectory.from_config(config)
 
-    assert scripts.get_heads() == ["20260812_0012"]
-    migration = scripts.get_revision("20260812_0012")
+    assert scripts.get_heads() == ["20260813_0013"]
+    migration = scripts.get_revision("20260813_0013")
     assert migration is not None
     assert callable(migration.module.upgrade)
     assert callable(migration.module.downgrade)
+
+
+def test_ai_event_sequence_is_bigint_and_usage_cost_can_be_unknown() -> None:
+    assert AIRunEventRow.__table__.c.sequence.type.__class__.__name__ == "BigInteger"
+    assert UsageLedgerRow.__table__.c.estimated_cost_microusd.nullable is True
+    assert "cost_status" in UsageLedgerRow.__table__.c

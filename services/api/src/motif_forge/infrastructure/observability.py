@@ -85,7 +85,9 @@ class PostgresTelemetryRecorder:
                     prompt_cache_hit_tokens=usage.prompt_cache_hit_tokens,
                     prompt_cache_miss_tokens=usage.prompt_cache_miss_tokens,
                     reasoning_tokens=usage.reasoning_tokens,
-                    estimated_cost_microusd=0,
+                    estimated_cost_microusd=None,
+                    cost_status="unknown",
+                    pricing_version=None,
                     created_at=record.ended_at,
                 )
                 .on_conflict_do_nothing(index_elements=[UsageLedgerRow.operation_id])
