@@ -100,6 +100,10 @@ Review fix round 3 code commit: `b8390babf9fb5567d877eeca0834e5f5d4a18474` —
 `fix: bind S2 approvals to pending plans`.
 Review fix round 3 evidence commit: `7fbfab5298085ad8f64f69cc773be1f3f0e8cdde` —
 `docs: record S2 task 1 final closure`.
+Review fix round 4 code commit: `be0c39ad501148bc05236ba65672b63d889ec8bc` —
+`fix: enforce S2 pending plan invariants`.
+Review fix round 4 evidence commit: `4ce31adb29b1e05a82e3df0efb72d52b3bb26869` —
+`docs: record S2 task 1 round four evidence`.
 
 ## Review fix round 2 — RED/GREEN audit
 
