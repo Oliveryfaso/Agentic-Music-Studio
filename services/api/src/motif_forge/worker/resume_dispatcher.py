@@ -5,8 +5,24 @@ from __future__ import annotations
 import asyncio
 import os
 import socket
+from collections.abc import Mapping
+from typing import Any, cast
 
 from motif_forge.agent.parent_graph import build_parent_graph
+from motif_forge.agent.planner import (
+    CompositionPlanner,
+    PersistentProviderBudgetLedger,
+    PlannerError,
+    PlannerResponse,
+)
+from motif_forge.agent.schemas import CompositionBrief
+from motif_forge.application.ai_runs import ReadAIRun, RecordAIRunApproval
+from motif_forge.application.generation import (
+    CollectCompleteExportArtifact,
+    EnqueueNextCompleteExportJob,
+    MaterializeApprovedComposition,
+    PersistPlanningResult,
+)
 from motif_forge.application.imports import LoadImportAnalysisContext, MaterializeImport
 from motif_forge.application.media_jobs import (
     EnqueueFollowupMediaJob,
@@ -21,21 +37,66 @@ from motif_forge.application.storage import (
     PostgresStorageFactsLoader,
     RunStoragePressureGate,
 )
-from motif_forge.config import get_settings
+from motif_forge.config import Settings, get_settings
+from motif_forge.domain.ai_runs import AIRun
 from motif_forge.infrastructure.checkpoints import postgres_checkpointer
+from motif_forge.infrastructure.persistence.ai_runs import PostgresAIRunUnitOfWork
 from motif_forge.infrastructure.persistence.database import (
     PostgresUnitOfWork,
     create_postgres_engine,
     create_session_factory,
 )
+from motif_forge.infrastructure.persistence.generation import (
+    PostgresCompositionMaterializationUnitOfWork,
+)
 from motif_forge.infrastructure.persistence.media_jobs import PostgresMediaJobUnitOfWork
 from motif_forge.infrastructure.persistence.storage import PostgresStorageUnitOfWork
+from motif_forge.providers.deepseek import build_synth_ambient_planner
 from motif_forge.worker.outbox import (
-    GRAPH_RESUME_TOPICS,
-    ParentGraphResumePublisher,
+    GRAPH_ACTION_TOPICS,
+    ParentGraphActionPublisher,
     PostgresOutboxStore,
     dispatch_once,
 )
+
+
+class MissingDeepSeekPlanner:
+    async def create_plan(
+        self, brief: CompositionBrief, *, allow_schema_repair: bool = True
+    ) -> PlannerResponse:
+        del brief, allow_schema_repair
+        raise PlannerError(
+            "DEEPSEEK_API_KEY_MISSING",
+            "DeepSeek is not configured; deterministic planning fallback is required.",
+            retryable=False,
+            suggested_route="fallback",
+        )
+
+    async def repair_plan(
+        self,
+        brief: CompositionBrief,
+        *,
+        invalid_payload: Mapping[str, Any],
+        validation_issues: tuple[str, ...],
+    ) -> PlannerResponse:
+        del brief, invalid_payload, validation_issues
+        raise AssertionError("missing-key planner cannot enter schema repair")
+
+
+def build_generate_planner(
+    settings: Settings, run: AIRun, ai_uow: object
+) -> CompositionPlanner:
+    if not settings.deepseek_configured:
+        return MissingDeepSeekPlanner()
+    ledger = PersistentProviderBudgetLedger(
+        ai_uow,
+        run_id=run.run_id,
+        max_requests=run.max_model_requests,
+        max_total_tokens=run.max_total_tokens,
+    )
+    return build_synth_ambient_planner(
+        settings, run_id=run.run_id, budget_ledger=cast(Any, ledger)
+    )
 
 
 async def run_resume_dispatcher() -> None:
@@ -47,15 +108,20 @@ async def run_resume_dispatcher() -> None:
     session_factory = create_session_factory(engine)
     store = PostgresOutboxStore(
         session_factory,
-        topics=GRAPH_RESUME_TOPICS,
-        run_type_prefix="parent.",
+        topics=GRAPH_ACTION_TOPICS,
+        aggregate_type="ai_run",
     )
     owner = f"resume:{socket.gethostname()}:{os.getpid()}"
     try:
         async with postgres_checkpointer(dsn) as saver:
             storage_uow = PostgresStorageUnitOfWork(session_factory)
-            graph = build_parent_graph(
-                EnqueueMediaJob(PostgresMediaJobUnitOfWork(session_factory)),
+            media_uow = PostgresMediaJobUnitOfWork(session_factory)
+            ai_uow = PostgresAIRunUnitOfWork(session_factory)
+
+            def graph_for(run: AIRun) -> object:
+                planner = build_generate_planner(settings, run, ai_uow)
+                return build_parent_graph(
+                EnqueueMediaJob(media_uow),
                 checkpointer=saver,
                 materialize_import=MaterializeImport(
                     PostgresUnitOfWork(session_factory),
@@ -88,8 +154,23 @@ async def run_resume_dispatcher() -> None:
                     temp_quota_bytes=settings.temp_quota_bytes,
                     minimum_free_bytes=settings.storage_min_free_bytes,
                 ),
+                generate_planner=planner,
+                persist_planning_result=PersistPlanningResult(ai_uow),
+                record_plan_approval=RecordAIRunApproval(ai_uow),
+                materialize_approved_composition=MaterializeApprovedComposition(
+                    PostgresCompositionMaterializationUnitOfWork(session_factory)
+                ),
+                enqueue_next_complete_export_job=EnqueueNextCompleteExportJob(
+                    media_uow,
+                    enqueue_first=EnqueueMediaJob(media_uow),
+                    enqueue_followup=EnqueueFollowupMediaJob(media_uow),
+                ),
+                collect_complete_export_artifact=CollectCompleteExportArtifact(media_uow),
             )
-            publisher = ParentGraphResumePublisher(graph)
+            publisher = ParentGraphActionPublisher(
+                graph_for,
+                load_run=ReadAIRun(ai_uow),
+            )
             while True:
                 delivered = await dispatch_once(
                     store,

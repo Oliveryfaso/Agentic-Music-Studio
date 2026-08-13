@@ -6,12 +6,16 @@ from uuid import UUID, uuid4
 
 import pytest
 from langgraph.types import Command
+from motif_forge.agent.generate import PlanApprovalDecision
 from motif_forge.agent.parent_graph import PARENT_TIME_STRETCH_RUN_TYPE
 from motif_forge.worker.outbox import (
+    GraphActionPayload,
     OutboxMessage,
+    ParentGraphActionPublisher,
     ParentGraphResumePublisher,
     dispatch_once,
 )
+from pydantic import ValidationError
 
 
 class FakeStore:
@@ -166,3 +170,61 @@ async def test_parent_graph_publisher_rejects_non_parent_runs() -> None:
         await publisher.publish(message)
 
     assert graph.calls == []
+
+
+def test_graph_action_payload_is_strict_and_targets_generate_only() -> None:
+    payload = GraphActionPayload(
+        action="resume",
+        run_id=uuid4(),
+        thread_id="generate-action-thread",
+        run_type="parent.generate.v1",
+        decision=PlanApprovalDecision(
+            decision="approve",
+            actor_id="test-user",
+            approval_assertion="I authorize this exact persisted plan.",
+            expected_plan_hash="a" * 64,
+        ),
+    )
+    assert payload.schema_version == "graph-action.v1"
+
+    with pytest.raises(ValidationError):
+        GraphActionPayload.model_validate(
+            {
+                **payload.model_dump(mode="json"),
+                "run_type": "parent.import.v1",
+            }
+        )
+    with pytest.raises(ValidationError):
+        GraphActionPayload.model_validate(
+            {
+                **payload.model_dump(mode="json"),
+                "node_name": "MaterializeApprovedComposition",
+            }
+        )
+
+
+@pytest.mark.asyncio
+async def test_graph_action_publisher_rejects_topic_action_mismatch() -> None:
+    class Loader:
+        async def __call__(self, run_id: UUID) -> object:
+            del run_id
+            raise AssertionError("topic mismatch must fail before authoritative load")
+
+    publisher = ParentGraphActionPublisher(FakeResumableGraph(), load_run=Loader())
+    message = OutboxMessage(
+        event_id=uuid4(),
+        topic="graph.start.requested",
+        dedupe_key=f"graph-action:{uuid4()}",
+        payload={
+            "schema_version": "graph-action.v1",
+            "action": "cancel",
+            "run_id": str(uuid4()),
+            "thread_id": "generate-action-thread",
+            "run_type": "parent.generate.v1",
+            "decision": None,
+        },
+        attempts=1,
+    )
+
+    with pytest.raises(ValueError, match="topic"):
+        await publisher.publish(message)

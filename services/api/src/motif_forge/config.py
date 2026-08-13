@@ -52,6 +52,13 @@ class Settings(BaseSettings):
         default=None,
         validation_alias="DEEPSEEK_API_KEY",
     )
+
+    @property
+    def deepseek_configured(self) -> bool:
+        return self.deepseek_api_key is not None and bool(
+            self.deepseek_api_key.get_secret_value()
+        )
+
     deepseek_base_url: str = Field(
         default="https://api.deepseek.com",
         validation_alias="DEEPSEEK_BASE_URL",
