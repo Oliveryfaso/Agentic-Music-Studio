@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import json
 import secrets
 from datetime import datetime
 from types import TracebackType
 from typing import Self, cast
 from uuid import UUID
 
+from pydantic import ValidationError
 from sqlalchemy import insert, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -179,6 +182,75 @@ class PostgresAIRunTransaction:
         await self._session.execute(insert(CompositionPlanRow).values(**_plan_values(plan)))
         return plan
 
+    async def persist_plan_and_mark_pending(
+        self,
+        *,
+        plan: PersistedCompositionPlan,
+        expected_version: int,
+        now: datetime,
+    ) -> tuple[PersistedCompositionPlan, AIRun]:
+        row = (
+            await self._session.execute(
+                select(AIRunRow).where(AIRunRow.id == plan.run_id).with_for_update()
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
+        await self._session.execute(
+            pg_insert(CompositionPlanRow)
+            .values(**_plan_values(plan))
+            .on_conflict_do_nothing(
+                index_elements=[CompositionPlanRow.run_id, CompositionPlanRow.content_hash]
+            )
+        )
+        plan_row = (
+            await self._session.execute(
+                select(CompositionPlanRow)
+                .where(
+                    CompositionPlanRow.run_id == plan.run_id,
+                    CompositionPlanRow.content_hash == plan.content_hash,
+                )
+                .with_for_update()
+            )
+        ).scalar_one()
+        persisted = _plan_from_row(plan_row)
+        if _plan_provenance_values(plan_row) != _plan_provenance_values(plan):
+            raise ApplicationError(
+                "PLAN_PROVENANCE_CONFLICT",
+                "immutable plan content cannot be replayed with different provenance",
+            )
+        current = _run_from_row(row)
+        if current.status is AIRunStatus.WAITING_APPROVAL:
+            if (
+                current.pending_plan_id == persisted.plan_id
+                and current.pending_plan_content_hash == persisted.content_hash
+            ):
+                return persisted, current
+            raise ApplicationError(
+                "AI_RUN_PLAN_CONFLICT", "the AI run is waiting for a different Plan"
+            )
+        if current.version != expected_version or current.status not in {
+            AIRunStatus.QUEUED,
+            AIRunStatus.PLANNING,
+        }:
+            raise ApplicationError(
+                "AI_RUN_VERSION_CONFLICT", "the AI run cannot wait for this plan"
+            )
+        run = current.model_copy(
+            update={
+                "status": AIRunStatus.WAITING_APPROVAL,
+                "version": current.version + 1,
+                "updated_at": now,
+                "pending_plan_id": persisted.plan_id,
+                "pending_plan_content_hash": persisted.content_hash,
+                "pending_interrupt_ref": secrets.token_urlsafe(32),
+            }
+        )
+        await self._session.execute(
+            update(AIRunRow).where(AIRunRow.id == run.run_id).values(**_run_values(run))
+        )
+        return persisted, run
+
     async def read_composition_plan(
         self, *, plan_id: UUID, run_id: UUID
     ) -> PersistedCompositionPlan:
@@ -348,20 +420,20 @@ class PostgresAIRunTransaction:
         if approval.decision == "approve":
             await self._session.execute(
                 insert(OutboxEventRow).values(
-                id=outbox_event_id,
-                aggregate_type="ai_run",
-                aggregate_id=run.run_id,
-                topic="graph.resume.requested",
-                dedupe_key=f"ai-run:{run.run_id}:approval:{approval.approval_id}",
-                payload={
-                    "schema_version": "graph-action-request.v1",
-                    "run_id": str(run.run_id),
-                    "action": "resume",
-                },
-                status="pending",
-                attempts=0,
-                available_at=approval.decided_at,
-                created_at=approval.decided_at,
+                    id=outbox_event_id,
+                    aggregate_type="ai_run",
+                    aggregate_id=run.run_id,
+                    topic="graph.resume.requested",
+                    dedupe_key=f"ai-run:{run.run_id}:approval:{approval.approval_id}",
+                    payload={
+                        "schema_version": "graph-action-request.v1",
+                        "run_id": str(run.run_id),
+                        "action": "resume",
+                    },
+                    status="pending",
+                    attempts=0,
+                    available_at=approval.decided_at,
+                    created_at=approval.decided_at,
                 )
             )
         return approval
@@ -686,6 +758,7 @@ class PostgresAIRunTransaction:
             .where(ModelRequestReservationRow.id == reservation_id)
             .values(**_reservation_values(observed))
         )
+
         def aggregate(previous: int | None, current: int | None) -> int | None:
             return previous + current if previous is not None and current is not None else None
 
@@ -794,7 +867,14 @@ def _plan_values(plan: PersistedCompositionPlan) -> dict[str, object]:
 def _plan_from_row(row: CompositionPlanRow) -> PersistedCompositionPlan:
     from motif_forge.agent.schemas import CompositionPlan
 
-    parsed_plan = CompositionPlan.model_validate(row.plan, strict=False)
+    try:
+        parsed_plan = CompositionPlan.model_validate_json(
+            json.dumps(row.plan, allow_nan=False), strict=True
+        )
+    except (ValidationError, ValueError, TypeError) as exc:
+        raise ApplicationError(
+            "PLAN_INTEGRITY_ERROR", "stored CompositionPlan schema is invalid"
+        ) from exc
     hash_version = cast(PlanHashVersion, row.hash_version)
     expected_hash = composition_plan_content_hash(parsed_plan, hash_version=hash_version)
     if row.content_hash != expected_hash:

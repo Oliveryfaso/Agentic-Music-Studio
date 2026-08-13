@@ -415,7 +415,7 @@ async def test_0015_downgrade_refuses_v2_without_mutating_schema_or_references(
         after = await snapshot()
 
         assert before == after
-        assert after[0] == "20260813_0015"
+        assert after[0] == "20260813_0016"
         assert after[2] == 1
         assert after[3][2:] == (
             PLAN_HASH_VERSION_V2,

@@ -114,75 +114,92 @@ class CreateCommandPreview:
                     json.dumps({**hit.result_payload, "replayed": True}), strict=True
                 )
 
-            branch = await transaction.lock_branch(
-                project_id=request.project_id, branch_id=request.branch_id
-            )
-            if branch is None:
-                raise ApplicationError("BRANCH_NOT_FOUND", "target branch does not exist")
-            if branch.head_revision_id != request.base_revision_id:
-                raise RevisionConflictError(branch.head_revision_id)
-            base_revision = await transaction.get_revision(request.base_revision_id)
-            if base_revision is None or base_revision.project_id != request.project_id:
-                raise ApplicationError("REVISION_NOT_FOUND", "base revision does not exist")
-
-            candidate_ir = apply_commands(base_revision.arrangement_ir, request.commands)
-            actual_impact = compute_change_impact(request.commands)
-            if actual_impact < ChangeImpact.L2:
-                raise ApplicationError(
-                    "PREVIEW_NOT_REQUIRED", "L0/L1 changes must use the direct commit path"
-                )
-
             now = self._clock()
-            snapshot = create_candidate_snapshot(
-                base_revision=base_revision,
-                candidate_ir=candidate_ir,
-                candidate_id=request.candidate_id,
-                commands=request.commands,
-                candidate_snapshot_id=self._id_factory(),
-                source_run_id=request.source_run_id,
-                structural_diff=request.structural_diff,
+            result = await create_command_preview_in_transaction(
+                transaction,
+                request,
+                id_factory=self._id_factory,
+                now=now,
+                preview_ttl=self._preview_ttl,
                 versions=self._versions,
-                created_at=now,
-            )
-            preview = create_preview_candidate(
-                snapshot=snapshot,
-                branch=branch,
-                actual_change_impact=actual_impact,
-                preview_id=self._id_factory(),
-                created_at=now,
-                expires_at=now + self._preview_ttl,
-            )
-            await transaction.insert_candidate_preview(snapshot=snapshot, preview=preview)
-            result = CreateCommandPreviewResult(
-                project_id=request.project_id,
-                branch_id=request.branch_id,
-                base_revision_id=request.base_revision_id,
-                candidate_snapshot_id=snapshot.candidate_snapshot_id,
-                preview_id=preview.preview_id,
-                candidate_content_hash=snapshot.candidate_content_hash,
-                actual_change_impact=actual_impact,
-                status=preview.status,
             )
             await transaction.save_idempotency(
                 operation=CREATE_COMMAND_PREVIEW_OPERATION,
                 key=request.idempotency_key,
                 request_hash=fingerprint,
-                resource_id=preview.preview_id,
+                resource_id=result.preview_id,
                 result_payload=result.model_dump(mode="json"),
             )
-            await transaction.insert_audit_event(
-                event_id=self._id_factory(),
-                project_id=request.project_id,
-                actor_id=request.actor_id,
-                event_type="project.preview.created",
-                resource_id=preview.preview_id,
-                payload={
-                    "candidate_snapshot_id": str(snapshot.candidate_snapshot_id),
-                    "base_revision_id": str(request.base_revision_id),
-                    "actual_change_impact": actual_impact.name,
-                },
-            )
             return result
+
+
+async def create_command_preview_in_transaction(
+    transaction: ProjectTransaction,
+    request: CreateCommandPreviewRequest,
+    *,
+    id_factory: Callable[[], UUID],
+    now: datetime,
+    preview_ttl: timedelta,
+    versions: VersionRefs,
+) -> CreateCommandPreviewResult:
+    """Apply the established Preview contract inside a caller-owned transaction."""
+
+    branch = await transaction.lock_branch(
+        project_id=request.project_id, branch_id=request.branch_id
+    )
+    if branch is None:
+        raise ApplicationError("BRANCH_NOT_FOUND", "target branch does not exist")
+    if branch.head_revision_id != request.base_revision_id:
+        raise RevisionConflictError(branch.head_revision_id)
+    base_revision = await transaction.get_revision(request.base_revision_id)
+    if base_revision is None or base_revision.project_id != request.project_id:
+        raise ApplicationError("REVISION_NOT_FOUND", "base revision does not exist")
+    candidate_ir = apply_commands(base_revision.arrangement_ir, request.commands)
+    actual_impact = compute_change_impact(request.commands)
+    if actual_impact < ChangeImpact.L2:
+        raise ApplicationError("PREVIEW_NOT_REQUIRED", "L0/L1 changes cannot create a Preview")
+    snapshot = create_candidate_snapshot(
+        base_revision=base_revision,
+        candidate_ir=candidate_ir,
+        candidate_id=request.candidate_id,
+        commands=request.commands,
+        candidate_snapshot_id=id_factory(),
+        source_run_id=request.source_run_id,
+        structural_diff=request.structural_diff,
+        versions=versions,
+        created_at=now,
+    )
+    preview = create_preview_candidate(
+        snapshot=snapshot,
+        branch=branch,
+        actual_change_impact=actual_impact,
+        preview_id=id_factory(),
+        created_at=now,
+        expires_at=now + preview_ttl,
+    )
+    await transaction.insert_candidate_preview(snapshot=snapshot, preview=preview)
+    await transaction.insert_audit_event(
+        event_id=id_factory(),
+        project_id=request.project_id,
+        actor_id=request.actor_id,
+        event_type="project.preview.created",
+        resource_id=preview.preview_id,
+        payload={
+            "candidate_snapshot_id": str(snapshot.candidate_snapshot_id),
+            "base_revision_id": str(request.base_revision_id),
+            "actual_change_impact": actual_impact.name,
+        },
+    )
+    return CreateCommandPreviewResult(
+        project_id=request.project_id,
+        branch_id=request.branch_id,
+        base_revision_id=request.base_revision_id,
+        candidate_snapshot_id=snapshot.candidate_snapshot_id,
+        preview_id=preview.preview_id,
+        candidate_content_hash=snapshot.candidate_content_hash,
+        actual_change_impact=actual_impact,
+        status=preview.status,
+    )
 
 
 class DecidePreviewRequest(DomainModel):
@@ -283,101 +300,25 @@ class DecidePreview:
                 )
                 await self._save_decision(transaction, request, fingerprint, result, resolved)
             else:
-                branch = await transaction.lock_branch(
-                    project_id=preview.project_id, branch_id=preview.branch_id
+                outcome = await approve_preview_in_transaction(
+                    transaction,
+                    request,
+                    id_factory=self._id_factory,
+                    now=now,
+                    persist_superseded=True,
+                    locked_preview=preview,
                 )
-                if branch is None:
-                    raise ApplicationError("BRANCH_NOT_FOUND", "target branch does not exist")
-                if branch.head_revision_id != preview.base_revision_id:
-                    resolved = resolve_preview_candidate(
-                        preview,
-                        status=PreviewStatus.SUPERSEDED,
-                        decided_by=request.actor_id,
-                        decided_at=now,
-                    )
-                    await transaction.update_preview(resolved)
-                    await transaction.insert_audit_event(
-                        event_id=self._id_factory(),
-                        project_id=preview.project_id,
-                        actor_id=request.actor_id,
-                        event_type="project.preview.superseded",
-                        resource_id=preview.preview_id,
-                        payload={"current_revision_id": str(branch.head_revision_id)},
-                    )
-                    deferred_error = RevisionConflictError(branch.head_revision_id)
+                if isinstance(outcome, RevisionConflictError):
+                    deferred_error = outcome
                 else:
-                    snapshot = await transaction.get_candidate_snapshot(
-                        preview.candidate_snapshot_id
+                    result = outcome
+                    await transaction.save_idempotency(
+                        operation=DECIDE_PREVIEW_OPERATION,
+                        key=request.idempotency_key,
+                        request_hash=fingerprint,
+                        resource_id=request.preview_id,
+                        result_payload=result.model_dump(mode="json"),
                     )
-                    if (
-                        snapshot is None
-                        or snapshot.project_id != preview.project_id
-                        or snapshot.base_revision_id != preview.base_revision_id
-                        or snapshot.candidate_content_hash != preview.candidate_content_hash
-                        or arrangement_content_hash(snapshot.candidate_ir)
-                        != preview.candidate_content_hash
-                    ):
-                        raise ApplicationError(
-                            "CANDIDATE_INTEGRITY_ERROR",
-                            "preview candidate snapshot failed identity or hash validation",
-                        )
-                    revision = Revision(
-                        revision_id=self._id_factory(),
-                        project_id=preview.project_id,
-                        parent_revision_id=preview.base_revision_id,
-                        created_on_branch_id=preview.branch_id,
-                        arrangement_ir=snapshot.candidate_ir,
-                        content_hash=snapshot.candidate_content_hash,
-                        command_batch_id=self._id_factory(),
-                        change_impact_predicted=preview.actual_change_impact,
-                        change_impact_actual=preview.actual_change_impact,
-                        author_kind=AuthorKind.HUMAN,
-                        created_by=request.actor_id,
-                        source_run_id=preview.source_run_id,
-                        reason_code="CANDIDATE_APPROVED",
-                        versions=snapshot.versions,
-                        created_at=now,
-                    )
-                    await transaction.insert_materialized_revision(
-                        revision=revision,
-                        snapshot=snapshot,
-                        preview=preview,
-                        idempotency_key=request.idempotency_key,
-                        command_id=self._id_factory(),
-                    )
-                    advanced = await transaction.advance_branch_head(
-                        branch_id=preview.branch_id,
-                        expected_head_id=preview.base_revision_id,
-                        new_head_id=revision.revision_id,
-                    )
-                    if not advanced:
-                        raise ApplicationError(
-                            "PERSISTENCE_CONFLICT",
-                            "branch head changed while materializing candidate",
-                            retryable=True,
-                        )
-                    resolved = resolve_preview_candidate(
-                        preview,
-                        status=PreviewStatus.APPROVED,
-                        decided_by=request.actor_id,
-                        decided_at=now,
-                        approved_revision_id=revision.revision_id,
-                    )
-                    await transaction.update_preview(resolved)
-                    await transaction.insert_approval(
-                        approval_id=self._id_factory(),
-                        preview=resolved,
-                        decision=request.decision.value,
-                        actor_id=request.actor_id,
-                        payload_hash=fingerprint,
-                        decided_at=now,
-                    )
-                    result = DecidePreviewResult(
-                        preview_id=preview.preview_id,
-                        status=PreviewStatus.APPROVED,
-                        revision_id=revision.revision_id,
-                    )
-                    await self._save_decision(transaction, request, fingerprint, result, resolved)
 
         if deferred_error is not None:
             raise deferred_error
@@ -423,3 +364,135 @@ class DecidePreview:
                     "actual_change_impact": resolved.actual_change_impact.name,
                 },
             )
+
+
+async def approve_preview_in_transaction(
+    transaction: ProjectTransaction,
+    request: DecidePreviewRequest,
+    *,
+    id_factory: Callable[[], UUID],
+    now: datetime,
+    persist_superseded: bool = False,
+    locked_preview: PreviewCandidate | None = None,
+) -> DecidePreviewResult | RevisionConflictError:
+    """Apply the established approved Preview-to-Revision contract in one outer transaction."""
+
+    preview = (
+        locked_preview
+        if locked_preview is not None
+        else await transaction.lock_preview(request.preview_id)
+    )
+    if preview is None:
+        raise ApplicationError("PREVIEW_NOT_FOUND", "preview does not exist")
+    if preview.status is not PreviewStatus.PENDING:
+        raise ApplicationError("PREVIEW_NOT_PENDING", "preview is already terminal")
+    branch = await transaction.lock_branch(
+        project_id=preview.project_id, branch_id=preview.branch_id
+    )
+    if branch is None:
+        raise ApplicationError("BRANCH_NOT_FOUND", "target branch does not exist")
+    if branch.head_revision_id != preview.base_revision_id:
+        if persist_superseded:
+            resolved = resolve_preview_candidate(
+                preview,
+                status=PreviewStatus.SUPERSEDED,
+                decided_by=request.actor_id,
+                decided_at=now,
+            )
+            await transaction.update_preview(resolved)
+            await transaction.insert_audit_event(
+                event_id=id_factory(),
+                project_id=preview.project_id,
+                actor_id=request.actor_id,
+                event_type="project.preview.superseded",
+                resource_id=preview.preview_id,
+                payload={"current_revision_id": str(branch.head_revision_id)},
+            )
+            return RevisionConflictError(branch.head_revision_id)
+        raise RevisionConflictError(branch.head_revision_id)
+    snapshot = await transaction.get_candidate_snapshot(preview.candidate_snapshot_id)
+    if (
+        snapshot is None
+        or snapshot.project_id != preview.project_id
+        or snapshot.base_revision_id != preview.base_revision_id
+        or snapshot.candidate_content_hash != preview.candidate_content_hash
+        or arrangement_content_hash(snapshot.candidate_ir) != preview.candidate_content_hash
+    ):
+        raise ApplicationError("CANDIDATE_INTEGRITY_ERROR", "candidate snapshot failed validation")
+    revision = Revision(
+        revision_id=id_factory(),
+        project_id=preview.project_id,
+        parent_revision_id=preview.base_revision_id,
+        created_on_branch_id=preview.branch_id,
+        arrangement_ir=snapshot.candidate_ir,
+        content_hash=snapshot.candidate_content_hash,
+        command_batch_id=id_factory(),
+        change_impact_predicted=preview.actual_change_impact,
+        change_impact_actual=preview.actual_change_impact,
+        author_kind=AuthorKind.HUMAN,
+        created_by=request.actor_id,
+        source_run_id=preview.source_run_id,
+        reason_code="CANDIDATE_APPROVED",
+        versions=snapshot.versions,
+        created_at=now,
+    )
+    await transaction.insert_materialized_revision(
+        revision=revision,
+        snapshot=snapshot,
+        preview=preview,
+        idempotency_key=request.idempotency_key,
+        command_id=id_factory(),
+    )
+    if not await transaction.advance_branch_head(
+        branch_id=preview.branch_id,
+        expected_head_id=preview.base_revision_id,
+        new_head_id=revision.revision_id,
+    ):
+        raise RevisionConflictError(branch.head_revision_id)
+    resolved = resolve_preview_candidate(
+        preview,
+        status=PreviewStatus.APPROVED,
+        decided_by=request.actor_id,
+        decided_at=now,
+        approved_revision_id=revision.revision_id,
+    )
+    fingerprint = request_hash(
+        {
+            "schema": DECIDE_PREVIEW_OPERATION,
+            **request.model_dump(mode="json", exclude={"idempotency_key"}),
+        }
+    )
+    await transaction.update_preview(resolved)
+    await transaction.insert_approval(
+        approval_id=id_factory(),
+        preview=resolved,
+        decision=request.decision.value,
+        actor_id=request.actor_id,
+        payload_hash=fingerprint,
+        decided_at=now,
+    )
+    await transaction.insert_audit_event(
+        event_id=id_factory(),
+        project_id=resolved.project_id,
+        actor_id=request.actor_id,
+        event_type="project.preview.approved",
+        resource_id=request.preview_id,
+        payload={"revision_id": str(revision.revision_id)},
+    )
+    await transaction.insert_audit_event(
+        event_id=id_factory(),
+        project_id=resolved.project_id,
+        actor_id=request.actor_id,
+        event_type="project.revision.committed",
+        resource_id=revision.revision_id,
+        payload={
+            "preview_id": str(request.preview_id),
+            "base_revision_id": str(resolved.base_revision_id),
+            "actual_change_impact": resolved.actual_change_impact.name,
+        },
+    )
+    return DecidePreviewResult(
+        preview_id=preview.preview_id,
+        status=PreviewStatus.APPROVED,
+        revision_id=revision.revision_id,
+    )

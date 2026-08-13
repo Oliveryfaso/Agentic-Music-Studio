@@ -20,9 +20,7 @@ MAX_MODEL_REQUESTS = 3
 MAX_MODEL_TOKENS = 12_000
 PARENT_GRAPH_TOPOLOGY_VERSION = "motif-forge-parent.v2"
 GENERATE_RUN_STATE_SCHEMA_VERSION = "generate-run-state.v1"
-PlanHashVersion = Literal[
-    "composition-plan-hash.rounded-v1", "composition-plan-hash.lossless-v2"
-]
+PlanHashVersion = Literal["composition-plan-hash.rounded-v1", "composition-plan-hash.lossless-v2"]
 PLAN_HASH_VERSION_V1: PlanHashVersion = "composition-plan-hash.rounded-v1"
 PLAN_HASH_VERSION_V2: PlanHashVersion = "composition-plan-hash.lossless-v2"
 
@@ -134,6 +132,7 @@ def canonical_plan_json_bytes(
 
     value: object = plan.model_dump(mode="json", exclude_none=False)
     if hash_version == PLAN_HASH_VERSION_V1:
+
         def normalize(legacy_value: object) -> object:
             if isinstance(legacy_value, dict):
                 return {key: normalize(legacy_value[key]) for key in sorted(legacy_value)}
@@ -218,6 +217,30 @@ class AIRunApproval(DomainModel):
     expected_plan_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     interrupt_ref: str = Field(min_length=1, max_length=160)
     decided_at: datetime
+
+
+class CompositionMaterializationReceipt(DomainModel):
+    """Durable result of consuming one approved Plan into one immutable Revision."""
+
+    schema_version: Literal["composition-materialization-receipt.v1"] = (
+        "composition-materialization-receipt.v1"
+    )
+    receipt_id: UUID
+    run_id: UUID
+    plan_id: UUID
+    plan_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    plan_hash_version: PlanHashVersion
+    seed: int = Field(ge=0, le=2**31 - 1)
+    request_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    actor_id: str = Field(min_length=1, max_length=160)
+    assertion_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidate_snapshot_id: UUID
+    preview_id: UUID
+    revision_id: UUID
+    command_batch_id: UUID
+    style_pack_version: Literal["synth-ambient.v1"] = "synth-ambient.v1"
+    compiler_version: str = Field(min_length=1, max_length=80)
+    created_at: datetime
 
 
 class AIRun(DomainModel):

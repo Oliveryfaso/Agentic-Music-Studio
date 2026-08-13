@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from motif_forge.agent.schemas import CompositionBrief, CompositionPlan
+from motif_forge.application.ai_runs import RecordAIRunApproval
 from motif_forge.application.errors import ApplicationError
 from motif_forge.application.generation import (
     LoadCompositionPlan,
@@ -152,6 +153,22 @@ class FakeAIRunTransaction:
             raise ApplicationError("PLAN_HASH_MISMATCH", "tampered")
         return plan
 
+    async def persist_plan_and_mark_pending(
+        self,
+        *,
+        plan: PersistedCompositionPlan,
+        expected_version: int,
+        now: datetime,
+    ) -> tuple[PersistedCompositionPlan, AIRun]:
+        persisted = await self.persist_composition_plan(plan)
+        run = await self.mark_ai_run_plan_pending(
+            run_id=plan.run_id,
+            plan_id=persisted.plan_id,
+            expected_version=expected_version,
+            now=now,
+        )
+        return persisted, run
+
     async def mark_ai_run_plan_pending(
         self, *, run_id: UUID, plan_id: UUID, expected_version: int, now: datetime
     ) -> AIRun:
@@ -179,6 +196,32 @@ class FakeAIRunTransaction:
 
     async def read_ai_run_approval(self, run_id: UUID) -> AIRunApproval | None:
         return self.approval if self.approval is not None and run_id == self.run.run_id else None
+
+    async def record_ai_run_approval(
+        self,
+        *,
+        approval: AIRunApproval,
+        expected_version: int,
+        outbox_event_id: UUID,
+    ) -> AIRunApproval:
+        del outbox_event_id
+        if self.approval is not None:
+            return self.approval
+        if (
+            self.run.version != expected_version
+            or self.run.status is not AIRunStatus.WAITING_APPROVAL
+            or self.run.pending_plan_content_hash != approval.expected_plan_content_hash
+            or self.run.pending_interrupt_ref != approval.interrupt_ref
+        ):
+            raise ApplicationError("AI_RUN_APPROVAL_CONFLICT", "invalid pending approval")
+        self.approval = approval
+        target = (
+            AIRunStatus.MATERIALIZING if approval.decision == "approve" else AIRunStatus.REJECTED
+        )
+        self.run = self.run.transition(target, now=approval.decided_at).model_copy(
+            update={"approval_assertion_hash": approval.assertion_hash}
+        )
+        return approval
 
 
 def _run(project_id: UUID, branch_id: UUID, revision_id: UUID) -> AIRun:
@@ -326,22 +369,18 @@ async def _approved_fixture(
         )
     )
     assertion = "I approve this generated composition plan."
-    approval = AIRunApproval(
-        approval_id=uuid4(),
+    await RecordAIRunApproval(
+        ai,
+        id_factory=uuid4,
+        clock=lambda: NOW,
+    )(
         run_id=run.run_id,
-        assertion_hash=__import__(
-            "motif_forge.domain.ai_runs", fromlist=["approval_assertion_hash"]
-        ).approval_assertion_hash(assertion),
         decision=decision,
         actor_id="human",
+        assertion=assertion,
+        expected_version=persisted_result.run_version,
         expected_plan_content_hash=persisted_result.plan_hash,
         interrupt_ref=persisted_result.interrupt_ref,
-        decided_at=NOW,
-    )
-    ai.approval = approval
-    target = AIRunStatus.MATERIALIZING if decision == "approve" else AIRunStatus.REJECTED
-    ai.run = ai.run.transition(target, now=NOW).model_copy(
-        update={"approval_assertion_hash": approval.assertion_hash}
     )
     request = MaterializeApprovedCompositionRequest(
         run_id=run.run_id,

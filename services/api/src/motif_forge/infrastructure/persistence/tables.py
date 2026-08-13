@@ -556,11 +556,57 @@ class AIRunApprovalRow(Base):
     decided_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class CompositionMaterializationReceiptRow(Base):
+    __tablename__ = "composition_materialization_receipts"
+    __table_args__ = (
+        UniqueConstraint(
+            "run_id",
+            "plan_id",
+            "plan_content_hash",
+            "seed",
+            name="uq_composition_materialization_logical_identity",
+        ),
+    )
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    schema_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    run_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(f"{APP_SCHEMA}.ai_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    plan_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.composition_plans.id"), nullable=False
+    )
+    plan_content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    plan_hash_version: Mapped[str] = mapped_column(String(48), nullable=False)
+    seed: Mapped[int] = mapped_column(Integer, nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    assertion_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    candidate_snapshot_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.candidate_snapshots.id"), nullable=False
+    )
+    preview_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.preview_candidates.id"), nullable=False
+    )
+    revision_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.project_revisions.id"), nullable=False
+    )
+    command_batch_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.command_batches.id"), nullable=False
+    )
+    style_pack_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    compiler_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class AIRunActionIdempotencyRow(Base):
     __tablename__ = "ai_run_action_idempotency"
     __table_args__ = (
         UniqueConstraint(
-            "parent_run_id", "action", "idempotency_key",
+            "parent_run_id",
+            "action",
+            "idempotency_key",
             name="uq_ai_run_action_idempotency_parent_action_key",
         ),
     )

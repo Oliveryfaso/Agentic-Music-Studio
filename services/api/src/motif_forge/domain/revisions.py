@@ -53,6 +53,7 @@ class VersionRefs(DomainModel):
     prompt: str | None = None
     knowledge: str | None = None
     assets: str | None = None
+    compiler: str | None = None
 
 
 class StructuralDiffEntry(DomainModel):

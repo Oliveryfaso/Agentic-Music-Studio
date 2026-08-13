@@ -13,6 +13,7 @@ from motif_forge.domain.ai_runs import (
     AIRun,
     AIRunApproval,
     AIRunEvent,
+    CompositionMaterializationReceipt,
     ModelRequestKind,
     ModelRequestReservation,
     ModelUsageStatus,
@@ -359,6 +360,13 @@ class AIRunTransaction(Protocol):
     async def persist_composition_plan(
         self, plan: PersistedCompositionPlan
     ) -> PersistedCompositionPlan: ...
+    async def persist_plan_and_mark_pending(
+        self,
+        *,
+        plan: PersistedCompositionPlan,
+        expected_version: int,
+        now: datetime,
+    ) -> tuple[PersistedCompositionPlan, AIRun]: ...
     async def read_composition_plan(
         self, *, plan_id: UUID, run_id: UUID
     ) -> PersistedCompositionPlan: ...
@@ -417,3 +425,20 @@ class AIRunTransaction(Protocol):
 
 
 AIRunUnitOfWorkFactory = Callable[[], AIRunTransaction]
+
+
+class CompositionMaterializationTransaction(ProjectTransaction, Protocol):
+    async def lock_ai_run(self, run_id: UUID) -> AIRun: ...
+    async def read_ai_run_approval(self, run_id: UUID) -> AIRunApproval | None: ...
+    async def read_composition_plan(
+        self, *, plan_id: UUID, run_id: UUID
+    ) -> PersistedCompositionPlan: ...
+    async def read_materialization_receipt(
+        self, *, run_id: UUID, plan_id: UUID, plan_hash: str, seed: int
+    ) -> CompositionMaterializationReceipt | None: ...
+    async def insert_materialization_receipt(
+        self, receipt: CompositionMaterializationReceipt, event: AIRunEvent
+    ) -> None: ...
+
+
+CompositionMaterializationUnitOfWorkFactory = Callable[[], CompositionMaterializationTransaction]

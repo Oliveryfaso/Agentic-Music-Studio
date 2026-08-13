@@ -48,6 +48,7 @@ def test_business_tables_are_isolated_in_app_schema() -> None:
         "app.composition_plans",
         "app.ai_run_events",
         "app.ai_model_request_reservations",
+        "app.composition_materialization_receipts",
     }.issubset(Base.metadata.tables)
 
 
@@ -77,11 +78,15 @@ def test_alembic_has_single_reversible_head() -> None:
     config = Config(root / "alembic.ini")
     scripts = ScriptDirectory.from_config(config)
 
-    assert scripts.get_heads() == ["20260813_0015"]
+    assert scripts.get_heads() == ["20260813_0016"]
     migration = scripts.get_revision("20260813_0013")
     assert migration is not None
     assert callable(migration.module.upgrade)
     assert callable(migration.module.downgrade)
+    receipt_migration = scripts.get_revision("20260813_0016")
+    assert receipt_migration is not None
+    assert callable(receipt_migration.module.upgrade)
+    assert callable(receipt_migration.module.downgrade)
 
 
 def test_ai_event_sequence_is_bigint_and_usage_cost_can_be_unknown() -> None:
