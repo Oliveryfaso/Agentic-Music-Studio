@@ -1,6 +1,6 @@
 # S2 Unified Generate Graph Design
 
-Status: approved in conversation; written specification pending user review
+Status: reviewed and approved for implementation
 
 Date: 2026-08-13
 
