@@ -607,6 +607,55 @@ async def test_pending_plan_grouped_constraint_rejects_partial_tuples(test_postg
 
 
 @pytest.mark.asyncio
+async def test_pending_plan_cancel_consumes_interrupt_and_replays_once(test_postgres_dsn: str) -> None:
+    await asyncio.to_thread(_upgrade, test_postgres_dsn)
+    run_id, _, _, uow, engine = await _seed_run(test_postgres_dsn, key=f"pending-cancel-{uuid4().hex}")
+    try:
+        plan = _plan()
+        stored = PersistedCompositionPlan(
+            plan_id=uuid4(), run_id=run_id, plan=plan,
+            content_hash=composition_plan_content_hash(plan), provider="fallback",
+            model="deterministic", prompt_version="p1", schema_version="composition-plan.v1",
+            style_pack_version="s1",
+        )
+        await PersistCompositionPlan(uow)(stored)
+        pending = await MarkAIRunPlanPending(uow)(
+            run_id=run_id, plan_id=stored.plan_id, expected_version=0
+        )
+        cancelled = await RequestAIRunAction(uow)(
+            run_id=run_id,
+            action="cancel",
+            expected_version=pending.version,
+            idempotency_key="cancel-pending",
+        )
+        assert cancelled.status is AIRunStatus.CANCELLED
+        assert cancelled.version == pending.version + 1
+        assert cancelled.terminal_at is not None
+        assert (
+            cancelled.pending_plan_id,
+            cancelled.pending_plan_content_hash,
+            cancelled.pending_interrupt_ref,
+        ) == (None, None, None)
+        replay = await RequestAIRunAction(uow)(
+            run_id=run_id,
+            action="cancel",
+            expected_version=pending.version,
+            idempotency_key="cancel-pending",
+        )
+        assert replay == cancelled
+        async with engine.connect() as connection:
+            outbox_count = await connection.scalar(
+                select(func.count()).select_from(OutboxEventRow).where(
+                    OutboxEventRow.aggregate_id == run_id,
+                    OutboxEventRow.dedupe_key == f"ai-run:{run_id}:cancel:cancel-pending",
+                )
+            )
+        assert outbox_count == 1
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
 async def test_retry_outbox_failure_rolls_back_child_event_and_action_ledger(
     test_postgres_dsn: str,
 ) -> None:
@@ -618,16 +667,24 @@ async def test_retry_outbox_failure_rolls_back_child_event_and_action_ledger(
             run_id=run_id, action="cancel", expected_version=0, idempotency_key="cancel-for-retry"
         )
         now = datetime.now(UTC)
+        child_id, thread_id, event_id, failed_outbox_id, preseeded_outbox_id = (
+            uuid4(),
+            uuid4(),
+            uuid4(),
+            uuid4(),
+            uuid4(),
+        )
         async with engine.begin() as connection:
             await connection.execute(
                 insert(OutboxEventRow).values(
-                    id=uuid4(), aggregate_type="test", aggregate_id=uuid4(), topic="test",
+                    id=preseeded_outbox_id, aggregate_type="test", aggregate_id=uuid4(), topic="test",
                     dedupe_key=f"ai-run:{run_id}:retry:{retry_key}", payload={}, status="pending",
                     attempts=0, available_at=now, created_at=now,
                 )
             )
         with pytest.raises(IntegrityError):
-            await RequestAIRunAction(uow)(
+            retry_ids = iter((child_id, thread_id, event_id, failed_outbox_id))
+            await RequestAIRunAction(uow, id_factory=lambda: next(retry_ids))(
                 run_id=run_id,
                 action="retry",
                 expected_version=parent.version,
@@ -647,12 +704,18 @@ async def test_retry_outbox_failure_rolls_back_child_event_and_action_ledger(
             )
             child_event_count = await connection.scalar(
                 select(func.count()).select_from(AIRunEventRow).where(
-                    AIRunEventRow.run_id.in_(
-                        select(AIRunRow.id).where(AIRunRow.parent_run_id == run_id)
-                    )
+                    AIRunEventRow.event_id == event_id
                 )
             )
+            retry_outboxes = (
+                await connection.execute(
+                    select(OutboxEventRow.id).where(
+                        OutboxEventRow.dedupe_key == f"ai-run:{run_id}:retry:{retry_key}"
+                    )
+                )
+            ).scalars().all()
         assert child_count == ledger_count == child_event_count == 0
+        assert retry_outboxes == [preseeded_outbox_id]
     finally:
         await engine.dispose()
 

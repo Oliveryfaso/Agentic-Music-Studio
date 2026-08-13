@@ -135,6 +135,25 @@ def test_pending_plan_fields_must_match_waiting_approval_status() -> None:
             run_id=uuid4(), project_id=uuid4(), branch_id=uuid4(), base_revision_id=uuid4(),
             thread_id="pending-contract", pending_plan_id=uuid4(),
         )
+
+
+def test_transition_from_waiting_approval_consumes_pending_fields() -> None:
+    now = datetime.now(UTC)
+    waiting = AIRun(
+        run_id=uuid4(), project_id=uuid4(), branch_id=uuid4(), base_revision_id=uuid4(),
+        thread_id="pending-cancel", status=AIRunStatus.WAITING_APPROVAL,
+        pending_plan_id=uuid4(), pending_plan_content_hash="a" * 64,
+        pending_interrupt_ref="server-ref-abcdefghijklmnopqrstuvwxyz",
+    )
+    cancelled = waiting.transition_for_action("cancel", now=now)
+    assert cancelled.status is AIRunStatus.CANCELLED
+    assert cancelled.version == waiting.version + 1
+    assert cancelled.terminal_at == now
+    assert (
+        cancelled.pending_plan_id,
+        cancelled.pending_plan_content_hash,
+        cancelled.pending_interrupt_ref,
+    ) == (None, None, None)
     with pytest.raises(ValidationError):
         AIRun(
             run_id=uuid4(), project_id=uuid4(), branch_id=uuid4(), base_revision_id=uuid4(),

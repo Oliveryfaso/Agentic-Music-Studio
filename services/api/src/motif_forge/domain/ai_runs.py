@@ -246,12 +246,23 @@ class AIRun(DomainModel):
     def transition(self, status: AIRunStatus, *, now: datetime) -> AIRun:
         if status not in _TRANSITIONS[self.status]:
             raise ValueError(f"invalid AI run status transition: {self.status} -> {status}")
+        pending_update: dict[str, UUID | str | None] = {}
+        if (
+            self.status is AIRunStatus.WAITING_APPROVAL
+            and status is not AIRunStatus.WAITING_APPROVAL
+        ):
+            pending_update = {
+                "pending_plan_id": None,
+                "pending_plan_content_hash": None,
+                "pending_interrupt_ref": None,
+            }
         return self.model_copy(
             update={
                 "status": status,
                 "version": self.version + 1,
                 "updated_at": now,
                 "terminal_at": now if status in _TERMINAL else None,
+                **pending_update,
             }
         )
 
