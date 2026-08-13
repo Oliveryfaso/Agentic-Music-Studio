@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any, Self
+from typing import Self
 from uuid import UUID
 
 from pydantic import Field, model_validator
@@ -123,22 +122,10 @@ _SAFE_USAGE_KEYS = frozenset(
 
 
 def canonical_plan_json_bytes(plan: CompositionPlan) -> bytes:
-    """Use the project's stable canonical JSON rules for immutable model output."""
-
-    def normalize(value: Any) -> Any:
-        if isinstance(value, dict):
-            return {key: normalize(value[key]) for key in sorted(value)}
-        if isinstance(value, (list, tuple)):
-            return [normalize(item) for item in value]
-        if isinstance(value, float):
-            if not math.isfinite(value):
-                raise ValueError("canonical JSON cannot contain NaN or Infinity")
-            rounded = round(value, 6)
-            return 0.0 if rounded == 0.0 else rounded
-        return value
+    """Serialize every validated Plan fact losslessly for immutable compiler identity."""
 
     return json.dumps(
-        normalize(plan.model_dump(mode="json", exclude_none=False)),
+        plan.model_dump(mode="json", exclude_none=False),
         allow_nan=False,
         ensure_ascii=False,
         separators=(",", ":"),

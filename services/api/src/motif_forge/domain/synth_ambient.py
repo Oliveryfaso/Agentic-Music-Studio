@@ -102,6 +102,36 @@ def validate_synth_ambient_plan(
             )
         )
 
+    if any(section.end_bar - section.start_bar > 32 for section in plan.sections):
+        issues.append(
+            _issue(
+                "SAP-005",
+                "SECTION_LENGTH_UNSUPPORTED",
+                "sections",
+                "each section must fit the PatternSpec v1 thirty-two-bar bound",
+            )
+        )
+
+    if plan.duration_bars > 128:
+        issues.append(
+            _issue(
+                "SAP-006",
+                "TOTAL_BAR_RANGE_UNSUPPORTED",
+                "duration_bars",
+                "PatternSpec v1 supports an arrangement through bar 128",
+            )
+        )
+
+    if planned_seconds > 300:
+        issues.append(
+            _issue(
+                "SAP-007",
+                "COMPILED_DURATION_UNSUPPORTED",
+                "duration_bars",
+                "the compiled arrangement cannot exceed 300 seconds",
+            )
+        )
+
     plan_negative_constraints = {
         _normalized_text(item) for item in plan.negative_constraints
     }
@@ -113,7 +143,7 @@ def validate_synth_ambient_plan(
     if missing_negative_constraints:
         issues.append(
             _issue(
-                "SAP-005",
+                "SAP-008",
                 "NEGATIVE_CONSTRAINT_MISSING",
                 "negative_constraints",
                 "every brief negative constraint must be represented in the plan",
@@ -123,7 +153,7 @@ def validate_synth_ambient_plan(
     if brief.target_bpm is not None and plan.bpm != brief.target_bpm:
         issues.append(
             _issue(
-                "SAP-006",
+                "SAP-009",
                 "BPM_MISMATCH",
                 "bpm",
                 "an explicit brief BPM must match the plan exactly",
@@ -135,21 +165,11 @@ def validate_synth_ambient_plan(
         if requested_key is None or plan.key != requested_key:
             issues.append(
                 _issue(
-                    "SAP-007",
+                    "SAP-010",
                     "KEY_MISMATCH",
                     "key",
                     "an explicit brief key and mode must match the plan exactly",
                 )
             )
-
-    if any(section.end_bar - section.start_bar > 32 for section in plan.sections):
-        issues.append(
-            _issue(
-                "SAP-004",
-                "SECTION_LENGTH_UNSUPPORTED",
-                "sections",
-                "each section must fit the PatternSpec v1 thirty-two-bar bound",
-            )
-        )
 
     return StrategyValidation(compatible=not issues, issues=tuple(issues))

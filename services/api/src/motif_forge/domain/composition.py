@@ -9,7 +9,7 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 
 from pydantic import ConfigDict, Field, model_validator
 
-from motif_forge.agent.schemas import CompositionPlan
+from motif_forge.agent.schemas import CompositionBrief, CompositionPlan, InstrumentPlan
 from motif_forge.domain.ai_runs import composition_plan_content_hash
 from motif_forge.domain.canonical import arrangement_content_hash
 from motif_forge.domain.commands import (
@@ -40,6 +40,7 @@ from motif_forge.domain.ir import (
     TrackType,
     create_empty_arrangement,
 )
+from motif_forge.domain.synth_ambient import StrategyIssue, validate_synth_ambient_plan
 from motif_forge.domain.timebase import ticks_to_seconds
 
 COMPOSER_VERSION = "s1-deterministic-composer.v1"
@@ -131,6 +132,15 @@ class CompositionBuild(DomainModel):
         if arrangement_content_hash(self.arrangement) != self.content_hash:
             raise ValueError("content_hash must match the built ArrangementIR")
         return self
+
+
+class SynthAmbientCompilationError(ValueError):
+    """Typed fail-closed result when an authoritative brief and Plan are incompatible."""
+
+    def __init__(self, issues: tuple[StrategyIssue, ...]) -> None:
+        self.issues = issues
+        summary = "; ".join(f"{issue.rule_id}:{issue.code}" for issue in issues)
+        super().__init__(f"Synth Ambient Plan is incompatible: {summary}")
 
 
 _SCALE = (0, 2, 4, 5, 7, 9, 11)
@@ -458,9 +468,14 @@ _CANONICAL_TONIC: tuple[CanonicalTonic, ...] = (
 
 
 def _plan_patterns(
-    project_id: UUID, plan: CompositionPlan, seed: int, plan_hash: str
+    project_id: UUID,
+    plan: CompositionPlan,
+    seed: int,
+    plan_hash: str,
+    instruments: dict[PatternRole, InstrumentPlan],
 ) -> tuple[PatternSpec, ...]:
     patterns: list[PatternSpec] = []
+    section_indexes = {section.section_id: index for index, section in enumerate(plan.sections)}
     for section_index, section in enumerate(plan.sections):
         bar_count = section.end_bar - section.start_bar
         energy_band = min(3, int(section.energy * 4))
@@ -481,6 +496,13 @@ def _plan_patterns(
             )[energy_band],
         }
         for role_index, role in enumerate(PatternRole):
+            instrument = instruments[role]
+            if not (
+                section_indexes[instrument.entry_section_id]
+                <= section_index
+                <= section_indexes[instrument.exit_section_id]
+            ):
+                continue
             variation_seed = (
                 seed * 1_103 + section_index * 97 + role_index * 31 + energy_band * 17
             ) % (2**31)
@@ -506,9 +528,9 @@ def _plan_patterns(
                     chord_degrees=progression,
                     rhythm_grid=grids[role],
                     register=_ROLE_REGISTER[role],
-                    density=round(min(1.0, 0.15 + section.energy * 0.8), 6),
+                    density=min(1.0, 0.15 + section.energy * 0.8),
                     syncopation=(
-                        round(section.energy * 0.3, 6)
+                        section.energy * 0.3
                         if role in {PatternRole.MELODY, PatternRole.RHYTHM}
                         else 0.0
                     ),
@@ -517,7 +539,7 @@ def _plan_patterns(
                         f"key:{plan.key.tonic}-{plan.key.mode}",
                         "meter:4/4",
                         f"tempo:{plan.bpm}",
-                        f"energy:{section.energy:.6f}",
+                        f"energy:{section.energy!r}",
                     ),
                 )
             )
@@ -659,23 +681,19 @@ def _plan_track(
 
 
 def compile_synth_ambient_plan(
-    project_id: UUID, *, plan: CompositionPlan, seed: int
+    project_id: UUID, *, brief: CompositionBrief, plan: CompositionPlan, seed: int
 ) -> CompositionBuild:
-    """Compile one validated Synth Ambient plan through audited editor commands."""
+    """Revalidate authoritative facts, then compile through audited editor commands."""
 
     if not 0 <= seed <= 2**31 - 1:
         raise ValueError("seed must be between 0 and 2^31-1")
-    if plan.genre != "synth_ambient" or plan.meter != "4/4":
-        raise ValueError("Synth Ambient compilation requires a synth_ambient 4/4 plan")
-    roles = tuple(sorted(item.role.casefold().strip() for item in plan.instrumentation))
-    if roles != ("bass", "melody", "pad", "rhythm"):
-        raise ValueError("Synth Ambient compilation requires one supported instrument per role")
-    if any(section.end_bar - section.start_bar > 32 for section in plan.sections):
-        raise ValueError("Synth Ambient sections cannot exceed the PatternSpec v1 bar limit")
-
+    compatibility = validate_synth_ambient_plan(brief, plan)
+    if not compatibility.compatible:
+        raise SynthAmbientCompilationError(compatibility.issues)
+    instruments = {
+        PatternRole(item.role.casefold().strip()): item for item in plan.instrumentation
+    }
     duration_seconds = plan.duration_bars * 4 * 60 / plan.bpm
-    if duration_seconds > 300:
-        raise ValueError("compiled composition duration exceeds the first-release limit")
     plan_hash = composition_plan_content_hash(plan)
     mode = MusicalMode(plan.key.mode)
     tonic_pitch_class = _TONIC_PITCH_CLASS[plan.key.tonic]
@@ -693,7 +711,7 @@ def compile_synth_ambient_plan(
         )
         for section in plan.sections
     )
-    patterns = _plan_patterns(project_id, plan, seed, plan_hash)
+    patterns = _plan_patterns(project_id, plan, seed, plan_hash, instruments)
     initialize = InitializeCompositionCommand(
         command_id=_stable_id(project_id, "synth-ambient-command", plan_hash, seed, "initialize"),
         actor_kind="agent",
@@ -721,6 +739,11 @@ def compile_synth_ambient_plan(
                 ProvenanceRef(
                     kind="engine",
                     ref="motif-forge-synth-ambient-compiler",
+                    version=SYNTH_AMBIENT_COMPILER_VERSION,
+                ),
+                ProvenanceRef(
+                    kind="engine",
+                    ref=f"deterministic-seed:{seed}",
                     version=SYNTH_AMBIENT_COMPILER_VERSION,
                 ),
                 ProvenanceRef(
