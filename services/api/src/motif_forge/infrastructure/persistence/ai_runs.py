@@ -8,6 +8,7 @@ from typing import Self
 from uuid import UUID
 
 from sqlalchemy import insert, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from motif_forge.application.ai_runs import model_request_allowed
@@ -15,6 +16,7 @@ from motif_forge.application.errors import ApplicationError
 from motif_forge.application.ports import IdempotencyHit
 from motif_forge.domain.ai_runs import (
     AIRun,
+    AIRunApproval,
     AIRunEvent,
     AIRunStatus,
     CostStatus,
@@ -26,12 +28,14 @@ from motif_forge.domain.ai_runs import (
 )
 from motif_forge.infrastructure.persistence.database import SessionFactory
 from motif_forge.infrastructure.persistence.tables import (
+    AIRunApprovalRow,
     AIRunEventRow,
     AIRunRow,
+    BranchRow,
     CompositionPlanRow,
-    IdempotencyRow,
     ModelRequestReservationRow,
     OutboxEventRow,
+    RevisionRow,
 )
 
 
@@ -68,38 +72,54 @@ class PostgresAIRunTransaction:
     async def get_ai_run_idempotency(self, *, project_id: UUID, key: str) -> IdempotencyHit | None:
         row = (
             await self._session.execute(
-                select(IdempotencyRow).where(
-                    IdempotencyRow.operation == "ai-run.create.v1",
-                    IdempotencyRow.idempotency_key == key,
+                select(AIRunRow).where(
+                    AIRunRow.project_id == project_id,
+                    AIRunRow.idempotency_key == key,
                 )
             )
         ).scalar_one_or_none()
         if row is None:
             return None
-        if row.result_payload.get("project_id") != str(project_id):
-            return None
         return IdempotencyHit(
-            resource_id=row.resource_id,
-            request_hash=row.request_hash,
-            result_payload=row.result_payload,
+            resource_id=row.id,
+            request_hash=_ai_run_request_hash(row),
+            result_payload={"run_id": str(row.id), "project_id": str(row.project_id)},
         )
 
     async def create_ai_run(
         self, *, run: AIRun, created_event: AIRunEvent, outbox_event_id: UUID, request_hash: str
     ) -> None:
-        await self._session.execute(insert(AIRunRow).values(**_run_values(run)))
+        branch = (
+            await self._session.execute(
+                select(BranchRow)
+                .where(BranchRow.id == run.branch_id, BranchRow.project_id == run.project_id)
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
+        revision = (
+            await self._session.execute(
+                select(RevisionRow).where(
+                    RevisionRow.id == run.base_revision_id,
+                    RevisionRow.project_id == run.project_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if branch is None or revision is None:
+            raise ApplicationError(
+                "AI_RUN_IDENTITY_INVALID",
+                "branch and base revision must belong to the requested project",
+            )
+        try:
+            await self._session.execute(insert(AIRunRow).values(**_run_values(run)))
+        except IntegrityError as exc:
+            # A concurrent identical request wins by reading the project-scoped natural key.
+            # The failed statement leaves PostgreSQL's transaction aborted, so a savepoint is
+            # used by the caller's nested transaction when availability matters.
+            raise ApplicationError(
+                "AI_RUN_CREATE_RACE", "concurrent AI run creation must be replayed"
+            ) from exc
         await self._session.execute(
             insert(AIRunEventRow).values(**_event_values(created_event, sequence=None))
-        )
-        await self._session.execute(
-            insert(IdempotencyRow).values(
-                operation="ai-run.create.v1",
-                idempotency_key=run.idempotency_key,
-                request_hash=request_hash,
-                resource_id=run.run_id,
-                result_payload={"run_id": str(run.run_id), "project_id": str(run.project_id)},
-                created_at=run.created_at,
-            )
         )
         await self._session.execute(
             insert(OutboxEventRow).values(
@@ -141,7 +161,14 @@ class PostgresAIRunTransaction:
             )
         ).scalar_one_or_none()
         if existing is not None:
-            return _plan_from_row(existing)
+            if _plan_provenance_values(existing) != _plan_provenance_values(plan):
+                raise ApplicationError(
+                    "PLAN_PROVENANCE_CONFLICT",
+                    "immutable plan content cannot be replayed with different provenance",
+                )
+            return plan.model_copy(
+                update={"plan_id": existing.id, "created_at": existing.created_at}
+            )
         await self._session.execute(insert(CompositionPlanRow).values(**_plan_values(plan)))
         return plan
 
@@ -164,6 +191,66 @@ class PostgresAIRunTransaction:
             .returning(AIRunEventRow.sequence)
         )
         return event.model_copy(update={"sequence": result.scalar_one()})
+
+    async def record_ai_run_approval(
+        self, *, approval: AIRunApproval, expected_version: int, outbox_event_id: UUID
+    ) -> AIRunApproval:
+        row = (
+            await self._session.execute(
+                select(AIRunRow).where(AIRunRow.id == approval.run_id).with_for_update()
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
+        existing = (
+            await self._session.execute(
+                select(AIRunApprovalRow).where(AIRunApprovalRow.run_id == approval.run_id)
+            )
+        ).scalar_one_or_none()
+        if existing is not None:
+            saved = _approval_from_row(existing)
+            if (
+                saved.assertion_hash != approval.assertion_hash
+                or saved.decision != approval.decision
+                or saved.actor_id != approval.actor_id
+            ):
+                raise ApplicationError(
+                    "AI_RUN_APPROVAL_CONFLICT", "approval assertion does not match"
+                )
+            return saved
+        if row.version != expected_version or row.status != AIRunStatus.WAITING_APPROVAL.value:
+            raise ApplicationError(
+                "AI_RUN_VERSION_CONFLICT", "the AI run cannot accept this approval"
+            )
+        target = (
+            AIRunStatus.MATERIALIZING if approval.decision == "approve" else AIRunStatus.REJECTED
+        )
+        run = _run_from_row(row).transition(target, now=approval.decided_at)
+        await self._session.execute(
+            update(AIRunRow)
+            .where(AIRunRow.id == run.run_id, AIRunRow.version == expected_version)
+            .values(**_run_values(run))
+        )
+        await self._session.execute(insert(AIRunApprovalRow).values(**_approval_values(approval)))
+        await self._session.execute(
+            insert(OutboxEventRow).values(
+                id=outbox_event_id,
+                aggregate_type="ai_run",
+                aggregate_id=run.run_id,
+                topic="graph.resume.requested",
+                dedupe_key=f"ai-run:{run.run_id}:approval:{approval.approval_id}",
+                payload={
+                    "schema_version": "graph-action-request.v1",
+                    "run_id": str(run.run_id),
+                    "action": "resume",
+                },
+                status="pending",
+                attempts=0,
+                available_at=approval.decided_at,
+                created_at=approval.decided_at,
+            )
+        )
+        return approval
 
     async def list_ai_run_events(
         self, run_id: UUID, *, after_sequence: int
@@ -199,14 +286,24 @@ class PostgresAIRunTransaction:
         if row is None:
             raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
         run = _run_from_row(row)
+        previous_outbox = (
+            await self._session.execute(
+                select(OutboxEventRow).where(
+                    OutboxEventRow.aggregate_id == run_id,
+                    OutboxEventRow.dedupe_key == f"ai-run:{run_id}:{action}:{idempotency_key}",
+                )
+            )
+        ).scalar_one_or_none()
+        if previous_outbox is not None:
+            return run
         if run.version != expected_version:
             raise ApplicationError(
                 "AI_RUN_VERSION_CONFLICT", "the AI run changed; reload before acting"
             )
-        if action == "cancel":
-            run = run.transition(AIRunStatus.CANCELLED, now=now)
-        else:
-            run = run.model_copy(update={"version": run.version + 1, "updated_at": now})
+        try:
+            run = run.transition_for_action(action, now=now)
+        except ValueError as exc:
+            raise ApplicationError("AI_RUN_ACTION_STATE_CONFLICT", str(exc)) from exc
         await self._session.execute(
             update(AIRunRow)
             .where(AIRunRow.id == run_id, AIRunRow.version == expected_version)
@@ -259,6 +356,7 @@ class PostgresAIRunTransaction:
             submitted_model_requests=row.submitted_model_requests,
             prior_request_kinds=kinds,
             requested_kind=kind,
+            run_status=AIRunStatus(row.status),
         )
         ordinal = row.submitted_model_requests + 1
         reservation = ModelRequestReservation(
@@ -304,7 +402,11 @@ class PostgresAIRunTransaction:
             )
         reservation = _reservation_from_row(row)
         if reservation.status is ModelRequestReservationStatus.OBSERVED:
-            if reservation.provider_operation_id != provider_operation_id:
+            if (
+                reservation.provider_operation_id != provider_operation_id
+                or reservation.prompt_tokens != prompt_tokens
+                or reservation.completion_tokens != completion_tokens
+            ):
                 raise ApplicationError(
                     "MODEL_USAGE_CONFLICT",
                     "the reservation is already observed with a different provider operation",
@@ -364,6 +466,8 @@ def _run_from_row(row: AIRunRow) -> AIRun:
         branch_id=row.branch_id,
         base_revision_id=row.base_revision_id,
         thread_id=row.thread_id,
+        graph_topology_version=row.graph_topology_version,
+        state_schema_version=row.state_schema_version,
         brief=row.brief,
         status=AIRunStatus(row.status),
         version=row.version,
@@ -414,6 +518,21 @@ def _plan_from_row(row: CompositionPlanRow) -> PersistedCompositionPlan:
         style_pack_version=row.style_pack_version,
         fallback_reason=row.fallback_reason,
         created_at=row.created_at,
+    )
+
+
+def _plan_provenance_values(
+    plan: CompositionPlanRow | PersistedCompositionPlan,
+) -> tuple[object, ...]:
+    return (
+        plan.run_id,
+        plan.content_hash,
+        plan.provider,
+        plan.model,
+        plan.prompt_version,
+        plan.schema_version,
+        plan.style_pack_version,
+        plan.fallback_reason,
     )
 
 
@@ -470,4 +589,43 @@ def _reservation_from_row(row: ModelRequestReservationRow) -> ModelRequestReserv
         completion_tokens=row.completion_tokens,
         created_at=row.created_at,
         observed_at=row.observed_at,
+    )
+
+
+def _approval_values(approval: AIRunApproval) -> dict[str, object]:
+    return {
+        "id": approval.approval_id,
+        "run_id": approval.run_id,
+        "assertion_hash": approval.assertion_hash,
+        "decision": approval.decision,
+        "actor_id": approval.actor_id,
+        "decided_at": approval.decided_at,
+    }
+
+
+def _approval_from_row(row: AIRunApprovalRow) -> AIRunApproval:
+    return AIRunApproval(
+        approval_id=row.id,
+        run_id=row.run_id,
+        assertion_hash=row.assertion_hash,
+        decision=row.decision,
+        actor_id=row.actor_id,
+        decided_at=row.decided_at,
+    )
+
+
+def _ai_run_request_hash(row: AIRunRow) -> str:
+    from motif_forge.application._hashing import request_hash
+
+    return request_hash(
+        {
+            "schema": "ai-run.create.v1",
+            "project_id": str(row.project_id),
+            "branch_id": str(row.branch_id),
+            "base_revision_id": str(row.base_revision_id),
+            "thread_id": row.thread_id,
+            "brief": row.brief,
+            "graph_topology_version": row.graph_topology_version,
+            "state_schema_version": row.state_schema_version,
+        }
     )

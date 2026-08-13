@@ -477,6 +477,8 @@ class AIRunRow(Base):
         PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.project_revisions.id"), nullable=False
     )
     thread_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    graph_topology_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    state_schema_version: Mapped[str] = mapped_column(String(80), nullable=False)
     brief: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -491,6 +493,21 @@ class AIRunRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     terminal_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class AIRunApprovalRow(Base):
+    __tablename__ = "ai_run_approvals"
+    __table_args__ = (UniqueConstraint("run_id", name="uq_ai_run_approvals_run"),)
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    run_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(f"{APP_SCHEMA}.ai_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    assertion_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    decision: Mapped[str] = mapped_column(String(24), nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    decided_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class CompositionPlanRow(Base):
@@ -540,6 +557,14 @@ class ModelRequestReservationRow(Base):
     __table_args__ = (
         UniqueConstraint(
             "run_id", "request_ordinal", name="uq_ai_model_request_reservations_ordinal"
+        ),
+        CheckConstraint(
+            "prompt_tokens IS NULL OR prompt_tokens >= 0",
+            name="reservation_prompt_tokens_nonnegative",
+        ),
+        CheckConstraint(
+            "completion_tokens IS NULL OR completion_tokens >= 0",
+            name="reservation_completion_tokens_nonnegative",
         ),
     )
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)

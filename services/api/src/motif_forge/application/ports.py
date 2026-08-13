@@ -11,6 +11,7 @@ from uuid import UUID
 
 from motif_forge.domain.ai_runs import (
     AIRun,
+    AIRunApproval,
     AIRunEvent,
     ModelRequestKind,
     ModelRequestReservation,
@@ -358,6 +359,9 @@ class AIRunTransaction(Protocol):
         self, plan: PersistedCompositionPlan
     ) -> PersistedCompositionPlan: ...
     async def record_ai_run_event(self, event: AIRunEvent) -> AIRunEvent: ...
+    async def record_ai_run_approval(
+        self, *, approval: AIRunApproval, expected_version: int, outbox_event_id: UUID
+    ) -> AIRunApproval: ...
     async def list_ai_run_events(
         self, run_id: UUID, *, after_sequence: int
     ) -> tuple[AIRunEvent, ...]: ...

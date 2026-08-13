@@ -78,6 +78,17 @@ _TRANSITIONS: dict[AIRunStatus, frozenset[AIRunStatus]] = {
     AIRunStatus.FAILED: frozenset(),
     AIRunStatus.CANCELLED: frozenset(),
 }
+_ACTION_TRANSITIONS: dict[str, dict[AIRunStatus, AIRunStatus]] = {
+    "cancel": {
+        AIRunStatus.QUEUED: AIRunStatus.CANCELLED,
+        AIRunStatus.PLANNING: AIRunStatus.CANCELLED,
+        AIRunStatus.WAITING_APPROVAL: AIRunStatus.CANCELLED,
+        AIRunStatus.MATERIALIZING: AIRunStatus.CANCELLED,
+        AIRunStatus.WAITING_WORKER: AIRunStatus.CANCELLED,
+    },
+    "resume": {AIRunStatus.WAITING_APPROVAL: AIRunStatus.MATERIALIZING},
+    "retry": {AIRunStatus.FAILED: AIRunStatus.QUEUED},
+}
 _SENSITIVE_KEYS = frozenset(
     {
         "reasoning",
@@ -86,9 +97,18 @@ _SENSITIVE_KEYS = frozenset(
         "response",
         "api_key",
         "secret",
-        "token",
         "authorization",
         "password",
+    }
+)
+_SAFE_USAGE_KEYS = frozenset(
+    {
+        "prompt_tokens",
+        "completion_tokens",
+        "total_tokens",
+        "reasoning_tokens",
+        "prompt_cache_hit_tokens",
+        "prompt_cache_miss_tokens",
     }
 )
 
@@ -129,7 +149,12 @@ def validate_event_payload(payload: dict[str, object]) -> dict[str, object]:
     def visit(value: object) -> None:
         if isinstance(value, dict):
             for key, nested in value.items():
-                if any(part in key.casefold() for part in _SENSITIVE_KEYS):
+                normalized_key = key.casefold()
+                if normalized_key not in _SAFE_USAGE_KEYS and (
+                    any(part in normalized_key for part in _SENSITIVE_KEYS)
+                    or normalized_key.endswith("_token")
+                    or normalized_key == "token"
+                ):
                     raise ValueError(
                         "AI run event payload cannot contain reasoning or secret-like fields"
                     )
@@ -177,6 +202,8 @@ class AIRun(DomainModel):
     branch_id: UUID
     base_revision_id: UUID
     thread_id: str = Field(min_length=1, max_length=160)
+    graph_topology_version: str = Field(default="motif-forge-graph.v1", min_length=1, max_length=80)
+    state_schema_version: str = Field(default="generate-run-state.v1", min_length=1, max_length=80)
     brief: dict[str, object] | None = None
     status: AIRunStatus = AIRunStatus.QUEUED
     version: int = Field(default=0, ge=0)
@@ -207,6 +234,21 @@ class AIRun(DomainModel):
                 "terminal_at": now if status in _TERMINAL else None,
             }
         )
+
+    def transition_for_action(self, action: str, *, now: datetime) -> AIRun:
+        target = _ACTION_TRANSITIONS.get(action, {}).get(self.status)
+        if target is None:
+            raise ValueError(f"invalid AI run action: {action} from {self.status}")
+        if action == "retry":
+            return self.model_copy(
+                update={
+                    "status": target,
+                    "version": self.version + 1,
+                    "updated_at": now,
+                    "terminal_at": None,
+                }
+            )
+        return self.transition(target, now=now)
 
 
 class PersistedCompositionPlan(DomainModel):

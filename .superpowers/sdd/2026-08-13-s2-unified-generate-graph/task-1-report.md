@@ -1,6 +1,6 @@
 # S2 Task 1 Report — Persisted AI Run, immutable Plan, events, and truthful usage
 
-**Status:** DONE_WITH_CONCERNS
+**Status:** DONE
 
 ## Scope
 
@@ -91,4 +91,57 @@ cost column shape, targeting `20260812_0012`.
 
 ## Commit
 
-`353aeca8e814db0c3584989c499b9a10c1fc9c2c` — `feat: persist S2 AI runs and plans`
+Original Task 1 commit: `e0176d6929f92b700ea652be6c43eef369d1c469` —
+`feat: persist S2 AI runs and plans`. The review-fix commit is the current Git HEAD with subject
+`fix: harden S2 AI run persistence`; this avoids the stale pre-amend SHA previously recorded here.
+
+## Review fix round 1 — RED/GREEN audit
+
+### RED
+
+```bash
+/private/tmp/motif-forge-s2-venv/bin/python -m pytest \
+  services/api/tests/unit/domain/test_ai_runs.py \
+  services/api/tests/unit/application/test_ai_runs.py -q
+```
+
+Result: collection failed with `ImportError: cannot import name 'ModelUsageFactError'` before
+the negative-token/terminal-budget contract implementation existed. The added PostgreSQL concurrent
+create/action, approval persistence, immutable-provenance, usage conflict, cross-project identity,
+and populated downgrade tests then exposed their target missing behavior during development.
+
+### GREEN
+
+Used the existing local PostgreSQL Compose service only: started Colima and `docker compose up -d
+postgres`; no image rebuild or Dockerfile change.
+
+```bash
+MOTIF_FORGE_TEST_POSTGRES_DSN='postgresql://motif_forge:motif_forge@localhost:5432/motif_forge_s2_task1' \
+  /private/tmp/motif-forge-s2-venv/bin/python -m pytest \
+  services/api/tests/integration/test_postgres_ai_runs.py -q
+# 4 passed
+
+/private/tmp/motif-forge-s2-venv/bin/python -m pytest \
+  services/api/tests/unit/domain/test_ai_runs.py \
+  services/api/tests/unit/application/test_ai_runs.py \
+  services/api/tests/unit/infrastructure/test_observability.py \
+  services/api/tests/unit/infrastructure/persistence/test_tables.py \
+  services/api/tests/unit/agent/test_graph.py -q
+# 25 passed
+
+/private/tmp/motif-forge-s2-venv/bin/python -m ruff check <Task 1 files>
+# All checks passed
+
+/private/tmp/motif-forge-s2-venv/bin/alembic upgrade head --sql \
+  >/private/tmp/motif-forge-s2-review-up.sql
+/private/tmp/motif-forge-s2-venv/bin/alembic downgrade \
+  20260813_0013:20260812_0012 --sql >/private/tmp/motif-forge-s2-review-down.sql
+# rendered: 783 / 32 lines
+```
+
+The populated live rollback test now performs `0013 -> 0012` and proves the previous non-null
+ledger shape after NULL costs are first converted to legacy zero. The fixed implementation adds
+atomic `ai_run_approvals`, graph/state compatibility versions, action finite-state/idempotency,
+project-scoped create replay, cross-project identity validation, reservation terminal refusal,
+usage fact validation/conflict detection, and safe token-count event fields. Guide SHA stayed
+`21345f64304338777a9dd2603d34ad54448b6c4b82902bc743204ba1026c9f58`.
