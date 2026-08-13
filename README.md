@@ -245,15 +245,16 @@ does not expose DSNs or secrets.
 - Web Import Review implements local upload, rights confirmation, Import Run URL recovery,
   low-confidence confirmation/override/skip/cancel, original/aligned Range playback, Canvas
   waveform/analysis review, Artifact rehydration, and narrow-screen review.
-- CompositionPlan Graph is directly compiled only by tests; the API mounts the Import/Recovery
-  Parent Graph. The roadmap requires mounting planning nodes as its `generate` subgraph rather than
-  keeping two production orchestrators.
+- S2 Tasks 1–5 now provide a side-effect-free planning subgraph, persistent Run/Plan/approval and
+  model budgets, a secure DeepSeek adapter contract, deterministic Synth Ambient Plan compilation,
+  and atomic approved-Plan materialization to one Revision. The API still mounts only the
+  Import/Recovery Parent Graph; Task 6+ must connect export, Parent Graph and public Run APIs.
 - Complete-song Pattern compilation and full internal export are implemented for the fixed S1
   Synth Ambient baseline. Agent-driven generation, four Style Packs, Brief/Plan UI, DAW editing,
   A/B candidates, AI selection editing, and complete Eval/observability remain incomplete.
-- The next feature slice is S2: merge planning into the one Parent Graph, connect DeepSeek behind
-  PlanApproval, and retain deterministic fallback. It does not reduce the final 1–5 minute,
-  12-track, two-candidate and four-Style-Pack contract.
+- The next implementation slice is S2 Task 6: reuse the complete S1 Render/Transcode/Bundle chain
+  for the approved Plan-driven Revision. Parent Graph/API/SSE/recovery, deterministic Compose smoke
+  and the one budgeted paid DeepSeek acceptance remain later S2 gates.
 - LangGraph owns workflow state; project truth remains in immutable revisions.
 - DeepSeek V4 Flash live calls are opt-in; the default test suite uses HTTP fakes and incurs no cost.
 - Real PostgreSQL tests are explicitly skipped unless `MOTIF_FORGE_TEST_POSTGRES_DSN` is supplied;

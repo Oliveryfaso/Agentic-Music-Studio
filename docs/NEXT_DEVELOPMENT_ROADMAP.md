@@ -3,7 +3,7 @@
 > **For agentic workers:** 实施本路线中的具体纵切前，必须先为该纵切建立 `docs/superpowers/plans/YYYY-MM-DD-<slice>.md`，再使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 逐项执行。
 > 状态：已批准的主路线
 > 起点：受控 Upload → Import → 分析 HITL → 保持音高对齐 → Web Preview 已完成
-> 执行断点（2026-08-12）：G0、S1 已验收；S2 是唯一活动门，S3–S7 仍关闭。
+> 执行断点（2026-08-13）：G0、S1 已验收；S2 Task 1–5 已完成并独立复审通过，按用户要求暂停在 Task 6 之前。S2 仍是唯一活动门，S3–S7 仍关闭。
 
 **目标：** 从当前可靠的导入底座，按最短依赖路径完成“可生成、可听、可编辑、可恢复、可评测”的 Agentic Music Studio。
 
@@ -170,6 +170,8 @@ S1 通过前禁止：接入真实 DeepSeek 生成、开发 Timeline 编辑器、
 ## 7. S2：统一 Generate Graph 与 DeepSeek 生产接线
 
 **用户价值：** 用户可提交 Brief，审阅计划，并在恢复后得到一首完整作品。
+
+> 当前状态：实施计划 Task 1–5 已完成。已具备持久 Run/Plan/审批/预算、安全 DeepSeek Provider 合同、Planning Subgraph、Synth Ambient Plan 编译与原子 Revision 物化；尚未接完整媒体导出、Parent Graph、公开 API/SSE、Compose smoke 和真实付费验收。下一起点是 Task 6，不能把本断点写成 S2 完成。
 
 ### S2.1 合并 Graph 拓扑
 

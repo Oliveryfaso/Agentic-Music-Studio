@@ -4,6 +4,8 @@
 
 **Goal:** Build a durable `Brief -> DeepSeek or deterministic Plan -> human approval -> immutable Revision -> Master/four Stems/MP3/logical Bundle` generation path inside the single Parent Graph.
 
+**Progress checkpoint (2026-08-13):** Tasks 1–5 are implemented and independently approved. The repository is intentionally paused before Task 6. No paid DeepSeek call has occurred; Tasks 6–12 and final S2 acceptance remain open.
+
 **Architecture:** Refactor the existing Plan v3 nodes into a side-effect-free planning subgraph and mount it in `motif-forge-parent.v2` through explicit adapters. Persist AI Run, immutable CompositionPlan, events, approval, usage, and output references in PostgreSQL; run Graph start/resume asynchronously through the existing outbox dispatcher; reuse the proven S1 media workers and artifact contracts for all audio output.
 
 **Tech Stack:** Python 3.12, Pydantic v2, LangChain Core, LangGraph, FastAPI, SQLAlchemy 2 async, Alembic, PostgreSQL, Redis/Celery, httpx, React/TypeScript generated OpenAPI types, pytest, Ruff, Mypy, Docker Compose.
