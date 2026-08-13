@@ -1,13 +1,13 @@
 # Motif Forge 下一阶段开发路线
 
 > **For agentic workers:** 实施本路线中的具体纵切前，必须先为该纵切建立 `docs/superpowers/plans/YYYY-MM-DD-<slice>.md`，再使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 逐项执行。
-> 状态：已批准的主路线
+> 状态：已批准的主路线；S2 Task 6 起采用 ADR-016 作品集工程模式
 > 起点：受控 Upload → Import → 分析 HITL → 保持音高对齐 → Web Preview 已完成
 > 执行断点（2026-08-13）：G0、S1 已验收；S2 Task 1–5 已完成并独立复审通过，按用户要求暂停在 Task 6 之前。S2 仍是唯一活动门，S3–S7 仍关闭。
 
 **目标：** 从当前可靠的导入底座，按最短依赖路径完成“可生成、可听、可编辑、可恢复、可评测”的 Agentic Music Studio。
 
-**架构：** 先用确定性模板打通完整创作和渲染事实链，再把已有 CompositionPlan 节点并入唯一 Parent Graph，最后逐层增加 Web Studio、四个 Style Pack、候选/修复和 AI 编辑。优化采用“短前置收口门 + 纵切内局部优化”，不设独立的大重构阶段。
+**架构：** 先用确定性模板打通完整创作和渲染事实链，再把已有 CompositionPlan 节点并入唯一 Parent Graph，最后逐层增加 Web Studio、四个 Style Pack、候选/修复和 AI 编辑。优化采用“短前置收口门 + 纵切内局部优化 + 功能接近完整后的重点硬化”，不设独立的大重构阶段。
 
 **技术栈：** Python 3.12、FastAPI、Pydantic、SQLAlchemy/PostgreSQL、LangChain Core、LangGraph/PostgreSQL Checkpoint、DeepSeek V4 Flash、Celery/Redis、TypeScript、Tone.js/Web Audio、Chromium Render Worker、React/Vite。
 
@@ -19,11 +19,11 @@
 
 ### 1.2 为什么也不能直接继续堆功能
 
-当前存在 109 项未提交状态、目标/状态文档漂移和两条暂时独立的 Graph。如果完全不收口，下一条生成链路会放大回退、审查和状态兼容风险。
+G0 前曾存在 48 个修改项、65 个未跟踪项、目标/状态文档漂移和两条暂时独立的 Graph。如果当时完全不收口，下一条生成链路会放大回退、审查和状态兼容风险；这些基线问题现已关闭。
 
 ### 1.3 采用的方式
 
-只设置一个短的 `G0 开发前收口门`。通过后不再暂停做通用重构；每条功能纵切在触达的模块内完成必要优化，并同时交付测试、Eval、Trace 和失败路径。
+只设置一个短的 `G0 开发前收口门`。通过后不再暂停做通用重构；每条功能纵切在触达的模块内完成主路径所需优化。S2 Task 6 起使用作品集工程模式：先交付完整 Agent 产品闭环，用代表性测试证明关键风险，再把准生产平台硬化集中到 S7/封版门。
 
 优化分类如下：
 
@@ -32,6 +32,7 @@
 | 阻塞性收口 | 新业务代码之前 | 状态文档、路线、Git checkpoint、基线复验、单一 Graph 方向冻结 |
 | 纵切内优化 | 功能经过模块时 | Graph 合并、Router 拆分、DTO 生成、SSE、Trace 接线、局部文件拆分 |
 | 延后优化 | 有真实数据或产品路径后 | 全量 OTel 看板、性能重写、通用 RAG 平台、完整 UI 组件库、外部音乐模型 |
+| 后置硬化 | 主功能接近完整或触发重大风险后 | 极端并发/故障矩阵、历史迁移兼容、负载/P95、多租户、发布级安全与灾备 |
 
 ## 2. 全局执行规则
 
@@ -39,16 +40,24 @@
 
 1. 先读取 `DECISION_LOG.md`、`PROJECT_GUIDE.md`、`IMPLEMENTATION_STATUS.md`、本路线和项目 Skill。
 2. 记录 `PROJECT_GUIDE.md` 哈希；结束前复核没有被并发修改。
-3. 写出单独实施计划，包含精确文件、接口、失败边、测试、Eval、Trace 和验收命令。
-4. 测试先行；先跑窄测试，再跑相关集成路径。
+3. 写出单独实施计划，包含精确文件、接口、当前主路径失败边、代表性测试、Eval/Trace 影响和验收命令；不为未触发的准生产场景穷举矩阵。
+4. 测试先行；每个 Task 先跑窄测试和一个真实边界，每 2–3 个 Task 或跨服务接线点跑组合回归，阶段末跑完整门。
 5. LLM 只负责审美语义；节拍、音域、Pattern 展开、渲染、存储、错误和预算由确定性代码负责。
 6. 不创建第二套 Project truth、第二套 Render semantics 或第三个生产 Graph。
 7. 新增公共 API 时建立 OpenAPI → TypeScript DTO 生成边界；不继续扩大手写 DTO。
 8. 长任务进度进入持久事件；新增生成进度 UI 时使用带 replay ID 的 SSE，不新增轮询型长期协议。
-9. 每个创作纵切至少增加一个 Eval 成功案例和一个失败标签。
+9. 每个创作阶段建立代表性 Eval；工程 Task 可先用窄回归覆盖，到阶段 Eval 门集中入库，不能让 Eval 数量要求阻塞主链路。
 10. 日常使用 host-first 测试。只有 Dockerfile/系统依赖、容器 lockfile、迁移/运行时接线或阶段验收才构建受影响 target。
 11. 小阶段验收后执行 Storage Hygiene Gate；不删除数据库卷、原始导入、当前 Revision 依赖或其他项目资源。
-12. 每个可独立验收的纵切形成 Git checkpoint；不再次累积跨多个阶段的未提交代码。
+12. 每个可独立验收的纵切形成 Git checkpoint；默认一次独立审查、最多一次修复复审。Critical 与影响当前主路径/数据/Secrets/费用/HITL/幂等/恢复的 Important 必须关闭，其余进入后置硬化登记。
+13. S2 剩余阶段每个 Task 使用一个新 Session，从 clean checkpoint 和精简 handoff 开始；实现/审查 subagent 只接收活动 Task、必要合同和当前 diff，不携带全部历史审查文本。
+14. 一次修复复审后若仍有阻塞级问题，停止并记录精确 blocker，等待决策；不能为了遵守次数上限而降级问题，也不能自动进入无限审查循环。
+
+### 2.1 作品集工程模式的质量下限
+
+以下内容任何阶段都不能用“先做 Demo”为理由删除：单一 Parent Graph、结构化模型输出、确定性编译与 Fallback、真实 HITL、不可变 Revision、持久 Run/checkpoint/event、硬预算、Secret 隔离、一次恢复不重复副作用、完整音乐导出、代表性 Eval/Trace 和真实 DeepSeek 验收。
+
+当前可以延后的是证明广度，不是架构正确性：只覆盖一个代表性取消/恢复/重复投递和一个真实 PostgreSQL/Compose 主路径；全崩溃点、全并发交错、全部历史 populated downgrade、长时间负载/P95、多租户和全量 OTel 在 S7/封版前按风险回补。
 
 ## 3. G0：开发前收口门
 
@@ -63,7 +72,7 @@
 
 ### G0.2 版本控制 checkpoint
 
-- 盘点 47 个修改项和 62 个未跟踪项。
+- 盘点 48 个修改项和 65 个未跟踪项。
 - 排除 Secret、`.env`、Artifact、cache、构建产物和本机路径。
 - 复跑 Python、PostgreSQL、Audio、Web、Ruff、Mypy、迁移和 readiness 基线。
 - 形成可恢复的 Import/Analysis/Alignment/Web Preview 里程碑 commit 并推送。
@@ -202,6 +211,8 @@ S1 通过前禁止：接入真实 DeepSeek 生成、开发 Timeline 编辑器、
 - API/Worker 重启后从正确 checkpoint 恢复，不重复模型调用、Revision 或 Artifact。
 - DeepSeek 不可用时有可审核的确定性降级结果。
 - 至少完成一次真实 DeepSeek V4 Flash opt-in 契约验收后，才宣称模型已接通。
+- 代表性重启、重复投递和取消场景不重复模型调用、Revision 或导出；不要求在 S2 穷举每个 checkpoint/Worker 时点。
+- S2 Eval 至少 16 条并覆盖有效 Brief、前置拒绝、Fallback、审批、恢复/重复/取消；更大的风格、编辑和故障数据集随 S4–S7 扩展。
 
 ## 8. S3：Brief/Plan 与只读 Studio 创作闭环
 
@@ -272,6 +283,7 @@ Candidate fan-out 使用独立 `candidate_id + seed + CandidateState`；fan-in r
 - 打通 OTel、Run Inspector、失败分类、P50/P95、token/任务成本和恢复率。
 - 注入模型中断、429、坏导入、渲染失败、Worker 崩溃、重复事件、版本冲突、存储不足和预算耗尽。
 - Web、API、Media Worker、Render Worker、PostgreSQL、Redis 形成完整演示档位；增加 CI/CD 和基础负载测试。
+- 执行后置硬化登记：优先关闭已出现两次、影响真实数据/费用/权限/恢复，或准备公开发布时仍存在的 Critical/Important；补代表性的极端并发、迁移、负载和安全测试，而不是机械穷举所有组合。
 
 验收：一条命令启动完整产品；至少 50 条公开作品集 Eval 案例和完整量化报告可复现；最终内部 Eval 资产不少于 96 条。
 
@@ -305,7 +317,7 @@ Candidate fan-out 使用独立 `candidate_id + seed + CandidateState`；fan-in r
 - 简单参数或局部低影响修改只有在 Schema、范围、许可、锁定区域和真实 diff 均通过时自动形成 Revision，并必须可 Undo。
 - PreviewCandidate 不等于 Revision；批准后创建新 Revision，拒绝/过期不修改 Branch head。
 
-## 14. 明确延后
+## 14. 明确延后与后置硬化登记
 
 以下事项不能插入 S1–S3 主路径：
 
@@ -316,6 +328,16 @@ Candidate fan-out 使用独立 `candidate_id + seed + CandidateState`；fan-in r
 - 因“大文件看起来不舒服”而进行的全仓重构。
 - 不能由现有产品用例和 Eval 证明收益的多 Agent 角色。
 
+以下准生产事项不阻塞 S2–S6 的功能闭环，统一在 S7/公开发布前按风险排序：
+
+- 全 checkpoint 崩溃注入、全取消时点、所有重复投递与并发交错组合。
+- 所有历史 Schema 的 populated downgrade；当前只要求前向迁移、版本化读取、关键引用一致和危险降级 fail closed。
+- 多租户隔离、水平扩缩、长时间 soak、灾备演练、完整 P50/P95 容量矩阵。
+- 全量 OTel/看板、自动告警、生产级 SLO 和 CI/CD 发布治理。
+- 对不影响当前主路径的非核心 Important/Minor 做立即多轮修复。
+
+后置项必须包含：来源 Task/审查、风险、触发器、最晚处理门和最小复现。出现数据损坏/越权/Secret 泄露、重复付费或副作用、用户主路径无法恢复、相同缺陷第二次出现，或准备公开发布时，立即升级为阻塞项。
+
 ## 15. 计划维护规则
 
 - `PROJECT_GUIDE.md` 只在产品/架构合同变化时更新。
@@ -323,5 +345,6 @@ Candidate fan-out 使用独立 `candidate_id + seed + CandidateState`；fan-in r
 - 本路线只在依赖顺序、阶段边界或验收门变化时更新。
 - `TECH_EVOLUTION.md` 追加实际发生的实现、偏差、测试和存储证据。
 - 具体纵切的代码级步骤写入 `docs/superpowers/plans/`，完成后保留作为审计记录，不把临时步骤塞回总指南。
+- S2 Task 6–12 及后续计划必须声明使用作品集工程模式，并把延后问题写入本路线第 14 节或对应阶段报告；不能只在审查聊天中留下结论。
 - 若执行发现路线与真实代码冲突，停止当前实现，先记录证据和提出最小路线修订，不静默偏航。
 - 每个具体计划和验收报告列出覆盖的 `MF-Pxx`；若某个首版需求连续两个阶段没有对应任务或 Eval，视为路线漂移并在继续前复核。

@@ -255,6 +255,11 @@ does not expose DSNs or secrets.
 - The next implementation slice is S2 Task 6: reuse the complete S1 Render/Transcode/Bundle chain
   for the approved Plan-driven Revision. Parent Graph/API/SSE/recovery, deterministic Compose smoke
   and the one budgeted paid DeepSeek acceptance remain later S2 gates.
+- S2 Tasks 6–12 follow Portfolio Engineering Mode: the single Parent Graph, structured DeepSeek plus
+  deterministic fallback, real HITL, immutable Revision, restart-safe export and one paid acceptance
+  remain mandatory. Exhaustive fault/concurrency matrices, all historical populated downgrades,
+  load/P95 and multi-tenant hardening are tracked for the later release-hardening gate instead of
+  blocking every intermediate Task.
 - LangGraph owns workflow state; project truth remains in immutable revisions.
 - DeepSeek V4 Flash live calls are opt-in; the default test suite uses HTTP fakes and incurs no cost.
 - Real PostgreSQL tests are explicitly skipped unless `MOTIF_FORGE_TEST_POSTGRES_DSN` is supplied;

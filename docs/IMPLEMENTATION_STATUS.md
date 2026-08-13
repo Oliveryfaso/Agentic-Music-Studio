@@ -123,7 +123,13 @@ Import、Artifact、恢复和容量治理已达到较高完成度；S1 的 `Patt
 
 ### 5.5 Eval 建设过晚
 
-S1 已形成 20 条可重复的确定性创作/渲染 Eval。自下一条创作纵切起，每个任务至少增加一个成功案例和一个失败标签；之后随四个 Style Pack 扩展到首版要求的 96 条。
+S1 已形成 20 条可重复的确定性创作/渲染 Eval。S2 剩余工作不再要求每个工程 Task 都单独扩充 Eval；Task 11 集中建立至少 16 条 Generate 代表性案例，之后随四个 Style Pack 和 AI 编辑扩展到首版要求的 96 条。功能 Task 仍须为新创作行为或新失败路由提供至少一个可回归样例，但可以先放在窄测试中，到阶段 Eval 门再统一入库。
+
+### 5.6 当前开发采用作品集工程模式
+
+S2 Task 1–5 的多轮审查证明了核心数据边界，但也产生了明显的重复验证成本。从 Task 6 起按 ADR-016 执行：保留单一 Parent Graph、DeepSeek/Fallback、HITL、原子 Revision、完整导出、持久恢复、代表性 Eval 和真实付费验收；把极端并发矩阵、所有历史 populated downgrade、全量负载/P95、多租户和无上限复审移到 S7/后置硬化。
+
+这不是把系统降成 Demo。当前 Task 仍需 TDD、窄单元测试、一个真实 PostgreSQL/跨服务边界、结构化错误与费用事实；每 2–3 个 Task 做组合回归，S2 结束做完整 Compose 与 live gate。只有不影响当前用户主路径、数据/Secrets、模型费用、HITL、幂等与恢复的非核心问题才可登记后置。
 
 ## 6. 版本治理状态
 
@@ -153,6 +159,6 @@ S2 实施计划 Task 1–5 已独立复审通过：
 4. Synth Ambient Plan 策略、确定性编译器和 v1/v2 Plan hash 兼容；
 5. 原子 `approved Plan → Candidate/Preview → Revision`，包含 receipt、取消/并发/回放和 legacy fail-closed。
 
-**暂停断点：Task 6 尚未开始。** 下一次恢复从“复用 S1 的完整 Render/Transcode/Bundle 编排”开始；之后仍需 Parent Graph、Dispatcher/API/SSE、恢复/取消、Eval/Compose smoke 和一次预算受控的真实 DeepSeek 付费验收。S2 不能提前标记完成。
+**暂停断点：Task 6 尚未开始。** 下一次恢复从“复用 S1 的完整 Render/Transcode/Bundle 编排”开始；Task 6–12 已按作品集工程模式重写，之后仍需 Parent Graph、Dispatcher/API/SSE、代表性恢复/取消、16+ Eval、Compose smoke 和一次预算受控的真实 DeepSeek 付费验收。S2 不能提前标记完成。
 
 具体前后顺序、阶段门和优化规则见 `NEXT_DEVELOPMENT_ROADMAP.md`。

@@ -285,3 +285,12 @@
 - Tasks 1–5 每项均经过独立审查和有界修复；Task 5 最终为 `Spec ✅ / Quality Approved / C0 I0 M0`。最新证据为 full unit+eval `389 passed`、Task 1+5+Project PostgreSQL `36 passed / 1 optional Celery E2E skipped`、Task 5 real PostgreSQL `12 passed`、Ruff/Mypy/diff clean，业务 migration head `20260813_0016`。
 - 按用户要求在 Task 5 后暂停。Task 6（复用 S1 Render/Transcode/Bundle）、Parent Graph、Dispatcher/API/SSE、恢复/取消、Eval/Compose smoke 和一次预算受控的真实 DeepSeek 付费验收均未开始或未完成；S2 仍是活动门，不能标记完成。开发全程未重建 Docker 镜像，也未读取、打印或提交 API key。
 - 暂停门仅清理本仓库可重建开发缓存：约 39 MiB 的 pytest/Ruff/Mypy cache、319 个源码/测试 `__pycache__` 目录和 304 个非 `.git`/非 `.venv` AppleDouble sidecar；保留 Docker 镜像/BuildKit、PostgreSQL/Redis 数据、外置 Artifact、项目依赖与测试 venv，避免影响 Task 6 的热启动。
+
+## 2026-08-13：S2 剩余路线切换为作品集工程模式
+
+- 对 Task 1–5 的执行成本做复盘：核心边界获得了高置信度，但每个 Task 反复扩展到历史迁移、极端并发和全部失败排列，造成多轮实现/审查回路，推迟了真正可演示的 Generate Parent Graph。结论不是删除可靠性，而是把“主路径正确性”和“准生产证明广度”分开排期。
+- ADR-016 冻结不可降低门槛：单一 Parent Graph、受控 DeepSeek/确定性 Fallback、真实 PlanApproval、不可变 Revision、PostgreSQL checkpoint/event/usage、一次重启不重复费用或副作用、S1 完整导出、代表性 Eval/Trace、无付费 Compose smoke 与一次预算受控的真实 DeepSeek 验收。
+- Task 6–12 改为作品集工程模式：每项执行 focused TDD、一个真实边界、一次独立审查和最多一次修复复审；Task 10 做组合回归，Task 12 做全阶段门。Critical 和影响当前主路径、数据/Artifact、Secrets/权限、模型费用、HITL、幂等或恢复的 Important 继续阻塞。
+- S2 Eval 从 24 条调整为至少 16 条代表性 Generate 案例，并保留两条主要 Baseline；最终四风格、AI 编辑和发布报告仍扩展到 `PROJECT_GUIDE.md` 规定的 96 条，不降低终局作品集指标。
+- 全 checkpoint 崩溃/取消/重复投递排列、所有历史 populated downgrade、长时间负载/P95、多租户、灾备与完整 OTel 平台进入 S7 后置硬化登记。真实数据损坏/越权/Secret 泄露、重复付费/副作用、不可恢复或相同缺陷第二次出现时，必须提前升级为阻塞项。
+- 本次只修改决策、状态、路线、S2 Tasks 6–12、Agent 指令和 README；没有修改业务代码、迁移、数据库、Artifact、Docker 或 DeepSeek 配置，`PROJECT_GUIDE.md` 最终产品合同保持不变。

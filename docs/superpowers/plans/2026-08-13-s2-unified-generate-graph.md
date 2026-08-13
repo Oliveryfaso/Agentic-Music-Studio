@@ -6,6 +6,8 @@
 
 **Progress checkpoint (2026-08-13):** Tasks 1–5 are implemented and independently approved. The repository is intentionally paused before Task 6. No paid DeepSeek call has occurred; Tasks 6–12 and final S2 acceptance remain open.
 
+**Execution mode from Task 6:** ADR-016 Portfolio Engineering Mode. Tasks 1–5 remain immutable historical evidence; Tasks 6–12 optimize for one above-average, complete Agent product path. Each Task uses focused TDD, one real boundary integration, one independent review, and at most one repair re-review. Critical and current-path Important findings block; non-core production-hardening findings are recorded for S7 instead of causing unbounded review loops.
+
 **Architecture:** Refactor the existing Plan v3 nodes into a side-effect-free planning subgraph and mount it in `motif-forge-parent.v2` through explicit adapters. Persist AI Run, immutable CompositionPlan, events, approval, usage, and output references in PostgreSQL; run Graph start/resume asynchronously through the existing outbox dispatcher; reuse the proven S1 media workers and artifact contracts for all audio output.
 
 **Tech Stack:** Python 3.12, Pydantic v2, LangChain Core, LangGraph, FastAPI, SQLAlchemy 2 async, Alembic, PostgreSQL, Redis/Celery, httpx, React/TypeScript generated OpenAPI types, pytest, Ruff, Mypy, Docker Compose.
@@ -26,6 +28,9 @@
 - `DEEPSEEK_API_KEY` remains only in environment/secret configuration. Never print, trace, persist, return, fixture, or commit it.
 - Do not run the paid DeepSeek acceptance until every deterministic and real-PostgreSQL gate is green. The live gate stops after one successful complete result.
 - Use host-first tests. Do not rebuild Docker until the affected-service runtime gate. Do not run broad cache or volume prune.
+- Do not weaken the single Parent Graph, DeepSeek/Fallback, PlanApproval, immutable Revision, persistent recovery, complete S1 export, truthful usage, secret isolation, or live paid acceptance contracts.
+- Do not require exhaustive checkpoint/crash/cancel/concurrency permutations, every historical populated downgrade, load/P95, multi-tenant, or full observability-platform evidence in each remaining Task. One representative test is required for every newly introduced critical boundary; defer broader proof to S7 with an explicit trigger.
+- Run full Python/TypeScript/Compose verification only at the Task 10 combined checkpoint and Task 12 final gate. Tasks 6–9 run their focused unit, one real PostgreSQL boundary, affected lint/type checks, and diff check.
 
 ---
 
@@ -581,7 +586,7 @@ git commit -m "feat: materialize approved composition plans"
 - Produces: `CompleteExportCursor`, `EnqueueNextCompleteExportJob`, `CollectCompleteExportArtifact`, and `build_export_bundle_payload`.
 - Consumes: existing `EnqueueMediaJob`, `EnqueueFollowupMediaJob`, Revision loader, Audio/Bundle Artifact loaders, AudioGraph compiler, and S1 media payloads.
 
-- [ ] **Step 1: Write failing orchestration tests**
+- [ ] **Step 1: Write focused failing orchestration tests**
 
 Assert ordered scopes:
 
@@ -591,7 +596,7 @@ assert cursor.pending_steps == (
 )
 ```
 
-Verify deterministic idempotency keys, Revision/Arrangement binding, artifact profile validation, duplicate completion replay, partial artifact preservation, no copied audio in Bundle, and terminal failure when a returned artifact has wrong lineage.
+Cover the portfolio-critical contract only: ordered seven-step cursor, deterministic idempotency key, authoritative Revision/Arrangement binding, duplicate completion replay, wrong-lineage rejection, and logical Bundle without copied audio. S1 already owns low-level Worker fault/cancel/storage matrices; do not repeat them here.
 
 - [ ] **Step 2: Run tests and capture RED**
 
@@ -609,7 +614,7 @@ Application services create payloads and enqueue jobs but do not execute Worker 
 
 Refactor `run_s1_deterministic_smoke.py` to call the extracted orchestration rather than maintaining a second payload-building implementation. Its fixed S1 user flow remains unchanged.
 
-- [ ] **Step 5: Verify job contracts**
+- [ ] **Step 5: Verify the focused boundary**
 
 ```bash
 /private/tmp/motif-forge-venv/bin/python -m pytest \
@@ -618,9 +623,13 @@ Refactor `run_s1_deterministic_smoke.py` to call the extracted orchestration rat
   services/api/tests/unit/application/test_exporting.py -q
 MOTIF_FORGE_TEST_POSTGRES_DSN="$MOTIF_FORGE_TEST_POSTGRES_DSN" \
   /private/tmp/motif-forge-venv/bin/python -m pytest \
-  services/api/tests/integration/test_postgres_generate_export_jobs.py \
-  services/api/tests/integration/test_s1_render_job_contract.py -q
+  services/api/tests/integration/test_postgres_generate_export_jobs.py -q
+uv run ruff check services/api/src/motif_forge/application services/api/tests/unit/application/test_generation_export.py
+uv run mypy services/api/src/motif_forge/application/generation.py
+git diff --check
 ```
+
+Do not rerun the full S1 integration matrix unless this Task changes an S1 payload, Artifact, cancellation, or Worker implementation rather than only reusing it.
 
 - [ ] **Step 6: Commit**
 
@@ -648,7 +657,7 @@ git commit -m "refactor: expose reusable complete-song export chain"
 - Produces: `GenerateRequest`, `PlanApprovalDecision`, `initial_generate_state()`, and generate node factory mounted by `build_parent_graph()`.
 - Consumes: planning subgraph, Plan persistence/materialization, storage gate, complete-export orchestration, media worker resume payload.
 
-- [ ] **Step 1: Write Parent v2 route tests**
+- [ ] **Step 1: Write Parent v2 core route tests**
 
 Cover:
 
@@ -660,7 +669,9 @@ Cover:
 - approve materializes Revision then sequentially waits for all seven job steps;
 - worker failure routes terminal with partial artifact refs;
 - fallback still interrupts;
-- cancellation at each phase terminates without later side effects.
+- cancellation while waiting approval terminates without materialization or enqueue.
+
+Do not parameterize every media step or cancellation phase here. Task 10 owns one representative mid-render restart/duplicate/cancel checkpoint; S1 already owns Worker-level cancellation.
 
 - [ ] **Step 2: Run Graph tests and capture RED**
 
@@ -693,7 +704,7 @@ Reject ends before Candidate creation. Approve records the authorization and inv
 
 Each completion resumes the same Parent thread, verifies expected job/run/event, collects the authoritative artifact, advances the finite cursor, checkpoints, and enqueues the next step. Duplicate resume event IDs return without side effects. There is no model-based error routing for media errors.
 
-- [ ] **Step 6: Verify restart without repeated model/materialization/enqueue**
+- [ ] **Step 6: Verify one restart boundary without repeated model/materialization/enqueue**
 
 ```bash
 /private/tmp/motif-forge-venv/bin/python -m pytest \
@@ -702,7 +713,12 @@ Each completion resumes the same Parent thread, verifies expected job/run/event,
 MOTIF_FORGE_TEST_POSTGRES_DSN="$MOTIF_FORGE_TEST_POSTGRES_DSN" \
   /private/tmp/motif-forge-venv/bin/python -m pytest \
   services/api/tests/integration/test_postgres_checkpoint_resume.py -q
+uv run ruff check services/api/src/motif_forge/agent services/api/tests/unit/agent
+uv run mypy services/api/src/motif_forge/agent
+git diff --check
 ```
+
+The PostgreSQL case restarts after the approval checkpoint and proves one planner call, one materialization, and stable output refs. Broader checkpoint positions are deferred to S7 unless a real defect appears.
 
 - [ ] **Step 7: Commit**
 
@@ -731,9 +747,9 @@ git commit -m "feat: mount generation in Parent Graph v2"
 - Produces: `GraphActionPayload v1`, `ParentGraphActionPublisher`, and a dispatcher configured with real DeepSeek only when the key is present.
 - Consumes: Task 1 outbox rows, Parent v2, `PostgresTelemetryRecorder`, Plan/Generation/Media/Storage application services.
 
-- [ ] **Step 1: Write action delivery tests**
+- [ ] **Step 1: Write representative action delivery tests**
 
-Assert `graph.start.requested`, `graph.resume.requested`, and `graph.cancel.requested` validate strict payloads, target only `parent.generate.v1`, reject arbitrary node names/state, and replay safely. Prove start delivery twice makes one planner call; resume delivery twice makes one Revision; cancel wakes the same thread.
+Assert `graph.start.requested`, `graph.resume.requested`, and `graph.cancel.requested` validate strict payloads, target only `parent.generate.v1`, and reject arbitrary node names/state. Prove duplicate start makes one planner call, duplicate resume makes one Revision, and one waiting-approval cancel wakes the same thread. Do not build an exhaustive delivery-order matrix.
 
 - [ ] **Step 2: Run tests and capture RED**
 
@@ -773,6 +789,7 @@ MOTIF_FORGE_TEST_POSTGRES_DSN="$MOTIF_FORGE_TEST_POSTGRES_DSN" \
 uv run ruff check services/api/src/motif_forge/worker
 uv run mypy services/api/src/motif_forge/worker
 docker compose config >/private/tmp/motif-forge-s2-compose.yaml
+git diff --check
 ```
 
 - [ ] **Step 6: Commit**
@@ -817,7 +834,7 @@ Cover:
 
 - [ ] **Step 2: Write persistent SSE replay tests**
 
-Create events with sequences 11–14, connect with `Last-Event-ID: 12`, and assert only 13–14 are emitted in order with `id`, `event`, and JSON `data`. Recreate the FastAPI app/database connection and prove replay still works. Assert terminal event closes and heartbeat comments do not advance event ID.
+Create events with sequences 11–14, connect with `Last-Event-ID: 12`, and assert only 13–14 are emitted in order with `id`, `event`, and JSON `data`. Recreate the FastAPI app/database connection and prove replay still works. Assert terminal event closes. Heartbeat timing, disconnect races, slow-consumer and long-duration soak are deferred to S7 unless this focused path reveals a defect.
 
 - [ ] **Step 3: Run tests and capture RED**
 
@@ -859,6 +876,7 @@ npm run build:web
 cp apps/web/src/generated/api-schema.d.ts /private/tmp/motif-forge-api-schema.d.ts
 npm run generate:openapi
 cmp /private/tmp/motif-forge-api-schema.d.ts apps/web/src/generated/api-schema.d.ts
+git diff --check
 ```
 
 - [ ] **Step 7: Commit**
@@ -898,23 +916,18 @@ create -> dispatch start -> approval interrupt -> resume approve
 
 Assert one planner call, one Plan, one Candidate, one Revision, seven Jobs, six audio artifacts, one logical Bundle, and ordered event projection.
 
-- [ ] **Step 2: Add crash and duplicate fault cases**
+- [ ] **Step 2: Add representative restart and duplicate cases**
 
-Parameterize restart after:
+Cover two high-value boundaries only:
 
-- validated/persisted Plan;
-- approval interrupt;
-- materialized Revision;
-- Master completion;
-- third Stem completion;
-- MP3 completion;
-- Bundle completion before final Run projection.
+- restart after approval interrupt, before materialization;
+- restart after Master completion, before the next export step.
 
-Deliver every start/resume/completion event twice. Counts must remain unchanged.
+Deliver duplicate start once and duplicate media completion once. Counts for model calls, Plan, Candidate, Revision, Jobs and Bundle must remain unchanged. The full checkpoint cross-product is deferred to S7.
 
-- [ ] **Step 3: Add cancellation and terminal error cases**
+- [ ] **Step 3: Add one cancellation and two terminal error cases**
 
-Cancel before model, while waiting approval, after Revision before render, and while waiting on a Worker. Also inject storage pressure, Branch conflict, wrong artifact lineage, terminal render failure, and missing external root. Assert authoritative terminal status, partial refs, no later side effects, and safe error codes.
+Cancel while waiting approval and prove no Revision/Job. Inject wrong artifact lineage after Master and one terminal render failure; assert authoritative terminal status, preserved safe partial refs, no later enqueue, and safe error codes. Storage pressure, external-root loss and Worker-level cancel remain covered by S1; Branch conflict remains covered by Task 5. Do not duplicate them unless the Parent integration changes their contract.
 
 - [ ] **Step 4: Run tests and fix only demonstrated gaps**
 
@@ -926,10 +939,15 @@ MOTIF_FORGE_TEST_POSTGRES_DSN="$MOTIF_FORGE_TEST_POSTGRES_DSN" \
 
 Use systematic debugging for every unexpected failure. Do not weaken assertions or add another retry layer.
 
-- [ ] **Step 5: Run affected Python quality gates**
+- [ ] **Step 5: Run the first combined S2 quality checkpoint**
 
 ```bash
 /private/tmp/motif-forge-venv/bin/python -m pytest services/api/tests/unit -q
+MOTIF_FORGE_TEST_POSTGRES_DSN="$MOTIF_FORGE_TEST_POSTGRES_DSN" \
+  /private/tmp/motif-forge-venv/bin/python -m pytest \
+  services/api/tests/integration/test_s2_generate_parent_graph.py \
+  services/api/tests/integration/test_generate_dispatcher.py \
+  services/api/tests/integration/test_ai_run_sse.py -q
 uv run ruff check services/api/src services/api/tests
 uv run mypy
 git diff --check
@@ -957,30 +975,29 @@ git commit -m "test: prove S2 generation recovery and idempotency"
 - Test: `tests/test_s2_script_contract.py`
 
 **Interfaces:**
-- Produces: versioned S2 eval cases, three-baseline result summary, and deterministic Compose acceptance evidence.
+- Produces: versioned S2 eval cases, two-primary-baseline result summary with one diagnostic compiler fixture, and deterministic Compose acceptance evidence.
 - Consumes: full Parent v2, deterministic fallback/static planner, real media workers, Render Worker, and AI Run APIs.
 
-- [ ] **Step 1: Add at least 24 versioned S2 cases**
+- [ ] **Step 1: Add at least 16 versioned S2 cases**
 
 The JSON fixture includes:
 
-- 8 valid Synth Ambient briefs across duration/key/mode/energy shapes;
-- 4 unsupported style/meter pre-model cases;
-- 4 malformed/repair/fallback cases;
-- 4 approval/rejection/conflict cases;
-- 4 restart/duplicate/cancel/storage cases.
+- 6 valid Synth Ambient briefs across duration/key/mode/energy shapes;
+- 3 unsupported style/meter pre-model cases;
+- 3 malformed/repair/fallback cases;
+- 2 approval/rejection cases;
+- 2 restart/duplicate/cancel cases.
 
 Every case includes `id`, `version`, tags, brief, expected route, hard constraints, forbidden behavior, latency/token budget, and failure label.
 
-- [ ] **Step 2: Write Eval assertions and three baselines**
+- [ ] **Step 2: Write Eval assertions and two primary baselines**
 
 Compare:
 
 1. fixed S1 deterministic template;
-2. one valid Plan directly compiled;
-3. full Parent Graph.
+2. full Parent Graph using DeepSeek-fake or deterministic Fallback.
 
-Measure schema pass, hard-constraint satisfaction, first playable rate, fallback rate, duplicate side effects, resume success, render/export success, calls/tokens, and known/unknown cost status. Keep deterministic feature checks separate from subjective audio judgment.
+Record direct Plan compilation as a diagnostic fixture, not a third headline baseline. Measure schema pass, hard-constraint satisfaction, first playable rate, fallback rate, duplicate side effects, representative resume success, render/export success, calls/tokens, and known/unknown cost status. Keep deterministic feature checks separate from subjective audio judgment.
 
 - [ ] **Step 3: Write a deterministic runtime smoke**
 
@@ -1067,7 +1084,7 @@ Assert the script:
 
 Use one reviewed brief: 72–90 seconds, Synth Ambient, instrumental, 4/4, four supported roles, broad mood/style language, no artist imitation. Create through the public AI Run API, wait through persistent SSE, inspect the Plan, submit the explicit approval, and wait for final Bundle. Stop on the first complete success. Do not silently fall back and report the paid acceptance as passed; `fallback_used=true` makes the paid gate incomplete.
 
-- [ ] **Step 4: Run all deterministic gates before spending**
+- [ ] **Step 4: Run the final deterministic stage gates before spending**
 
 ```bash
 /private/tmp/motif-forge-venv/bin/python -m pytest services/api/tests tests -q
@@ -1099,9 +1116,9 @@ MOTIF_FORGE_S2_APPROVAL_ASSERTION="I reviewed and approve this live S2 compositi
 
 Expected evidence: `provider=deepseek`, `model=deepseek-v4-flash`, calls `<=3`, total tokens `<=12000`, schema valid, `fallback_used=false`, persisted approval, immutable Revision, complete Master/four Stems/MP3/Bundle, checksums, latency, and truthful cost status. Stop immediately after success.
 
-- [ ] **Step 6: Independently inspect persisted evidence**
+- [ ] **Step 6: Inspect persisted evidence with a bounded checklist**
 
-Query PostgreSQL by the printed safe Run ID. Verify Plan hash, usage, no false-zero cost, approval actor/assertion hash, Revision source Run, seven Jobs, six final audio artifacts, one logical Bundle, and terminal event sequence. Search logs and tracked diff for key material or `reasoning_content`.
+Query PostgreSQL by the printed safe Run ID. Verify Plan hash, usage, no false-zero cost, approval actor/assertion hash, Revision source Run, seven Jobs, six final audio artifacts, one logical Bundle, and terminal event sequence. Search tracked diff and the acceptance log for key material or `reasoning_content`. A second end-to-end paid run is forbidden unless the first failed before a valid provider result and the failure is understood.
 
 - [ ] **Step 7: Update factual docs only from fresh evidence**
 
@@ -1130,7 +1147,7 @@ scripts/check_compose_runtime.sh
 
 The guide hash must still be `21345f64304338777a9dd2603d34ad54448b6c4b82902bc743204ba1026c9f58` unless the user explicitly approved a contract change during execution.
 
-- [ ] **Step 10: Commit and push only after independent code review**
+- [ ] **Step 10: Commit and push after the bounded independent review**
 
 ```bash
 git add scripts/run_s2_live_deepseek_smoke.py \
@@ -1141,7 +1158,23 @@ git commit -m "feat: complete unified DeepSeek generation slice"
 git push origin main
 ```
 
-Before the commit, use `superpowers:requesting-code-review`; resolve every Critical/Important issue with focused tests, then use `superpowers:verification-before-completion` against fresh outputs.
+Before the commit, use `superpowers:requesting-code-review` once, then allow at most one repair re-review. Resolve every Critical and every Important that affects the current S2 user path, data/Artifact integrity, Secrets/permissions, model spend, PlanApproval, idempotent side effects, or restart recovery. Record other production-hardening findings under `NEXT_DEVELOPMENT_ROADMAP.md` section 14 with a trigger and latest handling stage. Then use `superpowers:verification-before-completion` against fresh outputs.
+
+---
+
+## Deferred S2 hardening register
+
+These items are deliberately deferred, not deleted. Promote an item early when it causes a real failure, repeats an earlier defect, affects data/permissions/model spend/recovery, or becomes necessary for public release.
+
+| ID | Deferred proof | Current representative evidence | Trigger / latest gate |
+|---|---|---|---|
+| `S2-H01` | Every Parent Graph checkpoint crash/restart cross-product | approval-boundary and post-Master restart in Task 10 | second resume defect or S7 |
+| `S2-H02` | Every cancellation phase and completion race | waiting-approval cancel in S2; Worker cancel races already in S1 | orphan/late-side-effect defect or S7 |
+| `S2-H03` | All duplicate start/resume/completion orderings | one duplicate start and one duplicate completion in Task 10 | duplicate cost/Revision/Artifact or S7 |
+| `S2-H04` | SSE slow consumer, disconnect race and long soak | restart-safe persisted `Last-Event-ID` replay in Task 9 | Web generation UX or S7 |
+| `S2-H05` | All historical populated migration downgrades | current forward migration, versioned reads and unsafe-downgrade guard | next compatibility break or S7 |
+| `S2-H06` | Multi-user load, P50/P95 capacity and horizontal scaling | one complete deterministic Compose run and one paid live run | measured bottleneck or S7 |
+| `S2-H07` | Complete OTel dashboard, alerts and production SLO | persisted events, trace/usage refs and safe errors | observability work in S7 |
 
 ---
 
@@ -1153,9 +1186,11 @@ S2 may be marked complete only when:
 - unsupported styles/meters are proven no-cost failures;
 - DeepSeek and deterministic fallback produce auditable, schema-valid Plans;
 - one real hash-bound human approval gates every from-zero Revision;
-- replay/restart/cancel does not duplicate model calls, Plans, Revisions, Jobs, or Artifacts;
+- representative replay/restart/cancel cases do not duplicate model calls, Plans, Revisions, Jobs, or Artifacts;
 - the complete S1 media chain is reused, including exact lineage and logical Bundle behavior;
 - persistent REST/SSE projections survive API restart;
 - real PostgreSQL, deterministic Compose, and one budgeted paid DeepSeek acceptance pass;
 - docs state the remaining truth: no S3 generation page, no other three style strategies, no multiple candidates, and no DAW editing yet;
 - stage-end storage cleanup preserves runnable services and accepted artifacts.
+
+S2 acceptance does not require exhaustive checkpoint matrices, every historical populated downgrade, long-duration/P95 load, multi-tenant isolation, or a complete OTel platform. Those remain visible S7 hardening work and do not weaken the finished Agent architecture or user-visible composition result.

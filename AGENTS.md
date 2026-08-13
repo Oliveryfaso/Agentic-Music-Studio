@@ -17,7 +17,7 @@ Record the SHA-256 of `docs/PROJECT_GUIDE.md` at task start and recheck it befor
 
 ## Active gate
 
-`G0` and `S1` are complete. `S2` is the only active gate. S2 Tasks 1–5 are implemented and independently approved through atomic approved-Plan materialization; Task 6 has not started. Resume at reusable complete-song Render/Export orchestration, then Parent Graph/API/recovery/Eval/live acceptance. Do not start S3 or later product work, and do not claim DeepSeek is live, until all S2 gates pass.
+`G0` and `S1` are complete. `S2` is the only active gate. S2 Tasks 1–5 are implemented and independently approved through atomic approved-Plan materialization; Task 6 has not started. Resume at reusable complete-song Render/Export orchestration, then Parent Graph/API/recovery/Eval/live acceptance. S2 Tasks 6–12 use the approved Portfolio Engineering Mode in ADR-016 and the revised S2 plan. Do not start S3 or later product work, and do not claim DeepSeek is live, until all S2 portfolio gates pass.
 
 ## Scope and traceability
 
@@ -37,3 +37,13 @@ Record the SHA-256 of `docs/PROJECT_GUIDE.md` at task start and recheck it befor
 - Use host-first development. Build only a changed Docker target at a documented integration/stage gate.
 - Never commit secrets, `.env`, user audio, external Artifact contents or caches. Do not hardcode machine-specific paths in product code/config; an explicitly labeled, already validated local-development command in documentation may name the current external root but must have a portable variable-based alternative.
 - After an accepted slice, update `IMPLEMENTATION_STATUS.md`, append evidence to `TECH_EVOLUTION.md`, create a Git checkpoint, and run the scoped storage hygiene gate.
+
+## Portfolio Engineering Mode
+
+- Protect the complete Agent architecture and the current user journey before adding production-platform breadth. Never trade away the single Parent Graph, bounded structured model output, deterministic compiler/Fallback, hash-bound HITL, immutable Revision, persistent recovery, complete export, truthful usage, or secret isolation.
+- A Task normally proves its new behavior with focused RED/GREEN tests plus one real boundary integration. Run combined/full regression at a cross-service checkpoint, every 2–3 Tasks, and at the S2 final gate—not after every local edit.
+- A Task normally receives one independent review and at most one repair re-review. Critical issues always block. Important issues block when they affect the current user path, irreversible data, secrets/permissions, duplicate model spend, HITL, idempotent side effects, or restart recovery. Record other Important/Minor findings under the roadmap's deferred hardening register.
+- Execute one S2 implementation Task per fresh Codex session. Start from the latest clean Git checkpoint and a compact `session-handoff`; do not carry full historical review transcripts into the next Task. Give subagents only the active Task, required contracts and current diff.
+- If a blocking Critical/current-path Important remains after the one repair re-review, stop the Task, record the exact blocker and ask for direction. Do not hide it, lower its severity, or start an unbounded review loop.
+- Do not require exhaustive crash/cancel/concurrency permutations, every historical populated downgrade, load/P95 testing, multi-tenant isolation, or full observability infrastructure before the creative workflow exists. Add one representative case now; promote further cases only when a real failure, repeated defect, public-release boundary, or measured bottleneck triggers them.
+- Do not use this mode to waive TDD, schema validation, migrations for persisted changes, one real PostgreSQL boundary, or stage-end Compose/live evidence. It reduces repeated proof, not architecture or music-product quality.
