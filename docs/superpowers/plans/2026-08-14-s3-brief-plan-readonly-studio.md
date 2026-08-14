@@ -21,7 +21,7 @@
 - Plan adjustment creates a child AI Run and a new immutable Plan; never update the old Plan in place.
 - PostgreSQL remains authoritative. SSE and TanStack Query caches are projections only.
 - New web API types come from `apps/web/src/generated/api-schema.d.ts`; do not handwrite duplicate DTOs.
-- DeepSeek secrets remain environment-only. S3 does not add a paid acceptance and must be demonstrable with no API key.
+- DeepSeek secrets remain environment-only, and S3 must always be demonstrable with no API key. One paid request for the entire stage is allowed only if a provider-facing prompt/schema/runtime boundary changes or deterministic evidence cannot resolve it. The request must use persistent budget `max_model_requests=1`, `max_total_tokens=12000`, one transport attempt, bounded output, fixed idempotency, pre-HTTP container attestation, and stop after the first upstream attempt regardless of result.
 - Follow the global “avoid hashes” rule. Reuse hashes only at existing integrity/idempotency/approval protocol boundaries; do not add UI-only hashes, cache hashes, or hashed route state.
 - Do not add React Router or another UI dependency. Use a bounded native History API adapter.
 - Do not add realtime multitrack audio. The canonical delivery MP3 and `HTMLAudioElement` are S3 playback truth; Tone.js editing remains S6.
@@ -606,13 +606,15 @@ git commit -m "feat: import multiple stems into a project"
 
 - Create: `scripts/run_s3_browser_smoke.mjs`
 - Create: `tests/test_s3_browser_smoke_contract.py`
+- Create only if the live trigger fires: `scripts/run_s3_live_plan_smoke.py`
+- Create only if the live trigger fires: `tests/test_s3_live_smoke_contract.py`
 - Modify: `package.json`
 - Modify: `scripts/check_s1.sh`
 - Modify: `docs/IMPLEMENTATION_STATUS.md`
 - Modify: `docs/NEXT_DEVELOPMENT_ROADMAP.md`
 - Modify: `docs/DECISION_LOG.md` only if implementation changed a frozen decision
 
-**Produces:** reproducible no-key browser acceptance, S3 stage gate, truthful status closeout.
+**Produces:** reproducible no-key browser acceptance, optional one-request live provider evidence when risk-triggered, S3 stage gate, truthful status closeout.
 
 **Consumes:** public browser UI/API only, deterministic fallback planner, real PostgreSQL/Redis/workers/artifacts.
 
@@ -639,7 +641,7 @@ Expected: the S3 smoke/script entry does not exist.
 
 - [ ] **Step 3: Implement one deterministic smoke**
 
-Use the installed Playwright library from Node. Use the no-key deterministic planner; do not perform another paid model acceptance. Reuse small existing audio fixtures or generate deterministic fixture bytes inside the test boundary without adding a production dependency.
+Use the installed Playwright library from Node. The required browser smoke uses the no-key deterministic planner. Reuse small existing audio fixtures or generate deterministic fixture bytes inside the test boundary without adding a production dependency.
 
 The smoke may wait for real workers, but it must not reproduce the S1/S2 failure matrix. One desktop journey plus one 390 px review/play/recovery check is sufficient.
 
@@ -679,6 +681,32 @@ Expected bounded summary:
 - provider requests/tokens remain zero;
 - 390 px review/play/recovery has no page-level overflow.
 
+- [ ] **Step 5b: Run the optional single-request live gate only when triggered**
+
+Do not run this step merely because a key exists. It is triggered only when Tasks 1–8 changed the provider-facing prompt, structured output schema, planner construction/model settings, or another boundary that can alter the real DeepSeek request/response path, or when deterministic evidence leaves that boundary genuinely unresolved.
+
+If triggered, first create `tests/test_s3_live_smoke_contract.py` and `scripts/run_s3_live_plan_smoke.py`. The contract must prove from host and live container state:
+
+- exact approved model and nonempty environment-only key;
+- `max_model_requests=1`, `max_total_tokens=12000`, transport attempts exactly one, and bounded output;
+- fixed Project/Run/idempotency identities so process restart cannot buy a second request;
+- the model reservation is persisted before HTTP;
+- logs and the bounded summary exclude the key, raw prompt, raw response, and reasoning.
+
+Run the prepaid contract first:
+
+```bash
+.venv/bin/python -m pytest tests/test_s3_live_smoke_contract.py -q
+```
+
+Then execute the opt-in script exactly once:
+
+```bash
+MOTIF_FORGE_RUN_S3_LIVE=1 .venv/bin/python scripts/run_s3_live_plan_smoke.py
+```
+
+The first attempted upstream request consumes the S3 allowance regardless of its result. Do not automatically repair/retry against the provider, and do not create a second paid Run after a downstream failure. The live assertion only needs to prove a strict Plan reaches the real Plan Review surface; the required full export/browser journey remains deterministic.
+
 - [ ] **Step 6: Update status documents truthfully**
 
 Only after the browser gate passes:
@@ -709,6 +737,6 @@ git commit -m "feat: complete S3 browser composition workflow"
 - Studio displays real stored ArrangementIR and plays the real delivery MP3 through the validated artifact route.
 - Two imports enter one Project sequentially and use the latest branch head.
 - Desktop creation and 390 px review/play/recovery work.
-- No paid model call, secret exposure, third Graph, direct Revision write, fake progress, or S6 editing is introduced.
+- No more than one risk-triggered paid model request is made; no secret exposure, third Graph, direct Revision write, fake progress, or S6 editing is introduced.
 - Focused tests, one real PostgreSQL boundary per changed persistence slice, one deterministic browser smoke, full static/build gates, and one independent final review pass.
 - Deferred load, P95, multi-tenant, broad fault, and browser matrices remain recorded for S7 rather than being pulled into S3.

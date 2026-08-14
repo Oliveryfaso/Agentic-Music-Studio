@@ -54,7 +54,7 @@ S3 does not include:
 - direct browser writes to Revision, Job, Artifact, or Bundle tables;
 - WebGL, a component-library rewrite, or fine mobile editing;
 - exhaustive concurrency, crash, cancellation, browser, device, accessibility, or visual-regression matrices;
-- another paid DeepSeek acceptance. S3 final acceptance uses the deterministic no-key planner path.
+- a routine paid DeepSeek acceptance. S3 final acceptance always includes the deterministic no-key path; one separately guarded live call is allowed only when S3 changes a provider-facing prompt/schema/runtime boundary or deterministic evidence cannot resolve that boundary.
 
 ## 4. Alternatives considered
 
@@ -320,6 +320,7 @@ Required evidence:
 - one real PostgreSQL integration for Project/Revision/Plan read projections and replan idempotency;
 - existing S2 Parent Graph recovery tests remain green where touched;
 - one deterministic no-key browser smoke for the two S3 journeys;
+- if the live-risk trigger fires, at most one DeepSeek request for the whole S3 stage, with persistent request budget, fixed idempotency, no transport retry, bounded output/tokens, secret-safe output, and stop-after-first-attempt behavior;
 - one desktop viewport and one 390 px review/play/recovery viewport;
 - OpenAPI regeneration is deterministic and web/Python type checks pass.
 
@@ -329,7 +330,9 @@ Explicitly deferred to S7 unless a current change breaks the contract:
 - exhaustive SSE disconnect positions and every Graph checkpoint permutation;
 - every artifact-loss combination and full S1 worker fault matrix;
 - pixel-perfect visual regression across devices;
-- another paid DeepSeek call.
+- repeated or routine paid DeepSeek calls when no provider-facing boundary changed.
+
+The optional live gate is not a substitute for deterministic tests. It may run only after every host/real-PostgreSQL guard is green and the live container independently attests the exact model, one upstream attempt, one persisted model-request allowance, at most 12,000 total tokens, bounded output, and a nonempty environment-only key. The first attempted upstream request consumes the single S3 allowance regardless of its result; downstream failure must not trigger another paid Run.
 
 Each task starts with one meaningful RED contract, implements the smallest slice, runs its narrow gate, and receives one independent review with at most one repair round. Full workspace and Compose/browser gates run only at the final S3 task.
 
