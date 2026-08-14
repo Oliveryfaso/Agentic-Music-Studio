@@ -8,6 +8,7 @@ import pytest
 from langgraph.types import Command
 from motif_forge.agent.generate import PlanApprovalDecision
 from motif_forge.agent.parent_graph import PARENT_TIME_STRETCH_RUN_TYPE
+from motif_forge.domain.ai_runs import AIRun, AIRunStatus
 from motif_forge.worker.outbox import (
     GraphActionPayload,
     OutboxMessage,
@@ -299,3 +300,51 @@ async def test_graph_action_publisher_rejects_topic_action_mismatch() -> None:
 
     with pytest.raises(ValueError, match="topic"):
         await publisher.publish(message)
+
+
+@pytest.mark.asyncio
+async def test_graph_action_redelivery_continues_post_approval_checkpoint() -> None:
+    graph = FakeResumableGraph()
+    graph.values = {"phase": "approved"}
+    run = AIRun(
+        run_id=uuid4(),
+        project_id=uuid4(),
+        branch_id=uuid4(),
+        base_revision_id=uuid4(),
+        thread_id="generate-approved-redelivery",
+        status=AIRunStatus.MATERIALIZING,
+        version=2,
+    )
+
+    class Loader:
+        async def __call__(self, run_id: UUID) -> AIRun:
+            assert run_id == run.run_id
+            return run
+
+    publisher = ParentGraphActionPublisher(graph, load_run=Loader())
+    message = OutboxMessage(
+        event_id=uuid4(),
+        topic="graph.resume.requested",
+        dedupe_key=f"resume:{uuid4()}",
+        payload={
+            "schema_version": "graph-action.v1",
+            "action": "resume",
+            "run_id": str(run.run_id),
+            "thread_id": run.thread_id,
+            "run_type": "parent.generate.v1",
+            "decision": {
+                "decision": "approve",
+                "actor_id": "live-reviewer",
+                "approval_assertion": "I approve this exact persisted composition plan.",
+                "expected_plan_hash": "a" * 64,
+                "note": "reviewed",
+            },
+        },
+        attempts=2,
+    )
+
+    await publisher.publish(message)
+
+    assert graph.calls == [
+        (None, {"configurable": {"thread_id": run.thread_id}}),
+    ]

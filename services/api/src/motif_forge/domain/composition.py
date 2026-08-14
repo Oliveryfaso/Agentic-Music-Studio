@@ -706,7 +706,7 @@ def compile_synth_ambient_plan(
             start_tick=section.start_bar * S1_BAR_TICKS,
             end_tick=section.end_bar * S1_BAR_TICKS,
             label=section.name,
-            function=section.function,
+            function=section.function[:80],
             energy=section.energy,
         )
         for section in plan.sections

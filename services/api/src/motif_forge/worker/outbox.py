@@ -378,6 +378,11 @@ class ParentGraphActionPublisher:
             if values.get("phase") == "waiting_plan_approval":
                 await graph.ainvoke(Command(resume={"action": "cancel"}), config)
             return
+        if values.get("phase") in {"approved", "revision_materialized"}:
+            result = await graph.ainvoke(None, config)
+            if self._record_progress is not None and isinstance(result, Mapping):
+                await self._record_progress(result)
+            return
         if values.get("phase") != "waiting_plan_approval":
             return
         decision = payload.decision

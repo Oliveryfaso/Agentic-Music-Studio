@@ -692,6 +692,26 @@ def test_compiler_rechecks_authoritative_brief_before_creating_commands() -> Non
     )
 
 
+def test_compiler_projects_long_plan_section_function_into_ir_bound() -> None:
+    long_function = (
+        "Establishes a slowly unfolding modal field while introducing a restrained pulse "
+        "and preserving the weightless, curious entrance."
+    )
+    sections = tuple(
+        {**section, "function": long_function}
+        if section["section_id"] == "opening"
+        else section
+        for section in _plan_payload()["sections"]  # type: ignore[union-attr]
+    )
+    plan = _plan(sections=sections)
+
+    build = compile_synth_ambient_plan(PROJECT_ID, brief=_brief(), plan=plan, seed=25)
+
+    assert plan.sections[0].function == long_function
+    assert build.arrangement.sections[0].function == long_function[:80]
+    assert len(build.arrangement.sections[0].function) == 80
+
+
 @pytest.mark.parametrize(
     ("plan", "seed", "expected_code"),
     (
