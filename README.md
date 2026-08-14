@@ -245,16 +245,17 @@ does not expose DSNs or secrets.
 - Web Import Review implements local upload, rights confirmation, Import Run URL recovery,
   low-confidence confirmation/override/skip/cancel, original/aligned Range playback, Canvas
   waveform/analysis review, Artifact rehydration, and narrow-screen review.
-- S2 Tasks 1–5 now provide a side-effect-free planning subgraph, persistent Run/Plan/approval and
-  model budgets, a secure DeepSeek adapter contract, deterministic Synth Ambient Plan compilation,
-  and atomic approved-Plan materialization to one Revision. The API still mounts only the
-  Import/Recovery Parent Graph; Task 6+ must connect export, Parent Graph and public Run APIs.
+- S2 Tasks 1–11 now mount Generate in the single `motif-forge-parent.v2` Graph, dispatch durable
+  start/resume/cancel actions, expose replayable REST/SSE Run APIs, atomically materialize an
+  approved Synth Ambient Plan, and reuse the seven-step complete export chain. Representative
+  restart/cancel/idempotency integration and the 16-case Generate Eval are checkpointed.
 - Complete-song Pattern compilation and full internal export are implemented for the fixed S1
   Synth Ambient baseline. Agent-driven generation, four Style Packs, Brief/Plan UI, DAW editing,
   A/B candidates, AI selection editing, and complete Eval/observability remain incomplete.
-- The next implementation slice is S2 Task 6: reuse the complete S1 Render/Transcode/Bundle chain
-  for the approved Plan-driven Revision. Parent Graph/API/SSE/recovery, deterministic Compose smoke
-  and the one budgeted paid DeepSeek acceptance remain later S2 gates.
+- The remaining S2 gate is Task 12: after explicit authorization, run the fixed-identity,
+  three-request/12,000-token-capped live DeepSeek acceptance once, inspect its persisted evidence,
+  then finish docs, storage hygiene and the stage review. The guard and no-paid Compose smoke are
+  already approved; no live acceptance is claimed yet.
 - S2 Tasks 6–12 follow Portfolio Engineering Mode: the single Parent Graph, structured DeepSeek plus
   deterministic fallback, real HITL, immutable Revision, restart-safe export and one paid acceptance
   remain mandatory. Exhaustive fault/concurrency matrices, all historical populated downgrades,

@@ -17,7 +17,7 @@ Record the SHA-256 of `docs/PROJECT_GUIDE.md` at task start and recheck it befor
 
 ## Active gate
 
-`G0` and `S1` are complete. `S2` is the only active gate. S2 Tasks 1–5 are implemented and independently approved through atomic approved-Plan materialization; Task 6 has not started. Resume at reusable complete-song Render/Export orchestration, then Parent Graph/API/recovery/Eval/live acceptance. S2 Tasks 6–12 use the approved Portfolio Engineering Mode in ADR-016 and the revised S2 plan. Do not start S3 or later product work, and do not claim DeepSeek is live, until all S2 portfolio gates pass.
+`G0` and `S1` are complete. `S2` is the only active gate. S2 Tasks 1–11 are implemented and independently approved: Parent Graph v2 owns Generate through complete export, the durable Dispatcher and REST/SSE recovery surface are connected, and the representative Eval plus deterministic no-paid Compose smoke pass. Task 12's paid-acceptance guard is checkpointed and prepaid review approved; the one explicitly authorized live DeepSeek run, evidence inspection, final docs/hygiene and stage review remain. Do not start S3 or later product work, and do not claim DeepSeek live acceptance or S2 completion, until those remaining gates pass.
 
 ## Scope and traceability
 
