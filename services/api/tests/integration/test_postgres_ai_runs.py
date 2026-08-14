@@ -666,6 +666,7 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
             expected_version=pending.version,
             expected_plan_content_hash=stored.content_hash,
             interrupt_ref=pending.pending_interrupt_ref,
+            idempotency_key="approval-http-replay",
         )
         assert approval.assertion_hash != "I approve this composition after a full review."
         async with uow() as transaction:
@@ -718,8 +719,20 @@ async def test_create_replay_plan_events_approval_actions_and_ledger(
             expected_version=pending.version,
             expected_plan_content_hash=stored.content_hash,
             interrupt_ref=pending.pending_interrupt_ref,
+            idempotency_key="approval-http-replay",
         )
         assert approved_replay.approval_id == approval.approval_id
+        with pytest.raises(ApplicationError, match="IDEMPOTENCY_KEY_REUSED"):
+            await RecordAIRunApproval(uow)(
+                run_id=run_id,
+                actor_id="changed-human",
+                decision="approve",
+                assertion="I approve this composition after a full review.",
+                expected_version=pending.version,
+                expected_plan_content_hash=stored.content_hash,
+                interrupt_ref=pending.pending_interrupt_ref,
+                idempotency_key="approval-http-replay",
+            )
         reservation = await ReserveModelRequest(uow)(run_id=run_id, kind=ModelRequestKind.INITIAL)
         provider_operation_id = f"provider-op-{run_id}"
         observed = await RecordModelUsage(uow)(

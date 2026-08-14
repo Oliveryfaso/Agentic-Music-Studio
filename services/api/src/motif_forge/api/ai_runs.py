@@ -19,10 +19,9 @@ from motif_forge.application.ai_runs import (
     ListAIRunEvents,
     ReadAIRun,
     ReadAIRunProjection,
-    RecordAIRunApproval,
     RequestAIRunAction,
+    ResumeAIRunApproval,
 )
-from motif_forge.application.errors import ApplicationError
 from motif_forge.application.ports import AIRunProjection, AIRunUnitOfWorkFactory
 from motif_forge.domain.ai_runs import AIRun, AIRunEvent, AIRunStatus
 
@@ -139,19 +138,13 @@ def build_ai_run_router(uow: AIRunUnitOfWorkFactory) -> APIRouter:
     async def resume_run(
         run_id: UUID, body: ResumeAIRunBody, idempotency_key: IdempotencyKey
     ) -> dict[str, object]:
-        run = await ReadAIRun(uow)(run_id)
-        if run.pending_plan_content_hash != body.expected_plan_hash:
-            raise ApplicationError("PLAN_HASH_MISMATCH", "approval must bind the pending Plan")
-        if run.pending_interrupt_ref is None:
-            raise ApplicationError("AI_RUN_ACTION_STATE_CONFLICT", "run is not awaiting approval")
-        await RecordAIRunApproval(uow)(
+        run = await ResumeAIRunApproval(uow)(
             run_id=run_id, actor_id=body.actor_id, decision=body.decision,
             assertion=body.approval_assertion, expected_version=body.expected_version,
             expected_plan_content_hash=body.expected_plan_hash,
-            interrupt_ref=run.pending_interrupt_ref, note=body.note,
-            idempotency_key=idempotency_key,
+            note=body.note, idempotency_key=idempotency_key,
         )
-        return {"data": run_data(await ReadAIRun(uow)(run_id)).model_dump(mode="json")}
+        return {"data": run_data(run).model_dump(mode="json")}
 
     async def action(run_id: UUID, body: RunActionBody, key: str, name: str) -> dict[str, object]:
         run = await RequestAIRunAction(uow)(

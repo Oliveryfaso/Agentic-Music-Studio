@@ -361,6 +361,55 @@ class RecordAIRunApproval:
             )
 
 
+class ResumeAIRunApproval:
+    """Idempotent public approval: replay lookup precedes live pending-state validation."""
+
+    def __init__(
+        self, uow_factory: AIRunUnitOfWorkFactory, *,
+        id_factory: Callable[[], UUID] = uuid4,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> None:
+        self._uow_factory, self._id_factory, self._clock = uow_factory, id_factory, clock
+
+    async def __call__(
+        self, *, run_id: UUID, actor_id: str, decision: str, assertion: str,
+        expected_version: int, expected_plan_content_hash: str, note: str,
+        idempotency_key: str,
+    ) -> AIRun:
+        fingerprint = request_hash({
+            "run_id": str(run_id), "actor_id": actor_id, "decision": decision,
+            "assertion": assertion, "expected_version": expected_version,
+            "expected_plan_content_hash": expected_plan_content_hash, "note": note,
+        })
+        async with self._uow_factory() as transaction:
+            hit = await transaction.get_ai_run_action_idempotency(
+                parent_run_id=run_id, action="resume", key=idempotency_key
+            )
+            if hit is not None:
+                if hit.request_hash != fingerprint:
+                    raise IdempotencyKeyReusedError
+                return await transaction.read_ai_run(hit.resource_id)
+            run = await transaction.read_ai_run(run_id)
+            if run.pending_plan_content_hash != expected_plan_content_hash:
+                raise ApplicationError("PLAN_HASH_MISMATCH", "approval must bind the pending Plan")
+            if run.pending_interrupt_ref is None:
+                raise ApplicationError(
+                    "AI_RUN_ACTION_STATE_CONFLICT", "run is not awaiting approval"
+                )
+            approval = AIRunApproval(
+                approval_id=self._id_factory(), run_id=run_id,
+                assertion_hash=approval_assertion_hash(assertion), decision=decision,
+                actor_id=actor_id, expected_plan_content_hash=expected_plan_content_hash,
+                interrupt_ref=run.pending_interrupt_ref, decided_at=self._clock(),
+            )
+            await transaction.record_idempotent_ai_run_approval(
+                approval=approval, assertion=assertion, note=note,
+                expected_version=expected_version, idempotency_key=idempotency_key,
+                request_hash=fingerprint, outbox_event_id=self._id_factory(),
+            )
+            return await transaction.read_ai_run(run_id)
+
+
 class ReserveModelRequest:
     def __init__(
         self,

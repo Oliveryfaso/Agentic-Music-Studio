@@ -96,6 +96,25 @@ class PostgresAIRunTransaction:
             result_payload={"run_id": str(row.id), "project_id": str(row.project_id)},
         )
 
+    async def get_ai_run_action_idempotency(
+        self, *, parent_run_id: UUID, action: str, key: str
+    ) -> IdempotencyHit | None:
+        row = (
+            await self._session.execute(
+                select(AIRunActionIdempotencyRow).where(
+                    AIRunActionIdempotencyRow.parent_run_id == parent_run_id,
+                    AIRunActionIdempotencyRow.action == action,
+                    AIRunActionIdempotencyRow.idempotency_key == key,
+                )
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            return None
+        return IdempotencyHit(
+            resource_id=row.result_run_id, request_hash=row.request_hash,
+            result_payload={"run_id": str(row.result_run_id)},
+        )
+
     async def create_ai_run(
         self, *, run: AIRun, created_event: AIRunEvent, outbox_event_id: UUID, request_hash: str
     ) -> None:

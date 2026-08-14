@@ -362,6 +362,9 @@ class AIRunTransaction(Protocol):
     async def get_ai_run_idempotency(
         self, *, project_id: UUID, key: str
     ) -> IdempotencyHit | None: ...
+    async def get_ai_run_action_idempotency(
+        self, *, parent_run_id: UUID, action: str, key: str
+    ) -> IdempotencyHit | None: ...
     async def create_ai_run(
         self, *, run: AIRun, created_event: AIRunEvent, outbox_event_id: UUID, request_hash: str
     ) -> None: ...
