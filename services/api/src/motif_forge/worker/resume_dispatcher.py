@@ -16,7 +16,11 @@ from motif_forge.agent.planner import (
     PlannerResponse,
 )
 from motif_forge.agent.schemas import CompositionBrief
-from motif_forge.application.ai_runs import ReadAIRun, RecordAIRunApproval
+from motif_forge.application.ai_runs import (
+    ReadAIRun,
+    RecordAIRunApproval,
+    RecordAIRunGraphProgress,
+)
 from motif_forge.application.generation import (
     CollectCompleteExportArtifact,
     EnqueueNextCompleteExportJob,
@@ -54,7 +58,9 @@ from motif_forge.infrastructure.persistence.storage import PostgresStorageUnitOf
 from motif_forge.providers.deepseek import build_synth_ambient_planner
 from motif_forge.worker.outbox import (
     GRAPH_ACTION_TOPICS,
+    GRAPH_RESUME_TOPICS,
     ParentGraphActionPublisher,
+    ParentGraphResumePublisher,
     PostgresOutboxStore,
     dispatch_once,
 )
@@ -118,8 +124,7 @@ async def run_resume_dispatcher() -> None:
             media_uow = PostgresMediaJobUnitOfWork(session_factory)
             ai_uow = PostgresAIRunUnitOfWork(session_factory)
 
-            def graph_for(run: AIRun) -> object:
-                planner = build_generate_planner(settings, run, ai_uow)
+            def graph_with(planner: CompositionPlanner) -> object:
                 return build_parent_graph(
                 EnqueueMediaJob(media_uow),
                 checkpointer=saver,
@@ -165,21 +170,67 @@ async def run_resume_dispatcher() -> None:
                     enqueue_first=EnqueueMediaJob(media_uow),
                     enqueue_followup=EnqueueFollowupMediaJob(media_uow),
                 ),
-                collect_complete_export_artifact=CollectCompleteExportArtifact(media_uow),
-            )
+                    collect_complete_export_artifact=CollectCompleteExportArtifact(media_uow),
+                )
+
+            def graph_for(run: AIRun) -> object:
+                return graph_with(build_generate_planner(settings, run, ai_uow))
+
+            record_progress = RecordAIRunGraphProgress(ai_uow)
             publisher = ParentGraphActionPublisher(
                 graph_for,
                 load_run=ReadAIRun(ai_uow),
+                record_progress=record_progress,
+            )
+            parent_worker_store = PostgresOutboxStore(
+                session_factory,
+                topics=GRAPH_RESUME_TOPICS,
+                run_type_prefix="parent.",
+                aggregate_type="run",
+            )
+            parent_worker_publisher = ParentGraphResumePublisher(
+                graph_with(MissingDeepSeekPlanner())
+            )
+            export_worker_store = PostgresOutboxStore(
+                session_factory,
+                topics=GRAPH_RESUME_TOPICS,
+                run_type_exact="complete_song_export.v1",
+                aggregate_type="run",
+            )
+            export_worker_publisher = ParentGraphResumePublisher(
+                graph_with(MissingDeepSeekPlanner()),
+                run_type_prefix=None,
+                run_type_exact="complete_song_export.v1",
+                record_progress=record_progress,
             )
             while True:
-                delivered = await dispatch_once(
+                delivered_actions = await dispatch_once(
                     store,
                     publisher,
                     owner=owner,
                     batch_size=settings.outbox_batch_size,
                     lease_seconds=settings.outbox_lease_seconds,
                 )
-                if delivered == 0:
+                delivered_parent_workers = await dispatch_once(
+                    parent_worker_store,
+                    parent_worker_publisher,
+                    owner=f"{owner}:parent-worker",
+                    batch_size=settings.outbox_batch_size,
+                    lease_seconds=settings.outbox_lease_seconds,
+                )
+                delivered_export_workers = await dispatch_once(
+                    export_worker_store,
+                    export_worker_publisher,
+                    owner=f"{owner}:export-worker",
+                    batch_size=settings.outbox_batch_size,
+                    lease_seconds=settings.outbox_lease_seconds,
+                )
+                if (
+                    delivered_actions
+                    + delivered_parent_workers
+                    + delivered_export_workers
+                    == 0
+                ):
                     await asyncio.sleep(settings.outbox_poll_interval_seconds)
     finally:
         await engine.dispose()

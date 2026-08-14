@@ -32,7 +32,10 @@ uv run pytest \
   services/api/tests/unit/audio/test_chromium_render.py \
   services/api/tests/unit/audio/test_export_transcode.py \
   services/api/tests/unit/audio/test_midi.py \
-  services/api/tests/eval/test_s1_deterministic_eval.py
+  services/api/tests/eval/test_s1_deterministic_eval.py \
+  services/api/tests/eval/test_s2_generate_eval.py \
+  tests/test_s2_script_contract.py
 npm run test:audio
 uv run python scripts/check_s1_render_service.py
 MOTIF_FORGE_S1_USE_QUEUE=1 uv run python scripts/run_s1_deterministic_smoke.py
+uv run python scripts/run_s2_deterministic_smoke.py

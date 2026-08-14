@@ -9,7 +9,7 @@ from motif_forge.agent.schemas import CompositionBrief, CompositionPlan, KeyPlan
 _STYLE_DEFAULTS: dict[str, tuple[int, tuple[str, ...], str, str, str]] = {
     "synth_ambient": (
         72,
-        ("Warm Pad", "Soft Pulse"),
+        ("Warm Pad", "Glass Pluck", "Sub Bass", "Soft Pulse"),
         "Open fifths with restrained modal color",
         "Sparse pulses with gradual subdivision",
         "Layered pads with controlled tails",
@@ -36,6 +36,8 @@ _STYLE_DEFAULTS: dict[str, tuple[int, tuple[str, ...], str, str, str]] = {
         "Compact rhythm section supporting a single melodic voice",
     ),
 }
+
+_SYNTH_AMBIENT_ROLES = ("pad", "melody", "bass", "rhythm")
 
 
 def _key_from_brief(target_key: str | None) -> dict[str, str]:
@@ -67,7 +69,37 @@ def build_fallback_plan(brief: CompositionBrief) -> CompositionPlan:
         opening_end = max(1, duration_bars // 3)
         closing_start = max(opening_end + 1, duration_bars * 2 // 3)
 
-    instrument_names = brief.preferred_instruments or default_instruments
+    preferred = brief.preferred_instruments
+    instrument_names = tuple(
+        preferred[index] if index < len(preferred) else name
+        for index, name in enumerate(default_instruments)
+    )
+    if brief.style == "synth_ambient":
+        instrumentation = tuple(
+            {
+                "instrument_id": f"fallback_instrument_{index}",
+                "name": name,
+                "role": role,
+                "pitch_range": "supported built-in range",
+                "entry_section_id": "opening",
+                "exit_section_id": "resolution",
+            }
+            for index, (name, role) in enumerate(
+                zip(instrument_names, _SYNTH_AMBIENT_ROLES, strict=True), start=1
+            )
+        )
+    else:
+        instrumentation = tuple(
+            {
+                "instrument_id": f"fallback_instrument_{index}",
+                "name": name,
+                "role": "primary arrangement layer" if index == 1 else "supporting layer",
+                "pitch_range": "supported preset range",
+                "entry_section_id": "opening" if index == 1 else "development",
+                "exit_section_id": "resolution",
+            }
+            for index, name in enumerate(instrument_names[:12], start=1)
+        )
     payload = {
         "schema_version": "composition-plan.v1",
         "genre": brief.style,
@@ -104,17 +136,7 @@ def build_fallback_plan(brief: CompositionBrief) -> CompositionPlan:
                 "energy": 0.2,
             },
         ),
-        "instrumentation": tuple(
-            {
-                "instrument_id": f"fallback_instrument_{index}",
-                "name": name,
-                "role": "primary arrangement layer" if index == 1 else "supporting layer",
-                "pitch_range": "supported preset range",
-                "entry_section_id": "opening" if index == 1 else "development",
-                "exit_section_id": "resolution",
-            }
-            for index, name in enumerate(instrument_names[:12], start=1)
-        ),
+        "instrumentation": instrumentation,
         "harmonic_language": harmony,
         "rhythmic_language": rhythm,
         "texture": texture,

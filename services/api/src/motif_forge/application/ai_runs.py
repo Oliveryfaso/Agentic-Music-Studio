@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
@@ -29,6 +29,62 @@ from motif_forge.domain.ai_runs import (
 from motif_forge.domain.ir import DomainModel
 
 CREATE_AI_RUN_OPERATION = "ai-run.create.v1"
+
+
+def graph_progress_target(
+    state: Mapping[str, object],
+) -> tuple[UUID, AIRunStatus, str | None] | None:
+    """Map a validated Parent Graph result to the authoritative AI Run ledger."""
+
+    raw_run_id = state.get("run_id")
+    if not isinstance(raw_run_id, str):
+        return None
+    try:
+        run_id = UUID(raw_run_id)
+    except ValueError:
+        return None
+    terminal = state.get("terminal_status")
+    if terminal == "succeeded":
+        return run_id, AIRunStatus.SUCCEEDED, None
+    if terminal == "failed":
+        error_code = state.get("error_code")
+        return (
+            run_id,
+            AIRunStatus.FAILED,
+            error_code if isinstance(error_code, str) else "GRAPH_TERMINAL_FAILURE",
+        )
+    if state.get("phase") == "waiting_generate_worker":
+        return run_id, AIRunStatus.WAITING_WORKER, None
+    return None
+
+
+class RecordAIRunGraphProgress:
+    """Idempotently project Graph worker/terminal progress into the AI Run ledger."""
+
+    def __init__(
+        self,
+        uow_factory: AIRunUnitOfWorkFactory,
+        *,
+        id_factory: Callable[[], UUID] = uuid4,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> None:
+        self._uow_factory = uow_factory
+        self._id_factory = id_factory
+        self._clock = clock
+
+    async def __call__(self, state: Mapping[str, object]) -> None:
+        target = graph_progress_target(state)
+        if target is None:
+            return
+        run_id, status, error_code = target
+        async with self._uow_factory() as transaction:
+            await transaction.record_ai_run_graph_progress(
+                run_id=run_id,
+                target_status=status,
+                error_code=error_code,
+                event_id=self._id_factory(),
+                now=self._clock(),
+            )
 
 
 class ModelRequestBudgetError(ApplicationError):

@@ -13,6 +13,7 @@ from motif_forge.domain.ai_runs import (
     AIRun,
     AIRunApproval,
     AIRunEvent,
+    AIRunStatus,
     CompositionMaterializationReceipt,
     ModelRequestKind,
     ModelRequestReservation,
@@ -388,6 +389,15 @@ class AIRunTransaction(Protocol):
         self, *, run_id: UUID, plan_id: UUID, expected_version: int, now: datetime
     ) -> AIRun: ...
     async def record_ai_run_event(self, event: AIRunEvent) -> AIRunEvent: ...
+    async def record_ai_run_graph_progress(
+        self,
+        *,
+        run_id: UUID,
+        target_status: AIRunStatus,
+        error_code: str | None,
+        event_id: UUID,
+        now: datetime,
+    ) -> AIRun: ...
     async def record_ai_run_approval(
         self,
         *,

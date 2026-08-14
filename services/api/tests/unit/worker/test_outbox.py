@@ -145,6 +145,45 @@ async def test_parent_graph_publisher_resumes_the_payload_thread() -> None:
 
 
 @pytest.mark.asyncio
+async def test_worker_resume_publisher_records_terminal_graph_progress() -> None:
+    graph = FakeResumableGraph()
+    recorded: list[dict[str, object]] = []
+
+    async def record_progress(state: dict[str, object]) -> None:
+        recorded.append(state)
+
+    publisher = ParentGraphResumePublisher(graph, record_progress=record_progress)
+    message = OutboxMessage(
+        event_id=uuid4(),
+        topic="graph.resume.requested",
+        dedupe_key=f"resume:{uuid4()}",
+        payload={
+            "schema_version": "worker-resume.v1",
+            "run_id": str(uuid4()),
+            "thread_id": f"parent-{uuid4().hex}",
+            "run_type": "parent.generate.v1",
+            "resume_event_id": "worker-event-terminal",
+            "job_id": str(uuid4()),
+            "status": "succeeded",
+            "artifact_id": str(uuid4()),
+            "error_code": None,
+        },
+        attempts=1,
+    )
+
+    await publisher.publish(message)
+    await publisher.publish(message)
+
+    assert recorded == [
+        {"terminal_status": "succeeded"},
+        {
+            "last_resume_event_id": "worker-event-terminal",
+            "terminal_status": "succeeded",
+        },
+    ]
+
+
+@pytest.mark.asyncio
 async def test_parent_graph_publisher_rejects_non_parent_runs() -> None:
     graph = FakeResumableGraph()
     publisher = ParentGraphResumePublisher(graph)
@@ -162,6 +201,38 @@ async def test_parent_graph_publisher_rejects_non_parent_runs() -> None:
             "status": "failed_terminal",
             "artifact_id": None,
             "error_code": "FAILED",
+        },
+        attempts=1,
+    )
+
+    with pytest.raises(ValueError, match="does not target"):
+        await publisher.publish(message)
+
+    assert graph.calls == []
+
+
+@pytest.mark.asyncio
+async def test_complete_export_publisher_requires_exact_run_type() -> None:
+    graph = FakeResumableGraph()
+    publisher = ParentGraphResumePublisher(
+        graph,
+        run_type_prefix=None,
+        run_type_exact="complete_song_export.v1",
+    )
+    message = OutboxMessage(
+        event_id=uuid4(),
+        topic="graph.resume.requested",
+        dedupe_key=f"resume:{uuid4()}",
+        payload={
+            "schema_version": "worker-resume.v1",
+            "run_id": str(uuid4()),
+            "thread_id": "generate-export-exact",
+            "run_type": "complete_song_export.v1.evil",
+            "resume_event_id": "worker-event-wrong-type",
+            "job_id": str(uuid4()),
+            "status": "succeeded",
+            "artifact_id": str(uuid4()),
+            "error_code": None,
         },
         attempts=1,
     )

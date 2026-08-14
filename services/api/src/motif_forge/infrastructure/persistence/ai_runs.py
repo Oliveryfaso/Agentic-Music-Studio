@@ -6,7 +6,7 @@ import json
 import secrets
 from datetime import datetime
 from types import TracebackType
-from typing import Self, cast
+from typing import Any, Self, cast
 from uuid import UUID
 
 from pydantic import ValidationError
@@ -453,6 +453,77 @@ class PostgresAIRunTransaction:
             .returning(AIRunEventRow.sequence)
         )
         return event.model_copy(update={"sequence": result.scalar_one()})
+
+    async def record_ai_run_graph_progress(
+        self,
+        *,
+        run_id: UUID,
+        target_status: AIRunStatus,
+        error_code: str | None,
+        event_id: UUID,
+        now: datetime,
+    ) -> AIRun:
+        row = (
+            await self._session.execute(
+                select(AIRunRow).where(AIRunRow.id == run_id).with_for_update()
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
+        run = _run_from_row(row)
+        if run.status is target_status:
+            return run
+        if run.status in {
+            AIRunStatus.SUCCEEDED,
+            AIRunStatus.REJECTED,
+            AIRunStatus.FAILED,
+            AIRunStatus.CANCELLED,
+        }:
+            raise ApplicationError(
+                "AI_RUN_GRAPH_PROGRESS_CONFLICT",
+                "terminal AI Run status disagrees with the Parent Graph",
+            )
+        original_version = run.version
+        try:
+            if target_status is AIRunStatus.WAITING_WORKER:
+                run = run.transition(AIRunStatus.WAITING_WORKER, now=now)
+            elif target_status is AIRunStatus.SUCCEEDED:
+                if run.status is AIRunStatus.MATERIALIZING:
+                    run = run.transition(AIRunStatus.WAITING_WORKER, now=now)
+                run = run.transition(AIRunStatus.SUCCEEDED, now=now)
+            elif target_status is AIRunStatus.FAILED:
+                run = run.transition(AIRunStatus.FAILED, now=now)
+            else:
+                raise ValueError("unsupported Graph progress target")
+        except ValueError as exc:
+            raise ApplicationError(
+                "AI_RUN_GRAPH_PROGRESS_CONFLICT",
+                "Parent Graph progress is incompatible with the AI Run ledger",
+            ) from exc
+        result = await self._session.execute(
+            update(AIRunRow)
+            .where(AIRunRow.id == run_id, AIRunRow.version == original_version)
+            .values(**_run_values(run))
+        )
+        if cast(Any, result).rowcount != 1:
+            raise ApplicationError(
+                "AI_RUN_VERSION_CONFLICT", "the AI run changed during Graph progress"
+            )
+        payload: dict[str, object] = {"status": target_status.value}
+        if error_code is not None:
+            payload["error_code"] = error_code
+        await self._session.execute(
+            insert(AIRunEventRow).values(
+                event_id=event_id,
+                run_id=run_id,
+                event_type=f"ai_run.{target_status.value}",
+                phase=target_status.value,
+                payload=payload,
+                dedupe_key=f"graph-progress:{target_status.value}",
+                created_at=now,
+            )
+        )
+        return run
 
     async def record_ai_run_approval(
         self,

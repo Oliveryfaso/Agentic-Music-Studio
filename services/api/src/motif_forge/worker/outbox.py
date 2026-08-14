@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, ClassVar, Literal, Protocol, cast
@@ -69,6 +69,9 @@ class OutboxPublisher(Protocol):
     async def publish(self, message: OutboxMessage) -> None: ...
 
 
+GraphProgressRecorder = Callable[[Mapping[str, object]], Awaitable[None]]
+
+
 class OutboxStore(Protocol):
     async def claim_batch(
         self,
@@ -101,11 +104,15 @@ class PostgresOutboxStore:
         *,
         topics: frozenset[str] = MEDIA_DISPATCH_TOPICS,
         run_type_prefix: str | None = None,
+        run_type_exact: str | None = None,
         aggregate_type: str | None = None,
     ) -> None:
+        if run_type_prefix is not None and run_type_exact is not None:
+            raise ValueError("run type prefix and exact match are mutually exclusive")
         self._session_factory = session_factory
         self._topics = topics
         self._run_type_prefix = run_type_prefix
+        self._run_type_exact = run_type_exact
         self._aggregate_type = aggregate_type
 
     async def claim_batch(
@@ -131,6 +138,10 @@ class PostgresOutboxStore:
             if self._run_type_prefix is not None:
                 conditions.append(
                     OutboxEventRow.payload["run_type"].astext.like(f"{self._run_type_prefix}%")
+                )
+            if self._run_type_exact is not None:
+                conditions.append(
+                    OutboxEventRow.payload["run_type"].astext == self._run_type_exact
                 )
             if self._aggregate_type is not None:
                 conditions.append(OutboxEventRow.aggregate_type == self._aggregate_type)
@@ -231,9 +242,20 @@ class CeleryMediaJobPublisher:
 class ParentGraphResumePublisher:
     """Resume only checkpoints belonging to the versioned Parent Graph."""
 
-    def __init__(self, graph: Any, *, run_type_prefix: str = "parent.") -> None:
+    def __init__(
+        self,
+        graph: Any,
+        *,
+        run_type_prefix: str | None = "parent.",
+        run_type_exact: str | None = None,
+        record_progress: GraphProgressRecorder | None = None,
+    ) -> None:
+        if run_type_prefix is not None and run_type_exact is not None:
+            raise ValueError("run type prefix and exact match are mutually exclusive")
         self._graph = graph
         self._run_type_prefix = run_type_prefix
+        self._run_type_exact = run_type_exact
+        self._record_progress = record_progress
 
     async def publish(self, message: OutboxMessage) -> None:
         if message.topic not in GRAPH_RESUME_TOPICS:
@@ -244,7 +266,15 @@ class ParentGraphResumePublisher:
             )
         except ValidationError as exc:
             raise ValueError("Graph resume payload is invalid") from exc
-        if payload.run_type is None or not payload.run_type.startswith(self._run_type_prefix):
+        matches_prefix = (
+            self._run_type_prefix is not None
+            and payload.run_type is not None
+            and payload.run_type.startswith(self._run_type_prefix)
+        )
+        matches_exact = (
+            self._run_type_exact is not None and payload.run_type == self._run_type_exact
+        )
+        if not (matches_prefix or matches_exact):
             raise ValueError("Graph resume payload does not target the Parent Graph")
         config = {"configurable": {"thread_id": payload.thread_id}}
         snapshot = await self._graph.aget_state(config)
@@ -253,13 +283,17 @@ class ParentGraphResumePublisher:
             payload.resume_event_id is not None
             and values.get("last_resume_event_id") == payload.resume_event_id
         ):
+            if self._record_progress is not None and isinstance(values, Mapping):
+                await self._record_progress(values)
             return
         if values.get("terminal_status") is not None:
             raise ValueError("Parent Graph checkpoint is terminal for a different resume event")
-        await self._graph.ainvoke(
+        result = await self._graph.ainvoke(
             Command(resume=payload.model_dump(mode="json")),
             config,
         )
+        if self._record_progress is not None and isinstance(result, Mapping):
+            await self._record_progress(result)
 
 
 class ParentGraphActionPublisher:
@@ -277,10 +311,12 @@ class ParentGraphActionPublisher:
         *,
         load_run: AIRunLoader,
         load_decision: PlanDecisionLoader | None = None,
+        record_progress: GraphProgressRecorder | None = None,
     ) -> None:
         self._graph = graph
         self._load_run = load_run
         self._load_decision = load_decision
+        self._record_progress = record_progress
 
     async def _graph_for(self, run: AIRun) -> Any:
         if callable(self._graph):
@@ -309,6 +345,8 @@ class ParentGraphActionPublisher:
         graph = await self._graph_for(run)
         snapshot = await graph.aget_state(config)
         values = snapshot.values
+        if values and self._record_progress is not None and isinstance(values, Mapping):
+            await self._record_progress(values)
         if payload.action == "start":
             if values:
                 return
@@ -326,9 +364,11 @@ class ParentGraphActionPublisher:
                 }, default=str),
                 strict=True,
             )
-            await graph.ainvoke(
+            result = await graph.ainvoke(
                 initial_generate_state(thread_id=run.thread_id, request=request), config
             )
+            if self._record_progress is not None and isinstance(result, Mapping):
+                await self._record_progress(result)
             return
         if values.get("terminal_status") is not None:
             return
@@ -345,7 +385,9 @@ class ParentGraphActionPublisher:
             if self._load_decision is None:
                 raise ValueError("resume action is missing its authoritative decision")
             decision = await self._load_decision(run.run_id)
-        await graph.ainvoke(Command(resume=decision.model_dump(mode="json")), config)
+        result = await graph.ainvoke(Command(resume=decision.model_dump(mode="json")), config)
+        if self._record_progress is not None and isinstance(result, Mapping):
+            await self._record_progress(result)
 
 
 async def dispatch_once(

@@ -1,11 +1,33 @@
+from uuid import uuid4
+
 import pytest
 from motif_forge.application.ai_runs import (
     ModelRequestBudgetError,
     ModelUsageFactError,
+    graph_progress_target,
     model_request_allowed,
     validate_model_usage_facts,
 )
 from motif_forge.domain.ai_runs import AIRunStatus, ModelRequestKind, ModelUsageStatus
+
+
+def test_graph_progress_maps_worker_and_terminal_states() -> None:
+    run_id = uuid4()
+
+    assert graph_progress_target(
+        {"run_id": str(run_id), "phase": "waiting_generate_worker"}
+    ) == (run_id, AIRunStatus.WAITING_WORKER, None)
+    assert graph_progress_target(
+        {"run_id": str(run_id), "phase": "completed", "terminal_status": "succeeded"}
+    ) == (run_id, AIRunStatus.SUCCEEDED, None)
+    assert graph_progress_target(
+        {
+            "run_id": str(run_id),
+            "phase": "failed",
+            "terminal_status": "failed",
+            "error_code": "WORKER_TERMINAL_FAILURE",
+        }
+    ) == (run_id, AIRunStatus.FAILED, "WORKER_TERMINAL_FAILURE")
 
 
 def test_model_request_budget_refuses_fourth_upstream_request() -> None:

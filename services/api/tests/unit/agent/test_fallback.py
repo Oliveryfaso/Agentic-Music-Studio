@@ -2,6 +2,7 @@ import json
 
 from motif_forge.agent.fallback import build_fallback_plan
 from motif_forge.agent.schemas import CompositionBrief
+from motif_forge.domain.synth_ambient import validate_synth_ambient_plan
 
 from .sample_data import valid_brief_payload
 
@@ -17,3 +18,17 @@ def test_fallback_plan_is_complete_low_confidence_and_deterministic() -> None:
     assert first.sections[0].start_bar == 0
     assert first.sections[-1].end_bar == first.duration_bars
     assert first.knowledge_references == ()
+
+
+def test_synth_ambient_fallback_is_compilation_safe() -> None:
+    brief = CompositionBrief.model_validate_json(json.dumps(valid_brief_payload()), strict=True)
+
+    plan = build_fallback_plan(brief)
+
+    assert tuple(item.role for item in plan.instrumentation) == (
+        "pad",
+        "melody",
+        "bass",
+        "rhythm",
+    )
+    assert validate_synth_ambient_plan(brief, plan).compatible is True
