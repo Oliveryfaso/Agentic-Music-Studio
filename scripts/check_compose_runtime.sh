@@ -63,13 +63,13 @@ migration_version="$(
     psql -U motif_forge -d motif_forge -Atc \
     'select version_num from public.alembic_version;'
 )"
-if [[ "$migration_version" != "20260812_0012" ]]; then
+if [[ "$migration_version" != "20260813_0016" ]]; then
   echo "unexpected Alembic version: $migration_version" >&2
   exit 70
 fi
 
 docker compose run --rm --no-deps api sh -c \
-  'test ! -e /usr/local/bin/uv && test ! -e /opt/venv/bin/uv && python -c "from motif_forge.agent.graph import GRAPH_TOPOLOGY_VERSION, STATE_SCHEMA_VERSION; from motif_forge.agent.parent_graph import PARENT_GRAPH_TOPOLOGY_VERSION; from motif_forge.audio.time_stretch import TIME_STRETCH_RECIPE_VERSION; from motif_forge.domain.media_jobs import FeatureProfile; assert GRAPH_TOPOLOGY_VERSION == \"motif-forge-plan.v3\"; assert STATE_SCHEMA_VERSION == \"motif-forge-plan-state.v3\"; assert PARENT_GRAPH_TOPOLOGY_VERSION == \"motif-forge-parent.v1\"; assert TIME_STRETCH_RECIPE_VERSION == \"time-stretch-recipe.v1\"; assert FeatureProfile.WAVEFORM_PEAKS_V1.value == \"waveform-peaks.v1\"" && alembic heads >/dev/null'
+  'test ! -e /usr/local/bin/uv && test ! -e /opt/venv/bin/uv && python -c "from motif_forge.agent.graph import GRAPH_TOPOLOGY_VERSION, STATE_SCHEMA_VERSION; from motif_forge.agent.parent_graph import PARENT_GRAPH_TOPOLOGY_VERSION; from motif_forge.audio.time_stretch import TIME_STRETCH_RECIPE_VERSION; from motif_forge.domain.media_jobs import FeatureProfile; assert GRAPH_TOPOLOGY_VERSION == \"motif-forge-plan.v3\"; assert STATE_SCHEMA_VERSION == \"motif-forge-plan-state.v3\"; assert PARENT_GRAPH_TOPOLOGY_VERSION == \"motif-forge-parent.v2\"; assert TIME_STRETCH_RECIPE_VERSION == \"time-stretch-recipe.v1\"; assert FeatureProfile.WAVEFORM_PEAKS_V1.value == \"waveform-peaks.v1\"" && alembic heads >/dev/null'
 
 docker compose exec -T media-worker sh -c \
   'test "$(id -u)" != "0" && test ! -e /usr/local/bin/uv && test ! -e /opt/venv/bin/uv && command -v ffmpeg >/dev/null && celery --version >/dev/null'
