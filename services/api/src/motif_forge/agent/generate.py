@@ -17,6 +17,7 @@ from motif_forge.agent.planning_subgraph import (
 )
 from motif_forge.agent.schemas import CompositionBrief, CompositionPlan, PlanningResult
 from motif_forge.application.ai_runs import RecordAIRunApproval
+from motif_forge.application.errors import ApplicationError
 from motif_forge.application.generation import (
     CollectCompleteExportArtifact,
     CompleteExportCursor,
@@ -329,7 +330,14 @@ class GenerateNodes:
                 "last_resume_event_id": payload.resume_event_id,
             }
         cursor = self._cursor(state["export_cursor"])
-        cursor = await self._collect_export(cursor, completed_job_id=payload.job_id)
+        try:
+            cursor = await self._collect_export(cursor, completed_job_id=payload.job_id)
+        except ApplicationError as exc:
+            return {
+                "phase": "failed",
+                "error_code": exc.code,
+                "last_resume_event_id": payload.resume_event_id,
+            }
         return {
             "phase": "export_step_collected",
             "export_cursor": cursor.model_dump(mode="json"),
