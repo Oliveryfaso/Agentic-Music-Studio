@@ -2,7 +2,7 @@
 
 > 产品工作名：**Motif Forge**（音乐动机锻造台）
 > 文档状态：**架构基线已批准，详细合同已拆分**
-> 当前阶段：**G0、S1 已完成，S2 是唯一活动门**。受控导入、分析、HITL、保持音高对齐和网页试听均已通过；S1 已用定向重建后的 API/Media/Render 镜像及显式 `/temp` 挂载，通过真实队列导出 72 秒四轨作品，且 Revision→AudioGraph 强绑定、Protected Artifact 不可变路径、跨挂载原子提升、StoragePressureGate、MP3 时长/近静音探测、运行中/断连取消、审批和命令审计均已复验。下一步只把现有 CompositionPlan Graph 作为 `generate` 子图并入唯一 Parent Graph，接通 DeepSeek 与确定性 Fallback，不提前开发 S3。当前事实与精确路线分别见 `IMPLEMENTATION_STATUS.md` 和 `NEXT_DEVELOPMENT_ROADMAP.md`。
+> 当前阶段：**G0、S1、S2 已完成，S3 是唯一活动门**。受控导入、分析、HITL、保持音高对齐和网页试听均已通过；统一 Parent Graph v2 已把 DeepSeek/Fallback Planning、PlanApproval、确定性编译、不可变 Revision、七步完整导出、持久事件和恢复收进同一有限 Run，并通过无付费 Compose smoke 与一次预算受控的真实 DeepSeek 验收。下一步只把这条已验收的 API 级闭环接入 Project Home、Brief/Plan、持久生成进度、试听与只读 Studio；四个 Style Pack、双候选/Repair 和完整 DAW 仍按 S4–S7 顺序推进。当前事实与精确路线分别见 `IMPLEMENTATION_STATUS.md` 和 `NEXT_DEVELOPMENT_ROADMAP.md`。
 
 ---
 
@@ -1481,7 +1481,7 @@ Upload、Candidate fan-out 试听、Render、Time-stretch 和 Export 之前运�
 
 ## 21. 当前方案的最终摘要
 
-> 实施同步（2026-08-12）：阶段 2 的受控导入、基础分析、自动对齐与 Lean Storage 纵切已实现。Upload 使用分块 raw bytes、每 Session/Part checksum、WAV/MP3/FLAC magic gate 和不可变 `source-original.v1 + quarantined`；Media Worker 做 FFprobe 解码、48 kHz stereo PCM16 标准化，并用无大型依赖的 `import-analysis.v1` 基线生成 BPM/key/置信度。`waveform-peaks.v1`（最多 4096 个 min/max bucket）与 `imported-audio-analysis.v1` 已作为独立、内容寻址、可驱逐/可恢复 Feature Artifact 持久化，并可按源 Audio Artifact 发现和按 ID 读取。`import-analysis-policy.v1` 将高可信 BPM 偏差自动路由到保持音高的 FFmpeg time-stretch；低可信分析在同一 `motif-forge-parent.v1` checkpoint 中等待确认/覆盖/跳过/取消。对齐是同一个 PostgreSQL Run 的后续 Job，最终 L1 AudioClip 保存原/派生 Artifact 与 source/target BPM/engine lineage。存储门已覆盖 Upload/Import/time-stretch/rehydrate 以及 S1 Render/Transcode/Export，按真实临时目录、有效 Job lease、依赖和活动 payload 做确定性容量与保护判断；精确驱逐只接受数据库 Artifact ID 并保留完整 recipe。G0 与 S1 已完成，S1 还建立了 Revision 绑定的 `audio-artifact.v2`、运行中取消清理和不复制音频 bytes 的逻辑 Export Bundle。当前不再把复杂分析或通用存储扩建列为主线；下一步只按 `NEXT_DEVELOPMENT_ROADMAP.md` 完成 S2 统一 Generate Parent Graph，持久 temp reservation ledger、render/transcode rehydration recipe 与嵌套依赖继续按真实消费者和 Eval 证据增量完善。
+> 实施同步（2026-08-14）：阶段 2 的受控导入、基础分析、自动对齐与 Lean Storage 纵切，以及 S1/S2 的确定性完整成曲和统一 Generate Parent Graph 均已实现。Upload、Import、time-stretch、Feature Artifact、Revision 绑定的 `audio-artifact.v2`、七步 Export Bundle、DeepSeek/Fallback Planning、PlanApproval、持久 SSE、恢复/取消与费用事实均有运行证据；真实 S2 验收用一次 DeepSeek 请求完成无 fallback 的 Plan → Revision → 完整导出。当前不再扩建复杂分析、通用存储或准生产故障矩阵；下一步只按 `NEXT_DEVELOPMENT_ROADMAP.md` 完成 S3 Project Home、Brief/Plan、持久生成进度、试听与只读 Studio。持久 temp reservation ledger、render/transcode rehydration recipe 与嵌套依赖继续按真实消费者和 Eval 证据增量完善。
 
 > Web 闭环同步（2026-08-12）：Import Review 已从手工 UUID 读取扩展为受控本地上传、权利确认、浏览器 SHA-256、分块 Session、Import Run URL 恢复、低置信度确认/覆盖/跳过/取消、原始/保持音高对齐 Range 试听与独立 Feature Review。`GET /api/v1/imports/{thread_id}` 只投影同一 PostgreSQL checkpoint，不重跑 Graph；音频内容只经 validated Artifact ID 解析，不公开外置盘路径。开发期仍是 host-first，本纵切只在跨服务验收点刷新 API target，没有重建 Media/Chromium Worker。
 
