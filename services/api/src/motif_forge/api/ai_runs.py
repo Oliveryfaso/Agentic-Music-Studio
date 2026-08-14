@@ -35,6 +35,8 @@ class ApiModel(BaseModel):
 class CreateAIRunBody(ApiModel):
     branch_id: UUID
     base_revision_id: UUID
+    max_model_requests: int = Field(default=3, ge=1, le=3)
+    max_total_tokens: int = Field(default=12_000, ge=1, le=12_000)
     brief: dict[str, object]
 
     @field_validator("brief")
@@ -126,6 +128,8 @@ def build_ai_run_router(uow: AIRunUnitOfWorkFactory) -> APIRouter:
             base_revision_id=body.base_revision_id,
             thread_id=f"generate-{idempotency_key}", brief=brief,
             idempotency_key=idempotency_key,
+            max_model_requests=body.max_model_requests,
+            max_total_tokens=body.max_total_tokens,
         ))
         return {"status": "accepted", "data": run_data(run).model_dump(mode="json")}
 

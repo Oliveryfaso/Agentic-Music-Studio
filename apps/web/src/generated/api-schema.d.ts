@@ -662,6 +662,16 @@ export interface components {
             brief: {
                 [key: string]: unknown;
             };
+            /**
+             * Max Model Requests
+             * @default 3
+             */
+            max_model_requests: number;
+            /**
+             * Max Total Tokens
+             * @default 12000
+             */
+            max_total_tokens: number;
         };
         /** CreateProjectBody */
         CreateProjectBody: {

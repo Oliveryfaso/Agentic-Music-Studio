@@ -34,9 +34,11 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 REVIEWED_MODEL = "deepseek-v4-flash"
-MAX_MODEL_REQUESTS = 3
+REVIEWED_MAX_OUTPUT_TOKENS = 4096
+REVIEWED_MAX_ATTEMPTS = 1
+MAX_MODEL_REQUESTS = 1
 MAX_TOTAL_TOKENS = 12_000
-ACCEPTANCE_ID = "s2-live-deepseek-acceptance-v1"
+ACCEPTANCE_ID = "s2-live-deepseek-acceptance-v2"
 LIVE_BRIEF = {
     "schema_version": "composition-brief.v1",
     "title": "Live Observatory Drift",
@@ -57,6 +59,8 @@ class LiveGuard:
     model: str
     actor: str
     assertion: str
+    max_output_tokens: int = REVIEWED_MAX_OUTPUT_TOKENS
+    max_attempts: int = REVIEWED_MAX_ATTEMPTS
     max_model_requests: int = MAX_MODEL_REQUESTS
     max_total_tokens: int = MAX_TOTAL_TOKENS
 
@@ -86,13 +90,29 @@ def load_live_guard(environment: Mapping[str, str]) -> LiveGuard:
     model = environment.get("DEEPSEEK_MODEL", REVIEWED_MODEL).strip()
     if model != REVIEWED_MODEL:
         raise RuntimeError(f"live acceptance requires {REVIEWED_MODEL}")
+    output_tokens = environment.get(
+        "MOTIF_FORGE_DEEPSEEK_MAX_OUTPUT_TOKENS", ""
+    ).strip()
+    if output_tokens != str(REVIEWED_MAX_OUTPUT_TOKENS):
+        raise RuntimeError(
+            f"live acceptance requires {REVIEWED_MAX_OUTPUT_TOKENS} output tokens"
+        )
+    attempts = environment.get("MOTIF_FORGE_DEEPSEEK_MAX_ATTEMPTS", "").strip()
+    if attempts != str(REVIEWED_MAX_ATTEMPTS):
+        raise RuntimeError("live acceptance requires exactly one provider attempt")
     actor = environment.get("MOTIF_FORGE_S2_APPROVAL_ACTOR", "").strip()
     if not actor:
         raise RuntimeError("live acceptance requires an approval actor")
     assertion = environment.get("MOTIF_FORGE_S2_APPROVAL_ASSERTION", "").strip()
     if len(assertion) < 16:
         raise RuntimeError("live acceptance requires a 16+ character approval assertion")
-    return LiveGuard(model=model, actor=actor, assertion=assertion)
+    return LiveGuard(
+        model=model,
+        actor=actor,
+        assertion=assertion,
+        max_output_tokens=REVIEWED_MAX_OUTPUT_TOKENS,
+        max_attempts=REVIEWED_MAX_ATTEMPTS,
+    )
 
 
 def validate_projection_budget(projection: Mapping[str, object], guard: LiveGuard) -> None:
@@ -214,7 +234,11 @@ def _assert_live_runtime() -> None:
         raise RuntimeError("MOTIF_FORGE_S2_RESUME_CONTAINER is invalid")
     command = (
         'test -n "$DEEPSEEK_API_KEY" && '
-        f'test "${{DEEPSEEK_MODEL:-{REVIEWED_MODEL}}}" = "{REVIEWED_MODEL}"'
+        f'test "${{DEEPSEEK_MODEL:-{REVIEWED_MODEL}}}" = "{REVIEWED_MODEL}" && '
+        'test "${MOTIF_FORGE_DEEPSEEK_MAX_ATTEMPTS:-}" = '
+        f'"{REVIEWED_MAX_ATTEMPTS}" && '
+        'test "${MOTIF_FORGE_DEEPSEEK_MAX_OUTPUT_TOKENS:-}" = '
+        f'"{REVIEWED_MAX_OUTPUT_TOKENS}"'
     )
     result = subprocess.run(
         ["docker", "exec", container, "sh", "-c", command],
@@ -396,6 +420,8 @@ async def main() -> None:
                 payload={
                     "branch_id": project["active_branch_id"],
                     "base_revision_id": project["root_revision_id"],
+                    "max_model_requests": guard.max_model_requests,
+                    "max_total_tokens": guard.max_total_tokens,
                     "brief": LIVE_BRIEF,
                 },
             )

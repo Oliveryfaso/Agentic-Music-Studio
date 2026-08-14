@@ -73,7 +73,7 @@ def test_deepseek_defaults_are_exact_and_secret_safe() -> None:
     assert settings.deepseek_model == "deepseek-v4-flash"
     assert settings.deepseek_base_url == "https://api.deepseek.com"
     assert settings.deepseek_max_attempts == 3
-    assert settings.deepseek_max_output_tokens == 2400
+    assert settings.deepseek_max_output_tokens == 4096
     assert settings.deepseek_max_total_tokens == 12_000
     assert secret not in repr(settings)
     assert secret not in str(settings)

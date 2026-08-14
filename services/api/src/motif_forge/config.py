@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     deepseek_connect_timeout_seconds: float = Field(default=5.0, gt=0.0, le=30.0)
     deepseek_read_timeout_seconds: float = Field(default=45.0, gt=0.0, le=120.0)
     deepseek_max_attempts: int = Field(default=3, ge=1, le=3)
-    deepseek_max_output_tokens: int = Field(default=2400, ge=256, le=8192)
+    deepseek_max_output_tokens: int = Field(default=4096, ge=256, le=8192)
     deepseek_max_total_tokens: int = Field(default=12_000, ge=256, le=12_000)
 
     @model_validator(mode="after")

@@ -132,6 +132,8 @@ def test_create_ai_run_is_async_safe_and_forbids_runtime_internals() -> None:
     body = {
         "branch_id": str(uuid4()),
         "base_revision_id": str(uuid4()),
+        "max_model_requests": 1,
+        "max_total_tokens": 12_000,
         "brief": {
             "title": "Safe API", "purpose": "Generate a calm underscore",
             "style": "synth_ambient", "duration_seconds": 60, "moods": ("calm",),
@@ -145,6 +147,10 @@ def test_create_ai_run_is_async_safe_and_forbids_runtime_internals() -> None:
         )
         assert response.status_code == 202
         assert response.json()["data"]["status"] == "queued"
+        assert response.json()["data"]["max_model_requests"] == 1
+        assert uow.transaction.run is not None
+        assert uow.transaction.run.max_model_requests == 1
+        assert uow.transaction.run.max_total_tokens == 12_000
         assert uow.transaction.outbox_creates == 1
         replay = client.post(
             response.request.url,

@@ -33,6 +33,8 @@ def _live_env() -> dict[str, str]:
         "MOTIF_FORGE_S2_LIVE": "1",
         "DEEPSEEK_API_KEY": "test-key-placeholder-not-real",
         "DEEPSEEK_MODEL": "deepseek-v4-flash",
+        "MOTIF_FORGE_DEEPSEEK_MAX_OUTPUT_TOKENS": "4096",
+        "MOTIF_FORGE_DEEPSEEK_MAX_ATTEMPTS": "1",
         "MOTIF_FORGE_S2_APPROVAL_ACTOR": "live-contract-reviewer",
         "MOTIF_FORGE_S2_APPROVAL_ASSERTION": (
             "I reviewed and approve this exact live S2 composition plan."
@@ -71,12 +73,13 @@ def test_live_guard_and_projection_enforce_request_and_token_budgets() -> None:
     guard = load_live_guard(_live_env())
 
     assert guard.model == "deepseek-v4-flash"
-    assert guard.max_model_requests == 3
+    assert guard.max_model_requests == 1
     assert guard.max_total_tokens == 12_000
+    assert guard.max_output_tokens == 4096
     validate_projection_budget(
         {
-            "max_model_requests": 3,
-            "submitted_model_requests": 3,
+            "max_model_requests": 1,
+            "submitted_model_requests": 1,
             "total_tokens": 12_000,
             "model_usage_status": "known",
         },
@@ -85,8 +88,8 @@ def test_live_guard_and_projection_enforce_request_and_token_budgets() -> None:
     with pytest.raises(RuntimeError, match="request budget"):
         validate_projection_budget(
             {
-                "max_model_requests": 3,
-                "submitted_model_requests": 4,
+                "max_model_requests": 1,
+                "submitted_model_requests": 2,
                 "total_tokens": 100,
                 "model_usage_status": "known",
             },
@@ -95,7 +98,7 @@ def test_live_guard_and_projection_enforce_request_and_token_budgets() -> None:
     with pytest.raises(RuntimeError, match="token budget"):
         validate_projection_budget(
             {
-                "max_model_requests": 3,
+                "max_model_requests": 1,
                 "submitted_model_requests": 1,
                 "total_tokens": 12_001,
                 "model_usage_status": "known",
@@ -105,7 +108,7 @@ def test_live_guard_and_projection_enforce_request_and_token_budgets() -> None:
     with pytest.raises(RuntimeError, match="known model usage"):
         validate_projection_budget(
             {
-                "max_model_requests": 3,
+                "max_model_requests": 1,
                 "submitted_model_requests": 1,
                 "total_tokens": None,
                 "model_usage_status": "unknown",
@@ -119,9 +122,25 @@ def test_live_acceptance_identity_is_fixed_across_process_like_calls() -> None:
     second = acceptance_keys()
 
     assert first == second
-    assert first.project == "s2-live-deepseek-acceptance-v1-project"
-    assert first.run == "s2-live-deepseek-acceptance-v1-run"
-    assert first.resume == "s2-live-deepseek-acceptance-v1-resume"
+    assert first.project == "s2-live-deepseek-acceptance-v2-project"
+    assert first.run == "s2-live-deepseek-acceptance-v2-run"
+    assert first.resume == "s2-live-deepseek-acceptance-v2-resume"
+
+
+def test_live_guard_rejects_the_truncating_output_budget_from_v1() -> None:
+    env = _live_env()
+    env["MOTIF_FORGE_DEEPSEEK_MAX_OUTPUT_TOKENS"] = "2400"
+
+    with pytest.raises(RuntimeError, match="4096 output tokens"):
+        load_live_guard(env)
+
+
+def test_live_guard_requires_one_transport_attempt_to_match_the_run_budget() -> None:
+    env = _live_env()
+    env["MOTIF_FORGE_DEEPSEEK_MAX_ATTEMPTS"] = "3"
+
+    with pytest.raises(RuntimeError, match="one provider attempt"):
+        load_live_guard(env)
 
 
 def test_live_plan_requires_strict_schema_and_recomputed_v2_hash() -> None:
