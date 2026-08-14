@@ -45,7 +45,7 @@
 
 它证明了完整作品的事实链和 Worker 链；S2 现已增加公共 Generate API，但网页入口仍要等 S3，因此还不能描述为完整的用户可操作 AI 编曲产品。
 
-S2 的 API 级生成事实链已接通：公共 Brief 创建持久 AI Run，`motif-forge-parent.v2` 在同一 thread 内完成 Planning、PlanApproval、Synth Ambient 确定性编译、不可变 Revision 和七步完整导出；Dispatcher、REST/SSE、重启/取消/重复投递与确定性无付费 Compose smoke 已验收。它仍没有 S3 网页 Brief/Plan/试听入口，而且真实 DeepSeek 付费验收尚未获得授权完成，因此还不能描述为已完成的用户产品或已 live accepted 的模型连接。
+S2 的 API 级生成事实链已接通并完成 live acceptance：公共 Brief 创建持久 AI Run，`motif-forge-parent.v2` 在同一 thread 内完成 DeepSeek Planning、PlanApproval、Synth Ambient 确定性编译、不可变 Revision 和七步完整导出；Dispatcher、REST/SSE、重启/取消/重复投递与确定性无付费 Compose smoke 均已验收。它仍没有 S3 网页 Brief/Plan/试听入口，因此还不能描述为完整的用户可操作 AI 编曲产品。
 
 ## 3. 能力矩阵
 
@@ -60,8 +60,8 @@ S2 的 API 级生成事实链已接通：公共 Brief 创建持久 AI Run，`mot
 |---|---|---|---|
 | ArrangementIR、EditorCommand、Revision、Branch | 可运行 | 严格 Schema、事务写入、乐观锁和测试 | Studio 尚未消费完整编辑命令集 |
 | CandidateSnapshot、PreviewCandidate、L2/L3 审批事务 | 可运行（API） | Plan 驱动的 Candidate/Preview/Revision、原子 receipt、Parent Graph 审批恢复与真实 PostgreSQL 回放 | 尚无 S3 Plan Review 页面 |
-| DeepSeek Provider | 内部完成 | 生产 Dispatcher 构造、持久请求/token 预算、真实 usage、严格 JSON envelope、官方 endpoint、MockTransport + PostgreSQL 重启测试 | 尚未完成一次明确授权的真实付费验收 |
-| CompositionPlan Graph | 可运行（API/无付费） | Parent Graph v2 `generate` 分支、Fallback/Repair、PlanApproval、PostgreSQL checkpoint 与无 Key Compose smoke | Legacy v3 仅保留回归；真实 Provider gate 待完成 |
+| DeepSeek Provider | 可运行（API） | 生产 Dispatcher、持久请求/token 预算、真实 known usage、严格 JSON envelope、官方 endpoint、MockTransport/重启测试与一次受控 live acceptance | 仅 Synth Ambient 已接入；模型调用继续 opt-in |
+| CompositionPlan Graph | 可运行（API） | Parent Graph v2 `generate` 分支、Fallback/Repair、PlanApproval、PostgreSQL checkpoint、无 Key Compose smoke 与 live accepted Plan | Legacy v3 仅保留回归；S3 尚无网页入口 |
 | Parent Graph Import/Generate/Recovery | 可运行（API） | Import、generate、time-stretch、HITL、resume/cancel、持久 SSE 与终态投影 | 尚无 edit 路由和 S3 生成页面 |
 | PostgreSQL/Redis/Celery/Outbox | 可运行 | Generate start/resume/cancel Dispatcher、权威 outbox、Compose readiness、幂等事件和恢复测试 | S7 才扩充负载与极端故障矩阵 |
 | 受控音频上传与导入 | 可运行 | 浏览器真实 30 秒 WAV E2E | 多 Stem 加入同一 Project 的产品流程未完成 |
@@ -70,24 +70,24 @@ S2 的 API 级生成事实链已接通：公共 Brief 创建持久 AI Run，`mot
 | Artifact 生命周期与 StoragePressureGate | 可运行 | 四态、配额、驱逐/重建、外置 Root | 暂不扩建通用缓存平台，按新 Artifact 类型增量接入 |
 | Tone.js AudioGraphCompiler | 内部完成 | ArrangementIR 投影、72 秒 PCM24 Master/Stem、10 项测试 | 仅 3 个 Synth Preset；尚无 Studio/runtime 投影 |
 | PatternSpec 与确定性 Composer | 可运行（API） | Synth Ambient Plan 策略/确定性编译、版本化 Plan hash、Parent Graph 与共享 Export cursor | 仅一个 Style Pack；其余三包在 S4 |
-| 完整成曲与导出 | 可运行（API/无付费） | Brief→审批→Revision→7 Jobs；Master/MP3/四 Stem/MIDI/Project/逻辑 Bundle；真实 PostgreSQL/Compose | 尚无 Web；1–5 分钟和 12 轨留待后续产品验收 |
+| 完整成曲与导出 | 可运行（API） | DeepSeek Brief→审批→Revision→7 Jobs；Master/MP3/四 Stem/MIDI/Project/逻辑 Bundle；真实 PostgreSQL/Compose | 尚无 Web；1–5 分钟和 12 轨留待后续产品验收 |
 | 四个 Style Pack 与 Theory Engine | 未开始 | 只有设计 | 缺知识卡、规则、示例、检索和许可资产 |
 | Web Import Review | 可运行 | 上传、分析确认、试听、恢复、窄屏 E2E | 尚未进入 Project Home、Brief/Plan 或 Timeline |
 | Web Studio/DAW | 未开始 | 只有视觉与交互合同 | 缺 Project Home、Brief/Plan、Timeline、Piano Roll、Mixer、Export |
 | AI 选区编辑 | 未开始 | 有命令与 ChangeImpact 基础 | 缺 EditPatchProposal 生成、Preview、局部性 Eval |
-| Eval/可观测性 | 部分完成 | 16 条 S2 Generate Eval、S1/Parent 双 baseline、持久 Event/Trace/Usage、确定性 smoke | 真实 paid 样本、完整 OTel/看板和最终 96 条仍缺 |
+| Eval/可观测性 | 部分完成 | 16 条 S2 Generate Eval、S1/Parent 双 baseline、持久 Event/Trace/Usage、确定性 smoke 与一条真实 paid 样本 | 完整 OTel/看板和最终 96 条仍缺 |
 | CI/CD 与负载测试 | 未开始 | 本地脚本 | 无 CI workflow、P50/P95 和完整一键演示验收 |
 
 ## 4. 当前验证基线
 
-S2 Task 11 与 Task 12 预付费门后的最新证据：
+S2 Task 12 最终门后的最新证据：
 
-- 集中 Python gate：`436 passed / 56 integration-only skipped`；Task 10/Dispatcher/SSE 组合真实 PostgreSQL `5 passed`，Task 11 focused real PostgreSQL `3 passed`。
+- 集中 Python gate：`440 passed / 56 integration-only skipped`；最终修复聚焦 suite `152 passed / 7 integration-only skipped`，真实 PostgreSQL恢复/Dispatcher/Parent Graph `8 passed`。
 - 当前 Compose runtime 已迁移到 `20260813_0016`；最终无付费运行时 gate 为真实 PostgreSQL integration `57 passed / 1 Redis+Artifact opt-in skipped`，API/Dispatcher/Resume/Media/Render/PostgreSQL/Redis 合同通过。
 - Task 10 权威 SQL 主路径精确得到 `1 Plan / 1 Candidate / 1 Revision / 1 receipt / 7 Jobs / 6 audio / 1 Bundle`；重复 start/Master completion 不增加事实，取消和错误 lineage 不产生越权副作用。
 - Task 11 Eval 为 16 条（6 valid、3 unsupported、3 malformed、2 approval、2 recovery），包含 S1 fixed sample 与 Parent baseline；确定性 Compose smoke 得到 `7 Jobs / 6 audio / 1 Bundle / 0 model calls / 0 tokens`。
 - Audio `13 passed`、Web `15 passed`，Audio/Web build 与 OpenAPI 确定性生成通过；Ruff 通过，Mypy strict `82 source files` 通过，`git diff --check` 通过。
-- Task 12 付费保护契约 `11 passed`，无 Key fail-closed 在 HTTP 前退出，独立预付费复审为 `SAFE / Spec PASS / Quality APPROVED`。真实付费 API 验收尚未执行，不能将早先一次非验收的 4,119-token Provider 响应算作通过。
+- Task 12 v1 在单请求 2,400 output cap 下只得到 reasoning，记录 4,135 tokens 后安全进入 fallback，未物化 Revision/Job，不计验收成功。修复后固定 v2 Run `3de2a947-6118-45d8-ae7a-f829ef7bc0a0` 以唯一一次 DeepSeek V4 Flash 请求、4,911 known tokens、无 fallback 完成；最终为 1 Plan/1 Revision/7 succeeded Jobs/6 audio/1 Bundle，六个实体文件 checksum 与权威 lineage 一致，`cost_status=unknown` 未伪造费用。Key 随后撤下。
 
 上一份完整跨栈审计（2026-08-12）仍提供 Audio/Web/Compose 基线：
 
@@ -111,7 +111,7 @@ API/Dispatcher 只把 `motif-forge-parent.v2` 作为生产拓扑，`generate` �
 
 ### 5.2 音频可靠性领先于创作主链路
 
-Import、Artifact、恢复和容量治理已达到较高完成度，S2 也已证明 CompositionPlan 驱动的 `Revision → Render → Bundle`。继续暂停通用存储/恢复平台扩建；下一产品门是 S3 网页 Brief/Plan/只读 Studio，而 S2 必须先完成明确授权的真实 DeepSeek 验收和阶段收口。
+Import、Artifact、恢复和容量治理已达到较高完成度，S2 已证明 DeepSeek CompositionPlan 驱动的 `Revision → Render → Bundle`。继续暂停通用存储/恢复平台扩建；下一产品门是 S3 网页 Brief/Plan/只读 Studio。
 
 ### 5.3 前后端 DTO 仍由手工维护
 
@@ -139,7 +139,7 @@ Checkpoint 前复验：Python `152 passed / 13 opt-in skipped`；真实 PostgreS
 
 后续每个可独立验收纵切都必须形成 Git checkpoint，不再跨多个阶段积累未提交业务代码。
 
-## 7. S1/S2 验收事实与当前开发断点：S2 Task 12
+## 7. S1/S2 验收事实与当前开发断点：S3
 
 S1 已完成：固定作品为 24 bars、80 BPM、4/4、C major、四轨、72 秒；固定 seed 生成完整 ArrangementIR。L3 生成先创建 Candidate/Preview，再由调用者提供 16 字符以上审批断言，事务持久化 actor、审批 payload hash 和原始五条生成命令后物化 Revision。正式 Job 链输出 PCM24 Master（20,736,044 bytes）、四条 PCM24 Stem、经 FFprobe 验证时长/格式/码率/非静音的 256 kbps MP3、MIDI、Project JSON 与 credits/license/provenance/trace/export manifests。
 
@@ -147,7 +147,7 @@ S1 已完成：固定作品为 24 bars、80 BPM、4/4、C major、四轨、72 �
 
 当前下一条业务纵切不是扩充 Import 页面，也不是先做完整 DAW，而是：
 
-> **S2：把现有 CompositionPlan Graph 作为 `generate` 子图并入唯一 Parent Graph，接通 DeepSeek 与确定性 Fallback，在 PlanApproval 后复用 S1 的 Pattern/Render/Export 事实链。**
+> **S3：在网页接入 Brief、Plan Review/Approval、持久生成进度和只读 Studio，让已验收的 S2 API 闭环成为用户可操作流程。**
 
 S2 仍不得绕过 PlanApproval，也不得创建第三个生产 Graph。S1 的固定策略继续作为无模型降级和回归基线，不改变首版最终要求的 1–5 分钟、最多 12 轨、最多 2 个候选和四个 Style Pack 同时交付。
 
@@ -165,6 +165,8 @@ Task 6 验收为 focused unit `12 passed`、真实 PostgreSQL `1 passed`、Ruff�
 
 Tasks 7–11 已依次完成 Parent Graph v2 Generate 挂载、权威 Dispatcher、REST/SSE、真实 PostgreSQL 恢复/取消/lineage 组合验证、16 条代表性 Eval 与无付费 Compose smoke，且各自形成 Git checkpoint并通过有界独立复审。
 
-**当前断点：Task 12 只剩明确授权的一次预算受控真实 DeepSeek 验收，以及基于该新证据的持久事实检查、最终文档、stage-end storage hygiene 和最终审查。** 付费脚本使用不可由环境覆盖的固定 Project/Run/resume 数据库幂等键，严格重算 Plan v2 hash 并独立核验审批；上限为三次 provider 请求和 12,000 tokens。授权前 Resume Dispatcher 保持无 Key，S2 不能提前标记完成。
+Task 12 已完成：预付费保护使用固定 Project/Run/resume 数据库幂等身份，v2 账本上限为一次 provider 请求和 12,000 tokens；严格核验 Plan v2、审批与 Artifact lineage。真实 v2 Run 在审批后曾暴露两个确定性问题：Plan section function 超过 IR 80 字符边界，以及 approval checkpoint 已推进后 outbox 重投未继续执行。二者均经 RED/GREEN 修复，同一 Run 在 Key 撤下后恢复且没有新增模型调用，最终成功导出。
+
+**当前断点：S2 已关闭，S3 为唯一活动门。** 保留单一 Parent Graph、PlanApproval、不可变 Revision、持久费用/恢复和完整导出合同；先实现网页 Brief/Plan 与只读 Studio，不提前进入四 Style Pack 或完整 DAW。
 
 具体前后顺序、阶段门和优化规则见 `NEXT_DEVELOPMENT_ROADMAP.md`。

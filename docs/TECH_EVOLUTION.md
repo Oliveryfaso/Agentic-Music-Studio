@@ -314,4 +314,13 @@
 - 阶段预付费门通过：集中 Python `436 passed / 56 integration-only skipped`，Compose runtime 真实 PostgreSQL `57 passed / 1 Redis+Artifact opt-in skipped`，Audio `13 passed`、Web `15 passed`、Ruff、Mypy 82 source、Audio/Web build、OpenAPI deterministic generation 和 diff checks 均通过。Tasks 7–11 checkpoints 最终为 `5438dc0`、`3d2f3c7`、`47fb5b3`、`b2f1f0b`、`79b113f`。
 - 第一次尝试 runtime smoke 时容器意外继承本机 Key，产生一个有效 Provider response（Run `a8366f60-9a36-4d90-b9ac-12a4cf8e433a`，1 request，4,119 tokens），随后因当时 fallback/compiler 接线缺陷未完成物化；该调用不计作 Task 12 acceptance，Key 未读取、打印或写入。之后 Resume Dispatcher 已恢复显式 no-Key override，并在每次运行态门后验证容器 Key 为空。
 - Task 12 live guard 使用固定且不可由环境覆盖的 Project/Run/resume 数据库幂等身份；跨进程重跑只取回同一 durable Run，失败或成功终态不会新建第二个付费 Run。脚本在任何 HTTP 前要求显式 opt-in、Key、reviewed model、审批 actor/assertion 和 live container attestation；严格解析 Plan、重算 lossless-v2 content hash、独立核验持久审批，并把三次请求/12,000 tokens、known usage、无 fallback、七 Jobs/六 audio/单 Media Run、lineage 与六个物理 checksum 收进小于 4 KiB 的 secret-safe summary。
-- Guard tests `11 passed`、无 Key fail-closed 实跑和独立预付费复审 `SAFE / Spec PASS / Quality APPROVED` 后形成 checkpoint `1e57bba`。由于上面的有效 Provider response，计划禁止模型自行推断第二次付费权限；当前等待用户明确授权一次新的预算受控验收。真实 live success、持久证据检查、最终 docs/hygiene/review 仍未完成，S2 保持活动门。
+- Guard tests `11 passed`、无 Key fail-closed 实跑和独立预付费复审 `SAFE / Spec PASS / Quality APPROVED` 后形成 checkpoint `1e57bba`。由于上面的有效 Provider response，计划禁止模型自行推断第二次付费权限；该预付费断点当时等待用户明确授权一次新的预算受控验收，尚未取得 live success，S2 因而保持活动门。后续结果记录在下一节。
+
+## 2026-08-14：S2 Task 12 真实 DeepSeek 验收与阶段关闭
+
+- 用户明确授权后，第一次固定验收 Run 在单请求 2,400 output cap 下消耗 4,135 tokens，输出被 reasoning 占满而没有形成有效结构化 Plan。系统正确记录 `MODEL_OUTPUT_UNUSABLE` 并进入需审批 fallback；没有 Revision、Job 或 Artifact，因此不计 live acceptance 成功。
+- 通过 TDD 把 live v2 收紧为固定数据库幂等身份、`max_model_requests=1`、`max_total_tokens=12000`、`max_attempts=1` 和 4,096 output tokens。Host guard 与 live container 在任何 HTTP 前独立验证 opt-in、模型、单次尝试、输出上限和 Key；第二次 transport/schema repair 必须先过持久账本，不能静默重复付费。
+- 固定 v2 Run `3de2a947-6118-45d8-ae7a-f829ef7bc0a0` 用唯一一次 `deepseek-v4-flash` 请求得到严格 Plan，持久 usage 为 4,911 known tokens，`cost_status=unknown`，无 fallback。审批由 `local-user` 记录并绑定权威 Plan/interrupt。
+- 真实 Plan 暴露 section function 可长于 ArrangementIR 80 字符边界；确定性编译器现只在 Plan→IR 投影时截断该描述，不修改持久 Plan。随后 approval outbox 首次投递已把 checkpoint 推到 `approved` 才失败，重投原先会误判为 no-op；Dispatcher 现对 `approved`/`revision_materialized` checkpoint 以 `ainvoke(None)` 继续同一 thread。两项均先有 RED，再有单元 GREEN。
+- Key 撤下后，只重投同一权威 approval outbox；同一 v2 Run 未新增模型调用并恢复到 `succeeded`。最终权威事实为 1 Plan、1 Revision、7 succeeded Jobs、6 Audio Artifacts、1 Export Bundle，全部 Job 属于单一 `complete_song_export.v1` Media Run；六个实体文件 checksum 与数据库内容和 Revision/Arrangement/source Job lineage 一致。
+- 最终回归为 Python `440 passed / 56 integration-only skipped`，修复聚焦 `152 passed / 7 skipped`，真实 PostgreSQL `8 passed`，Audio `13 passed`，Web `15 passed`；Ruff、Mypy 82 source、Audio/Web build 和 OpenAPI 确定性重生成通过。S2 关闭，活动门切换到 S3 网页 Brief/Plan 与只读 Studio。

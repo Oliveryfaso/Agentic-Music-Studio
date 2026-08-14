@@ -245,23 +245,21 @@ does not expose DSNs or secrets.
 - Web Import Review implements local upload, rights confirmation, Import Run URL recovery,
   low-confidence confirmation/override/skip/cancel, original/aligned Range playback, Canvas
   waveform/analysis review, Artifact rehydration, and narrow-screen review.
-- S2 Tasks 1–11 now mount Generate in the single `motif-forge-parent.v2` Graph, dispatch durable
+- S2 Tasks 1–12 mount Generate in the single `motif-forge-parent.v2` Graph, dispatch durable
   start/resume/cancel actions, expose replayable REST/SSE Run APIs, atomically materialize an
   approved Synth Ambient Plan, and reuse the seven-step complete export chain. Representative
   restart/cancel/idempotency integration and the 16-case Generate Eval are checkpointed.
-- Complete-song Pattern compilation and full internal export are implemented for the fixed S1
-  Synth Ambient baseline. Agent-driven generation, four Style Packs, Brief/Plan UI, DAW editing,
-  A/B candidates, AI selection editing, and complete Eval/observability remain incomplete.
-- The remaining S2 gate is Task 12: after explicit authorization, run the fixed-identity,
-  three-request/12,000-token-capped live DeepSeek acceptance once, inspect its persisted evidence,
-  then finish docs, storage hygiene and the stage review. The guard and no-paid Compose smoke are
-  already approved; no live acceptance is claimed yet.
+- Complete-song Pattern compilation and full export are implemented for the fixed S1 baseline and
+  the API-level DeepSeek Generate path. The accepted live run used one provider request and 4,911
+  tokens, produced no fallback, and completed one immutable Revision, seven Jobs, six audio
+  Artifacts and one Bundle under one `complete_song_export.v1` Media Run. Four Style Packs,
+  Brief/Plan UI, DAW editing, A/B candidates, AI selection editing, and the final 96-case Eval remain.
 - S2 Tasks 6–12 follow Portfolio Engineering Mode: the single Parent Graph, structured DeepSeek plus
   deterministic fallback, real HITL, immutable Revision, restart-safe export and one paid acceptance
   remain mandatory. Exhaustive fault/concurrency matrices, all historical populated downgrades,
   load/P95 and multi-tenant hardening are tracked for the later release-hardening gate instead of
   blocking every intermediate Task.
 - LangGraph owns workflow state; project truth remains in immutable revisions.
-- DeepSeek V4 Flash live calls are opt-in; the default test suite uses HTTP fakes and incurs no cost.
+- DeepSeek V4 Flash live calls remain opt-in; the default test suite uses HTTP fakes and incurs no cost.
 - Real PostgreSQL tests are explicitly skipped unless `MOTIF_FORGE_TEST_POSTGRES_DSN` is supplied;
   SQLite is not used as a substitute.

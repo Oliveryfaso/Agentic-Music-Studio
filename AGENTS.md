@@ -17,7 +17,7 @@ Record the SHA-256 of `docs/PROJECT_GUIDE.md` at task start and recheck it befor
 
 ## Active gate
 
-`G0` and `S1` are complete. `S2` is the only active gate. S2 Tasks 1–11 are implemented and independently approved: Parent Graph v2 owns Generate through complete export, the durable Dispatcher and REST/SSE recovery surface are connected, and the representative Eval plus deterministic no-paid Compose smoke pass. Task 12's paid-acceptance guard is checkpointed and prepaid review approved; the one explicitly authorized live DeepSeek run, evidence inspection, final docs/hygiene and stage review remain. Do not start S3 or later product work, and do not claim DeepSeek live acceptance or S2 completion, until those remaining gates pass.
+`G0`, `S1` and `S2` are complete. The single Parent Graph v2 owns Generate through complete export, the durable Dispatcher and REST/SSE recovery surface are connected, representative Eval and deterministic no-paid Compose smoke pass, and one budgeted DeepSeek V4 Flash run completed the approved Plan → Revision → seven-Job export path. `S3` is the only active gate: add the browser Brief/Plan approval and read-only Studio path without creating another production Graph or weakening the S2 contracts.
 
 ## Scope and traceability
 
