@@ -17,7 +17,8 @@ def test_fallback_plan_is_complete_low_confidence_and_deterministic() -> None:
     assert first.confidence == 0.35
     assert first.sections[0].start_bar == 0
     assert first.sections[-1].end_bar == first.duration_bars
-    assert first.knowledge_references == ()
+    assert first.knowledge_references[0].reference_id == "style:synth-ambient:v1"
+    assert first.knowledge_references[0].confidence == 1.0
 
 
 def test_synth_ambient_fallback_is_compilation_safe() -> None:

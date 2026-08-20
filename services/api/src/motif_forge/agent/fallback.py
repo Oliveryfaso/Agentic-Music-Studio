@@ -8,7 +8,7 @@ from motif_forge.agent.schemas import CompositionBrief, CompositionPlan, KeyPlan
 
 _STYLE_DEFAULTS: dict[str, tuple[int, tuple[str, ...], str, str, str]] = {
     "synth_ambient": (
-        72,
+        80,
         ("Warm Pad", "Glass Pluck", "Sub Bass", "Soft Pulse"),
         "Open fifths with restrained modal color",
         "Sparse pulses with gradual subdivision",
@@ -16,21 +16,21 @@ _STYLE_DEFAULTS: dict[str, tuple[int, tuple[str, ...], str, str, str]] = {
     ),
     "minimal_electronic": (
         112,
-        ("Drum Machine", "Mono Bass", "Poly Synth"),
+        ("Poly Synth", "Short Pluck", "Mono Bass", "Drum Machine"),
         "Short diatonic loop with one color tone",
         "Stable sixteenth-note grid with restrained syncopation",
         "Dry groove with one contrasting synth layer",
     ),
     "classical_chamber": (
-        84,
-        ("Violin", "Viola", "Cello"),
+        80,
+        ("Viola", "Violin", "Cello", "Pizzicato Cello"),
         "Functional diatonic harmony with clear cadences",
         "Phrase-led pulse with limited rhythmic density",
         "Three-part chamber texture with register separation",
     ),
     "jazz_harmony_improvisation": (
         108,
-        ("Piano", "Upright Bass", "Brush Kit"),
+        ("Piano", "Tenor Lead", "Upright Bass", "Brush Kit"),
         "Guide-tone voice leading with bounded diatonic tensions",
         "Light swing grid with phrase-level syncopation",
         "Compact rhythm section supporting a single melodic voice",
@@ -38,6 +38,18 @@ _STYLE_DEFAULTS: dict[str, tuple[int, tuple[str, ...], str, str, str]] = {
 }
 
 _SYNTH_AMBIENT_ROLES = ("pad", "melody", "bass", "rhythm")
+_STYLE_ROLES = {
+    "synth_ambient": _SYNTH_AMBIENT_ROLES,
+    "minimal_electronic": ("chords", "hook", "bass", "drums"),
+    "classical_chamber": ("inner harmony", "first voice", "low voice", "pulse"),
+    "jazz_harmony_improvisation": ("voicings", "improvised melody", "walking bass", "swing pulse"),
+}
+_PACK_IDS = {
+    "synth_ambient": "style:synth-ambient:v1",
+    "minimal_electronic": "style:minimal-electronic:v1",
+    "classical_chamber": "style:classical-chamber:v1",
+    "jazz_harmony_improvisation": "style:jazz-harmony-improvisation:v1",
+}
 
 
 def _key_from_brief(target_key: str | None) -> dict[str, str]:
@@ -74,32 +86,19 @@ def build_fallback_plan(brief: CompositionBrief) -> CompositionPlan:
         preferred[index] if index < len(preferred) else name
         for index, name in enumerate(default_instruments)
     )
-    if brief.style == "synth_ambient":
-        instrumentation = tuple(
-            {
-                "instrument_id": f"fallback_instrument_{index}",
-                "name": name,
-                "role": role,
-                "pitch_range": "supported built-in range",
-                "entry_section_id": "opening",
-                "exit_section_id": "resolution",
-            }
-            for index, (name, role) in enumerate(
-                zip(instrument_names, _SYNTH_AMBIENT_ROLES, strict=True), start=1
-            )
+    instrumentation = tuple(
+        {
+            "instrument_id": f"fallback_instrument_{index}",
+            "name": name,
+            "role": role,
+            "pitch_range": "supported built-in range",
+            "entry_section_id": "opening",
+            "exit_section_id": "resolution",
+        }
+        for index, (name, role) in enumerate(
+            zip(instrument_names, _STYLE_ROLES[brief.style], strict=True), start=1
         )
-    else:
-        instrumentation = tuple(
-            {
-                "instrument_id": f"fallback_instrument_{index}",
-                "name": name,
-                "role": "primary arrangement layer" if index == 1 else "supporting layer",
-                "pitch_range": "supported preset range",
-                "entry_section_id": "opening" if index == 1 else "development",
-                "exit_section_id": "resolution",
-            }
-            for index, name in enumerate(instrument_names[:12], start=1)
-        )
+    )
     payload = {
         "schema_version": "composition-plan.v1",
         "genre": brief.style,
@@ -143,7 +142,13 @@ def build_fallback_plan(brief: CompositionBrief) -> CompositionPlan:
         "hard_constraints": brief.hard_constraints,
         "soft_preferences": brief.soft_preferences,
         "negative_constraints": brief.negative_constraints,
-        "knowledge_references": (),
+        "knowledge_references": (
+            {
+                "reference_id": _PACK_IDS[brief.style],
+                "summary": "Reviewed built-in Style Pack constraints",
+                "confidence": 1.0,
+            },
+        ),
         "confidence": 0.35,
     }
     return CompositionPlan.model_validate(payload, strict=True)
