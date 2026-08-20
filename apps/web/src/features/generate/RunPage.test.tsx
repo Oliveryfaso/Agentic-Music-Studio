@@ -66,6 +66,10 @@ describe("Plan review and persistent Run progress", () => {
     expect(screen.getByText("能量 25%")).toBeInTheDocument();
     expect(screen.getByText("Warm Pad")).toBeInTheDocument();
     expect(screen.getByText("Use slow spectral motion and restrained density")).toBeInTheDocument();
+    expect(screen.getByText("style:synth-ambient:v1")).toBeInTheDocument();
+    expect(screen.getByText("Motif Forge Ambient Strategy Notes")).toBeInTheDocument();
+    expect(screen.getByText("Project-authored · 已审核 · 允许作品集使用")).toBeInTheDocument();
+    expect(screen.getByText(/音符合法性由确定性 Theory Engine/)).toBeInTheDocument();
     expect(screen.queryByText("deepseek-v4-flash")).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("审批人"), { target: { value: "portfolio-owner" } });

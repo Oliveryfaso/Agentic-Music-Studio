@@ -32,7 +32,7 @@ describe("New Composition Brief", () => {
           body.base_revision_id !== REVISION_ID ||
           body.max_model_requests !== 1 ||
           brief.schema_version !== "composition-brief.v1" ||
-          brief.style !== "synth_ambient" ||
+          brief.style !== "classical_chamber" ||
           brief.purpose !== "Instrumental background for a science-fiction puzzle" ||
           !Array.isArray(brief.moods) ||
           brief.moods.join(",") !== "weightless,curious"
@@ -46,6 +46,13 @@ describe("New Composition Brief", () => {
 
     renderPage();
     expect(await screen.findByRole("heading", { name: "定义这首作品" })).toBeInTheDocument();
+    const strategy = screen.getByLabelText("音乐策略");
+    expect(Array.from(strategy.querySelectorAll("option")).map((option) => option.textContent)).toEqual([
+      "Synth Ambient",
+      "Minimal Electronic",
+      "Classical Chamber",
+      "Jazz Harmony & Improvisation",
+    ]);
 
     fillBrief("需要人声演唱的科幻背景");
     fireEvent.click(screen.getByRole("button", { name: "提交 Brief 并规划" }));
@@ -54,6 +61,9 @@ describe("New Composition Brief", () => {
 
     fireEvent.change(screen.getByLabelText("用途"), {
       target: { value: "Instrumental background for a science-fiction puzzle" },
+    });
+    fireEvent.change(screen.getByLabelText("音乐策略"), {
+      target: { value: "classical_chamber" },
     });
     fireEvent.click(screen.getByRole("button", { name: "提交 Brief 并规划" }));
 

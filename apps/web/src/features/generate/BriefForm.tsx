@@ -3,9 +3,11 @@ import { FormEvent, useState } from "react";
 import type { CreateAIRunInput } from "../../shared/openapi";
 
 type Brief = CreateAIRunInput["brief"];
+type StyleId = "synth_ambient" | "minimal_electronic" | "classical_chamber" | "jazz_harmony_improvisation";
 
 export function BriefForm({ disabled, onSubmit }: { disabled: boolean; onSubmit: (brief: Brief) => void }) {
   const [title, setTitle] = useState("");
+  const [style, setStyle] = useState<StyleId>("synth_ambient");
   const [purpose, setPurpose] = useState("");
   const [duration, setDuration] = useState("90");
   const [meter, setMeter] = useState<"4/4" | "3/4">("4/4");
@@ -38,7 +40,7 @@ export function BriefForm({ disabled, onSubmit }: { disabled: boolean; onSubmit:
         schema_version: "composition-brief.v1",
         title: title.trim(),
         purpose: purpose.trim(),
-        style: "synth_ambient",
+        style,
         duration_seconds: durationSeconds,
         meter,
         target_bpm: targetBpm,
@@ -56,6 +58,12 @@ export function BriefForm({ disabled, onSubmit }: { disabled: boolean; onSubmit:
     <form className="brief-form" onSubmit={submit}>
       <div className="brief-grid">
         <Field label="作品标题"><input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} /></Field>
+        <Field label="音乐策略"><select value={style} onChange={(event) => setStyle(event.target.value as StyleId)}>
+          <option value="synth_ambient">Synth Ambient</option>
+          <option value="minimal_electronic">Minimal Electronic</option>
+          <option value="classical_chamber">Classical Chamber</option>
+          <option value="jazz_harmony_improvisation">Jazz Harmony &amp; Improvisation</option>
+        </select></Field>
         <Field label="用途"><textarea value={purpose} onChange={(event) => setPurpose(event.target.value)} rows={3} /></Field>
         <Field label="情绪"><input value={moods} onChange={(event) => setMoods(event.target.value)} placeholder="weightless, curious" /></Field>
         <Field label="偏好乐器"><input value={instruments} onChange={(event) => setInstruments(event.target.value)} placeholder="warm pad, soft pulse" /></Field>

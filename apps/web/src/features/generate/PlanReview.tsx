@@ -2,6 +2,13 @@ import { FormEvent, useState } from "react";
 
 import type { RunPlan } from "../../shared/openapi";
 
+const STYLE_EVIDENCE = {
+  synth_ambient: { pack: "style:synth-ambient:v1", strategy: "音色、密度与空间层次", source: "Motif Forge Ambient Strategy Notes" },
+  minimal_electronic: { pack: "style:minimal-electronic:v1", strategy: "Groove、低频锁定与段落能量", source: "Motif Forge Minimal Electronic Strategy Notes" },
+  classical_chamber: { pack: "style:classical-chamber:v1", strategy: "曲式、声部进行与可演奏音域", source: "Motif Forge Chamber Strategy Notes" },
+  jazz_harmony_improvisation: { pack: "style:jazz-harmony-improvisation:v1", strategy: "Guide tones、voicing 与 swing phrase", source: "Motif Forge Jazz Strategy Notes" },
+} as const;
+
 export interface PlanDecision {
   actorId: string;
   assertion: string;
@@ -15,6 +22,7 @@ export function PlanReview({ plan, busy, onDecision }: { plan: RunPlan; busy: bo
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const composition = plan.plan;
+  const styleEvidence = STYLE_EVIDENCE[composition.genre];
 
   function decide(event: FormEvent<HTMLFormElement>, decision: "approve" | "reject") {
     event.preventDefault();
@@ -41,6 +49,13 @@ export function PlanReview({ plan, busy, onDecision }: { plan: RunPlan; busy: bo
         <PlanFact label="节奏" value={composition.rhythmic_language} />
         <PlanFact label="织体" value={composition.texture} />
       </div>
+      <section className="strategy-evidence" aria-label="风格策略依据">
+        <div><span>STYLE PACK</span><strong>{styleEvidence.pack}</strong></div>
+        <div><span>策略路径</span><strong>{styleEvidence.strategy}</strong></div>
+        <div><span>策展来源</span><strong>{styleEvidence.source}</strong></div>
+        <div><span>许可</span><strong>Project-authored · 已审核 · 允许作品集使用</strong></div>
+        <p>来源文本只解释策略；音符合法性由确定性 Theory Engine 判断。</p>
+      </section>
       <section className="plan-sections" aria-label="乐曲结构">
         {composition.sections.map((section) => (
           <article key={section.section_id}>
