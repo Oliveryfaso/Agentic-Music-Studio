@@ -30,7 +30,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       {route.name === "import" ? (
-        <ImportReviewPage />
+        route.projectId ? <ImportReviewPage projectId={route.projectId} /> : <ImportReviewPage />
       ) : (
         <AppShell>
           {route.name === "home" && <ProjectHomePage />}

@@ -61,8 +61,18 @@ export interface UploadProgress {
 }
 
 export interface ImportStartResult {
-  project: CreateProjectData;
+  target: ResolvedProjectTarget;
   run: ImportRunData;
+}
+
+export type ProjectTarget =
+  | { kind: "new"; name: string }
+  | { kind: "existing"; project_id: string; branch_id: string; base_revision_id: string };
+
+export interface ResolvedProjectTarget {
+  project_id: string;
+  branch_id: string;
+  base_revision_id: string;
 }
 
 export interface SuccessEnvelope<T> {
@@ -105,7 +115,7 @@ export function isUuid(value: string): boolean {
 
 export async function uploadAndStartImport(
   file: File,
-  projectName: string,
+  target: ProjectTarget,
   rightsDeclaration: RightsDeclaration,
   operationId: string,
   onProgress: (progress: UploadProgress) => void,
@@ -119,22 +129,29 @@ export async function uploadAndStartImport(
   const expectedSha256 = await sha256Hex(await file.arrayBuffer());
   signal?.throwIfAborted();
 
-  onProgress({ phase: "project", uploadedBytes: 0, totalBytes: file.size, detail: "创建项目" });
-  const project = parseProjectEnvelope(
-    await requestJson("/api/v1/projects", {
-      method: "POST",
-      headers: jsonHeaders(`web-project-${operationId}`),
-      body: JSON.stringify({ name: projectName }),
-      signal: signal ?? null,
-    }),
-  ).data;
+  let resolved: ResolvedProjectTarget;
+  if (target.kind === "new") {
+    onProgress({ phase: "project", uploadedBytes: 0, totalBytes: file.size, detail: "创建项目" });
+    const project = parseProjectEnvelope(
+      await requestJson("/api/v1/projects", {
+        method: "POST",
+        headers: jsonHeaders(`web-project-${operationId}`),
+        body: JSON.stringify({ name: target.name }),
+        signal: signal ?? null,
+      }),
+    ).data;
+    resolved = { project_id: project.project_id, branch_id: project.active_branch_id, base_revision_id: project.root_revision_id };
+  } else {
+    onProgress({ phase: "project", uploadedBytes: 0, totalBytes: file.size, detail: "复用现有项目" });
+    resolved = { project_id: target.project_id, branch_id: target.branch_id, base_revision_id: target.base_revision_id };
+  }
 
   const uploadSession = parseUploadSessionEnvelope(
     await requestJson("/api/v1/upload-sessions", {
       method: "POST",
       headers: jsonHeaders(`web-upload-${operationId}`),
       body: JSON.stringify({
-        project_id: project.project_id,
+        project_id: resolved.project_id,
         filename: file.name,
         byte_size: file.size,
         declared_format: format,
@@ -166,18 +183,18 @@ export async function uploadAndStartImport(
   ).data;
   onProgress({ phase: "import", uploadedBytes: file.size, totalBytes: file.size, detail: "启动分析 Graph" });
   const run = parseImportRunEnvelope(
-    await requestJson(`/api/v1/projects/${project.project_id}/imports`, {
+    await requestJson(`/api/v1/projects/${resolved.project_id}/imports`, {
       method: "POST",
       headers: jsonHeaders(`web-import-${operationId}`),
       body: JSON.stringify({
-        branch_id: project.active_branch_id,
-        base_revision_id: project.root_revision_id,
+        branch_id: resolved.branch_id,
+        base_revision_id: resolved.base_revision_id,
         source_artifact_id: completed.source_artifact_id,
       }),
       signal: signal ?? null,
     }),
   ).data;
-  return { project, run };
+  return { target: resolved, run };
 }
 
 export async function readImportRun(threadId: string): Promise<ImportRunData> {

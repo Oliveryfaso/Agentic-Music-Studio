@@ -11,6 +11,7 @@ import {
 } from "../../shared/api";
 import { AnalysisPanel } from "./AnalysisPanel";
 import { ImportFlowPanel } from "./ImportFlowPanel";
+import { readProject } from "../projects/projectApi";
 import { parseAnalysisPayload, parseWaveformPayload } from "./featurePayloads";
 import { WaveformCanvas } from "./WaveformCanvas";
 
@@ -18,13 +19,18 @@ function initialArtifactId(): string {
   return new URLSearchParams(window.location.search).get("artifact")?.trim() ?? "";
 }
 
-export function ImportReviewPage() {
+export function ImportReviewPage({ projectId }: { projectId?: string }) {
   const [draftId, setDraftId] = useState(initialArtifactId);
   const [sourceArtifactId, setSourceArtifactId] = useState(() => {
     const value = initialArtifactId();
     return isUuid(value) ? value : "";
   });
   const [validationMessage, setValidationMessage] = useState("");
+  const targetProject = useQuery({
+    queryKey: ["project", projectId],
+    queryFn: () => readProject(projectId as string),
+    enabled: projectId !== undefined,
+  });
 
   const reviewArtifact = useCallback((artifactId: string) => {
     setDraftId(artifactId);
@@ -84,7 +90,16 @@ export function ImportReviewPage() {
           <div className="orbital-glyph" aria-hidden="true"><i /><i /><i /></div>
         </section>
 
-        <ImportFlowPanel onReviewArtifact={reviewArtifact} />
+        {projectId && targetProject.isPending && <InlineLoading label="正在读取目标 Project 与最新 Revision…" />}
+        {projectId && targetProject.isError && <ErrorState error={targetProject.error} retry={() => void targetProject.refetch()} />}
+        {!projectId && <ImportFlowPanel onReviewArtifact={reviewArtifact} />}
+        {projectId && targetProject.data && (
+          <ImportFlowPanel
+            onReviewArtifact={reviewArtifact}
+            projectTarget={targetProject.data}
+            onRefreshProject={() => readProject(projectId)}
+          />
+        )}
 
         <details className="developer-entry">
           <summary>开发者入口：按 Artifact UUID 查看</summary>
