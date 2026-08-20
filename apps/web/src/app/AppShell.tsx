@@ -16,7 +16,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className="shell-nav" aria-label="主导航">
           <button type="button" onClick={() => navigate({ name: "home" })}>作品</button>
           <span>Brief · Plan · 审批</span>
-          <span>只读 Studio</span>
+          <span>只读 Studio · MP3</span>
         </nav>
         <div className="runtime-badge"><i /> LOCAL WORKSPACE</div>
       </header>

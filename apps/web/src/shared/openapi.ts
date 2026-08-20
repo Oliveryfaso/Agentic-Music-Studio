@@ -2,6 +2,7 @@ import type { components } from "../generated/api-schema";
 
 type Schemas = components["schemas"];
 
+export type ArrangementIR = Schemas["ArrangementIR"];
 export type AIRun = Schemas["AIRunData"];
 export type AIRunEvent = Schemas["AIRunEvent"];
 export type AIRunStatus = Schemas["AIRunStatus"];

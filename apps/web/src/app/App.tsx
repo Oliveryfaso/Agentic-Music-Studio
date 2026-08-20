@@ -5,6 +5,7 @@ import { ImportReviewPage } from "../features/import-review/ImportReviewPage";
 import { BriefPage } from "../features/generate/BriefPage";
 import { RunPage } from "../features/generate/RunPage";
 import { ProjectHomePage } from "../features/projects/ProjectHomePage";
+import { StudioPage } from "../features/studio/StudioPage";
 import { AppShell } from "./AppShell";
 import { StatusBanner } from "./StatusBanner";
 import { navigate, parseRoute, routeTitle, subscribeToRoute } from "./routes";
@@ -35,7 +36,7 @@ export function App() {
           {route.name === "home" && <ProjectHomePage />}
           {route.name === "brief" && <BriefPage projectId={route.projectId} />}
           {route.name === "run" && <RunPage runId={route.runId} />}
-          {route.name === "studio" && <PendingPage title="Read-only Studio" />}
+          {route.name === "studio" && <StudioPage projectId={route.projectId} revisionId={route.revisionId} />}
           {route.name === "not_found" && (
             <section className="route-missing">
               <StatusBanner tone="warning" message="找不到这个工作台页面" detail="URL 不属于当前冻结的 S3 路由。" />
