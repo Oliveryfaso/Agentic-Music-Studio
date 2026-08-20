@@ -254,6 +254,11 @@ async def test_postgres_replan_is_immutable_idempotent_and_approval_gated(
         assert waiting_child.status.value == "waiting_approval"
         assert child_projection.plan is not None
         assert child_projection.plan.plan == plan
+        assert child_projection.progress is not None
+        assert child_projection.progress.phase == "waiting_approval"
+        assert child_projection.progress.completed_export_steps == ()
+        assert child_projection.progress.total_export_steps == 7
+        assert child_projection.progress.latest_event_sequence > 0
         async with sessions() as session:
             child_plan_count = await session.scalar(
                 select(func.count()).select_from(CompositionPlanRow).where(

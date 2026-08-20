@@ -54,9 +54,19 @@ class IdempotencyHit:
 
 
 @dataclass(frozen=True, slots=True)
+class AIRunProgress:
+    phase: AIRunStatus
+    completed_export_steps: tuple[str, ...]
+    total_export_steps: int
+    latest_event_sequence: int
+    error_code: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class AIRunProjection:
     run: AIRun
     plan: PersistedCompositionPlan | None = None
+    progress: AIRunProgress | None = None
     revision_id: UUID | None = None
     bundle_id: UUID | None = None
     fallback_reason: str | None = None

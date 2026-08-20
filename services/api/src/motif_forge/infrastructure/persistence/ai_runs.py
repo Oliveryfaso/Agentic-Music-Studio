@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from motif_forge.application.ai_runs import model_request_allowed
 from motif_forge.application.errors import ApplicationError, IdempotencyKeyReusedError
-from motif_forge.application.ports import AIRunProjection, IdempotencyHit
+from motif_forge.application.ports import AIRunProgress, AIRunProjection, IdempotencyHit
 from motif_forge.domain.ai_runs import (
     AIRun,
     AIRunApproval,
@@ -43,9 +43,21 @@ from motif_forge.infrastructure.persistence.tables import (
     CompositionMaterializationReceiptRow,
     CompositionPlanRow,
     ExportBundleArtifactRow,
+    MediaJobRow,
+    MediaRunRow,
     ModelRequestReservationRow,
     OutboxEventRow,
     RevisionRow,
+)
+
+_COMPLETE_EXPORT_STEPS = (
+    "master",
+    "stem:pad",
+    "stem:melody",
+    "stem:bass",
+    "stem:rhythm",
+    "mp3",
+    "bundle",
 )
 
 
@@ -209,21 +221,54 @@ class PostgresAIRunTransaction:
                 .order_by(CompositionPlanRow.created_at.desc())
             )
         ).scalars().first()
-        error_events = (
+        ai_run_events = (
             (
                 await self._session.execute(
-                    select(AIRunEventRow.payload)
+                    select(AIRunEventRow)
                     .where(AIRunEventRow.run_id == run_id)
                     .order_by(AIRunEventRow.sequence.desc())
                 )
             ).scalars().all()
         )
         error_code = next(
-            (str(payload["error_code"]) for payload in error_events
-             if isinstance(payload.get("error_code"), str)), None
+            (str(event.payload["error_code"]) for event in ai_run_events
+             if isinstance(event.payload.get("error_code"), str)), None
         )
+        media_run = (
+            await self._session.execute(
+                select(MediaRunRow)
+                .where(
+                    MediaRunRow.project_id == run.project_id,
+                    MediaRunRow.thread_id == run.thread_id,
+                    MediaRunRow.run_type == "complete_song_export.v1",
+                )
+                .order_by(MediaRunRow.created_at.desc(), MediaRunRow.id.desc())
+            )
+        ).scalars().first()
+        completed_count = 0
+        if media_run is not None:
+            jobs = (
+                (
+                    await self._session.execute(
+                        select(MediaJobRow)
+                        .where(MediaJobRow.run_id == media_run.id)
+                        .order_by(MediaJobRow.created_at, MediaJobRow.id)
+                    )
+                ).scalars().all()
+            )
+            for job in jobs[: len(_COMPLETE_EXPORT_STEPS)]:
+                if job.status != "succeeded":
+                    break
+                completed_count += 1
         return AIRunProjection(
             run=run, plan=_plan_from_row(plan) if plan else None,
+            progress=AIRunProgress(
+                phase=run.status,
+                completed_export_steps=_COMPLETE_EXPORT_STEPS[:completed_count],
+                total_export_steps=len(_COMPLETE_EXPORT_STEPS),
+                latest_event_sequence=(ai_run_events[0].sequence if ai_run_events else 0),
+                error_code=error_code,
+            ),
             revision_id=receipt.revision_id if receipt else None,
             bundle_id=bundle.id if bundle else None,
             fallback_reason=plan.fallback_reason if plan else None, error_code=error_code,

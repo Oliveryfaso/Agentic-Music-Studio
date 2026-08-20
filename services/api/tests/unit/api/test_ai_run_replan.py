@@ -8,7 +8,7 @@ from agent.sample_data import valid_plan_payload
 from fastapi.testclient import TestClient
 from motif_forge.agent.schemas import CompositionPlan
 from motif_forge.api.app import create_app
-from motif_forge.application.ports import AIRunProjection
+from motif_forge.application.ports import AIRunProgress, AIRunProjection
 from motif_forge.config import Settings
 from motif_forge.domain.ai_runs import (
     AIRun,
@@ -62,7 +62,17 @@ class FakeReplanTransaction:
 
     async def read_ai_run_projection(self, run_id: UUID) -> AIRunProjection:
         assert run_id == self.parent.run_id
-        return AIRunProjection(run=self.parent, plan=self.plan)
+        return AIRunProjection(
+            run=self.parent,
+            plan=self.plan,
+            progress=AIRunProgress(
+                phase="waiting_approval",
+                completed_export_steps=(),
+                total_export_steps=7,
+                latest_event_sequence=3,
+                error_code=None,
+            ),
+        )
 
     async def replan_ai_run(self, **kwargs):  # type: ignore[no-untyped-def]
         if self.child is None:
@@ -113,6 +123,13 @@ def test_get_run_exposes_the_strict_persisted_plan() -> None:
     assert data["plan"]["content_hash"] == uow.transaction.plan.content_hash
     assert data["plan"]["hash_version"] == "composition-plan-hash.lossless-v2"
     assert data["plan"]["plan"] == valid_plan_payload()
+    assert data["progress"] == {
+        "phase": "waiting_approval",
+        "completed_export_steps": [],
+        "total_export_steps": 7,
+        "latest_event_sequence": 3,
+        "error_code": None,
+    }
     assert "prompt" not in str(data["plan"])
     assert "reasoning" not in str(data["plan"])
 

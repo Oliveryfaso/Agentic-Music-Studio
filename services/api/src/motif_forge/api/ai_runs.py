@@ -24,7 +24,7 @@ from motif_forge.application.ai_runs import (
     RequestAIRunAction,
     ResumeAIRunApproval,
 )
-from motif_forge.application.ports import AIRunProjection, AIRunUnitOfWorkFactory
+from motif_forge.application.ports import AIRunProgress, AIRunProjection, AIRunUnitOfWorkFactory
 from motif_forge.domain.ai_runs import AIRun, AIRunEvent, AIRunStatus, PlanHashVersion
 
 IdempotencyKey = Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=160)]
@@ -83,6 +83,14 @@ class RunPlanData(ApiModel):
     fallback_reason: str | None
 
 
+class RunProgressData(ApiModel):
+    phase: AIRunStatus
+    completed_export_steps: tuple[str, ...]
+    total_export_steps: int = Field(ge=0)
+    latest_event_sequence: int = Field(ge=0)
+    error_code: str | None
+
+
 class AIRunData(ApiModel):
     run_id: UUID
     parent_run_id: UUID | None
@@ -109,9 +117,21 @@ class AIRunData(ApiModel):
     fallback_reason: str | None = None
     error_code: str | None = None
     plan: RunPlanData | None = None
+    progress: RunProgressData
 
 
 def run_data(run: AIRun, projection: AIRunProjection | None = None) -> AIRunData:
+    progress = (
+        projection.progress
+        if projection and projection.progress
+        else AIRunProgress(
+            phase=run.status,
+            completed_export_steps=(),
+            total_export_steps=7,
+            latest_event_sequence=0,
+            error_code=projection.error_code if projection else None,
+        )
+    )
     return AIRunData(
         run_id=run.run_id, parent_run_id=run.parent_run_id, project_id=run.project_id,
         branch_id=run.branch_id, base_revision_id=run.base_revision_id,
@@ -140,6 +160,13 @@ def run_data(run: AIRun, projection: AIRunProjection | None = None) -> AIRunData
             )
             if projection and projection.plan
             else None
+        ),
+        progress=RunProgressData(
+            phase=progress.phase,
+            completed_export_steps=progress.completed_export_steps,
+            total_export_steps=progress.total_export_steps,
+            latest_event_sequence=progress.latest_event_sequence,
+            error_code=progress.error_code,
         ),
     )
 
