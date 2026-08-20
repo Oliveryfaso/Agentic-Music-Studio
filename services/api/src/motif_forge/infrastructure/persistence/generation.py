@@ -17,6 +17,7 @@ from motif_forge.domain.ai_runs import (
 )
 from motif_forge.infrastructure.persistence.ai_runs import (
     _approval_from_row,
+    _event_from_row,
     _event_values,
     _plan_from_row,
     _run_from_row,
@@ -77,6 +78,26 @@ class PostgresCompositionMaterializationTransaction(PostgresTransaction):
         if row is None:
             raise ApplicationError("PLAN_NOT_FOUND", "the CompositionPlan does not exist")
         return _plan_from_row(row)
+
+    async def record_ai_run_event(self, event: AIRunEvent) -> AIRunEvent:
+        if event.dedupe_key is not None:
+            previous = (
+                await self._session.execute(
+                    select(AIRunEventRow).where(
+                        AIRunEventRow.run_id == event.run_id,
+                        AIRunEventRow.event_type == event.event_type,
+                        AIRunEventRow.dedupe_key == event.dedupe_key,
+                    )
+                )
+            ).scalar_one_or_none()
+            if previous is not None:
+                return _event_from_row(previous)
+        result = await self._session.execute(
+            insert(AIRunEventRow)
+            .values(**_event_values(event, sequence=None))
+            .returning(AIRunEventRow.sequence)
+        )
+        return event.model_copy(update={"sequence": result.scalar_one()})
 
     async def read_materialization_receipt(
         self, *, run_id: UUID, plan_id: UUID, plan_hash: str, seed: int

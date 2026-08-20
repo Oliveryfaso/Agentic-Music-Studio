@@ -84,10 +84,16 @@ class FakeTransaction:
     async def get_candidate_snapshot(self, candidate_snapshot_id: UUID) -> CandidateSnapshot | None:
         return self.candidate_snapshots.get(candidate_snapshot_id)
 
+    async def insert_candidate_snapshot(self, snapshot: CandidateSnapshot) -> None:
+        existing = self.candidate_snapshots.get(snapshot.candidate_snapshot_id)
+        if existing is not None and existing != snapshot:
+            raise ValueError("candidate Snapshot identity contains divergent facts")
+        self.candidate_snapshots[snapshot.candidate_snapshot_id] = snapshot
+
     async def insert_candidate_preview(
         self, *, snapshot: CandidateSnapshot, preview: PreviewCandidate
     ) -> None:
-        self.candidate_snapshots[snapshot.candidate_snapshot_id] = snapshot
+        await self.insert_candidate_snapshot(snapshot)
         self.previews[preview.preview_id] = preview
 
     async def lock_preview(self, preview_id: UUID) -> PreviewCandidate | None:

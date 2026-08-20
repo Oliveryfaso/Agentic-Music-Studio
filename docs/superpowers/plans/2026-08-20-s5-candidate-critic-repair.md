@@ -190,7 +190,7 @@ git commit -m "feat: persist candidate preview lineage"
 - `MaterializeSelectedCompositionCandidate(request: MaterializeSelectedCompositionCandidateRequest) -> MaterializeSelectedCompositionCandidateResult`.
 - Consumes Task 1 labels/seeds and Task 2 standalone snapshot persistence.
 
-- [ ] **Step 1: Write RED service tests**
+- [x] **Step 1: Write RED service tests**
 
 ```python
 async def test_two_labels_create_distinct_stable_snapshots_without_revision() -> None:
@@ -211,23 +211,23 @@ async def test_only_selected_preview_materializes_one_revision() -> None:
 
 Also assert reject/cancel produces zero Revision and selection of a Preview from another Run or Candidate pair fails closed.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `.venv/bin/pytest services/api/tests/unit/application/test_generation_candidates.py -q`  
 Expected: missing application module and service contracts.
 
-- [ ] **Step 3: Split compile/persist from decision/materialization**
+- [x] **Step 3: Split compile/persist from decision/materialization**
 
 `CreateCompositionCandidate` reloads authoritative Run/Plan/Branch, validates Plan and Style Pack identity, compiles via `MusicStrategyRouter`, derives Candidate ID from Run/Plan/label/seed, persists one CandidateSnapshot, and records a deduplicated `candidate.created` Run event. It never calls `approve_preview_in_transaction`.
 
 `CreateCandidateSelectionPreview` creates one pending Preview from an already persisted final snapshot and attaches the exact preview Artifact/evidence IDs. `MaterializeSelectedCompositionCandidate` calls the established `approve_preview_in_transaction`, writes the existing materialization receipt using the selected seed/snapshot/preview, and returns the single Revision.
 
-- [ ] **Step 4: Run GREEN and real PostgreSQL replay**
+- [x] **Step 4: Run GREEN and real PostgreSQL replay**
 
 Run the unit command from Step 2.  
 Run the Task 2 PostgreSQL command with tests for exactly two snapshots, two pending previews, zero pre-selection Revisions, then one selected Revision and unchanged replay counts.
 
-- [ ] **Step 5: Commit Task 3**
+- [x] **Step 5: Commit Task 3**
 
 ```bash
 git add services/api/src/motif_forge/application/generation.py services/api/src/motif_forge/application/generation_candidates.py services/api/src/motif_forge/application/previews.py services/api/tests/unit/application/test_generation_candidates.py services/api/tests/integration/test_postgres_s5_candidates.py
