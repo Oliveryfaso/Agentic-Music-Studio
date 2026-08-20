@@ -18,8 +18,10 @@ from motif_forge.domain.composition import (
     compile_synth_ambient_plan,
 )
 from motif_forge.domain.ir import (
+    PPQ,
     ArrangementIR,
     Articulation,
+    AudioClip,
     DomainModel,
     NoteClip,
     ProvenanceRef,
@@ -88,21 +90,95 @@ def _style_track(track: Track, pack: StylePack) -> Track:
     guide = next(item for item in pack.instrumentation if item.track_role is track.role)
     preset = next(item for item in pack.preset_palette if item.role == guide.role)
     articulation = _ARTICULATION[pack.style][track.role]
-    clips = tuple(
-        clip.model_copy(
-            update={
-                "notes": tuple(
-                    note.model_copy(update={"articulation": articulation}) for note in clip.notes
+    clips: list[NoteClip | AudioClip] = []
+    for clip in track.clips:
+        if not isinstance(clip, NoteClip):
+            clips.append(clip)
+            continue
+        notes = []
+        for index, note in enumerate(clip.notes):
+            update: dict[str, object] = {"articulation": articulation}
+            if pack.style == "minimal_electronic":
+                if track.role is TrackRole.MELODY and index % 2:
+                    update["start_tick"] = min(
+                        note.start_tick + PPQ // 2,
+                        clip.duration_tick - note.duration_tick,
+                    )
+                if track.role in {TrackRole.HARMONY, TrackRole.BASS}:
+                    update["duration_tick"] = min(note.duration_tick, PPQ)
+                if track.role is TrackRole.RHYTHM:
+                    update["pitch"] = 36 if index % 2 == 0 else 42
+            elif pack.style == "classical_chamber":
+                contours = {
+                    TrackRole.HARMONY: (0, 2, 1, 3, 2, 1, 0, 2),
+                    TrackRole.MELODY: (0, 2, 4, 5, 4, 2, 0, 1),
+                    TrackRole.BASS: (0, 2, 3, 2, 0, 1, 3, 1),
+                    TrackRole.RHYTHM: (0, 2, 4, 2, 0, 2, 3, 1),
+                }
+                base = {
+                    TrackRole.HARMONY: 60,
+                    TrackRole.MELODY: 67,
+                    TrackRole.BASS: 43,
+                    TrackRole.RHYTHM: 48,
+                }[track.role]
+                update["pitch"] = min(
+                    guide.high_midi,
+                    max(guide.low_midi, base + contours[track.role][index % 8]),
                 )
-            }
-        )
-        if isinstance(clip, NoteClip)
-        else clip
-        for clip in track.clips
-    )
+                update["duration_tick"] = min(note.duration_tick, PPQ - 60)
+            elif pack.style == "jazz_harmony_improvisation":
+                if (note.start_tick // PPQ) % 2:
+                    update["start_tick"] = min(
+                        note.start_tick + PPQ // 6,
+                        clip.duration_tick - note.duration_tick,
+                    )
+                if track.role is TrackRole.MELODY and index % 4 == 0:
+                    guide_pitch_class = 4 if (index // 4) % 2 == 0 else 11
+                    candidates = range(guide.low_midi, guide.high_midi + 1)
+                    update["pitch"] = min(
+                        (pitch for pitch in candidates if pitch % 12 == guide_pitch_class),
+                        key=lambda pitch: abs(pitch - note.pitch),
+                    )
+            notes.append(note.model_copy(update=update))
+        clips.append(clip.model_copy(update={"notes": tuple(notes)}))
     return track.model_copy(
-        update={"name": guide.instrument, "instrument_ref": preset.preset_id, "clips": clips}
+        update={
+            "name": guide.instrument,
+            "instrument_ref": preset.preset_id,
+            "clips": tuple(clips),
+        }
     )
+
+
+def _lock_minimal_bass_to_drums(tracks: tuple[Track, ...]) -> tuple[Track, ...]:
+    rhythm = next(track for track in tracks if track.role is TrackRole.RHYTHM)
+    drum_onsets = {
+        clip.start_tick + note.start_tick
+        for clip in rhythm.clips
+        if isinstance(clip, NoteClip)
+        for note in clip.notes
+    }
+    aligned: list[Track] = []
+    for track in tracks:
+        if track.role is not TrackRole.BASS:
+            aligned.append(track)
+            continue
+        clips = tuple(
+            clip.model_copy(
+                update={
+                    "notes": tuple(
+                        note
+                        for note in clip.notes
+                        if clip.start_tick + note.start_tick in drum_onsets
+                    )
+                }
+            )
+            if isinstance(clip, NoteClip)
+            else clip
+            for clip in track.clips
+        )
+        aligned.append(track.model_copy(update={"clips": clips}))
+    return tuple(aligned)
 
 
 def _restyle_build(
@@ -134,6 +210,21 @@ def _restyle_build(
             )
         else:
             commands.append(command)
+    if pack.style == "minimal_electronic":
+        styled_tracks = tuple(
+            command.payload.track
+            for command in commands
+            if isinstance(command, AddTrackCommand)
+        )
+        aligned = iter(_lock_minimal_bass_to_drums(styled_tracks))
+        commands = [
+            command.model_copy(
+                update={"payload": command.payload.model_copy(update={"track": next(aligned)})}
+            )
+            if isinstance(command, AddTrackCommand)
+            else command
+            for command in commands
+        ]
     typed_commands = tuple(commands)
     arrangement: ArrangementIR = apply_commands(
         create_empty_arrangement(project_id), typed_commands

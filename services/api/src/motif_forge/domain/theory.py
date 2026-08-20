@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from itertools import pairwise
 from typing import Literal
 from uuid import UUID
 
@@ -99,7 +100,52 @@ class TheoryEngine:
 
         bars = tuple(sorted({fact[2] for fact in facts})[:32]) or (0,)
         track_ids = tuple(dict.fromkeys(fact[0] for fact in facts))[:12]
-        if pack.style == "classical_chamber":
+        if pack.style == "minimal_electronic":
+            bass_onsets = {
+                tick
+                for _, role, tick, _ in _absolute_note_facts(arrangement)
+                if role is TrackRole.BASS
+            }
+            drum_onsets = {
+                tick
+                for _, role, tick, _ in _absolute_note_facts(arrangement)
+                if role is TrackRole.RHYTHM
+            }
+            locked = len(bass_onsets & drum_onsets)
+            issues.append(
+                TheoryIssue(
+                    rule_id="MIN-101",
+                    severity=TheorySeverity.ADVICE,
+                    evidence=TheoryEvidence(
+                        bars=bars,
+                        track_ids=track_ids,
+                        measured_fact=(
+                            f"{locked}/{len(bass_onsets)} bass onsets align with drum attacks"
+                        ),
+                    ),
+                    explanation_code="BASS_DRUM_ONSET_LOCK",
+                    suggested_operation="preserve aligned low-end attacks when editing the groove",
+                )
+            )
+        elif pack.style == "classical_chamber":
+            by_role_tick: dict[TrackRole, dict[int, int]] = {}
+            for _, role, tick, pitch in _absolute_note_facts(arrangement):
+                by_role_tick.setdefault(role, {}).setdefault(tick, pitch)
+            melody = by_role_tick.get(TrackRole.MELODY, {})
+            harmony = by_role_tick.get(TrackRole.HARMONY, {})
+            common = sorted(set(melody) & set(harmony))
+            exposed = 0
+            for left, right in pairwise(common):
+                before = abs(melody[left] - harmony[left]) % 12
+                after = abs(melody[right] - harmony[right]) % 12
+                melody_motion = melody[right] - melody[left]
+                harmony_motion = harmony[right] - harmony[left]
+                if (
+                    before in {0, 7}
+                    and after in {0, 7}
+                    and melody_motion * harmony_motion > 0
+                ):
+                    exposed += 1
             issues.append(
                 TheoryIssue(
                     rule_id="CLA-101",
@@ -107,7 +153,10 @@ class TheoryEngine:
                     evidence=TheoryEvidence(
                         bars=bars,
                         track_ids=track_ids,
-                        measured_fact="voice motion sampled across pitched tracks",
+                        measured_fact=(
+                            f"{exposed} exposed parallel perfect motions across "
+                            f"{max(0, len(common) - 1)} aligned transitions"
+                        ),
                     ),
                     explanation_code="PARALLEL_INTERVAL_REVIEW",
                     suggested_operation=(
@@ -116,7 +165,35 @@ class TheoryEngine:
                 )
             )
         elif pack.style == "jazz_harmony_improvisation":
-            melody_count = sum(1 for fact in facts if fact[1] is TrackRole.MELODY)
+            tonic_names = {
+                "C": 0,
+                "C#": 1,
+                "D": 2,
+                "D#": 3,
+                "E": 4,
+                "F": 5,
+                "F#": 6,
+                "G": 7,
+                "G#": 8,
+                "A": 9,
+                "A#": 10,
+                "B": 11,
+            }
+            tonic = tonic_names.get(arrangement.key_map[0].tonic, 0) if arrangement.key_map else 0
+            melody_strong = [
+                (track_id, tick, pitch)
+                for track_id, role, tick, pitch in _absolute_note_facts(arrangement)
+                if role is TrackRole.MELODY
+                and tick % arrangement.bar_ticks in {0, arrangement.bar_ticks // 2}
+            ]
+            guide_count = sum(
+                1 for _, _, pitch in melody_strong if (pitch - tonic) % 12 in {4, 11}
+            )
+            avoid_notes = [
+                (track_id, tick)
+                for track_id, tick, pitch in melody_strong
+                if (pitch - tonic) % 12 == 5
+            ]
             issues.append(
                 TheoryIssue(
                     rule_id="JAZ-101",
@@ -125,13 +202,52 @@ class TheoryEngine:
                         bars=bars,
                         track_ids=track_ids,
                         measured_fact=(
-                            f"{melody_count} melody notes available for guide-tone review"
+                            f"{guide_count}/{len(melody_strong)} strong-beat guide tones "
+                            "target chord thirds or sevenths"
                         ),
                     ),
                     explanation_code="GUIDE_TONE_EVIDENCE",
                     suggested_operation="keep chord thirds or sevenths at strong phrase targets",
                 )
             )
+            if avoid_notes:
+                issues.append(
+                    TheoryIssue(
+                        rule_id="JAZ-102",
+                        severity=TheorySeverity.WARNING,
+                        evidence=TheoryEvidence(
+                            bars=tuple(
+                                sorted(
+                                    {
+                                        tick // arrangement.bar_ticks
+                                        for _, tick in avoid_notes
+                                    }
+                                )
+                            )[:32],
+                            track_ids=tuple(
+                                dict.fromkeys(track_id for track_id, _ in avoid_notes)
+                            )[:12],
+                            measured_fact=f"{len(avoid_notes)} strong-beat unresolved fourths",
+                        ),
+                        explanation_code="STRONG_BEAT_AVOID_NOTE",
+                        suggested_operation="resolve the fourth by step into a chord third",
+                    )
+                )
         return TheoryReport(
             pack_id=pack.pack_id, issues=tuple(sorted(issues, key=lambda item: item.rule_id))
         )
+
+
+def _absolute_note_facts(
+    arrangement: ArrangementIR,
+) -> tuple[tuple[UUID, TrackRole, int, int], ...]:
+    facts: list[tuple[UUID, TrackRole, int, int]] = []
+    for track in arrangement.tracks:
+        for clip in track.clips:
+            if not isinstance(clip, NoteClip):
+                continue
+            for note in clip.notes:
+                facts.append(
+                    (track.track_id, track.role, clip.start_tick + note.start_tick, note.pitch)
+                )
+    return tuple(facts)

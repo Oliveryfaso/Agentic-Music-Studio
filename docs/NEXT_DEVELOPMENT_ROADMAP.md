@@ -3,7 +3,7 @@
 > **For agentic workers:** 实施本路线中的具体纵切前，必须先为该纵切建立 `docs/superpowers/plans/YYYY-MM-DD-<slice>.md`，再使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 逐项执行。
 > 状态：已批准的主路线；S2 Task 6 起采用 ADR-016 作品集工程模式
 > 起点：受控 Upload → Import → 分析 HITL → 保持音高对齐 → Web Preview 已完成
-> 执行断点（2026-08-20）：G0、S1、S2、S3 已验收。浏览器已完成 Project → Brief → immutable child Replan → PlanApproval → 七步完整导出 → 只读 Studio/MP3，以及同一 Project 顺序双 Stem；no-key 旅程为 0 request/0 token。S4 是唯一活动门，S5–S7 仍关闭。
+> 执行断点（2026-08-20）：G0、S1、S2、S3、S4 已验收。浏览器已完成 Project → 四风格 Brief → immutable child Replan → PlanApproval → 七步完整导出 → 只读 Studio/MP3，以及同一 Project 顺序双 Stem；四风格 no-key 旅程均为 0 request/0 token。S5 是唯一活动门，S6–S7 仍关闭。
 
 **目标：** 从当前可靠的导入底座，按最短依赖路径完成“可生成、可听、可编辑、可恢复、可评测”的 Agentic Music Studio。
 
@@ -231,6 +231,8 @@ S1 通过前禁止：接入真实 DeepSeek 生成、开发 Timeline 编辑器、
 页面状态必须覆盖：未建 Project、Brief validation error、等待计划、等待审批、生成排队/处理中、部分成功、Worker/模型失败、取消、checkpoint 恢复、Artifact evicted/rehydrating/missing、Revision conflict 和外置 Root 不可用。桌面时间线允许横向滚动；移动端不承诺精细拖拽。
 
 ## 9. S4：四个 Style Pack 与 Theory Engine
+
+> 当前状态：**已完成**。四个 reviewed `StylePack v1`、确定性 `TheoryEngine v1`、MusicStrategyRouter、Parent Graph 物化、Web 风格/来源/许可说明、8 条代表性生成 Eval 与四风格完整导出均已有运行证据；下一入口是 S5。
 
 **用户价值：** 同一工作台能产生四种结构上明显不同且有证据来源的音乐策略。
 

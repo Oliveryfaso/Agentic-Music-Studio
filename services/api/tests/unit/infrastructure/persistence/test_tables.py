@@ -78,7 +78,7 @@ def test_alembic_has_single_reversible_head() -> None:
     config = Config(root / "alembic.ini")
     scripts = ScriptDirectory.from_config(config)
 
-    assert scripts.get_heads() == ["20260813_0016"]
+    assert scripts.get_heads() == ["20260820_0017"]
     migration = scripts.get_revision("20260813_0013")
     assert migration is not None
     assert callable(migration.module.upgrade)
@@ -87,6 +87,10 @@ def test_alembic_has_single_reversible_head() -> None:
     assert receipt_migration is not None
     assert callable(receipt_migration.module.upgrade)
     assert callable(receipt_migration.module.downgrade)
+    style_pack_migration = scripts.get_revision("20260820_0017")
+    assert style_pack_migration is not None
+    assert callable(style_pack_migration.module.upgrade)
+    assert callable(style_pack_migration.module.downgrade)
 
 
 def test_ai_event_sequence_is_bigint_and_usage_cost_can_be_unknown() -> None:

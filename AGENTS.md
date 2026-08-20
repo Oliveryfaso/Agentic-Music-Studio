@@ -17,7 +17,7 @@ Record the Git revision and working-tree state of `docs/PROJECT_GUIDE.md` at tas
 
 ## Active gate
 
-`G0`, `S1`, `S2` and `S3` are complete. The browser now owns Project → Brief → Plan Review/Approval → persistent Generate progress → read-only Studio/MP3 and same-Project multi-Stem import without weakening the single Parent Graph v2 contracts. `S4` is the only active gate: add four versioned Style Packs and the Theory Engine without starting dual-candidate orchestration, full DAW editing or S7 hardening early.
+`G0`, `S1`, `S2`, `S3` and `S4` are complete. The browser now owns Project → four-style Brief → Plan Review/Approval → deterministic Theory evidence → persistent Generate progress → read-only Studio/MP3 and same-Project multi-Stem import without weakening the single Parent Graph v2 contracts. `S5` is the only active gate: add two bounded candidates, Critic/Repair and A/B approval without starting full DAW editing or S7 hardening early.
 
 ## Scope and traceability
 

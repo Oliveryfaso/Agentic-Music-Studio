@@ -1,0 +1,15 @@
+{
+  "schema_version": "s4-style-pack-eval.v1",
+  "cases": [
+    {"id": "ambient-calm-60", "kind": "generate", "style": "synth_ambient", "duration_seconds": 60, "seed": 11},
+    {"id": "ambient-drift-90", "kind": "generate", "style": "synth_ambient", "duration_seconds": 90, "seed": 12},
+    {"id": "minimal-focus-60", "kind": "generate", "style": "minimal_electronic", "duration_seconds": 60, "seed": 21},
+    {"id": "minimal-motion-90", "kind": "generate", "style": "minimal_electronic", "duration_seconds": 90, "seed": 22},
+    {"id": "chamber-reflect-60", "kind": "generate", "style": "classical_chamber", "duration_seconds": 60, "seed": 31},
+    {"id": "chamber-arc-90", "kind": "generate", "style": "classical_chamber", "duration_seconds": 90, "seed": 32},
+    {"id": "jazz-night-60", "kind": "generate", "style": "jazz_harmony_improvisation", "duration_seconds": 60, "seed": 41},
+    {"id": "jazz-dialogue-90", "kind": "generate", "style": "jazz_harmony_improvisation", "duration_seconds": 90, "seed": 42},
+    {"id": "reject-unknown-pack", "kind": "policy_reject", "reason": "unknown_style"},
+    {"id": "reject-nc-source", "kind": "policy_reject", "reason": "unreviewed_nc_license"}
+  ]
+}

@@ -29,7 +29,7 @@ Project Home → Brief → Parent Graph Planning → Plan Review/Adjustment
 → 每个文件独立权利确认/分析 HITL → 每次成功后刷新 Branch head
 ```
 
-S3 已把 S2 的 API 级闭环变成用户可操作的 Synth Ambient 作品流。它是完整的第一条 Agentic 创作纵切，但不是最终首版：四个 Style Pack、双候选/Critic/Repair、完整 Timeline/Piano Roll/Mixer 编辑和 AI 选区编辑仍分别属于 S4–S6。
+S3 已把 S2 的 API 级闭环变成用户可操作的作品流，S4 又把它扩展为四个版本化 Style Pack、确定性 Theory 证据和四条结构明显不同的完整导出路径。当前仍不是最终首版：双候选/Critic/Repair、完整 Timeline/Piano Roll/Mixer 编辑和 AI 选区编辑分别属于 S5–S6。
 
 ## 3. 能力矩阵
 
@@ -44,18 +44,18 @@ S3 已把 S2 的 API 级闭环变成用户可操作的 Synth Ambient 作品流�
 |---|---|---|---|
 | ArrangementIR、EditorCommand、Revision、Branch | 可运行 | 严格 Schema、事务写入、乐观锁和测试 | Studio 尚未消费完整编辑命令集 |
 | CandidateSnapshot、PreviewCandidate、L2/L3 审批事务 | 可运行 | Web Plan Review/Adjustment、Plan 驱动的 Candidate/Preview/Revision、原子 receipt 与 PostgreSQL 回放 | 双候选和 A/B 选择在 S5 |
-| DeepSeek Provider | 可运行（API） | 生产 Dispatcher、持久请求/token 预算、真实 known usage、严格 JSON envelope、官方 endpoint、MockTransport/重启测试与一次受控 live acceptance | 仅 Synth Ambient 已接入；模型调用继续 opt-in |
-| CompositionPlan Graph | 可运行 | Parent Graph v2、Fallback/Repair、Web PlanApproval/Replan、PostgreSQL checkpoint、无 Key browser smoke 与 live accepted Plan | Legacy v3 仅保留回归；其余风格在 S4 |
+| DeepSeek Provider | 可运行（API） | 生产 Dispatcher、四风格结构化 Plan、持久请求/token 预算、真实 known usage、严格 JSON envelope、官方 endpoint、MockTransport/重启测试与一次受控 live acceptance | 模型调用继续 opt-in；S4 no-key 路径使用同合同 Fallback |
+| CompositionPlan Graph | 可运行 | Parent Graph v2、四风格 Fallback/Strategy、Web PlanApproval/Replan、PostgreSQL checkpoint、无 Key smoke 与 live accepted Plan | Legacy v3 仅保留回归；双候选/Repair 在 S5 |
 | Parent Graph Import/Generate/Recovery | 可运行 | 浏览器 Import/generate、time-stretch、HITL、resume/cancel、持久 SSE 与刷新恢复 | 尚无 edit 路由 |
 | PostgreSQL/Redis/Celery/Outbox | 可运行 | Generate start/resume/cancel Dispatcher、权威 outbox、Compose readiness、幂等事件和恢复测试 | S7 才扩充负载与极端故障矩阵 |
 | 受控音频上传与导入 | 可运行 | 单文件 Import 与同一 Project 顺序多 Stem；每项独立权利/错误并刷新 head | 自动 stem separation 明确不做 |
 | BPM/key 分析 | 可运行的轻量基线 | FeatureArtifact、置信度与 HITL | 精度阈值尚无规模化 Eval 校准 |
 | 保持音高 time-stretch | 可运行的受限基线 | FFmpeg atempo、Artifact lineage、恢复和质量测试 | 尚不是专业弹性音频；复杂 tempo map 不在首版 |
 | Artifact 生命周期与 StoragePressureGate | 可运行 | 四态、配额、驱逐/重建、外置 Root | 暂不扩建通用缓存平台，按新 Artifact 类型增量接入 |
-| Tone.js AudioGraphCompiler | 可运行 | ArrangementIR 编译/渲染与 Web 只读 Timeline/Track projection、真实 MP3 Transport | 仅 3 个 Synth Preset；浏览器编辑在 S6 前的 DAW 纵切 |
-| PatternSpec 与确定性 Composer | 可运行（API） | Synth Ambient Plan 策略/确定性编译、版本化 Plan hash、Parent Graph 与共享 Export cursor | 仅一个 Style Pack；其余三包在 S4 |
-| 完整成曲与导出 | 可运行 | Web Brief→审批→Revision→7 Jobs→Studio；Master/MP3/四 Stem/MIDI/Project/逻辑 Bundle | 1–5 分钟、12 轨和四风格留待后续产品验收 |
-| 四个 Style Pack 与 Theory Engine | 未开始 | 只有设计 | 缺知识卡、规则、示例、检索和许可资产 |
+| Tone.js AudioGraphCompiler | 可运行 | ArrangementIR 编译/渲染、12 个语义 Preset alias、Web 只读 Timeline/Track projection、真实 MP3 Transport | Lite 音色仍投影到 3 个合成核心与 click sample；HQ 音色不属于 S4 |
+| PatternSpec 与确定性 Composer | 可运行 | 四风格 Plan 策略、Minimal groove、Classical stepwise motion、Jazz swing/guide-tone、版本化 Plan hash、Parent Graph 与共享 Export cursor | S5 再增加候选/Segment Repair |
+| 完整成曲与导出 | 可运行 | 四风格 Web Brief→审批→Revision→7 Jobs→Studio；Master/MP3/四 Stem/MIDI/Project/逻辑 Bundle | 1–5 分钟与最多 12 轨仍留待最终产品验收 |
+| 四个 Style Pack 与 Theory Engine | 可运行 | 四个严格 `StylePack v1`、reviewed source/license snapshot、symbolic exemplar、Preset Palette、稳定 Theory rule/evidence、Web 解释与四风格 no-key 完整导出 | 当前为 Project-authored Lite 知识/音色；更丰富检索与 HQ Pack 非 S4 门槛 |
 | Web Import Review | 可运行 | 上传、分析确认、试听、恢复、同 Project 多 Stem 与窄屏回归 | 更复杂的多轨编辑不属于 Import Review |
 | Web Studio（只读） | 可运行 | Project Home、Brief/Plan、SSE 进度、Arrangement Timeline、Track Header、MP3 Transport、390px | Piano Roll、Mixer、Clip 编辑和 Export UI 尚未开始 |
 | AI 选区编辑 | 未开始 | 有命令与 ChangeImpact 基础 | 缺 EditPatchProposal 生成、Preview、局部性 Eval |
@@ -63,6 +63,13 @@ S3 已把 S2 的 API 级闭环变成用户可操作的 Synth Ambient 作品流�
 | CI/CD 与负载测试 | 未开始 | 本地脚本 | 无 CI workflow、P50/P95 和完整一键演示验收 |
 
 ## 4. 当前验证基线
+
+S4 阶段门的最新证据：
+
+- 集中 Python unit/eval/contract `482 passed`；真实 PostgreSQL物化回放 `1 passed`（阶段实现时同文件完整门 `12 passed`）；Audio/Render `13 passed`、Web `41 passed`，Ruff、Mypy strict `89 source files`、Vite build、OpenAPI generation 与 `git diff --check` 通过。
+- 八条代表性生成 Eval 覆盖每风格两例；另有未知风格和未审核知识拒绝，模型文本不能直接决定音符合法性或许可。
+- 独立 Compose no-key 运行态中，Synth Ambient、Minimal Electronic、Classical Chamber、Jazz 均经公开 HTTP/PlanApproval/Parent Graph 得到 `1 Revision / 7 succeeded Jobs / 6 Audio / 1 Bundle / 0 request / 0 token`；容器内六个实体 checksum 与数据库 lineage 一致。
+- 阶段只修复真实主路径暴露的两项跨服务问题：Render Worker 使用与 Media Worker 相同的非 root UID 写共享 temp；Jazz swing 保持同一 chord attack 成组且每个 Clip 事件单调。未扩展 S7 故障、负载或多租户矩阵，也未调用付费模型。
 
 S3 最终门的最新证据：
 
@@ -103,7 +110,7 @@ API/Dispatcher 只把 `motif-forge-parent.v2` 作为生产拓扑，`generate` �
 
 ### 5.2 音频可靠性领先于创作主链路
 
-Import、Artifact、恢复和容量治理已达到较高完成度，S3 已证明 Web CompositionPlan 驱动的 `Revision → Render → Bundle → Studio`。继续暂停通用存储/恢复平台扩建；下一产品门是 S4 四个 Style Pack 与 Theory Engine。
+Import、Artifact、恢复和容量治理已达到较高完成度，S4 已证明四风格 Web CompositionPlan 驱动的 `Revision → Render → Bundle → Studio`。继续暂停通用存储/恢复平台扩建；下一产品门是 S5 双候选、Critic/Repair 与 A/B。
 
 ### 5.3 前后端 DTO 仍由手工维护
 
@@ -131,7 +138,7 @@ Checkpoint 前复验：Python `152 passed / 13 opt-in skipped`；真实 PostgreS
 
 后续每个可独立验收纵切都必须形成 Git checkpoint，不再跨多个阶段积累未提交业务代码。
 
-## 7. S1–S3 验收事实与当前开发断点：S4
+## 7. S1–S4 验收事实与当前开发断点：S5
 
 S1 已完成：固定作品为 24 bars、80 BPM、4/4、C major、四轨、72 秒；固定 seed 生成完整 ArrangementIR。L3 生成先创建 Candidate/Preview，再由调用者提供 16 字符以上审批断言，事务持久化 actor、审批 payload hash 和原始五条生成命令后物化 Revision。正式 Job 链输出 PCM24 Master（20,736,044 bytes）、四条 PCM24 Stem、经 FFprobe 验证时长/格式/码率/非静音的 256 kbps MP3、MIDI、Project JSON 与 credits/license/provenance/trace/export manifests。
 
@@ -139,7 +146,7 @@ S1 已完成：固定作品为 24 bars、80 BPM、4/4、C major、四轨、72 �
 
 当前下一条业务纵切不是扩充 Import/存储平台，也不是先做完整 DAW，而是：
 
-> **S4：实现四个版本化 Style Pack 与 Theory Engine，让同一 Brief/Plan 合同产生结构上明显不同、带来源和许可证据的完整作品。**
+> **S5：在同一 Parent Graph 中实现最多两个候选、结构化 Critic/局部 Repair 与 A/B 审批。**
 
 S2 仍不得绕过 PlanApproval，也不得创建第三个生产 Graph。S1 的固定策略继续作为无模型降级和回归基线，不改变首版最终要求的 1–5 分钟、最多 12 轨、最多 2 个候选和四个 Style Pack 同时交付。
 
@@ -161,6 +168,8 @@ Task 12 已完成：预付费保护使用固定 Project/Run/resume 数据库幂�
 
 S3 已完成 Project Home、Brief validation、Plan Review/Approval、immutable child Replan、持久 Run 进度、只读 Arrangement Studio、真实 MP3 Transport、Artifact 四态、390px 审阅以及同一 Project 顺序多 Stem。确定性 browser smoke 从公开 UI 完成整条路径，并用只读 PostgreSQL 事实核验 7 Jobs/6 Audio/1 Bundle；没有第三个 Graph、直接 Revision 写入或付费模型调用。
 
-**当前断点：S3 已关闭，S4 为唯一活动门。** 保留单一 Parent Graph、PlanApproval、不可变 Revision、持久费用/恢复和完整导出合同；先完成四个 Style Pack/Theory Engine，不提前进入双候选、完整 DAW 或 AI 选区编辑。
+S4 已完成四个 reviewed Style Pack、稳定 Theory error/warning/advice 证据、四个确定性策略和 Web 风格/来源/许可说明。四风格均通过公开 HTTP → Parent Graph → PlanApproval → Revision → 七步队列导出；每条路径为 7 succeeded Jobs、6 Audio、1 Bundle，provider requests/tokens 为 0/0，物理 checksum 与单一 Revision/Media Run lineage 一致。Compose 验收还真实发现并修复了 Render Worker 与 Media Worker 共享临时文件的 UID 不一致，以及 Jazz chord swing 造成的非单调事件调度。
+
+**当前断点：S4 已关闭，S5 为唯一活动门。** 保留单一 Parent Graph、PlanApproval、不可变 Revision、持久费用/恢复、四风格策略和完整导出合同；下一步只增加双候选、Critic/Repair 与 A/B，不提前进入完整 DAW、AI 选区编辑或 S7 硬化。
 
 具体前后顺序、阶段门和优化规则见 `NEXT_DEVELOPMENT_ROADMAP.md`。

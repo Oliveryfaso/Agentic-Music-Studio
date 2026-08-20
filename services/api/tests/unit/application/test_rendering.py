@@ -3,8 +3,11 @@ from __future__ import annotations
 from uuid import UUID
 
 import pytest
+from motif_forge.agent.fallback import build_fallback_plan
+from motif_forge.agent.schemas import CompositionBrief
 from motif_forge.application.rendering import compile_audio_graph
 from motif_forge.domain.composition import build_s1_composition
+from motif_forge.domain.music_strategies import MusicStrategyRouter
 
 PROJECT_ID = UUID("10000000-0000-4000-8000-000000000022")
 
@@ -67,3 +70,39 @@ def test_ir_projection_rejects_unreviewed_instrument_reference() -> None:
 
     with pytest.raises(ValueError, match="INSTRUMENT_REF_UNSUPPORTED"):
         compile_audio_graph(changed)
+
+
+@pytest.mark.parametrize(
+    "style",
+    [
+        "minimal_electronic",
+        "classical_chamber",
+        "jazz_harmony_improvisation",
+    ],
+)
+def test_reviewed_s4_palette_projects_to_the_lite_audio_engine(style: str) -> None:
+    brief = CompositionBrief.model_validate(
+        {
+            "title": "S4 render boundary",
+            "purpose": "Render a complete deterministic instrumental cue",
+            "style": style,
+            "duration_seconds": 60,
+            "meter": "4/4",
+            "target_key": "C major",
+            "moods": ("focused",),
+        },
+        strict=True,
+    )
+    arrangement = (
+        MusicStrategyRouter()
+        .compile(PROJECT_ID, brief=brief, plan=build_fallback_plan(brief), seed=26)
+        .build.arrangement
+    )
+
+    projection = compile_audio_graph(arrangement)
+
+    assert len(projection.graph["tracks"]) == 4
+    assert {track["kind"] for track in projection.graph["tracks"]} == {
+        "synth",
+        "sampler",
+    }

@@ -71,7 +71,13 @@ def _track_spec(track: Track, *, bpm: float, ppq: int) -> dict[str, object]:
     ]
     if any(not isinstance(clip, NoteClip) for clip in track.clips):
         raise ValueError("AUDIO_TRACK_RENDER_UNSUPPORTED")
-    if track.instrument_ref == "builtin:click":
+    click_refs = {
+        "builtin:click",
+        "builtin:drum-machine",
+        "builtin:pizz-cello",
+        "builtin:brush-kit",
+    }
+    if track.instrument_ref in click_refs:
         return {
             **base,
             "kind": "sampler",
@@ -85,6 +91,15 @@ def _track_spec(track: Track, *, bpm: float, ppq: int) -> dict[str, object]:
         "builtin:warm_pad": "warm_pad",
         "builtin:glass_pluck": "glass_pluck",
         "builtin:sub_bass": "sub_bass",
+        "builtin:poly-synth": "warm_pad",
+        "builtin:short-pluck": "glass_pluck",
+        "builtin:mono-bass": "sub_bass",
+        "builtin:viola": "warm_pad",
+        "builtin:violin": "glass_pluck",
+        "builtin:cello": "sub_bass",
+        "builtin:jazz-piano": "warm_pad",
+        "builtin:tenor-lead": "glass_pluck",
+        "builtin:upright-bass": "sub_bass",
     }
     preset_id = preset_by_ref.get(track.instrument_ref or "")
     if preset_id is None:

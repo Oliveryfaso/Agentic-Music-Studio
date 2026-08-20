@@ -32,11 +32,11 @@
 **Interfaces:**
 - Produces: `Settings.for_test(**overrides) -> Settings`, which never reads `.env`.
 
-- [ ] **Step 1: Write RED tests** proving `Settings.for_test()` ignores a container DSN in `.env` while ordinary `Settings()` remains unchanged.
-- [ ] **Step 2: Run** `.venv/bin/pytest services/api/tests/unit/test_config.py -q`; expect failure because `for_test` is missing.
-- [ ] **Step 3: Implement** a classmethod using `_env_file=None`, and replace only S4/new tests that need explicit isolation.
-- [ ] **Step 4: Run** the focused test and the API unit suite; expect pass without renaming `.env`.
-- [ ] **Step 5: Commit** `test: isolate explicit API test settings`.
+- [x] **Step 1: Write RED tests** proving `Settings.for_test()` ignores a container DSN in `.env` while ordinary `Settings()` remains unchanged.
+- [x] **Step 2: Run** `.venv/bin/pytest services/api/tests/unit/test_config.py -q`; expect failure because `for_test` is missing.
+- [x] **Step 3: Implement** a classmethod using `_env_file=None`, and replace only S4/new tests that need explicit isolation.
+- [x] **Step 4: Run** the focused test and the API unit suite; expect pass without renaming `.env`.
+- [x] **Step 5: Commit** `test: isolate explicit API test settings`.
 
 ### Task 1: Strict Style Pack Registry
 
@@ -50,12 +50,12 @@
 - Produces: `StylePack`, `SourceCitation`, `LicenseSnapshot`, `PresetEntry`, `StylePackRegistry`, `builtin_style_pack_registry()`.
 - `StylePackRegistry.resolve(style: StyleId) -> StylePack` fails closed for missing, incompatible or unreviewed data.
 
-- [ ] **Step 1: Write RED tests** for exactly four unique v1 packs, strict schema rejection, reviewed license allowlist, compatible engine/schema versions, citations, exemplars and preset ranges.
-- [ ] **Step 2: Run** `.venv/bin/pytest services/api/tests/unit/domain/test_style_packs.py -q`; expect import failure.
-- [ ] **Step 3: Implement** immutable Pydantic contracts and load the single curated JSON resource with `importlib.resources`.
-- [ ] **Step 4: Add** four concise project-authored pack records with distinct form, role, harmony, rhythm, timbre and palette facts.
-- [ ] **Step 5: Run** focused tests and Ruff/Mypy; expect pass.
-- [ ] **Step 6: Commit** `feat: add four versioned style packs`.
+- [x] **Step 1: Write RED tests** for exactly four unique v1 packs, strict schema rejection, reviewed license allowlist, compatible engine/schema versions, citations, exemplars and preset ranges.
+- [x] **Step 2: Run** `.venv/bin/pytest services/api/tests/unit/domain/test_style_packs.py -q`; expect import failure.
+- [x] **Step 3: Implement** immutable Pydantic contracts and load the single curated JSON resource with `importlib.resources`.
+- [x] **Step 4: Add** four concise project-authored pack records with distinct form, role, harmony, rhythm, timbre and palette facts.
+- [x] **Step 5: Run** focused tests and Ruff/Mypy; expect pass.
+- [x] **Step 6: Commit** `feat: add four versioned style packs`.
 
 ### Task 2: Deterministic Theory Engine
 
@@ -67,11 +67,11 @@
 - Produces: `TheorySeverity`, `TheoryEvidence`, `TheoryIssue`, `TheoryReport`, `TheoryEngine.evaluate(arrangement: ArrangementIR, pack: StylePack) -> TheoryReport`.
 - `TheoryReport.blocking` contains only `error`; warning/advice remain explanatory.
 
-- [ ] **Step 1: Write RED tests** for stable ordering, role/range blocking errors, non-blocking Classical parallel-motion warning, Jazz guide-tone/avoid-note evidence, and bounded suggested operations.
-- [ ] **Step 2: Run** the focused file; expect missing module.
-- [ ] **Step 3: Implement** small pure rule functions over authoritative NoteEvent/Track/Section facts; no RAG text or model calls.
-- [ ] **Step 4: Run** focused domain tests plus existing IR/composition tests; expect pass.
-- [ ] **Step 5: Commit** `feat: add deterministic theory evidence engine`.
+- [x] **Step 1: Write RED tests** for stable ordering, role/range blocking errors, non-blocking Classical parallel-motion warning, Jazz guide-tone/avoid-note evidence, and bounded suggested operations.
+- [x] **Step 2: Run** the focused file; expect missing module.
+- [x] **Step 3: Implement** small pure rule functions over authoritative NoteEvent/Track/Section facts; no RAG text or model calls.
+- [x] **Step 4: Run** focused domain tests plus existing IR/composition tests; expect pass.
+- [x] **Step 5: Commit** `feat: add deterministic theory evidence engine`.
 
 ### Task 3: Four Strategy Compilers and Router
 
@@ -86,13 +86,13 @@
 - Produces: `StrategyInput`, `StrategyResult`, `MusicStrategyRouter.compile(project_id, brief, plan, seed) -> StrategyResult`.
 - `StrategyResult.build` is the existing `CompositionBuild`; `pack`, `theory_report`, `compiler_version` carry lineage.
 
-- [ ] **Step 1: Write RED tests** compiling the same bounded Brief shape through all four styles; assert deterministic replay, four export roles, valid duration, and distinct track/instrument/rhythm/register/form facts.
-- [ ] **Step 2: Write RED fallback tests** requiring canonical role coverage and Pack knowledge reference for every style.
-- [ ] **Step 3: Run** the focused files; expect missing router and incompatible non-Synth fallback roles.
-- [ ] **Step 4: Extract** shared pattern/Arrangement construction from the current Synth compiler without changing its output.
-- [ ] **Step 5: Implement** four data-driven strategy profiles and style-specific note/rhythm/voicing transforms; run Theory Engine and fail on blocking issues.
-- [ ] **Step 6: Run** focused tests plus the existing Synth Ambient regression suite; expect pass.
-- [ ] **Step 7: Commit** `feat: compile four deterministic music strategies`.
+- [x] **Step 1: Write RED tests** compiling the same bounded Brief shape through all four styles; assert deterministic replay, four export roles, valid duration, and distinct track/instrument/rhythm/register/form facts.
+- [x] **Step 2: Write RED fallback tests** requiring canonical role coverage and Pack knowledge reference for every style.
+- [x] **Step 3: Run** the focused files; expect missing router and incompatible non-Synth fallback roles.
+- [x] **Step 4: Extract** shared pattern/Arrangement construction from the current Synth compiler without changing its output.
+- [x] **Step 5: Implement** four data-driven strategy profiles and style-specific note/rhythm/voicing transforms; run Theory Engine and fail on blocking issues.
+- [x] **Step 6: Run** focused tests plus the existing Synth Ambient regression suite; expect pass.
+- [x] **Step 7: Commit** `feat: compile four deterministic music strategies`.
 
 ### Task 4: Parent Graph and Durable Lineage Integration
 
@@ -108,12 +108,12 @@
 - `PersistPlanningResultRequest.style_pack_version` is derived from Brief style, never supplied by the model.
 - `MaterializeApprovedComposition` consumes `MusicStrategyRouter` and persists exact pack/compiler/theory summary in existing receipt/version/event facts.
 
-- [ ] **Step 1: Write RED Graph tests** accepting all four allowlisted styles while rejecting unknown style/meter before planner/model work.
-- [ ] **Step 2: Write RED application tests** for exact pack selection, blocking theory rollback, warning continuation and replay stability.
-- [ ] **Step 3: Implement** pack resolution in Generate validation/persistence and router-based materialization; preserve PlanApproval and Preview transaction boundaries.
-- [ ] **Step 4: Add one real PostgreSQL test** proving each style persists one Revision/receipt with exact lineage and seven export jobs are still produced by shared orchestration.
-- [ ] **Step 5: Run** focused unit/integration commands, Ruff and Mypy; expect pass.
-- [ ] **Step 6: Commit** `feat: route approved plans through four style strategies`.
+- [x] **Step 1: Write RED Graph tests** accepting all four allowlisted styles while rejecting unknown style/meter before planner/model work.
+- [x] **Step 2: Write RED application tests** for exact pack selection, blocking theory rollback, warning continuation and replay stability.
+- [x] **Step 3: Implement** pack resolution in Generate validation/persistence and router-based materialization; preserve PlanApproval and Preview transaction boundaries.
+- [x] **Step 4: Add one real PostgreSQL test** proving each style persists one Revision/receipt with exact lineage and seven export jobs are still produced by shared orchestration.
+- [x] **Step 5: Run** focused unit/integration commands, Ruff and Mypy; expect pass.
+- [x] **Step 6: Commit** `feat: route approved plans through four style strategies`.
 
 ### Task 5: Web Style and Evidence Experience
 
@@ -130,11 +130,11 @@
 - Brief submits one of the four existing OpenAPI `StyleId` literals.
 - Read UI renders bounded `style_pack`, `sources`, `license`, and severity-separated `theory_issues` fields when present.
 
-- [ ] **Step 1: Write RED component tests** for four style options, submitted style, loading/error preservation, citations/license text, warning/advice separation and narrow mobile overflow.
-- [ ] **Step 2: Run** `npm run test:web -- --runInBand` or the repository-equivalent focused Vitest command; expect failure.
-- [ ] **Step 3: Implement** accessible selector and compact evidence panels using current visual language and flexible layouts.
-- [ ] **Step 4: Run** Web tests, TypeScript build and deterministic OpenAPI generation if applicable.
-- [ ] **Step 5: Commit** `feat: expose style strategy evidence in studio`.
+- [x] **Step 1: Write RED component tests** for four style options, submitted style, loading/error preservation, citations/license text, warning/advice separation and narrow mobile overflow.
+- [x] **Step 2: Run** `npm run test:web -- --runInBand` or the repository-equivalent focused Vitest command; expect failure.
+- [x] **Step 3: Implement** accessible selector and compact evidence panels using current visual language and flexible layouts.
+- [x] **Step 4: Run** Web tests, TypeScript build and deterministic OpenAPI generation if applicable.
+- [x] **Step 5: Commit** `feat: expose style strategy evidence in studio`.
 
 ### Task 6: Representative S4 Eval and End-to-End Gate
 
@@ -153,10 +153,10 @@
 - Eval has at least two representative cases per style plus license/injection rejection cases.
 - Smoke reports style, pack/compiler versions, theory error/warning counts, Revision, seven Jobs, six Audio artifacts, one Bundle and provider request/token counts.
 
-- [ ] **Step 1: Write RED Eval/script-contract tests** that require four distinct style results, exact lineage fields, fail-closed unreviewed knowledge and zero paid requests in deterministic mode.
-- [ ] **Step 2: Run** focused host tests; expect missing fixture/runner/smoke.
-- [ ] **Step 3: Implement** the smallest deterministic runner and Compose/browser journey through public API/action paths; never invoke media execution directly.
-- [ ] **Step 4: Run** focused host gates, one real PostgreSQL boundary and one Compose/browser four-style smoke.
-- [ ] **Step 5: Run final proportional gate:** Python unit/eval, Audio 13+, Web 41+, OpenAPI generation/build, Ruff, Mypy and `git diff --check`. Do not rerun S1 fault matrices unless shared worker contracts changed.
-- [ ] **Step 6: Update docs** to close S4 and open only S5 if all four styles genuinely complete full export.
-- [ ] **Step 7: Commit** `feat: complete S4 four-style composition workflow`.
+- [x] **Step 1: Write RED Eval/script-contract tests** that require four distinct style results, exact lineage fields, fail-closed unreviewed knowledge and zero paid requests in deterministic mode.
+- [x] **Step 2: Run** focused host tests; expect missing fixture/runner/smoke.
+- [x] **Step 3: Implement** the smallest deterministic runner and Compose/browser journey through public API/action paths; never invoke media execution directly.
+- [x] **Step 4: Run** focused host gates, one real PostgreSQL boundary and one Compose/browser four-style smoke.
+- [x] **Step 5: Run final proportional gate:** Python unit/eval, Audio 13+, Web 41+, OpenAPI generation/build, Ruff, Mypy and `git diff --check`. Do not rerun S1 fault matrices unless shared worker contracts changed.
+- [x] **Step 6: Update docs** to close S4 and open only S5 if all four styles genuinely complete full export.
+- [x] **Step 7: Commit** `feat: complete S4 four-style composition workflow`.

@@ -34,7 +34,9 @@ uv run pytest \
   services/api/tests/unit/audio/test_midi.py \
   services/api/tests/eval/test_s1_deterministic_eval.py \
   services/api/tests/eval/test_s2_generate_eval.py \
+  services/api/tests/eval/test_s4_style_pack_eval.py \
   tests/test_s2_script_contract.py \
+  tests/test_s4_script_contract.py \
   tests/test_s3_browser_smoke_contract.py
 npm run test:audio
 uv run python scripts/check_s1_render_service.py

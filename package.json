@@ -12,6 +12,7 @@
     "dev:web": "vite --config apps/web/vite.config.ts",
     "generate:openapi": "python3 scripts/export_openapi.py && openapi-typescript /private/tmp/motif-forge-openapi.json -o apps/web/src/generated/api-schema.d.ts",
     "smoke:s3": "node scripts/run_s3_browser_smoke.mjs",
+    "smoke:s4": ".venv/bin/python -m scripts.run_s4_deterministic_smoke",
     "test:audio": "vitest run --exclude '**/._*' packages/audio-engine services/render-worker",
     "test:web": "vitest run --config apps/web/vitest.config.ts",
     "spike:audio": "node services/render-worker/dist/spike.js"

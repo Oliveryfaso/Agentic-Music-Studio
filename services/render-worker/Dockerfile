@@ -22,6 +22,9 @@ RUN install_attempt=1; \
     npx playwright install --only-shell chromium; \
     rm -rf /var/lib/apt/lists/*
 
+RUN groupadd --gid 10001 motif-forge \
+    && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin motif-forge
+
 COPY packages/audio-engine ./packages/audio-engine
 COPY services/render-worker ./services/render-worker
 COPY scripts/build-render-worker.mjs ./scripts/build-render-worker.mjs
@@ -30,5 +33,7 @@ RUN npm run build:audio \
     && npm run test:audio \
     && npm prune --omit=dev \
     && npm cache clean --force
+
+USER 10001:10001
 
 CMD ["node", "services/render-worker/dist/service.js"]

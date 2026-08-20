@@ -10,7 +10,7 @@ import os
 import re
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from uuid import UUID, uuid4
 
 import httpx
@@ -18,6 +18,7 @@ from motif_forge.config import Settings
 from motif_forge.infrastructure.persistence.database import create_postgres_engine
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 TIMEOUT_SECONDS = 480.0
 BRIEF = {
@@ -35,6 +36,72 @@ BRIEF = {
 }
 
 
+def _validated_container_name(value: str) -> str:
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", value):
+        raise RuntimeError("S2 runtime container name is invalid")
+    return value
+
+
+def _container_artifact_path(storage_key: str) -> str:
+    key = PurePosixPath(storage_key)
+    if (
+        key.is_absolute()
+        or ".." in key.parts
+        or not key.parts
+        or not re.fullmatch(r"[A-Za-z0-9._/-]+", storage_key)
+    ):
+        raise RuntimeError("S2 Artifact storage key is invalid")
+    return f"/artifacts/{key.as_posix()}"
+
+
+def _physical_digest(
+    artifact_root: Path, storage_key: str, artifact_container: str | None
+) -> str:
+    if artifact_container is None:
+        return hashlib.sha256((artifact_root / storage_key).read_bytes()).hexdigest()
+    result = subprocess.run(
+        [
+            "docker",
+            "exec",
+            _validated_container_name(artifact_container),
+            "sha256sum",
+            _container_artifact_path(storage_key),
+        ],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    digest = result.stdout.split(maxsplit=1)[0] if result.returncode == 0 else ""
+    if not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise RuntimeError("S2 physical Artifact checksum command failed")
+    return digest
+
+
+def _physical_manifest_exists(
+    artifact_root: Path, storage_key: str, artifact_container: str | None
+) -> bool:
+    if artifact_container is None:
+        return (artifact_root / storage_key).is_file()
+    result = subprocess.run(
+        [
+            "docker",
+            "exec",
+            _validated_container_name(artifact_container),
+            "test",
+            "-f",
+            _container_artifact_path(storage_key),
+        ],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+        timeout=10,
+    )
+    return result.returncode == 0
+
+
 def _assert_no_paid_runtime() -> None:
     """Fail before any API mutation unless the live dispatcher has no provider key."""
 
@@ -42,8 +109,7 @@ def _assert_no_paid_runtime() -> None:
         "MOTIF_FORGE_S2_RESUME_CONTAINER",
         "agentic-music-workbench-resume-dispatcher-1",
     ).strip()
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", container):
-        raise RuntimeError("MOTIF_FORGE_S2_RESUME_CONTAINER is invalid")
+    container = _validated_container_name(container)
     result = subprocess.run(
         ["docker", "exec", container, "sh", "-c", 'test -z "$DEEPSEEK_API_KEY"'],
         stdin=subprocess.DEVNULL,
@@ -104,14 +170,14 @@ async def _wait_for_run(
 
 
 async def _wait_for_bundle(
-    engine, run_id: UUID
+    engine: AsyncEngine, run_id: UUID
 ) -> tuple[
     UUID,
     list[dict[str, object]],
     dict[str, object],
     list[dict[str, object]],
     dict[str, object],
-]:  # type: ignore[no-untyped-def]
+]:
     deadline = asyncio.get_running_loop().time() + TIMEOUT_SECONDS
     query = text(
         "SELECT r.revision_id FROM app.composition_materialization_receipts r "
@@ -211,6 +277,7 @@ def _verify_lineage_and_checksums(
     bundle: dict[str, object],
     jobs: list[dict[str, object]],
     media_run: dict[str, object],
+    artifact_container: str | None = None,
 ) -> dict[str, str]:
     profiles = [str(row["quality_profile"]) for row in audio]
     if profiles.count("canonical-master.v1") != 1:
@@ -224,7 +291,10 @@ def _verify_lineage_and_checksums(
     if len(arrangement_hashes) != 1 or UUID(str(bundle["revision_id"])) != revision_id:
         raise RuntimeError("S2 Artifact lineage does not match one approved Revision")
     ids = {str(row["id"]) for row in audio}
-    if ids != {str(item) for item in bundle["input_artifact_ids"]}:
+    input_artifact_ids = bundle["input_artifact_ids"]
+    if not isinstance(input_artifact_ids, list):
+        raise RuntimeError("S2 Bundle input Artifact set is malformed")
+    if ids != {str(item) for item in input_artifact_ids}:
         raise RuntimeError("S2 Bundle input Artifact set is not authoritative")
     job_ids = {str(row["id"]) for row in jobs}
     source_job_ids = {str(row["source_job_id"]) for row in audio}
@@ -238,13 +308,14 @@ def _verify_lineage_and_checksums(
         raise RuntimeError("S2 Jobs do not belong to one exact complete-export Media Run")
     checksums: dict[str, str] = {}
     for row in audio:
-        path = artifact_root / str(row["storage_key"])
-        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        digest = _physical_digest(
+            artifact_root, str(row["storage_key"]), artifact_container
+        )
         if digest != row["content_hash"]:
             raise RuntimeError(f"S2 physical checksum mismatch: {row['id']}")
         checksums[str(row["id"])] = digest
-    manifest = artifact_root / str(bundle["storage_prefix"]) / "export-manifest.json"
-    if not manifest.is_file():
+    manifest_key = f"{bundle['storage_prefix']}/export-manifest.json"
+    if not _physical_manifest_exists(artifact_root, manifest_key, artifact_container):
         raise RuntimeError("S2 physical Bundle manifest is missing")
     return checksums
 
@@ -253,6 +324,7 @@ async def main() -> None:
     api_url = os.environ.get("MOTIF_FORGE_API_URL", "").strip()
     actor = os.environ.get("MOTIF_FORGE_S2_APPROVAL_ACTOR", "").strip()
     assertion = os.environ.get("MOTIF_FORGE_S2_APPROVAL_ASSERTION", "").strip()
+    artifact_container = os.environ.get("MOTIF_FORGE_S2_ARTIFACT_CONTAINER", "").strip()
     if not api_url:
         raise RuntimeError("MOTIF_FORGE_API_URL is required")
     if not actor or len(assertion) < 16:
@@ -340,7 +412,13 @@ async def main() -> None:
             if not no_paid_model_usage:
                 raise RuntimeError("S2 deterministic smoke unexpectedly recorded paid model usage")
             checksums = _verify_lineage_and_checksums(
-                artifact_root, revision_id, audio, bundle, jobs, media_run
+                artifact_root,
+                revision_id,
+                audio,
+                bundle,
+                jobs,
+                media_run,
+                artifact_container or None,
             )
             print(
                 json.dumps(

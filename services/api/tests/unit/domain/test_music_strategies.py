@@ -1,3 +1,4 @@
+from itertools import pairwise
 from uuid import uuid4
 
 import pytest
@@ -67,10 +68,80 @@ def test_four_strategies_produce_structurally_distinct_arrangements() -> None:
                 (
                     track.name,
                     track.instrument_ref,
-                    tuple(note.articulation for clip in track.clips for note in clip.notes[:4]),
+                    tuple(
+                        (
+                            note.start_tick,
+                            note.duration_tick,
+                            note.pitch,
+                            note.articulation,
+                        )
+                        for clip in track.clips
+                        for note in clip.notes[:8]
+                    ),
                 )
                 for track in result.build.arrangement.tracks
             )
         )
 
     assert len(signatures) == 4
+
+
+def test_minimal_strategy_locks_bass_attacks_to_the_drum_grid() -> None:
+    request = brief("minimal_electronic")
+    result = MusicStrategyRouter().compile(
+        uuid4(), brief=request, plan=build_fallback_plan(request), seed=29
+    )
+    tracks = {track.role: track for track in result.build.arrangement.tracks}
+    bass_onsets = {
+        clip.start_tick + note.start_tick
+        for clip in tracks[TrackRole.BASS].clips
+        for note in clip.notes
+    }
+    drum_onsets = {
+        clip.start_tick + note.start_tick
+        for clip in tracks[TrackRole.RHYTHM].clips
+        for note in clip.notes
+    }
+
+    assert bass_onsets <= drum_onsets
+    issue = next(item for item in result.theory_report.issues if item.rule_id == "MIN-101")
+    assert issue.evidence.measured_fact.startswith(f"{len(bass_onsets)}/{len(bass_onsets)}")
+
+
+def test_classical_and_jazz_apply_style_specific_note_motion() -> None:
+    router = MusicStrategyRouter()
+    classical_request = brief("classical_chamber")
+    jazz_request = brief("jazz_harmony_improvisation")
+    classical = router.compile(
+        uuid4(),
+        brief=classical_request,
+        plan=build_fallback_plan(classical_request),
+        seed=31,
+    )
+    jazz = router.compile(
+        uuid4(), brief=jazz_request, plan=build_fallback_plan(jazz_request), seed=31
+    )
+
+    classical_melody = next(
+        track for track in classical.build.arrangement.tracks if track.role is TrackRole.MELODY
+    )
+    classical_pitches = [
+        note.pitch for clip in classical_melody.clips for note in clip.notes[:16]
+    ]
+    assert (
+        max(abs(right - left) for left, right in pairwise(classical_pitches)) <= 3
+    )
+
+    jazz_melody = next(
+        track for track in jazz.build.arrangement.tracks if track.role is TrackRole.MELODY
+    )
+    jazz_starts = [note.start_tick for clip in jazz_melody.clips for note in clip.notes[:16]]
+    assert any(start % 480 == 80 for start in jazz_starts)
+    assert all(
+        [note.start_tick for note in clip.notes]
+        == sorted(note.start_tick for note in clip.notes)
+        for track in jazz.build.arrangement.tracks
+        for clip in track.clips
+    )
+    guide_issue = next(item for item in jazz.theory_report.issues if item.rule_id == "JAZ-101")
+    assert "strong-beat guide tones" in guide_issue.evidence.measured_fact

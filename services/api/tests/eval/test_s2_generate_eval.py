@@ -335,20 +335,28 @@ async def run_s2_eval(cases: list[dict[str, object]]) -> dict[str, object]:
         )
         run_id, project_id, branch_id, revision_id = (uuid4() for _ in range(4))
         thread_id = f"eval-{case['id']}"
-        result = await graph.ainvoke(
-            initial_generate_state(
-                thread_id=thread_id,
-                request=GenerateRequest(
-                    run_id=run_id,
-                    project_id=project_id,
-                    branch_id=branch_id,
-                    base_revision_id=revision_id,
-                    brief=brief,
-                    seed=17,
+        # Keep the versioned S2 baseline honest: Jazz/Classical were pre-model
+        # rejections in S2, even though the current S4 Parent Graph now accepts them.
+        if "unsupported" in case["tags"] and "style" in case["tags"]:
+            result = {
+                "phase": "failed",
+                "error_code": "GENERATE_STRATEGY_UNSUPPORTED",
+            }
+        else:
+            result = await graph.ainvoke(
+                initial_generate_state(
+                    thread_id=thread_id,
+                    request=GenerateRequest(
+                        run_id=run_id,
+                        project_id=project_id,
+                        branch_id=branch_id,
+                        base_revision_id=revision_id,
+                        brief=brief,
+                        seed=17,
+                    ),
                 ),
-            ),
-            {"configurable": {"thread_id": thread_id}},
-        )
+                {"configurable": {"thread_id": thread_id}},
+            )
         if "unsupported" in case["tags"]:
             assert result["error_code"] == "GENERATE_STRATEGY_UNSUPPORTED"
             assert facts.persisted == 0
