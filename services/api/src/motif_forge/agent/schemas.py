@@ -70,6 +70,50 @@ class CompositionBrief(StrictSchema):
         return self
 
 
+class SectionAdjustment(StrictSchema):
+    name: ShortText
+    bars: Annotated[int, Field(ge=1, le=128)]
+    energy: Annotated[float, Field(ge=0.0, le=1.0)]
+
+
+class InstrumentAdjustment(StrictSchema):
+    name: ShortText
+    role: ShortText
+
+
+class PlanAdjustment(StrictSchema):
+    """Human-authored intent for one immutable child planning Run."""
+
+    schema_version: Literal["plan-adjustment.v1"] = "plan-adjustment.v1"
+    target_bpm: Annotated[int, Field(ge=40, le=220)] | None = None
+    target_key: ShortText | None = None
+    sections: tuple[SectionAdjustment, ...] | None = Field(
+        default=None, min_length=2, max_length=12
+    )
+    instrumentation: tuple[InstrumentAdjustment, ...] | None = Field(
+        default=None, min_length=1, max_length=12
+    )
+    note: str = Field(default="", max_length=500)
+
+    @model_validator(mode="after")
+    def validate_adjustment(self) -> PlanAdjustment:
+        if not any(
+            (
+                self.target_bpm is not None,
+                self.target_key is not None,
+                self.sections is not None,
+                self.instrumentation is not None,
+                bool(self.note),
+            )
+        ):
+            raise ValueError("at least one Plan adjustment field must change")
+        if self.sections is not None:
+            total_bars = sum(section.bars for section in self.sections)
+            if not 8 <= total_bars <= 256:
+                raise ValueError("adjusted sections must total between 8 and 256 bars")
+        return self
+
+
 class KeyPlan(StrictSchema):
     tonic: Literal[
         "C",

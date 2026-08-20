@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from pydantic import Field
 
-from motif_forge.agent.schemas import CompositionBrief
+from motif_forge.agent.schemas import CompositionBrief, PlanAdjustment
 from motif_forge.application._hashing import request_hash
 from motif_forge.application.errors import ApplicationError, IdempotencyKeyReusedError
 from motif_forge.application.ports import AIRunProjection, AIRunUnitOfWorkFactory
@@ -29,6 +30,118 @@ from motif_forge.domain.ai_runs import (
 from motif_forge.domain.ir import DomainModel
 
 CREATE_AI_RUN_OPERATION = "ai-run.create.v1"
+REPLAN_AI_RUN_OPERATION = "ai-run.replan.v1"
+
+
+def _adjustment_preferences(adjustment: PlanAdjustment) -> tuple[str, ...]:
+    parts: list[str] = []
+    if adjustment.sections is not None:
+        parts.extend(
+            f"S:{section.name},bars={section.bars},energy={section.energy:g}"
+            for section in adjustment.sections
+        )
+    if adjustment.instrumentation is not None:
+        parts.extend(
+            f"I:{instrument.name},role={instrument.role}"
+            for instrument in adjustment.instrumentation
+        )
+    if adjustment.note:
+        parts.append(f"N:{adjustment.note}")
+    normalized = " | ".join(parts)
+    return tuple(normalized[index : index + 240] for index in range(0, len(normalized), 240))
+
+
+def derive_replan_brief(
+    parent: CompositionBrief, adjustment: PlanAdjustment
+) -> CompositionBrief:
+    """Project reviewed intent into the one existing strict planning input."""
+
+    normalized = _adjustment_preferences(adjustment)
+    if len(normalized) > 16:
+        raise ApplicationError(
+            "PLAN_ADJUSTMENT_TOO_LARGE",
+            "the normalized Plan adjustment exceeds the Brief preference boundary",
+        )
+    preserved = parent.soft_preferences[: 16 - len(normalized)]
+    return parent.model_copy(
+        update={
+            "target_bpm": (
+                adjustment.target_bpm
+                if adjustment.target_bpm is not None
+                else parent.target_bpm
+            ),
+            "target_key": (
+                adjustment.target_key
+                if adjustment.target_key is not None
+                else parent.target_key
+            ),
+            "preferred_instruments": (
+                tuple(item.name for item in adjustment.instrumentation)
+                if adjustment.instrumentation is not None
+                else parent.preferred_instruments
+            ),
+            "soft_preferences": (*normalized, *preserved),
+        }
+    )
+
+
+class ReplanAIRunRequest(DomainModel):
+    run_id: UUID
+    expected_version: int = Field(ge=0)
+    expected_plan_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    adjustment: PlanAdjustment
+    idempotency_key: str = Field(min_length=8, max_length=160)
+
+
+class ReplanAIRun:
+    """Create one immutable child Run without calling the planner synchronously."""
+
+    def __init__(
+        self,
+        uow_factory: AIRunUnitOfWorkFactory,
+        *,
+        id_factory: Callable[[], UUID] = uuid4,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> None:
+        self._uow_factory = uow_factory
+        self._id_factory = id_factory
+        self._clock = clock
+
+    async def __call__(self, request: ReplanAIRunRequest) -> AIRun:
+        async with self._uow_factory() as transaction:
+            parent = await transaction.read_ai_run(request.run_id)
+        if parent.brief is None:
+            raise ApplicationError("AI_RUN_BRIEF_INVALID", "the parent Run has no planning Brief")
+        try:
+            parent_brief = CompositionBrief.model_validate_json(
+                json.dumps(parent.brief), strict=True
+            )
+        except ValueError:
+            raise ApplicationError(
+                "AI_RUN_BRIEF_INVALID", "the parent Run planning Brief is invalid"
+            ) from None
+        child_brief = derive_replan_brief(parent_brief, request.adjustment)
+        fingerprint = request_hash(
+            {
+                "schema": REPLAN_AI_RUN_OPERATION,
+                **request.model_dump(mode="json", exclude={"idempotency_key"}),
+                "child_brief": child_brief.model_dump(mode="json"),
+            }
+        )
+        async with self._uow_factory() as transaction:
+            return await transaction.replan_ai_run(
+                parent_run_id=request.run_id,
+                expected_version=request.expected_version,
+                expected_plan_hash=request.expected_plan_hash,
+                idempotency_key=request.idempotency_key,
+                child_run_id=self._id_factory(),
+                child_thread_id=f"replan-{self._id_factory()}",
+                child_brief=child_brief.model_dump(mode="json"),
+                created_event_id=self._id_factory(),
+                outbox_event_id=self._id_factory(),
+                request_hash=fingerprint,
+                now=self._clock(),
+            )
 
 
 def graph_progress_target(

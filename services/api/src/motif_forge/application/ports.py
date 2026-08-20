@@ -56,6 +56,7 @@ class IdempotencyHit:
 @dataclass(frozen=True, slots=True)
 class AIRunProjection:
     run: AIRun
+    plan: PersistedCompositionPlan | None = None
     revision_id: UUID | None = None
     bundle_id: UUID | None = None
     fallback_reason: str | None = None
@@ -426,6 +427,21 @@ class AIRunTransaction(Protocol):
         idempotency_key: str,
         child_run_id: UUID,
         child_thread_id: str,
+        created_event_id: UUID,
+        outbox_event_id: UUID,
+        request_hash: str,
+        now: datetime,
+    ) -> AIRun: ...
+    async def replan_ai_run(
+        self,
+        *,
+        parent_run_id: UUID,
+        expected_version: int,
+        expected_plan_hash: str,
+        idempotency_key: str,
+        child_run_id: UUID,
+        child_thread_id: str,
+        child_brief: dict[str, object],
         created_event_id: UUID,
         outbox_event_id: UUID,
         request_hash: str,

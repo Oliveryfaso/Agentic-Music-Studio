@@ -301,6 +301,7 @@ def _application_status(error: ApplicationError) -> int:
         "ARTIFACT_REHYDRATION_STATE_CONFLICT",
         "ARTIFACT_REHYDRATION_DEPENDENCY_UNAVAILABLE",
         "ARTIFACT_EVICTED",
+        "AI_RUN_REPLAN_STATE_CONFLICT",
     }:
         return 409
     if error.code in {
@@ -319,6 +320,7 @@ def _application_status(error: ApplicationError) -> int:
         "ARTIFACT_REHYDRATION_UNSUPPORTED",
         "ARTIFACT_REHYDRATION_RECIPE_INVALID",
         "ARTIFACT_NOT_PLAYABLE",
+        "PLAN_ADJUSTMENT_TOO_LARGE",
     }:
         return 422
     if error.code in {"PERSISTENCE_NOT_CONFIGURED", "ARTIFACT_ROOT_UNAVAILABLE"}:

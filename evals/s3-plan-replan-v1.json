@@ -1,0 +1,27 @@
+[
+  {
+    "id": "valid-tempo-section-instrument-adjustment",
+    "expected_label": "CHILD_BRIEF_DERIVED",
+    "adjustment": {
+      "schema_version": "plan-adjustment.v1",
+      "target_bpm": 90,
+      "target_key": "E minor",
+      "sections": [
+        {"name": "Arrival", "bars": 8, "energy": 0.25},
+        {"name": "Motion", "bars": 24, "energy": 0.7}
+      ],
+      "instrumentation": [
+        {"name": "Glass Pad", "role": "harmony"},
+        {"name": "Muted Pulse", "role": "rhythm"}
+      ],
+      "note": "Keep the transition gradual."
+    }
+  },
+  {
+    "id": "invalid-empty-adjustment",
+    "expected_label": "PLAN_ADJUSTMENT_INVALID",
+    "adjustment": {
+      "schema_version": "plan-adjustment.v1"
+    }
+  }
+]

@@ -12,18 +12,20 @@ from fastapi import APIRouter, Header, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from motif_forge.agent.schemas import CompositionBrief
+from motif_forge.agent.schemas import CompositionBrief, CompositionPlan, PlanAdjustment
 from motif_forge.application.ai_runs import (
     CreateAIRun,
     CreateAIRunRequest,
     ListAIRunEvents,
     ReadAIRun,
     ReadAIRunProjection,
+    ReplanAIRun,
+    ReplanAIRunRequest,
     RequestAIRunAction,
     ResumeAIRunApproval,
 )
 from motif_forge.application.ports import AIRunProjection, AIRunUnitOfWorkFactory
-from motif_forge.domain.ai_runs import AIRun, AIRunEvent, AIRunStatus
+from motif_forge.domain.ai_runs import AIRun, AIRunEvent, AIRunStatus, PlanHashVersion
 
 IdempotencyKey = Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=160)]
 
@@ -59,6 +61,28 @@ class RunActionBody(ApiModel):
     expected_version: int = Field(ge=0)
 
 
+class ReplanAIRunBody(ApiModel):
+    expected_version: int = Field(ge=0)
+    expected_plan_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    adjustment: dict[str, object]
+
+    @field_validator("adjustment")
+    @classmethod
+    def validate_adjustment(cls, value: dict[str, object]) -> dict[str, object]:
+        PlanAdjustment.model_validate_json(json.dumps(value), strict=True)
+        return value
+
+
+class RunPlanData(ApiModel):
+    plan_id: UUID
+    content_hash: str
+    hash_version: PlanHashVersion
+    plan: CompositionPlan
+    provider: str
+    model: str
+    fallback_reason: str | None
+
+
 class AIRunData(ApiModel):
     run_id: UUID
     parent_run_id: UUID | None
@@ -84,6 +108,7 @@ class AIRunData(ApiModel):
     bundle_id: UUID | None = None
     fallback_reason: str | None = None
     error_code: str | None = None
+    plan: RunPlanData | None = None
 
 
 def run_data(run: AIRun, projection: AIRunProjection | None = None) -> AIRunData:
@@ -103,6 +128,19 @@ def run_data(run: AIRun, projection: AIRunProjection | None = None) -> AIRunData
         bundle_id=projection.bundle_id if projection else None,
         fallback_reason=projection.fallback_reason if projection else None,
         error_code=projection.error_code if projection else None,
+        plan=(
+            RunPlanData(
+                plan_id=projection.plan.plan_id,
+                content_hash=projection.plan.content_hash,
+                hash_version=projection.plan.hash_version,
+                plan=projection.plan.plan,
+                provider=projection.plan.provider,
+                model=projection.plan.model,
+                fallback_reason=projection.plan.fallback_reason,
+            )
+            if projection and projection.plan
+            else None
+        ),
     )
 
 
@@ -168,6 +206,22 @@ def build_ai_run_router(uow: AIRunUnitOfWorkFactory) -> APIRouter:
         run_id: UUID, body: RunActionBody, idempotency_key: IdempotencyKey
     ) -> dict[str, object]:
         return await action(run_id, body, idempotency_key, "retry")
+
+    @router.post("/runs/{run_id}/replan", status_code=202)
+    async def replan_run(
+        run_id: UUID, body: ReplanAIRunBody, idempotency_key: IdempotencyKey
+    ) -> dict[str, object]:
+        adjustment = PlanAdjustment.model_validate_json(
+            json.dumps(body.adjustment), strict=True
+        )
+        run = await ReplanAIRun(uow)(ReplanAIRunRequest(
+            run_id=run_id,
+            expected_version=body.expected_version,
+            expected_plan_hash=body.expected_plan_hash,
+            adjustment=adjustment,
+            idempotency_key=idempotency_key,
+        ))
+        return {"data": run_data(run).model_dump(mode="json")}
 
     @router.get("/runs/{run_id}/events")
     async def stream_events(

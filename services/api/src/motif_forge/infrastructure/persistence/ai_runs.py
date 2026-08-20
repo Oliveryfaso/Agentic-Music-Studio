@@ -223,7 +223,8 @@ class PostgresAIRunTransaction:
              if isinstance(payload.get("error_code"), str)), None
         )
         return AIRunProjection(
-            run=run, revision_id=receipt.revision_id if receipt else None,
+            run=run, plan=_plan_from_row(plan) if plan else None,
+            revision_id=receipt.revision_id if receipt else None,
             bundle_id=bundle.id if bundle else None,
             fallback_reason=plan.fallback_reason if plan else None, error_code=error_code,
         )
@@ -723,6 +724,138 @@ class PostgresAIRunTransaction:
                 aggregate_id=child.run_id,
                 topic="graph.start.requested",
                 dedupe_key=f"ai-run:{parent_run_id}:retry:{idempotency_key}",
+                payload={
+                    "schema_version": "graph-action.v1",
+                    "action": "start",
+                    "run_id": str(child.run_id),
+                    "thread_id": child.thread_id,
+                    "run_type": "parent.generate.v1",
+                    "decision": None,
+                },
+                status="pending",
+                attempts=0,
+                available_at=now,
+                created_at=now,
+            )
+        )
+        return child
+
+    async def replan_ai_run(
+        self,
+        *,
+        parent_run_id: UUID,
+        expected_version: int,
+        expected_plan_hash: str,
+        idempotency_key: str,
+        child_run_id: UUID,
+        child_thread_id: str,
+        child_brief: dict[str, object],
+        created_event_id: UUID,
+        outbox_event_id: UUID,
+        request_hash: str,
+        now: datetime,
+    ) -> AIRun:
+        parent_row = (
+            await self._session.execute(
+                select(AIRunRow).where(AIRunRow.id == parent_run_id).with_for_update()
+            )
+        ).scalar_one_or_none()
+        if parent_row is None:
+            raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
+        existing = (
+            await self._session.execute(
+                select(AIRunActionIdempotencyRow).where(
+                    AIRunActionIdempotencyRow.parent_run_id == parent_run_id,
+                    AIRunActionIdempotencyRow.action == "replan",
+                    AIRunActionIdempotencyRow.idempotency_key == idempotency_key,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing is not None:
+            if existing.request_hash != request_hash:
+                raise IdempotencyKeyReusedError
+            return await self.read_ai_run(existing.result_run_id)
+
+        parent = _run_from_row(parent_row)
+        if (
+            parent.status is not AIRunStatus.WAITING_APPROVAL
+            or parent.version != expected_version
+            or parent.pending_plan_id is None
+            or parent.pending_plan_content_hash != expected_plan_hash
+        ):
+            raise ApplicationError(
+                "AI_RUN_REPLAN_STATE_CONFLICT",
+                "replan requires the current pending Plan version and content hash",
+            )
+        persisted_plan = (
+            await self._session.execute(
+                select(CompositionPlanRow).where(
+                    CompositionPlanRow.id == parent.pending_plan_id,
+                    CompositionPlanRow.run_id == parent.run_id,
+                    CompositionPlanRow.content_hash == expected_plan_hash,
+                )
+            )
+        ).scalar_one_or_none()
+        if persisted_plan is None:
+            raise ApplicationError(
+                "AI_RUN_REPLAN_STATE_CONFLICT",
+                "the pending Plan is no longer available for replan",
+            )
+
+        child = AIRun(
+            run_id=child_run_id,
+            parent_run_id=parent.run_id,
+            project_id=parent.project_id,
+            branch_id=parent.branch_id,
+            base_revision_id=parent.base_revision_id,
+            thread_id=child_thread_id,
+            graph_topology_version=parent.graph_topology_version,
+            state_schema_version=parent.state_schema_version,
+            brief=child_brief,
+            max_model_requests=parent.max_model_requests,
+            max_total_tokens=parent.max_total_tokens,
+            created_at=now,
+            updated_at=now,
+        )
+        await self._session.execute(insert(AIRunRow).values(**_run_values(child)))
+        await self._session.execute(
+            insert(AIRunEventRow).values(
+                **_event_values(
+                    AIRunEvent(
+                        sequence=1,
+                        event_id=created_event_id,
+                        run_id=child.run_id,
+                        event_type="ai_run.created",
+                        phase="queued",
+                        payload={
+                            "thread_id": child.thread_id,
+                            "parent_run_id": str(parent_run_id),
+                        },
+                        dedupe_key="created",
+                        created_at=now,
+                    ),
+                    sequence=None,
+                )
+            )
+        )
+        await self._session.execute(
+            insert(AIRunActionIdempotencyRow).values(
+                id=UUID(bytes=secrets.token_bytes(16)),
+                parent_run_id=parent_run_id,
+                action="replan",
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                result_run_id=child.run_id,
+                created_at=now,
+            )
+        )
+        await self._session.execute(
+            insert(OutboxEventRow).values(
+                id=outbox_event_id,
+                aggregate_type="ai_run",
+                aggregate_id=child.run_id,
+                topic="graph.start.requested",
+                dedupe_key=f"ai-run:{parent_run_id}:replan:{idempotency_key}",
                 payload={
                     "schema_version": "graph-action.v1",
                     "action": "start",
