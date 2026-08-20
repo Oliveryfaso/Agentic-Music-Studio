@@ -324,3 +324,13 @@
 - 真实 Plan 暴露 section function 可长于 ArrangementIR 80 字符边界；确定性编译器现只在 Plan→IR 投影时截断该描述，不修改持久 Plan。随后 approval outbox 首次投递已把 checkpoint 推到 `approved` 才失败，重投原先会误判为 no-op；Dispatcher 现对 `approved`/`revision_materialized` checkpoint 以 `ainvoke(None)` 继续同一 thread。两项均先有 RED，再有单元 GREEN。
 - Key 撤下后，只重投同一权威 approval outbox；同一 v2 Run 未新增模型调用并恢复到 `succeeded`。最终权威事实为 1 Plan、1 Revision、7 succeeded Jobs、6 Audio Artifacts、1 Export Bundle，全部 Job 属于单一 `complete_song_export.v1` Media Run；六个实体文件 checksum 与数据库内容和 Revision/Arrangement/source Job lineage 一致。
 - 最终回归为 Python `440 passed / 56 integration-only skipped`，修复聚焦 `152 passed / 7 skipped`，真实 PostgreSQL `8 passed`，Audio `13 passed`，Web `15 passed`；Ruff、Mypy 82 source、Audio/Web build 和 OpenAPI 确定性重生成通过。S2 关闭，活动门切换到 S3 网页 Brief/Plan 与只读 Studio。
+
+## 2026-08-20：S3 浏览器 Brief/Plan 与只读 Studio 闭环
+
+- 新增 Project Home 与版本化 Project/Run/Studio Read Model：浏览器从当前 Branch head 提交严格 Brief，使用同一 Parent Graph v2 查看 Fallback/DeepSeek Plan、人工审批或创建 immutable child Replan，并通过权威 GET + 持久 SSE 恢复进度。PlanAdjustment 不覆盖父 Plan，批准仍绑定当前 Plan hash、version、actor 与 16 字符以上断言。
+- 新增只读 Arrangement Studio：从 PostgreSQL Revision 读取权威 ArrangementIR 与 delivery Asset，Canvas 只画时间线主体、DOM Track Header 保持可访问；Transport 只经 validated Audio Artifact content route 播放 MP3。available/evicted/rehydrating/missing、部分成功、外置 Root 断开、空轨、加载与错误状态均不伪造内容；编辑、Piano Roll、Mixer 与 Export UI 保留给后续阶段。
+- Import Review 可接收既有 Project，并用显式顺序队列导入多个 Stem。每个文件独立保存 rights、progress/error 和 retry/skip 状态；每次成功后重读 Project head，下一文件绑定新 base Revision；Revision conflict 停止队列并刷新权威 Project，不创建第二个 Project。
+- S3 确定性 Chromium gate 只用浏览器可见控件和公开 HTTP 执行 Project → Brief → parent Plan → child Replan → Approval → complete export → Studio/play → Project reopen → same-Project two-Stem import。容器 no-key attestation 在任何浏览器写操作前 fail closed；S3 没有改变 provider prompt/schema/planner，因此没有触发新付费调用。
+- 最终浏览器事实为父/子 Plan 各 1 且旧 Plan 可读，批准子 Run `succeeded`，1 Revision、7 succeeded Jobs、6 Audio、1 Bundle、单一 Media Run；delivery MP3 为 2,426,924 bytes 并实际开始播放。390px 的 Run/Studio/reopen 无页面级 overflow，两个 Stem 使 Branch head 连续推进两次，provider requests/tokens 为 `0/0`。
+- 主机门为 Python unit + S3 contract `415 passed`、Audio `13 passed`、Web `41 passed`、Ruff、Mypy strict 85 source、Vite build、OpenAPI 双生成一致和 diff clean。Compose runtime 使用独立已迁移测试库，真实 PostgreSQL integration `59 passed / 1 Redis+Artifact opt-in skipped`；主作品库中的 lossless-v2 Plan 按设计阻止危险 migration downgrade，未为测试删除或改写任何作品事实。
+- 运行态只重建了本阶段后端/API Read Model 所需的 API target；Media Worker 镜像未重建，Render Worker 只因同机旧容器占用 8090 而精确切换到当前 worktree。固定 Playwright Chromium 安装到用户工具缓存供后续 Web 阶段复用；没有清理共享 BuildKit、数据库卷、业务 Artifact 或当前具名镜像。

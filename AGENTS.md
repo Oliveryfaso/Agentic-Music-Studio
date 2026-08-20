@@ -13,11 +13,11 @@ Read in this order before planning, coding, reviewing, testing, or editing docum
 5. `.agents/skills/motif-forge-development/SKILL.md`
 6. Only the specialized contract/checklist relevant to the active slice
 
-Record the SHA-256 of `docs/PROJECT_GUIDE.md` at task start and recheck it before handoff. Stop and reconcile evidence if the guide, implementation status, roadmap, code, migrations, or tests disagree.
+Record the Git revision and working-tree state of `docs/PROJECT_GUIDE.md` at task start and recheck its diff before handoff. Do not compute a content hash unless an integrity/idempotency protocol or explicit acceptance requirement needs one. Stop and reconcile evidence if the guide, implementation status, roadmap, code, migrations, or tests disagree.
 
 ## Active gate
 
-`G0`, `S1` and `S2` are complete. The single Parent Graph v2 owns Generate through complete export, the durable Dispatcher and REST/SSE recovery surface are connected, representative Eval and deterministic no-paid Compose smoke pass, and one budgeted DeepSeek V4 Flash run completed the approved Plan → Revision → seven-Job export path. `S3` is the only active gate: add the browser Brief/Plan approval and read-only Studio path without creating another production Graph or weakening the S2 contracts.
+`G0`, `S1`, `S2` and `S3` are complete. The browser now owns Project → Brief → Plan Review/Approval → persistent Generate progress → read-only Studio/MP3 and same-Project multi-Stem import without weakening the single Parent Graph v2 contracts. `S4` is the only active gate: add four versioned Style Packs and the Theory Engine without starting dual-candidate orchestration, full DAW editing or S7 hardening early.
 
 ## Scope and traceability
 
@@ -41,9 +41,9 @@ Record the SHA-256 of `docs/PROJECT_GUIDE.md` at task start and recheck it befor
 ## Portfolio Engineering Mode
 
 - Protect the complete Agent architecture and the current user journey before adding production-platform breadth. Never trade away the single Parent Graph, bounded structured model output, deterministic compiler/Fallback, hash-bound HITL, immutable Revision, persistent recovery, complete export, truthful usage, or secret isolation.
-- A Task normally proves its new behavior with focused RED/GREEN tests plus one real boundary integration. Run combined/full regression at a cross-service checkpoint, every 2–3 Tasks, and at the S2 final gate—not after every local edit.
+- A Task normally proves its new behavior with focused RED/GREEN tests plus one real boundary integration. Run combined/full regression at a cross-service checkpoint, every 2–3 Tasks, and at each stage final gate—not after every local edit.
 - A Task normally receives one independent review and at most one repair re-review. Critical issues always block. Important issues block when they affect the current user path, irreversible data, secrets/permissions, duplicate model spend, HITL, idempotent side effects, or restart recovery. Record other Important/Minor findings under the roadmap's deferred hardening register.
-- Execute one S2 implementation Task per fresh Codex session. Start from the latest clean Git checkpoint and a compact `session-handoff`; do not carry full historical review transcripts into the next Task. Give subagents only the active Task, required contracts and current diff.
+- Execute one implementation Task per fresh Codex session when practical. Start from the latest clean Git checkpoint and a compact `session-handoff`; do not carry full historical review transcripts into the next Task. Give any necessary subagent only the active Task, required contracts and current diff.
 - If a blocking Critical/current-path Important remains after the one repair re-review, stop the Task, record the exact blocker and ask for direction. Do not hide it, lower its severity, or start an unbounded review loop.
 - Do not require exhaustive crash/cancel/concurrency permutations, every historical populated downgrade, load/P95 testing, multi-tenant isolation, or full observability infrastructure before the creative workflow exists. Add one representative case now; promote further cases only when a real failure, repeated defect, public-release boundary, or measured bottleneck triggers them.
 - Do not use this mode to waive TDD, schema validation, migrations for persisted changes, one real PostgreSQL boundary, or stage-end Compose/live evidence. It reduces repeated proof, not architecture or music-product quality.

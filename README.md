@@ -1,6 +1,6 @@
 # Motif Forge
 
-Motif Forge is a local-first, agent-assisted instrumental composition workbench. The current browser product supports controlled upload, durable audio import, BPM/key analysis with HITL, pitch-preserving alignment, Artifact recovery, and original/aligned preview. The internal S1 path also generates and fully exports a deterministic 72-second, four-track composition through the real PostgreSQL Outbox, Redis/Celery and Chromium Worker chain. Agent-driven complete-song generation and the DAW-style Studio are not yet user-operable.
+Motif Forge is a local-first, agent-assisted instrumental composition workbench. The browser can create a Project, submit a Brief, review or adjust the Agent's immutable Plan, approve a recoverable complete-song Run, follow persistent progress, and play the real delivery MP3 in a read-only Arrangement Studio. It also supports controlled multi-Stem import, BPM/key analysis with HITL, pitch-preserving alignment, Artifact recovery, and original/aligned preview. Full DAW editing, four Style Packs, dual candidates, and AI selection editing remain later stages.
 
 Read documentation in this order:
 
