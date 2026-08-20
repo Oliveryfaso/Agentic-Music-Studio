@@ -690,9 +690,7 @@ def compile_synth_ambient_plan(
     compatibility = validate_synth_ambient_plan(brief, plan)
     if not compatibility.compatible:
         raise SynthAmbientCompilationError(compatibility.issues)
-    instruments = {
-        PatternRole(item.role.casefold().strip()): item for item in plan.instrumentation
-    }
+    instruments = {PatternRole(item.role.casefold().strip()): item for item in plan.instrumentation}
     duration_seconds = plan.duration_bars * 4 * 60 / plan.bpm
     plan_hash = composition_plan_content_hash(plan)
     mode = MusicalMode(plan.key.mode)
@@ -748,8 +746,8 @@ def compile_synth_ambient_plan(
                 ),
                 ProvenanceRef(
                     kind="knowledge",
-                    ref="style-pack:synth-ambient",
-                    version="synth-ambient.v1",
+                    ref="style:synth-ambient:v1",
+                    version="v1",
                 ),
             ),
         ),

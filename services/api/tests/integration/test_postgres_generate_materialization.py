@@ -464,7 +464,7 @@ async def test_real_postgres_approved_plan_materializes_one_revision_and_replays
         assert receipt.candidate_snapshot_id == first.candidate_snapshot_id
         assert receipt.preview_id == first.preview_id
         assert receipt.revision_id == first.revision_id
-        assert receipt.style_pack_version == "synth-ambient.v1"
+        assert receipt.style_pack_version == "style:synth-ambient:v1"
         assert receipt.compiler_version == "synth-ambient-compiler.v1"
         assert event == {
             "receipt_id": str(receipt.id),
@@ -477,11 +477,17 @@ async def test_real_postgres_approved_plan_materializes_one_revision_and_replays
             "preview_id": str(first.preview_id),
             "revision_id": str(first.revision_id),
             "command_batch_id": str(receipt.command_batch_id),
-            "style_pack_version": "synth-ambient.v1",
+            "style_pack_version": "style:synth-ambient:v1",
             "compiler_version": "synth-ambient-compiler.v1",
+            "theory_report": {
+                "schema_version": "theory-report.v1",
+                "engine_version": "theory-engine.v1",
+                "pack_id": "style:synth-ambient:v1",
+                "issues": [],
+            },
         }
         assert candidate_versions == revision_versions
-        assert candidate_versions["knowledge"] == "synth-ambient.v1"
+        assert candidate_versions["knowledge"] == "style:synth-ambient:v1"
         assert candidate_versions["compiler"] == "synth-ambient-compiler.v1"
         assert [row.client_sequence for row in command_facts] == [0, 1, 2, 3, 4]
         assert [row.command_type for row in command_facts] == [
@@ -491,11 +497,13 @@ async def test_real_postgres_approved_plan_materializes_one_revision_and_replays
             "add_track",
             "add_track",
         ]
-        assert {entry["version"] for entry in command_facts[0].payload["provenance"]} >= {
+        provenance = command_facts[0].payload["provenance"]
+        assert {entry["version"] for entry in provenance} >= {
             "composition-plan.v1",
-            "synth-ambient.v1",
+            "v1",
             "synth-ambient-compiler.v1",
         }
+        assert "style:synth-ambient:v1" in {entry["ref"] for entry in provenance}
     finally:
         await _delete_exact_project(engine, project.project_id, run.run_id)
         await engine.dispose()
@@ -992,7 +1000,7 @@ async def test_real_postgres_composite_materialization_rolls_back_every_write(
 
 
 @pytest.mark.asyncio
-async def test_0016_downgrade_refuses_durable_receipts_then_round_trips_when_empty(
+async def test_0017_and_0016_downgrade_refuse_receipts_then_round_trip_when_empty(
     test_postgres_dsn: str,
 ) -> None:
     engine, sessions, _projects, _ai_runs, request = await _approved_materialization_fixture(
@@ -1002,15 +1010,19 @@ async def test_0016_downgrade_refuses_durable_receipts_then_round_trips_when_emp
         await MaterializeApprovedComposition(
             PostgresCompositionMaterializationUnitOfWork(sessions),
         )(request)
-        with pytest.raises(RuntimeError, match=r"cannot downgrade 0016.*receipts exist"):
+        with pytest.raises(RuntimeError, match=r"cannot downgrade 0017.*receipts exist"):
             await asyncio.to_thread(_downgrade, test_postgres_dsn, "20260813_0015")
         async with engine.connect() as connection:
             assert await connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                "20260813_0016"
+                "20260820_0017"
             )
             assert (
                 await connection.scalar(
-                    text("SELECT count(*) FROM app.composition_materialization_receipts")
+                    text(
+                        "SELECT count(*) FROM app.composition_materialization_receipts "
+                        "WHERE run_id=:run_id"
+                    ),
+                    {"run_id": request.run_id},
                 )
                 == 1
             )

@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 import pytest
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
+from motif_forge.agent.fallback import build_fallback_plan
 from motif_forge.agent.generate import GenerateRequest, initial_generate_state
 from motif_forge.agent.parent_graph import (
     PARENT_GRAPH_TOPOLOGY_VERSION,
@@ -50,9 +51,11 @@ class _Persist:
     def __init__(self) -> None:
         self.calls = 0
         self.plan_id = uuid4()
+        self.style_pack_version: str | None = None
 
     async def __call__(self, request):  # type: ignore[no-untyped-def]
         self.calls += 1
+        self.style_pack_version = request.style_pack_version
         plan = CompositionPlan.model_validate_json(
             json.dumps(request.planning_result["plan"]), strict=True
         )
@@ -290,7 +293,7 @@ async def test_generate_export_storage_gate_blocks_enqueue(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("brief_change", [{"style": "classical_chamber"}, {"meter": "3/4"}])
+@pytest.mark.parametrize("brief_change", [{"meter": "3/4"}])
 async def test_unsupported_strategy_fails_before_planner(brief_change: dict[str, object]) -> None:
     graph, planner, persist, _, materialize, export = _services()
     request = _request(**brief_change)
@@ -303,6 +306,34 @@ async def test_unsupported_strategy_fails_before_planner(brief_change: dict[str,
     assert result["terminal_status"] == "failed"
     assert result["error_code"] == "GENERATE_STRATEGY_UNSUPPORTED"
     assert planner.calls == persist.calls == materialize.calls == export.enqueue_calls == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("style", "pack_id"),
+    [
+        ("synth_ambient", "style:synth-ambient:v1"),
+        ("minimal_electronic", "style:minimal-electronic:v1"),
+        ("classical_chamber", "style:classical-chamber:v1"),
+        ("jazz_harmony_improvisation", "style:jazz-harmony-improvisation:v1"),
+    ],
+)
+async def test_four_styles_reach_approval_with_exact_pack_identity(
+    style: str, pack_id: str
+) -> None:
+    request = _request(style=style)
+    planner = _CountingPlanner(build_fallback_plan(request.brief))
+    graph, planner, persist, _, materialize, export = _services(planner=planner)
+
+    result = await graph.ainvoke(
+        initial_generate_state(thread_id=f"style-{style}", request=request),
+        _config(f"style-{style}"),
+    )
+
+    assert result["phase"] == "waiting_plan_approval"
+    assert persist.style_pack_version == pack_id
+    assert planner.calls == persist.calls == 1
+    assert materialize.calls == export.enqueue_calls == 0
 
 
 @pytest.mark.asyncio
@@ -332,9 +363,7 @@ async def test_reject_and_cancel_end_before_materialization_or_enqueue() -> None
             initial_generate_state(thread_id=thread_id, request=_request()), _config(thread_id)
         )
         payload = (
-            _approval_resume(waiting, "reject")
-            if resume == "reject"
-            else {"action": "cancel"}
+            _approval_resume(waiting, "reject") if resume == "reject" else {"action": "cancel"}
         )
         result = await graph.ainvoke(Command(resume=payload), _config(thread_id))
 
@@ -354,9 +383,7 @@ async def test_approve_materializes_once_and_waits_for_all_seven_exports() -> No
 
     for _ in range(7):
         assert state["phase"] == "waiting_generate_worker"
-        state = await graph.ainvoke(
-            Command(resume=_worker_resume(state)), _config(thread_id)
-        )
+        state = await graph.ainvoke(Command(resume=_worker_resume(state)), _config(thread_id))
 
     assert state["terminal_status"] == "succeeded"
     assert len(state["artifact_refs"]) == 7

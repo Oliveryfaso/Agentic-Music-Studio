@@ -29,6 +29,7 @@ from motif_forge.application.generation import (
 )
 from motif_forge.domain.ir import DomainModel
 from motif_forge.domain.media_jobs import WorkerResumePayload
+from motif_forge.domain.style_packs import builtin_style_pack_registry
 from motif_forge.observability.models import TelemetryRecorder
 
 PARENT_GRAPH_TOPOLOGY_VERSION = "motif-forge-parent.v2"
@@ -157,7 +158,7 @@ class GenerateNodes:
             )
         except (KeyError, TypeError, ValueError):
             return {"phase": "failed", "error_code": "PARENT_REQUEST_INVALID"}
-        if request.brief.style != "synth_ambient" or request.brief.meter != "4/4":
+        if request.brief.meter != "4/4":
             return {"phase": "failed", "error_code": "GENERATE_STRATEGY_UNSUPPORTED"}
         return {"phase": "generate_validated"}
 
@@ -188,15 +189,18 @@ class GenerateNodes:
         persisted = await self._persist(
             PersistPlanningResultRequest(
                 run_id=UUID(str(state["run_id"])),
-                expected_run_version=int(
-                    state["request_payload"].get("expected_run_version", 0)
-                ),
+                expected_run_version=int(state["request_payload"].get("expected_run_version", 0)),
                 planning_result=planning_result,
+                style_pack_version=builtin_style_pack_registry()
+                .resolve(
+                    CompositionPlan.model_validate_json(
+                        json.dumps(planning_result["plan"]), strict=True
+                    ).genre
+                )
+                .pack_id,
             )
         )
-        plan = CompositionPlan.model_validate_json(
-            json.dumps(planning_result["plan"]), strict=True
-        )
+        plan = CompositionPlan.model_validate_json(json.dumps(planning_result["plan"]), strict=True)
         update: dict[str, Any] = {
             "phase": "waiting_plan_approval",
             "plan_id": str(persisted.plan_id),

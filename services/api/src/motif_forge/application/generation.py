@@ -53,7 +53,6 @@ from motif_forge.domain.composition import (
     SYNTH_AMBIENT_COMPILER_VERSION,
     CompositionBuild,
     SynthAmbientCompilationError,
-    compile_synth_ambient_plan,
 )
 from motif_forge.domain.ir import DomainModel, TrackRole
 from motif_forge.domain.media_jobs import (
@@ -68,11 +67,16 @@ from motif_forge.domain.media_jobs import (
     MediaQualityProfile,
     RenderScope,
 )
+from motif_forge.domain.music_strategies import (
+    MusicStrategyRouter,
+    StrategyCompilationError,
+)
 from motif_forge.domain.revisions import (
     Revision,
     StructuralDiffEntry,
     VersionRefs,
 )
+from motif_forge.domain.style_packs import builtin_style_pack_registry
 
 _EXPORT_STEPS = (
     "master",
@@ -573,7 +577,9 @@ class PersistPlanningResultRequest(DomainModel):
     run_id: UUID
     expected_run_version: int = Field(ge=0)
     planning_result: PlanningResult
-    style_pack_version: Literal["synth-ambient.v1"] = "synth-ambient.v1"
+    style_pack_version: str = Field(
+        default="style:synth-ambient:v1", pattern=r"^style:[a-z0-9-]+:v1$"
+    )
 
 
 class PersistPlanningResultResult(DomainModel):
@@ -739,10 +745,12 @@ class MaterializeApprovedComposition:
         self,
         materialization_uow_factory: CompositionMaterializationUnitOfWorkFactory,
         *,
-        compiler: Compiler = compile_synth_ambient_plan,
+        compiler: Compiler | None = None,
+        strategy_router: MusicStrategyRouter | None = None,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._compiler = compiler
+        self._strategy_router = strategy_router or MusicStrategyRouter()
         self._materialization_uow_factory = materialization_uow_factory
         self._clock = clock
 
@@ -813,7 +821,11 @@ class MaterializeApprovedComposition:
                 expected_plan_hash=request.expected_plan_hash,
                 require_compilation_safe=True,
             )
-            if persisted.style_pack_version != "synth-ambient.v1":
+            expected_pack = builtin_style_pack_registry().resolve(persisted.plan.genre)
+            accepted_pack_versions = {expected_pack.pack_id}
+            if persisted.plan.genre == "synth_ambient":
+                accepted_pack_versions.add("synth-ambient.v1")
+            if persisted.style_pack_version not in accepted_pack_versions:
                 raise ApplicationError(
                     "PLAN_IDENTITY_MISMATCH", "the Plan or Style Pack identity is invalid"
                 )
@@ -826,10 +838,26 @@ class MaterializeApprovedComposition:
                     "BRIEF_INVALID", "the authoritative composition Brief is invalid"
                 ) from exc
             try:
-                build = self._compiler(
-                    request.project_id, brief=brief, plan=persisted.plan, seed=request.seed
-                )
-            except SynthAmbientCompilationError as exc:
+                if self._compiler is not None:
+                    build = self._compiler(
+                        request.project_id,
+                        brief=brief,
+                        plan=persisted.plan,
+                        seed=request.seed,
+                    )
+                    compiler_version = SYNTH_AMBIENT_COMPILER_VERSION
+                    theory_report = None
+                else:
+                    strategy = self._strategy_router.compile(
+                        request.project_id,
+                        brief=brief,
+                        plan=persisted.plan,
+                        seed=request.seed,
+                    )
+                    build = strategy.build
+                    compiler_version = strategy.compiler_version
+                    theory_report = strategy.theory_report
+            except (SynthAmbientCompilationError, StrategyCompilationError) as exc:
                 raise ApplicationError(
                     "PLAN_STRATEGY_INCOMPATIBLE",
                     "the approved CompositionPlan no longer satisfies the strategy policy",
@@ -871,7 +899,7 @@ class MaterializeApprovedComposition:
                     prompt=persisted.prompt_version,
                     knowledge=persisted.style_pack_version,
                     assets="builtin-seed-palette.v1",
-                    compiler=SYNTH_AMBIENT_COMPILER_VERSION,
+                    compiler=compiler_version,
                 ),
             )
             decision = await approve_preview_in_transaction(
@@ -907,8 +935,8 @@ class MaterializeApprovedComposition:
                 preview_id=preview.preview_id,
                 revision_id=decision.revision_id,
                 command_batch_id=revision.command_batch_id,
-                style_pack_version="synth-ambient.v1",
-                compiler_version=SYNTH_AMBIENT_COMPILER_VERSION,
+                style_pack_version=persisted.style_pack_version,
+                compiler_version=compiler_version,
                 created_at=now,
             )
             await transaction.insert_materialization_receipt(
@@ -931,6 +959,11 @@ class MaterializeApprovedComposition:
                         "revision_id": str(decision.revision_id),
                         "command_batch_id": str(revision.command_batch_id),
                         "style_pack_version": persisted.style_pack_version,
+                        "theory_report": (
+                            theory_report.model_dump(mode="json")
+                            if theory_report is not None
+                            else None
+                        ),
                         "compiler_version": SYNTH_AMBIENT_COMPILER_VERSION,
                     },
                     dedupe_key=f"materialized:{request.plan_id}:{request.seed}",

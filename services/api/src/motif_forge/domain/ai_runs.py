@@ -238,7 +238,7 @@ class CompositionMaterializationReceipt(DomainModel):
     preview_id: UUID
     revision_id: UUID
     command_batch_id: UUID
-    style_pack_version: Literal["synth-ambient.v1"] = "synth-ambient.v1"
+    style_pack_version: str = Field(min_length=1, max_length=80)
     compiler_version: str = Field(min_length=1, max_length=80)
     created_at: datetime
 
