@@ -1,0 +1,98 @@
+[
+  {
+    "schema_version": "style-pack.v1", "pack_id": "style:synth-ambient:v1", "version": "v1",
+    "style": "synth_ambient", "genre": "Synth Ambient", "era": "Contemporary ambient synthesis",
+    "compatible_plan_schema_versions": ["composition-plan.v1"], "compatible_engine_versions": ["theory-engine.v1"],
+    "form_templates": [{"template_id": "form:ambient-arc:v1", "section_functions": ["opening", "drift", "bloom", "resolution"]}],
+    "instrumentation": [
+      {"role": "pad", "track_role": "harmony", "instrument": "Warm Pad", "low_midi": 48, "high_midi": 72},
+      {"role": "melody", "track_role": "melody", "instrument": "Glass Pluck", "low_midi": 60, "high_midi": 84},
+      {"role": "bass", "track_role": "bass", "instrument": "Sub Bass", "low_midi": 36, "high_midi": 52},
+      {"role": "rhythm", "track_role": "rhythm", "instrument": "Soft Pulse", "low_midi": 36, "high_midi": 36}
+    ],
+    "harmony_constraints": ["slow diatonic motion", "open fifths"], "rhythm_constraints": ["sparse stable pulse"],
+    "timbre_constraints": ["controlled tails", "gradual spectral motion"], "avoidances": ["abrupt hard cut"],
+    "production_recipes": [{"recipe_id": "recipe:ambient-space:v1", "summary": "Layer restrained envelopes with bounded spatial tails."}],
+    "symbolic_exemplars": [{"exemplar_id": "exemplar:ambient-arc:v1", "source_citation_id": "source:motif-forge-ambient:v1", "derived_facts": ["four-stage density arc", "open register spacing"]}],
+    "sources": [{"citation_id": "source:motif-forge-ambient:v1", "title": "Motif Forge Ambient Strategy Notes", "author": "Motif Forge", "source_url": null, "license_id": "project-authored"}],
+    "license_snapshot": {"license_id": "project-authored", "reviewed": true, "allows_commercial_use": true, "attribution_required": false},
+    "preset_palette": [
+      {"preset_id": "builtin:warm-pad", "instrument_family": "synth", "role": "pad", "low_midi": 48, "high_midi": 72, "reviewed": true},
+      {"preset_id": "builtin:glass-pluck", "instrument_family": "synth", "role": "melody", "low_midi": 60, "high_midi": 84, "reviewed": true},
+      {"preset_id": "builtin:sub-bass", "instrument_family": "synth", "role": "bass", "low_midi": 36, "high_midi": 52, "reviewed": true},
+      {"preset_id": "builtin:soft-pulse", "instrument_family": "percussion", "role": "rhythm", "low_midi": 36, "high_midi": 36, "reviewed": true}
+    ]
+  },
+  {
+    "schema_version": "style-pack.v1", "pack_id": "style:minimal-electronic:v1", "version": "v1",
+    "style": "minimal_electronic", "genre": "Minimal Electronic", "era": "Contemporary minimal club electronics",
+    "compatible_plan_schema_versions": ["composition-plan.v1"], "compatible_engine_versions": ["theory-engine.v1"],
+    "form_templates": [{"template_id": "form:minimal-build:v1", "section_functions": ["groove", "build", "drop", "outro"]}],
+    "instrumentation": [
+      {"role": "chords", "track_role": "harmony", "instrument": "Poly Synth", "low_midi": 48, "high_midi": 76},
+      {"role": "hook", "track_role": "melody", "instrument": "Short Pluck", "low_midi": 60, "high_midi": 88},
+      {"role": "bass", "track_role": "bass", "instrument": "Mono Bass", "low_midi": 32, "high_midi": 52},
+      {"role": "drums", "track_role": "rhythm", "instrument": "Drum Machine", "low_midi": 36, "high_midi": 42}
+    ],
+    "harmony_constraints": ["short diatonic loop"], "rhythm_constraints": ["drum and bass onset lock", "bounded syncopation"],
+    "timbre_constraints": ["dry low end", "one contrasting layer"], "avoidances": ["continuous full-density arrangement"],
+    "production_recipes": [{"recipe_id": "recipe:minimal-groove:v1", "summary": "Keep kick and bass distinct while section energy changes."}],
+    "symbolic_exemplars": [{"exemplar_id": "exemplar:minimal-grid:v1", "source_citation_id": "source:motif-forge-minimal:v1", "derived_facts": ["sixteenth-note onset grid", "build and drop contrast"]}],
+    "sources": [{"citation_id": "source:motif-forge-minimal:v1", "title": "Motif Forge Minimal Electronic Strategy Notes", "author": "Motif Forge", "source_url": null, "license_id": "project-authored"}],
+    "license_snapshot": {"license_id": "project-authored", "reviewed": true, "allows_commercial_use": true, "attribution_required": false},
+    "preset_palette": [
+      {"preset_id": "builtin:poly-synth", "instrument_family": "synth", "role": "chords", "low_midi": 48, "high_midi": 76, "reviewed": true},
+      {"preset_id": "builtin:short-pluck", "instrument_family": "synth", "role": "hook", "low_midi": 60, "high_midi": 88, "reviewed": true},
+      {"preset_id": "builtin:mono-bass", "instrument_family": "synth", "role": "bass", "low_midi": 32, "high_midi": 52, "reviewed": true},
+      {"preset_id": "builtin:drum-machine", "instrument_family": "percussion", "role": "drums", "low_midi": 36, "high_midi": 42, "reviewed": true}
+    ]
+  },
+  {
+    "schema_version": "style-pack.v1", "pack_id": "style:classical-chamber:v1", "version": "v1",
+    "style": "classical_chamber", "genre": "Classical Chamber", "era": "Common-practice chamber writing",
+    "compatible_plan_schema_versions": ["composition-plan.v1"], "compatible_engine_versions": ["theory-engine.v1"],
+    "form_templates": [{"template_id": "form:chamber-ternary:v1", "section_functions": ["exposition", "contrast", "recapitulation"]}],
+    "instrumentation": [
+      {"role": "inner harmony", "track_role": "harmony", "instrument": "Viola", "low_midi": 48, "high_midi": 81},
+      {"role": "first voice", "track_role": "melody", "instrument": "Violin", "low_midi": 55, "high_midi": 96},
+      {"role": "low voice", "track_role": "bass", "instrument": "Cello", "low_midi": 36, "high_midi": 72},
+      {"role": "pulse", "track_role": "rhythm", "instrument": "Pizzicato Cello", "low_midi": 36, "high_midi": 67}
+    ],
+    "harmony_constraints": ["functional cadence", "bounded voice leading"], "rhythm_constraints": ["phrase-led pulse"],
+    "timbre_constraints": ["register-separated chamber texture"], "avoidances": ["unresolved voice crossing"],
+    "production_recipes": [{"recipe_id": "recipe:chamber-balance:v1", "summary": "Separate registers and preserve phrase-shaped dynamics."}],
+    "symbolic_exemplars": [{"exemplar_id": "exemplar:chamber-ternary:v1", "source_citation_id": "source:motif-forge-chamber:v1", "derived_facts": ["ternary return", "contrary-motion cadence"]}],
+    "sources": [{"citation_id": "source:motif-forge-chamber:v1", "title": "Motif Forge Chamber Strategy Notes", "author": "Motif Forge", "source_url": null, "license_id": "project-authored"}],
+    "license_snapshot": {"license_id": "project-authored", "reviewed": true, "allows_commercial_use": true, "attribution_required": false},
+    "preset_palette": [
+      {"preset_id": "builtin:viola", "instrument_family": "modeled-strings", "role": "inner harmony", "low_midi": 48, "high_midi": 81, "reviewed": true},
+      {"preset_id": "builtin:violin", "instrument_family": "modeled-strings", "role": "first voice", "low_midi": 55, "high_midi": 96, "reviewed": true},
+      {"preset_id": "builtin:cello", "instrument_family": "modeled-strings", "role": "low voice", "low_midi": 36, "high_midi": 72, "reviewed": true},
+      {"preset_id": "builtin:pizz-cello", "instrument_family": "modeled-strings", "role": "pulse", "low_midi": 36, "high_midi": 67, "reviewed": true}
+    ]
+  },
+  {
+    "schema_version": "style-pack.v1", "pack_id": "style:jazz-harmony-improvisation:v1", "version": "v1",
+    "style": "jazz_harmony_improvisation", "genre": "Jazz Harmony and Improvisation", "era": "Small-combo tonal jazz vocabulary",
+    "compatible_plan_schema_versions": ["composition-plan.v1"], "compatible_engine_versions": ["theory-engine.v1"],
+    "form_templates": [{"template_id": "form:jazz-chorus:v1", "section_functions": ["head", "development chorus", "head out"]}],
+    "instrumentation": [
+      {"role": "voicings", "track_role": "harmony", "instrument": "Piano", "low_midi": 43, "high_midi": 84},
+      {"role": "improvised melody", "track_role": "melody", "instrument": "Tenor Lead", "low_midi": 50, "high_midi": 82},
+      {"role": "walking bass", "track_role": "bass", "instrument": "Upright Bass", "low_midi": 28, "high_midi": 55},
+      {"role": "swing pulse", "track_role": "rhythm", "instrument": "Brush Kit", "low_midi": 36, "high_midi": 51}
+    ],
+    "harmony_constraints": ["guide-tone voice leading", "bounded diatonic tensions"], "rhythm_constraints": ["light swing grid", "phrase syncopation"],
+    "timbre_constraints": ["compact rhythm section"], "avoidances": ["unresolved avoid note on strong beat"],
+    "production_recipes": [{"recipe_id": "recipe:jazz-combo:v1", "summary": "Keep guide tones audible above a compact bass and brush pulse."}],
+    "symbolic_exemplars": [{"exemplar_id": "exemplar:jazz-guide-tones:v1", "source_citation_id": "source:motif-forge-jazz:v1", "derived_facts": ["guide-tone line", "ii-V-I phrase boundary"]}],
+    "sources": [{"citation_id": "source:motif-forge-jazz:v1", "title": "Motif Forge Jazz Strategy Notes", "author": "Motif Forge", "source_url": null, "license_id": "project-authored"}],
+    "license_snapshot": {"license_id": "project-authored", "reviewed": true, "allows_commercial_use": true, "attribution_required": false},
+    "preset_palette": [
+      {"preset_id": "builtin:jazz-piano", "instrument_family": "modeled-keys", "role": "voicings", "low_midi": 43, "high_midi": 84, "reviewed": true},
+      {"preset_id": "builtin:tenor-lead", "instrument_family": "modeled-wind", "role": "improvised melody", "low_midi": 50, "high_midi": 82, "reviewed": true},
+      {"preset_id": "builtin:upright-bass", "instrument_family": "modeled-strings", "role": "walking bass", "low_midi": 28, "high_midi": 55, "reviewed": true},
+      {"preset_id": "builtin:brush-kit", "instrument_family": "percussion", "role": "swing pulse", "low_midi": 36, "high_midi": 51, "reviewed": true}
+    ]
+  }
+]
