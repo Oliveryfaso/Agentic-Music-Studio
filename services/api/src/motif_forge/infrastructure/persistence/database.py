@@ -240,12 +240,20 @@ class PostgresTransaction:
         ).scalar_one_or_none()
         return None if row is None else _candidate_snapshot_from_row(row)
 
-    async def insert_candidate_preview(
-        self, *, snapshot: CandidateSnapshot, preview: PreviewCandidate
-    ) -> None:
+    async def insert_candidate_snapshot(self, snapshot: CandidateSnapshot) -> None:
+        existing = await self.get_candidate_snapshot(snapshot.candidate_snapshot_id)
+        if existing is not None:
+            if existing != snapshot:
+                raise ValueError("candidate Snapshot identity contains divergent facts")
+            return
         await self._session.execute(
             insert(CandidateSnapshotRow).values(**_candidate_snapshot_values(snapshot))
         )
+
+    async def insert_candidate_preview(
+        self, *, snapshot: CandidateSnapshot, preview: PreviewCandidate
+    ) -> None:
+        await self.insert_candidate_snapshot(snapshot)
         await self._session.execute(
             insert(PreviewCandidateRow).values(**_preview_candidate_values(preview))
         )

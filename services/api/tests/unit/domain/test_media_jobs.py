@@ -22,6 +22,9 @@ def _artifact(**overrides: object) -> AudioArtifact:
     values: dict[str, object] = {
         "artifact_id": uuid4(),
         "project_id": uuid4(),
+        "candidate_snapshot_id": uuid4(),
+        "arrangement_hash": "b" * 64,
+        "render_scope": RenderScope.MASTER,
         "source_job_id": uuid4(),
         "content_hash": "a" * 64,
         "byte_size": 1024,
@@ -40,14 +43,48 @@ def _artifact(**overrides: object) -> AudioArtifact:
         "created_at": datetime.now(UTC),
     }
     values.update(overrides)
+    if (
+        values["quality_profile"] is not MediaQualityProfile.CANDIDATE_PREVIEW_V1
+        and "candidate_snapshot_id" not in overrides
+    ):
+        values["candidate_snapshot_id"] = None
+        if "arrangement_hash" not in overrides:
+            values["arrangement_hash"] = None
+        if "render_scope" not in overrides:
+            values["render_scope"] = None
     return AudioArtifact.model_validate(values)
 
 
 def test_candidate_preview_profile_is_exact_and_valid() -> None:
-    artifact = _artifact()
+    snapshot_id = uuid4()
+    artifact = _artifact(
+        candidate_snapshot_id=snapshot_id,
+        arrangement_hash="b" * 64,
+        render_scope=RenderScope.MASTER,
+    )
 
     assert artifact.quality_profile is MediaQualityProfile.CANDIDATE_PREVIEW_V1
+    assert artifact.candidate_snapshot_id == snapshot_id
     assert artifact.bitrate_kbps == 160
+
+
+def test_candidate_preview_profile_rejects_missing_snapshot_lineage() -> None:
+    with pytest.raises(ValidationError, match="candidate Snapshot lineage"):
+        _artifact(
+            candidate_snapshot_id=None,
+            arrangement_hash=None,
+            render_scope=None,
+        )
+
+
+def test_candidate_preview_profile_rejects_revision_lineage() -> None:
+    with pytest.raises(ValidationError, match="candidate Snapshot lineage"):
+        _artifact(
+            candidate_snapshot_id=uuid4(),
+            revision_id=uuid4(),
+            arrangement_hash="b" * 64,
+            render_scope=RenderScope.MASTER,
+        )
 
 
 def test_audition_profile_rejects_more_than_fifteen_seconds() -> None:

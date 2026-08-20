@@ -372,6 +372,7 @@ class AudioArtifact(DomainModel):
     artifact_id: UUID
     project_id: UUID
     revision_id: UUID | None = None
+    candidate_snapshot_id: UUID | None = None
     arrangement_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     render_scope: RenderScope | None = None
     render_track_ids: tuple[UUID, ...] = ()
@@ -415,10 +416,19 @@ class AudioArtifact(DomainModel):
         }
         if self.quality_profile in final_profiles and (
             self.revision_id is None
+            or self.candidate_snapshot_id is not None
             or self.arrangement_hash is None
             or self.render_scope is None
         ):
             raise ValueError("canonical and delivery outputs require revision lineage")
+        if self.quality_profile is MediaQualityProfile.CANDIDATE_PREVIEW_V1 and (
+            self.candidate_snapshot_id is None
+            or self.revision_id is not None
+            or self.arrangement_hash is None
+            or self.render_scope is not RenderScope.MASTER
+            or self.render_track_ids
+        ):
+            raise ValueError("candidate preview requires candidate Snapshot lineage")
         if self.quality_profile is MediaQualityProfile.CANONICAL_STEM_V1:
             if self.render_scope is not RenderScope.STEM or len(self.render_track_ids) != 1:
                 raise ValueError("canonical Stem requires one structured track scope")
@@ -427,13 +437,17 @@ class AudioArtifact(DomainModel):
             MediaQualityProfile.DELIVERY_MP3_V1,
         } and (self.render_scope is not RenderScope.MASTER or self.render_track_ids):
             raise ValueError("Master and MP3 outputs require whole-mix scope")
-        elif self.quality_profile not in final_profiles and (
+        elif self.quality_profile not in {
+            *final_profiles,
+            MediaQualityProfile.CANDIDATE_PREVIEW_V1,
+        } and (
             self.revision_id is not None
+            or self.candidate_snapshot_id is not None
             or self.arrangement_hash is not None
             or self.render_scope is not None
             or self.render_track_ids
         ):
-            raise ValueError("only canonical and delivery outputs carry render lineage")
+            raise ValueError("only rendered outputs carry arrangement lineage")
         key_parts = self.storage_key.split("/")
         if self.storage_key.startswith("/") or ".." in key_parts or "" in key_parts:
             raise ValueError("storage_key must be a safe repository-relative key")

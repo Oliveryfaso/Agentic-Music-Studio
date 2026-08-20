@@ -119,7 +119,7 @@ git commit -m "feat: add S5 candidate evidence contracts"
 - `MediaJobTransaction.get_candidate_snapshot(candidate_snapshot_id: UUID) -> CandidateSnapshot | None`.
 - `AudioArtifact.candidate_snapshot_id: UUID | None` with exclusive candidate-vs-Revision render lineage.
 
-- [ ] **Step 1: Write RED domain and PostgreSQL tests**
+- [x] **Step 1: Write RED domain and PostgreSQL tests**
 
 ```python
 def test_candidate_preview_artifact_requires_snapshot_lineage() -> None:
@@ -142,12 +142,12 @@ async def test_postgres_persists_snapshot_then_candidate_preview_artifact(pg_uow
 
 Add a migration-head assertion for `20260820_0018` and a downgrade/upgrade contract covering the new nullable FK and revised Artifact lineage constraint.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `.venv/bin/pytest services/api/tests/unit/domain/test_media_jobs.py services/api/tests/unit/infrastructure/persistence/test_tables.py services/api/tests/integration/test_postgres_s5_candidates.py -q`  
 Expected: failures for the missing field, migration, and transaction methods.
 
-- [ ] **Step 3: Implement schema and persistence**
+- [x] **Step 3: Implement schema and persistence**
 
 Migration behavior:
 
@@ -162,13 +162,13 @@ op.create_foreign_key(
 
 Replace `artifacts_final_revision_lineage` so `candidate-preview.v1` requires `candidate_snapshot_id`, arrangement identity, Master scope, and no Revision; canonical/delivery profiles retain Revision lineage; unrelated profiles carry neither. Persist and load the new field in all `AudioArtifact` mappings. Add one transaction method that inserts a standalone immutable snapshot with conflict-safe identity verification.
 
-- [ ] **Step 4: Run GREEN with one real PostgreSQL boundary**
+- [x] **Step 4: Run GREEN with one real PostgreSQL boundary**
 
 Run the unit command from Step 2.  
 Run: `MOTIF_FORGE_TEST_POSTGRES_DSN=postgresql://motif_forge:motif_forge@127.0.0.1:5432/motif_forge_s5_test .venv/bin/pytest services/api/tests/integration/test_postgres_s5_candidates.py -q` after creating the dedicated disposable `motif_forge_s5_test` database with the repository's established PostgreSQL test setup.  
 Expected: exact snapshot/artifact counts remain unchanged across replay.
 
-- [ ] **Step 5: Commit Task 2**
+- [x] **Step 5: Commit Task 2**
 
 ```bash
 git add infra/migrations/versions/20260820_0018_s5_candidate_preview_lineage.py services/api/src/motif_forge/application/ports.py services/api/src/motif_forge/domain/media_jobs.py services/api/src/motif_forge/infrastructure/persistence services/api/tests

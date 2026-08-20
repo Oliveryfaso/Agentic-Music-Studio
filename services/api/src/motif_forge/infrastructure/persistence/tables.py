@@ -737,10 +737,19 @@ class AudioArtifactRow(Base):
             """
             (quality_profile IN ('canonical-master.v1', 'canonical-stem.v1', 'delivery-mp3.v1')
              AND revision_id IS NOT NULL AND arrangement_hash IS NOT NULL
-             AND render_scope IS NOT NULL)
+             AND candidate_snapshot_id IS NULL AND render_scope IS NOT NULL)
             OR
-            (quality_profile NOT IN ('canonical-master.v1', 'canonical-stem.v1', 'delivery-mp3.v1')
-             AND revision_id IS NULL AND arrangement_hash IS NULL AND render_scope IS NULL
+            (quality_profile = 'candidate-preview.v1'
+             AND revision_id IS NULL AND candidate_snapshot_id IS NOT NULL
+             AND arrangement_hash IS NOT NULL AND render_scope = 'master'
+             AND render_track_ids = '[]'::jsonb)
+            OR
+            (quality_profile NOT IN (
+                'canonical-master.v1', 'canonical-stem.v1',
+                'delivery-mp3.v1', 'candidate-preview.v1'
+             )
+             AND revision_id IS NULL AND candidate_snapshot_id IS NULL
+             AND arrangement_hash IS NULL AND render_scope IS NULL
              AND render_track_ids = '[]'::jsonb)
             """,
             name="artifacts_final_revision_lineage",
@@ -760,6 +769,9 @@ class AudioArtifactRow(Base):
     )
     revision_id: Mapped[UUID | None] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.project_revisions.id")
+    )
+    candidate_snapshot_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.candidate_snapshots.id")
     )
     arrangement_hash: Mapped[str | None] = mapped_column(String(64))
     render_scope: Mapped[str | None] = mapped_column(String(24))
