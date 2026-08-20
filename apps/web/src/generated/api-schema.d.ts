@@ -113,10 +113,28 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List Projects */
+        get: operations["list_projects_api_v1_projects_get"];
         put?: never;
         /** Create Project */
         post: operations["create_project_api_v1_projects_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Project */
+        get: operations["read_project_api_v1_projects__project_id__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -174,6 +192,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/revisions/{revision_id}/studio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Revision Studio */
+        get: operations["read_revision_studio_api_v1_projects__project_id__revisions__revision_id__studio_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runs/{run_id}": {
         parameters: {
             query?: never;
@@ -219,6 +254,23 @@ export interface paths {
         get: operations["stream_events_api_v1_runs__run_id__events_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runs/{run_id}/replan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replan Run */
+        post: operations["replan_run_api_v1_runs__run_id__replan_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -348,6 +400,109 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AIRunData */
+        AIRunData: {
+            /**
+             * Base Revision Id
+             * Format: uuid
+             */
+            base_revision_id: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Bundle Id */
+            bundle_id?: string | null;
+            /** Completion Tokens */
+            completion_tokens: number | null;
+            /** Cost Amount Microusd */
+            cost_amount_microusd: number | null;
+            /** Cost Pricing Version */
+            cost_pricing_version: string | null;
+            /** Cost Status */
+            cost_status: string;
+            /** Error Code */
+            error_code?: string | null;
+            /** Fallback Reason */
+            fallback_reason?: string | null;
+            /** Max Model Requests */
+            max_model_requests: number;
+            /** Model Usage Status */
+            model_usage_status: string;
+            /** Parent Run Id */
+            parent_run_id: string | null;
+            /** Pending Action */
+            pending_action: "approve_plan" | null;
+            /** Pending Plan Hash */
+            pending_plan_hash: string | null;
+            /** Pending Plan Id */
+            pending_plan_id: string | null;
+            plan?: components["schemas"]["RunPlanData"] | null;
+            progress: components["schemas"]["RunProgressData"];
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Prompt Tokens */
+            prompt_tokens: number | null;
+            /** Revision Id */
+            revision_id?: string | null;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            status: components["schemas"]["AIRunStatus"];
+            /** Submitted Model Requests */
+            submitted_model_requests: number;
+            /** Thread Id */
+            thread_id: string;
+            /** Total Tokens */
+            total_tokens: number | null;
+            /** Version */
+            version: number;
+        };
+        /** AIRunEvent */
+        AIRunEvent: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /** Dedupe Key */
+            dedupe_key?: string | null;
+            /**
+             * Event Id
+             * Format: uuid
+             */
+            event_id: string;
+            /** Event Type */
+            event_type: string;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            };
+            /** Phase */
+            phase: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /** Sequence */
+            sequence: number;
+        };
+        /** AIRunResponse */
+        AIRunResponse: {
+            data: components["schemas"]["AIRunData"];
+        };
+        /**
+         * AIRunStatus
+         * @enum {string}
+         */
+        AIRunStatus: "queued" | "planning" | "waiting_approval" | "materializing" | "waiting_worker" | "succeeded" | "rejected" | "failed" | "cancelled";
         /** AddClipCommand */
         AddClipCommand: {
             /**
@@ -461,11 +616,72 @@ export interface components {
         AddTrackPayload: {
             track: components["schemas"]["Track"];
         };
+        /** ArrangementIR */
+        ArrangementIR: {
+            /**
+             * Key Map
+             * @default []
+             */
+            key_map: components["schemas"]["KeyPoint"][];
+            /**
+             * Markers
+             * @default []
+             */
+            markers: components["schemas"]["Marker"][];
+            /**
+             * Ppq
+             * @default 480
+             * @constant
+             */
+            ppq: 480;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /**
+             * Provenance
+             * @default []
+             */
+            provenance: components["schemas"]["ProvenanceRef"][];
+            routing?: components["schemas"]["RoutingSpec"];
+            /**
+             * Sample Rate
+             * @default 48000
+             * @enum {integer}
+             */
+            sample_rate: 44100 | 48000 | 96000;
+            /**
+             * Schema Version
+             * @default arrangement-ir.v1
+             * @constant
+             */
+            schema_version: "arrangement-ir.v1";
+            /**
+             * Sections
+             * @default []
+             */
+            sections: components["schemas"]["Section"][];
+            /** Tempo Map */
+            tempo_map?: components["schemas"]["TempoPoint"][];
+            /** Time Signature Map */
+            time_signature_map?: components["schemas"]["MeterPoint"][];
+            /**
+             * Tracks
+             * @default []
+             */
+            tracks: components["schemas"]["Track"][];
+        };
         /**
          * Articulation
          * @enum {string}
          */
         Articulation: "normal" | "legato" | "staccato" | "tenuto" | "accent";
+        /**
+         * ArtifactAvailability
+         * @enum {string}
+         */
+        ArtifactAvailability: "available" | "evicted" | "missing" | "rehydrating";
         /**
          * ArtifactValidationStatus
          * @enum {string}
@@ -632,6 +848,74 @@ export interface components {
             upload_id: string;
             validation_status: components["schemas"]["ArtifactValidationStatus"];
         };
+        /**
+         * CompositionPlan
+         * @description Validated macro plan produced by the CompositionPlanner.
+         */
+        CompositionPlan: {
+            /** Bpm */
+            bpm: number;
+            /** Confidence */
+            confidence: number;
+            /** Duration Bars */
+            duration_bars: number;
+            /**
+             * Era Influences
+             * @default []
+             */
+            era_influences: string[];
+            /**
+             * Genre
+             * @enum {string}
+             */
+            genre: "synth_ambient" | "minimal_electronic" | "classical_chamber" | "jazz_harmony_improvisation";
+            /**
+             * Hard Constraints
+             * @default []
+             */
+            hard_constraints: string[];
+            /** Harmonic Language */
+            harmonic_language: string;
+            /** Instrumentation */
+            instrumentation: components["schemas"]["InstrumentPlan"][];
+            key: components["schemas"]["KeyPlan"];
+            /**
+             * Knowledge References
+             * @default []
+             */
+            knowledge_references: components["schemas"]["KnowledgeReference"][];
+            /**
+             * Meter
+             * @enum {string}
+             */
+            meter: "4/4" | "3/4";
+            /** Moods */
+            moods: string[];
+            /**
+             * Negative Constraints
+             * @default []
+             */
+            negative_constraints: string[];
+            /** Purpose */
+            purpose: string;
+            /** Rhythmic Language */
+            rhythmic_language: string;
+            /**
+             * Schema Version
+             * @default composition-plan.v1
+             * @constant
+             */
+            schema_version: "composition-plan.v1";
+            /** Sections */
+            sections: components["schemas"]["SectionPlan"][];
+            /**
+             * Soft Preferences
+             * @default []
+             */
+            soft_preferences: string[];
+            /** Texture */
+            texture: string;
+        };
         /** ConfirmImportAnalysisBody */
         ConfirmImportAnalysisBody: {
             /**
@@ -672,6 +956,15 @@ export interface components {
              * @default 12000
              */
             max_total_tokens: number;
+        };
+        /** CreateAIRunResponse */
+        CreateAIRunResponse: {
+            data: components["schemas"]["AIRunData"];
+            /**
+             * Status
+             * @constant
+             */
+            status: "accepted";
         };
         /** CreateProjectBody */
         CreateProjectBody: {
@@ -827,6 +1120,29 @@ export interface components {
              * Format: uuid
              */
             track_id: string;
+        };
+        /** DeliveryAsset */
+        DeliveryAsset: {
+            /**
+             * Artifact Id
+             * Format: uuid
+             */
+            artifact_id: string;
+            availability: components["schemas"]["ArtifactAvailability"];
+            /** Byte Size */
+            byte_size: number;
+            /** Duration Milliseconds */
+            duration_milliseconds?: number | null;
+            /**
+             * Media Type
+             * @constant
+             */
+            media_type: "audio/mpeg";
+            /**
+             * Quality Profile
+             * @constant
+             */
+            quality_profile: "delivery-mp3.v1";
         };
         /** Equalizer3Band */
         Equalizer3Band: {
@@ -1035,6 +1351,34 @@ export interface components {
             sections: components["schemas"]["Section"][];
             tempo: components["schemas"]["TempoPoint"];
         };
+        /** InstrumentPlan */
+        InstrumentPlan: {
+            /** Entry Section Id */
+            entry_section_id: string;
+            /** Exit Section Id */
+            exit_section_id: string;
+            /** Instrument Id */
+            instrument_id: string;
+            /** Name */
+            name: string;
+            /** Pitch Range */
+            pitch_range: string;
+            /** Role */
+            role: string;
+        };
+        /** KeyPlan */
+        KeyPlan: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "major" | "minor" | "dorian" | "phrygian" | "lydian" | "mixolydian" | "locrian";
+            /**
+             * Tonic
+             * @enum {string}
+             */
+            tonic: "C" | "C#" | "Db" | "D" | "D#" | "Eb" | "E" | "F" | "F#" | "Gb" | "G" | "G#" | "Ab" | "A" | "A#" | "Bb" | "B";
+        };
         /** KeyPoint */
         KeyPoint: {
             /** Confidence */
@@ -1050,12 +1394,39 @@ export interface components {
              */
             tonic: "C" | "C#" | "D" | "D#" | "E" | "F" | "F#" | "G" | "G#" | "A" | "A#" | "B";
         };
+        /** KnowledgeReference */
+        KnowledgeReference: {
+            /** Confidence */
+            confidence: number;
+            /** Reference Id */
+            reference_id: string;
+            /** Summary */
+            summary: string;
+        };
         /** LockedRange */
         LockedRange: {
             /** End Tick */
             end_tick: number;
             /** Start Tick */
             start_tick: number;
+        };
+        /** Marker */
+        Marker: {
+            /**
+             * Kind
+             * @default user
+             * @enum {string}
+             */
+            kind: "user" | "system";
+            /** Label */
+            label: string;
+            /**
+             * Marker Id
+             * Format: uuid
+             */
+            marker_id: string;
+            /** Tick */
+            tick: number;
         };
         /** MeterPoint */
         MeterPoint: {
@@ -1218,6 +1589,92 @@ export interface components {
             /** Velocity */
             velocity?: number | null;
         };
+        /** ProjectListResponse */
+        ProjectListResponse: {
+            /** Data */
+            data: components["schemas"]["ProjectSummaryData"][];
+        };
+        /** ProjectRunSummaryData */
+        ProjectRunSummaryData: {
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            status: components["schemas"]["AIRunStatus"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ProjectSummaryData */
+        ProjectSummaryData: {
+            /**
+             * Active Branch Id
+             * Format: uuid
+             */
+            active_branch_id: string;
+            /** Has Playable Revision */
+            has_playable_revision: boolean;
+            /**
+             * Head Revision Id
+             * Format: uuid
+             */
+            head_revision_id: string;
+            latest_run: components["schemas"]["ProjectRunSummaryData"] | null;
+            /** Name */
+            name: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Status */
+            status: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ProjectWorkspaceData */
+        ProjectWorkspaceData: {
+            /**
+             * Active Branch Id
+             * Format: uuid
+             */
+            active_branch_id: string;
+            /**
+             * Head Revision Id
+             * Format: uuid
+             */
+            head_revision_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            recoverable_run: components["schemas"]["ProjectRunSummaryData"] | null;
+            /** Revisions */
+            revisions: components["schemas"]["RevisionSummaryData"][];
+            /** Runs */
+            runs: components["schemas"]["ProjectRunSummaryData"][];
+            /** Status */
+            status: string;
+            storage_root_status: components["schemas"]["StorageRootHealth"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ProjectWorkspaceResponse */
+        ProjectWorkspaceResponse: {
+            data: components["schemas"]["ProjectWorkspaceData"];
+        };
         /** ProvenanceRef */
         ProvenanceRef: {
             /**
@@ -1285,6 +1742,17 @@ export interface components {
             /** Thread Id */
             thread_id: string;
         };
+        /** ReplanAIRunBody */
+        ReplanAIRunBody: {
+            /** Adjustment */
+            adjustment: {
+                [key: string]: unknown;
+            };
+            /** Expected Plan Hash */
+            expected_plan_hash: string;
+            /** Expected Version */
+            expected_version: number;
+        };
         /** ResumeAIRunBody */
         ResumeAIRunBody: {
             /** Actor Id */
@@ -1307,15 +1775,118 @@ export interface components {
              */
             note: string;
         };
+        /** RevisionStudioData */
+        RevisionStudioData: {
+            arrangement_ir: components["schemas"]["ArrangementIR"];
+            /** Author Kind */
+            author_kind: string;
+            /** Bundle Id */
+            bundle_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /** Delivery Assets */
+            delivery_assets: components["schemas"]["DeliveryAsset"][];
+            /** Parent Revision Id */
+            parent_revision_id: string | null;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Reason Code */
+            reason_code: string;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+            /** Source Run Id */
+            source_run_id: string | null;
+        };
+        /** RevisionStudioResponse */
+        RevisionStudioResponse: {
+            data: components["schemas"]["RevisionStudioData"];
+        };
+        /** RevisionSummaryData */
+        RevisionSummaryData: {
+            /** Author Kind */
+            author_kind: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /** Parent Revision Id */
+            parent_revision_id: string | null;
+            /** Reason Code */
+            reason_code: string;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+            /** Source Run Id */
+            source_run_id: string | null;
+        };
         /**
          * RightsDeclaration
          * @enum {string}
          */
         RightsDeclaration: "user_owned" | "licensed" | "public_domain" | "cc0" | "cc_by";
+        /** RoutingSpec */
+        RoutingSpec: {
+            /**
+             * Master Bus
+             * @default master
+             * @constant
+             */
+            master_bus: "master";
+        };
         /** RunActionBody */
         RunActionBody: {
             /** Expected Version */
             expected_version: number;
+        };
+        /** RunPlanData */
+        RunPlanData: {
+            /** Content Hash */
+            content_hash: string;
+            /** Fallback Reason */
+            fallback_reason: string | null;
+            /**
+             * Hash Version
+             * @enum {string}
+             */
+            hash_version: "composition-plan-hash.rounded-v1" | "composition-plan-hash.lossless-v2";
+            /** Model */
+            model: string;
+            plan: components["schemas"]["CompositionPlan"];
+            /**
+             * Plan Id
+             * Format: uuid
+             */
+            plan_id: string;
+            /** Provider */
+            provider: string;
+        };
+        /** RunProgressData */
+        RunProgressData: {
+            /** Completed Export Steps */
+            completed_export_steps: string[];
+            /** Error Code */
+            error_code: string | null;
+            /** Latest Event Sequence */
+            latest_event_sequence: number;
+            phase: components["schemas"]["AIRunStatus"];
+            /** Total Export Steps */
+            total_export_steps: number;
         };
         /** Section */
         Section: {
@@ -1340,6 +1911,21 @@ export interface components {
             section_id: string;
             /** Start Tick */
             start_tick: number;
+        };
+        /** SectionPlan */
+        SectionPlan: {
+            /** End Bar */
+            end_bar: number;
+            /** Energy */
+            energy: number;
+            /** Function */
+            function: string;
+            /** Name */
+            name: string;
+            /** Section Id */
+            section_id: string;
+            /** Start Bar */
+            start_bar: number;
         };
         /** Selection */
         Selection: {
@@ -1510,6 +2096,11 @@ export interface components {
              */
             source_artifact_id: string;
         };
+        /**
+         * StorageRootHealth
+         * @enum {string}
+         */
+        StorageRootHealth: "ready" | "disconnected" | "read_only" | "corrupt";
         /** SuccessEnvelope */
         SuccessEnvelope: {
             /** Data */
@@ -1965,6 +2556,37 @@ export interface operations {
             };
         };
     };
+    list_projects_api_v1_projects_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_project_api_v1_projects_post: {
         parameters: {
             query?: never;
@@ -1987,6 +2609,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_project_api_v1_projects__project_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectWorkspaceResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2023,9 +2676,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CreateAIRunResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2113,6 +2764,38 @@ export interface operations {
             };
         };
     };
+    read_revision_studio_api_v1_projects__project_id__revisions__revision_id__studio_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                revision_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionStudioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_run_api_v1_runs__run_id__get: {
         parameters: {
             query?: never;
@@ -2130,9 +2813,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AIRunResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2169,9 +2850,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AIRunResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2204,7 +2883,44 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "text/event-stream": components["schemas"]["AIRunEvent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replan_run_api_v1_runs__run_id__replan_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplanAIRunBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIRunResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2241,9 +2957,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AIRunResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2280,9 +2994,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AIRunResponse"];
                 };
             };
             /** @description Validation Error */

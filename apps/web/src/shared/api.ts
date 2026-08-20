@@ -65,7 +65,7 @@ export interface ImportStartResult {
   run: ImportRunData;
 }
 
-interface SuccessEnvelope<T> {
+export interface SuccessEnvelope<T> {
   request_id: string;
   status: "succeeded";
   data: T;
@@ -252,7 +252,7 @@ export async function rehydrateArtifact(artifactId: string): Promise<RehydrateRu
   return data as unknown as RehydrateRunData;
 }
 
-async function requestJson(path: string, init?: RequestInit): Promise<unknown> {
+export async function requestJson(path: string, init?: RequestInit): Promise<unknown> {
   let response: Response;
   try {
     response = await fetch(path, init);
@@ -273,6 +273,13 @@ async function requestJson(path: string, init?: RequestInit): Promise<unknown> {
     );
   }
   return value;
+}
+
+export function readData<T>(value: unknown): T {
+  if (!isRecord(value) || !("data" in value)) {
+    throw invalidResponse("API 返回缺少 data 字段");
+  }
+  return value.data as T;
 }
 
 export function parseFeatureSetEnvelope(value: unknown): SuccessEnvelope<AudioFeatureSetData> {
@@ -434,7 +441,7 @@ function declaredFormat(filename: string): DeclaredAudioFormat {
   throw new ApiError("只支持 WAV、MP3 或 FLAC", "UPLOAD_MEDIA_TYPE_UNSUPPORTED", false, 422);
 }
 
-function jsonHeaders(idempotencyKey: string): Record<string, string> {
+export function jsonHeaders(idempotencyKey: string): Record<string, string> {
   return { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey };
 }
 
