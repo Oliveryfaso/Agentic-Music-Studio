@@ -75,7 +75,7 @@ async def _create_project(client: AsyncClient) -> dict[str, Any]:
 @pytest.mark.asyncio
 async def test_project_create_is_idempotent_and_uses_success_envelope() -> None:
     transaction = FakeTransaction()
-    transport = ASGITransport(app=create_app(Settings(environment="test"), uow_factory=transaction))
+    transport = ASGITransport(app=create_app(Settings.for_test(), uow_factory=transaction))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         first = await client.post(
             "/api/v1/projects",
@@ -99,7 +99,7 @@ async def test_project_create_is_idempotent_and_uses_success_envelope() -> None:
 @pytest.mark.asyncio
 async def test_human_l1_command_batch_advances_branch() -> None:
     transaction = FakeTransaction()
-    transport = ASGITransport(app=create_app(Settings(environment="test"), uow_factory=transaction))
+    transport = ASGITransport(app=create_app(Settings.for_test(), uow_factory=transaction))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         project = await _create_project(client)
         response = await client.post(
@@ -127,7 +127,7 @@ async def test_human_l1_command_batch_advances_branch() -> None:
 @pytest.mark.asyncio
 async def test_stale_base_returns_problem_details_with_current_revision() -> None:
     transaction = FakeTransaction()
-    transport = ASGITransport(app=create_app(Settings(environment="test"), uow_factory=transaction))
+    transport = ASGITransport(app=create_app(Settings.for_test(), uow_factory=transaction))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         project = await _create_project(client)
         response = await client.post(
@@ -151,7 +151,7 @@ async def test_stale_base_returns_problem_details_with_current_revision() -> Non
 @pytest.mark.asyncio
 async def test_public_command_endpoint_rejects_agent_actor() -> None:
     transaction = FakeTransaction()
-    transport = ASGITransport(app=create_app(Settings(environment="test"), uow_factory=transaction))
+    transport = ASGITransport(app=create_app(Settings.for_test(), uow_factory=transaction))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         project = await _create_project(client)
         response = await client.post(
@@ -173,7 +173,7 @@ async def test_public_command_endpoint_rejects_agent_actor() -> None:
 
 @pytest.mark.asyncio
 async def test_import_analysis_confirmation_resumes_existing_parent_thread() -> None:
-    app = create_app(Settings(environment="test"))
+    app = create_app(Settings.for_test())
     app.state.parent_graph = _ConfirmationGraph()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -200,7 +200,7 @@ async def test_import_run_read_projects_stable_checkpoint_without_resuming_graph
     source_artifact_id = uuid4()
     normalized_artifact_id = uuid4()
     revision_id = uuid4()
-    app = create_app(Settings(environment="test"))
+    app = create_app(Settings.for_test())
     app.state.parent_graph = _ReadableImportGraph(
         {
             "operation": "import_audio",
@@ -237,7 +237,7 @@ async def test_import_run_read_projects_stable_checkpoint_without_resuming_graph
 
 @pytest.mark.asyncio
 async def test_import_run_read_rejects_missing_or_wrong_operation_checkpoint() -> None:
-    app = create_app(Settings(environment="test"))
+    app = create_app(Settings.for_test())
     app.state.parent_graph = _ReadableImportGraph(
         {"operation": "artifact_rehydrate", "phase": "completed"}
     )
@@ -251,7 +251,7 @@ async def test_import_run_read_rejects_missing_or_wrong_operation_checkpoint() -
 
 @pytest.mark.asyncio
 async def test_project_write_without_postgres_configuration_returns_503() -> None:
-    transport = ASGITransport(app=create_app(Settings(environment="test", postgres_dsn=None)))
+    transport = ASGITransport(app=create_app(Settings.for_test(postgres_dsn=None)))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/api/v1/projects",
@@ -266,7 +266,7 @@ async def test_project_write_without_postgres_configuration_returns_503() -> Non
 @pytest.mark.asyncio
 async def test_missing_idempotency_header_uses_problem_details() -> None:
     transaction = FakeTransaction()
-    transport = ASGITransport(app=create_app(Settings(environment="test"), uow_factory=transaction))
+    transport = ASGITransport(app=create_app(Settings.for_test(), uow_factory=transaction))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post("/api/v1/projects", json={"name": "Night Signals"})
 

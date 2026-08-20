@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal, Self
+from typing import Any, Literal, Self
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -17,6 +17,13 @@ class Settings(BaseSettings):
         extra="ignore",
         case_sensitive=False,
     )
+
+    @classmethod
+    def for_test(cls, **overrides: Any) -> Self:
+        """Build explicit test settings without inheriting a checkout's `.env`."""
+
+        overrides.setdefault("environment", "test")
+        return cls(_env_file=None, **overrides)
 
     environment: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"

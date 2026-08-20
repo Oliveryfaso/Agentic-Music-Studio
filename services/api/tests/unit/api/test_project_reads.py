@@ -78,7 +78,7 @@ class FakeProjectReadStore:
 def test_project_read_routes_serialize_only_public_data() -> None:
     store = FakeProjectReadStore()
     app = create_app(
-        Settings(environment="test"), project_read_store=store,
+        Settings.for_test(), project_read_store=store,
         storage_root_inspector=lambda: StorageRootSnapshot(
             StorageRootHealth.READY, True, 999_999
         ),
@@ -104,7 +104,7 @@ def test_project_read_routes_serialize_only_public_data() -> None:
 
 def test_project_read_routes_validate_limit_and_revision_lineage() -> None:
     store = FakeProjectReadStore()
-    app = create_app(Settings(environment="test"), project_read_store=store)
+    app = create_app(Settings.for_test(), project_read_store=store)
 
     with TestClient(app) as client:
         invalid_limit = client.get("/api/v1/projects?limit=51")
@@ -121,7 +121,7 @@ def test_project_read_routes_validate_limit_and_revision_lineage() -> None:
 
 def test_project_read_openapi_uses_frozen_public_data_names() -> None:
     schemas = create_app(
-        Settings(environment="test"), project_read_store=FakeProjectReadStore()
+        Settings.for_test(), project_read_store=FakeProjectReadStore()
     ).openapi()["components"]["schemas"]
 
     assert {"ProjectSummaryData", "ProjectWorkspaceData", "RevisionStudioData"} <= set(schemas)

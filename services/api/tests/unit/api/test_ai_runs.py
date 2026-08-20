@@ -128,7 +128,7 @@ class FakeAIRunUOW:
 
 def test_create_ai_run_is_async_safe_and_forbids_runtime_internals() -> None:
     uow = FakeAIRunUOW()
-    app = create_app(Settings(), ai_run_uow_factory=uow)  # type: ignore[arg-type]
+    app = create_app(Settings.for_test(), ai_run_uow_factory=uow)  # type: ignore[arg-type]
     body = {
         "branch_id": str(uuid4()),
         "base_revision_id": str(uuid4()),
@@ -170,7 +170,7 @@ def test_create_ai_run_is_async_safe_and_forbids_runtime_internals() -> None:
 
 def test_create_rejects_unsupported_style_and_meter_before_persistence() -> None:
     uow = FakeAIRunUOW()
-    app = create_app(Settings(), ai_run_uow_factory=uow)  # type: ignore[arg-type]
+    app = create_app(Settings.for_test(), ai_run_uow_factory=uow)  # type: ignore[arg-type]
     with TestClient(app) as client:
         for brief in (
             {"title": "Bad", "purpose": "Bad style", "style": "metal",
@@ -198,7 +198,7 @@ def test_resume_exact_replay_and_changed_request_conflict() -> None:
         pending_plan_id=uuid4(), pending_plan_content_hash=plan_hash,
         pending_interrupt_ref="pending-plan-interrupt-http",
     )
-    app = create_app(Settings(), ai_run_uow_factory=uow)  # type: ignore[arg-type]
+    app = create_app(Settings.for_test(), ai_run_uow_factory=uow)  # type: ignore[arg-type]
     body = {
         "expected_version": 1, "expected_plan_hash": plan_hash,
         "actor_id": "human-a", "approval_assertion": "I approve this exact plan.",
@@ -233,7 +233,7 @@ def test_get_projection_cancel_replay_and_retry_child_replay() -> None:
         run=run, revision_id=uuid4(), bundle_id=uuid4(),
         fallback_reason="provider unavailable", error_code="SAFE_FAILURE",
     )
-    app = create_app(Settings(), ai_run_uow_factory=uow)  # type: ignore[arg-type]
+    app = create_app(Settings.for_test(), ai_run_uow_factory=uow)  # type: ignore[arg-type]
     with TestClient(app) as client:
         read = client.get(f"/api/v1/runs/{run.run_id}")
         assert read.status_code == 200

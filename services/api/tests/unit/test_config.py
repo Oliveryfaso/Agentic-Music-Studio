@@ -94,3 +94,20 @@ def test_deepseek_contract_rejects_unsafe_or_unbudgeted_settings(
 ) -> None:
     with pytest.raises(ValidationError):
         Settings(environment="test", **{field: value})
+
+
+def test_explicit_test_settings_do_not_load_repository_dotenv(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / ".env").write_text(
+        "MOTIF_FORGE_POSTGRES_DSN=postgresql://container-only\n"
+        "MOTIF_FORGE_REDIS_URL=redis://container-only\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    settings = Settings.for_test()
+
+    assert settings.environment == "test"
+    assert settings.postgres_dsn is None
+    assert settings.redis_url is None

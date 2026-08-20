@@ -6,7 +6,7 @@ from motif_forge.config import Settings
 
 @pytest.mark.asyncio
 async def test_live_health() -> None:
-    transport = ASGITransport(app=create_app(Settings(environment="test")))
+    transport = ASGITransport(app=create_app(Settings.for_test()))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/health/live")
 
@@ -16,8 +16,7 @@ async def test_live_health() -> None:
 
 @pytest.mark.asyncio
 async def test_readiness_reports_real_connectivity() -> None:
-    settings = Settings(
-        environment="test",
+    settings = Settings.for_test(
         postgres_dsn="postgresql://example.invalid/db",
         redis_url="redis://example.invalid/0",
     )
@@ -49,7 +48,7 @@ async def test_readiness_reports_real_connectivity() -> None:
 @pytest.mark.asyncio
 async def test_readiness_fails_closed_when_dependency_is_unconfigured() -> None:
     transport = ASGITransport(
-        app=create_app(Settings(environment="test", postgres_dsn=None, redis_url=None))
+        app=create_app(Settings.for_test(postgres_dsn=None, redis_url=None))
     )
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/health/ready")
@@ -61,8 +60,7 @@ async def test_readiness_fails_closed_when_dependency_is_unconfigured() -> None:
 
 @pytest.mark.asyncio
 async def test_readiness_fails_closed_on_probe_error() -> None:
-    settings = Settings(
-        environment="test",
+    settings = Settings.for_test(
         postgres_dsn="postgresql://example.invalid/db",
         redis_url="redis://example.invalid/0",
     )
@@ -96,7 +94,7 @@ async def test_readiness_fails_closed_on_probe_error() -> None:
 @pytest.mark.asyncio
 async def test_deepseek_secret_is_not_exposed_by_health(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-secret")
-    settings = Settings(environment="test")
+    settings = Settings.for_test()
 
     transport = ASGITransport(app=create_app(settings))
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -107,7 +105,7 @@ async def test_deepseek_secret_is_not_exposed_by_health(monkeypatch: pytest.Monk
 
 
 def test_openapi_exposes_import_run_audio_and_feature_read_routes() -> None:
-    paths = create_app(Settings(environment="test")).openapi()["paths"]
+    paths = create_app(Settings.for_test()).openapi()["paths"]
 
     assert "/api/v1/audio-artifacts/{artifact_id}/features" in paths
     assert "/api/v1/audio-artifacts/{artifact_id}/content" in paths

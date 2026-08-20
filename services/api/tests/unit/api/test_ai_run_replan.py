@@ -111,7 +111,7 @@ def adjustment_body() -> dict[str, object]:
 
 def test_get_run_exposes_the_strict_persisted_plan() -> None:
     uow = FakeReplanUOW()
-    app = create_app(Settings(environment="test"), ai_run_uow_factory=uow)  # type: ignore[arg-type]
+    app = create_app(Settings.for_test(), ai_run_uow_factory=uow)  # type: ignore[arg-type]
 
     with TestClient(app) as client:
         response = client.get(f"/api/v1/runs/{uow.transaction.parent.run_id}")
@@ -136,7 +136,7 @@ def test_get_run_exposes_the_strict_persisted_plan() -> None:
 
 def test_openapi_exposes_generated_run_and_event_contracts() -> None:
     app = create_app(
-        Settings(environment="test"), ai_run_uow_factory=FakeReplanUOW()
+        Settings.for_test(), ai_run_uow_factory=FakeReplanUOW()
     )  # type: ignore[arg-type]
     document = app.openapi()
 
@@ -159,7 +159,7 @@ def test_replan_route_creates_and_replays_one_child_run() -> None:
     uow = FakeReplanUOW()
     body = adjustment_body()
     body["expected_plan_hash"] = uow.transaction.plan.content_hash
-    app = create_app(Settings(environment="test"), ai_run_uow_factory=uow)  # type: ignore[arg-type]
+    app = create_app(Settings.for_test(), ai_run_uow_factory=uow)  # type: ignore[arg-type]
     url = f"/api/v1/runs/{uow.transaction.parent.run_id}/replan"
 
     with TestClient(app) as client:
