@@ -120,6 +120,18 @@ class AIRunData(ApiModel):
     progress: RunProgressData
 
 
+class AIRunResponse(ApiModel):
+    data: AIRunData
+
+
+class CreateAIRunResponse(AIRunResponse):
+    status: Literal["accepted"]
+
+
+class EventStreamResponse(StreamingResponse):
+    media_type = "text/event-stream"
+
+
 def run_data(run: AIRun, projection: AIRunProjection | None = None) -> AIRunData:
     progress = (
         projection.progress
@@ -183,10 +195,14 @@ def format_sse_event(event: AIRunEvent) -> str:
 def build_ai_run_router(uow: AIRunUnitOfWorkFactory) -> APIRouter:
     router = APIRouter(prefix="/api/v1", tags=["ai-runs"])
 
-    @router.post("/projects/{project_id}/ai-runs", status_code=202)
+    @router.post(
+        "/projects/{project_id}/ai-runs",
+        status_code=202,
+        response_model=CreateAIRunResponse,
+    )
     async def create_run(
         project_id: UUID, body: CreateAIRunBody, idempotency_key: IdempotencyKey
-    ) -> dict[str, object]:
+    ) -> CreateAIRunResponse:
         brief = CompositionBrief.model_validate(body.brief, strict=False)
         run = await CreateAIRun(uow)(CreateAIRunRequest(
             project_id=project_id, branch_id=body.branch_id,
@@ -196,48 +212,54 @@ def build_ai_run_router(uow: AIRunUnitOfWorkFactory) -> APIRouter:
             max_model_requests=body.max_model_requests,
             max_total_tokens=body.max_total_tokens,
         ))
-        return {"status": "accepted", "data": run_data(run).model_dump(mode="json")}
+        return CreateAIRunResponse(status="accepted", data=run_data(run))
 
-    @router.get("/runs/{run_id}")
-    async def read_run(run_id: UUID) -> dict[str, object]:
+    @router.get("/runs/{run_id}", response_model=AIRunResponse)
+    async def read_run(run_id: UUID) -> AIRunResponse:
         projection = await ReadAIRunProjection(uow)(run_id)
-        return {"data": run_data(projection.run, projection).model_dump(mode="json")}
+        return AIRunResponse(data=run_data(projection.run, projection))
 
-    @router.post("/runs/{run_id}/resume")
+    @router.post("/runs/{run_id}/resume", response_model=AIRunResponse)
     async def resume_run(
         run_id: UUID, body: ResumeAIRunBody, idempotency_key: IdempotencyKey
-    ) -> dict[str, object]:
+    ) -> AIRunResponse:
         run = await ResumeAIRunApproval(uow)(
             run_id=run_id, actor_id=body.actor_id, decision=body.decision,
             assertion=body.approval_assertion, expected_version=body.expected_version,
             expected_plan_content_hash=body.expected_plan_hash,
             note=body.note, idempotency_key=idempotency_key,
         )
-        return {"data": run_data(run).model_dump(mode="json")}
+        return AIRunResponse(data=run_data(run))
 
-    async def action(run_id: UUID, body: RunActionBody, key: str, name: str) -> dict[str, object]:
+    async def action(
+        run_id: UUID, body: RunActionBody, key: str, name: str
+    ) -> AIRunResponse:
         run = await RequestAIRunAction(uow)(
             run_id=run_id, action=name, expected_version=body.expected_version,
             idempotency_key=key,
         )
-        return {"data": run_data(run).model_dump(mode="json")}
+        return AIRunResponse(data=run_data(run))
 
-    @router.post("/runs/{run_id}/cancel")
+    @router.post("/runs/{run_id}/cancel", response_model=AIRunResponse)
     async def cancel_run(
         run_id: UUID, body: RunActionBody, idempotency_key: IdempotencyKey
-    ) -> dict[str, object]:
+    ) -> AIRunResponse:
         return await action(run_id, body, idempotency_key, "cancel")
 
-    @router.post("/runs/{run_id}/retry", status_code=202)
+    @router.post(
+        "/runs/{run_id}/retry", status_code=202, response_model=AIRunResponse
+    )
     async def retry_run(
         run_id: UUID, body: RunActionBody, idempotency_key: IdempotencyKey
-    ) -> dict[str, object]:
+    ) -> AIRunResponse:
         return await action(run_id, body, idempotency_key, "retry")
 
-    @router.post("/runs/{run_id}/replan", status_code=202)
+    @router.post(
+        "/runs/{run_id}/replan", status_code=202, response_model=AIRunResponse
+    )
     async def replan_run(
         run_id: UUID, body: ReplanAIRunBody, idempotency_key: IdempotencyKey
-    ) -> dict[str, object]:
+    ) -> AIRunResponse:
         adjustment = PlanAdjustment.model_validate_json(
             json.dumps(body.adjustment), strict=True
         )
@@ -248,9 +270,18 @@ def build_ai_run_router(uow: AIRunUnitOfWorkFactory) -> APIRouter:
             adjustment=adjustment,
             idempotency_key=idempotency_key,
         ))
-        return {"data": run_data(run).model_dump(mode="json")}
+        return AIRunResponse(data=run_data(run))
 
-    @router.get("/runs/{run_id}/events")
+    @router.get(
+        "/runs/{run_id}/events",
+        response_class=EventStreamResponse,
+        responses={
+            200: {
+                "model": AIRunEvent,
+                "content": {"text/event-stream": {}},
+            }
+        },
+    )
     async def stream_events(
         run_id: UUID, request: Request,
         last_event_id: Annotated[int | None, Header(alias="Last-Event-ID")] = None,

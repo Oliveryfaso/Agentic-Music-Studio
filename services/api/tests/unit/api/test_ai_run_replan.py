@@ -134,6 +134,27 @@ def test_get_run_exposes_the_strict_persisted_plan() -> None:
     assert "reasoning" not in str(data["plan"])
 
 
+def test_openapi_exposes_generated_run_and_event_contracts() -> None:
+    app = create_app(
+        Settings(environment="test"), ai_run_uow_factory=FakeReplanUOW()
+    )  # type: ignore[arg-type]
+    document = app.openapi()
+
+    assert {"AIRunData", "AIRunEvent", "AIRunResponse", "RunProgressData"} <= set(
+        document["components"]["schemas"]
+    )
+    read_schema = document["paths"]["/api/v1/runs/{run_id}"]["get"]["responses"]["200"]
+    assert read_schema["content"]["application/json"]["schema"]["$ref"].endswith(
+        "/AIRunResponse"
+    )
+    event_schema = document["paths"]["/api/v1/runs/{run_id}/events"]["get"]["responses"][
+        "200"
+    ]
+    assert event_schema["content"]["text/event-stream"]["schema"]["$ref"].endswith(
+        "/AIRunEvent"
+    )
+
+
 def test_replan_route_creates_and_replays_one_child_run() -> None:
     uow = FakeReplanUOW()
     body = adjustment_body()
