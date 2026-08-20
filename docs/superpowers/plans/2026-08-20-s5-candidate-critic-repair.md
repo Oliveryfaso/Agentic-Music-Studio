@@ -36,7 +36,7 @@
 - Produces `project_candidate_segments(candidate_id: UUID, arrangement: ArrangementIR) -> tuple[CandidateSegment, ...]`.
 - Produces `merge_candidate_branches(left: list[dict[str, object]], right: list[dict[str, object]]) -> list[dict[str, object]]` for LangGraph state reduction.
 
-- [ ] **Step 1: Write failing literal contract tests**
+- [x] **Step 1: Write failing literal contract tests**
 
 ```python
 def test_candidate_seed_and_reducer_are_stable_and_order_independent() -> None:
@@ -63,12 +63,12 @@ def test_critique_rejects_findings_without_real_evidence_refs() -> None:
         CandidateCritique.model_validate(invalid_critique_without_evidence())
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `.venv/bin/pytest services/api/tests/unit/domain/test_candidates.py -q`  
 Expected: collection fails because `motif_forge.domain.candidates` does not exist.
 
-- [ ] **Step 3: Implement strict models, projection, seed derivation, and reducer**
+- [x] **Step 3: Implement strict models, projection, seed derivation, and reducer**
 
 ```python
 class CandidateLabel(StrEnum):
@@ -87,13 +87,13 @@ def merge_candidate_branches(left, right):
 
 Implement segment IDs from candidate/section/track identity using the existing UUID identity convention; validate tick bounds, dependency existence, and acyclicity. `CandidateCritique` must contain exactly A/B assessments and every negative finding must reference an input `CandidateEvidence.evidence_ref`.
 
-- [ ] **Step 4: Run GREEN and static checks**
+- [x] **Step 4: Run GREEN and static checks**
 
 Run: `.venv/bin/pytest services/api/tests/unit/domain/test_candidates.py -q`  
 Run: `.venv/bin/ruff check services/api/src/motif_forge/domain/candidates.py services/api/tests/unit/domain/test_candidates.py`  
 Run: `.venv/bin/mypy services/api/src/motif_forge/domain/candidates.py`
 
-- [ ] **Step 5: Commit Task 1**
+- [x] **Step 5: Commit Task 1**
 
 ```bash
 git add services/api/src/motif_forge/domain services/api/tests/unit/domain/test_candidates.py
