@@ -1,9 +1,23 @@
-import { readData, requestJson } from "../../shared/api";
+import { jsonHeaders, readData, requestJson } from "../../shared/api";
 import type {
+  CreateProjectInput,
+  CreateProjectResult,
   ProjectSummary,
   ProjectWorkspace,
   RevisionStudio,
 } from "../../shared/openapi";
+
+export async function createProject(
+  input: CreateProjectInput,
+  idempotencyKey: string,
+): Promise<CreateProjectResult> {
+  const value = await requestJson("/api/v1/projects", {
+    method: "POST",
+    headers: jsonHeaders(idempotencyKey),
+    body: JSON.stringify(input),
+  });
+  return readData<CreateProjectResult>(value);
+}
 
 export async function listProjects(limit = 50): Promise<ProjectSummary[]> {
   if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
