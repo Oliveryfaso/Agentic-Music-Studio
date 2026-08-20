@@ -6,6 +6,7 @@
 .pytest_cache/
 .ruff_cache/
 .venv/
+.worktrees/
 node_modules/
 apps/web/dist/
 __pycache__/
