@@ -13,6 +13,7 @@ button, input, select { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: progress; opacity: 0.6; }
 button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid #62e6ff; outline-offset: 3px; }
+textarea:focus-visible, select:focus-visible { outline: 2px solid #62e6ff; outline-offset: 3px; }
 
 .app-shell { min-height: 100vh; display: flex; flex-direction: column; }
 .topbar { min-height: 64px; padding: 10px clamp(16px, 3vw, 40px); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; border-bottom: 1px solid #202838; background: rgba(11, 14, 20, 0.9); backdrop-filter: blur(18px); position: sticky; top: 0; z-index: 5; }
@@ -120,6 +121,26 @@ main { width: min(1440px, 100%); margin: 0 auto; flex: 1; padding: clamp(28px, 5
 .status-banner strong { font-size: 13px; }.status-banner p { margin: 4px 0 0; color: #93a1b3; font-size: 12px; line-height: 1.5; }
 .route-pending, .route-missing { display: grid; gap: 18px; }.route-pending h1 { margin-bottom: 6px; }.route-missing .primary-button { width: fit-content; }
 
+.generate-page { min-width: 0; display: grid; gap: 18px; }
+.workflow-hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.workflow-hero h1 { margin: 7px 0 10px; font-size: clamp(34px,5vw,58px); line-height: 1.05; letter-spacing: -.04em; }
+.workflow-hero > div > p:last-child { max-width: 700px; margin: 0; color: #93a1b3; line-height: 1.7; }
+.storage-state { padding: 7px 10px; border: 1px solid rgba(85,221,164,.32); border-radius: 999px; color: #55dda4; font-size: 10px; text-transform: uppercase; white-space: nowrap; }
+.brief-form, .plan-review, .adjustment-form, .run-progress { min-width: 0; padding: 20px; border: 1px solid #293346; border-radius: 14px; background: linear-gradient(135deg,rgba(22,30,43,.97),rgba(14,19,29,.95)); box-shadow: 0 20px 58px rgba(0,0,0,.17); }
+.brief-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.brief-grid label, .approval-grid label, .adjustment-grid label { min-width: 0; display: grid; gap: 7px; color: #93a1b3; font-size: 11px; }
+.brief-grid label:nth-child(2) { grid-row: span 2; }.brief-grid label:nth-child(2) textarea { min-height: 100%; }
+.brief-grid input, .brief-grid textarea, .brief-grid select, .approval-grid input, .adjustment-grid input, .adjustment-grid textarea { width: 100%; min-width: 0; padding: 10px 11px; border: 1px solid #293346; border-radius: 8px; background: #0b0e14; color: #e8eef7; resize: vertical; }
+.brief-form .action-row { margin-top: 18px; }.form-note { color: #647286; font-size: 11px; }
+.plan-review { padding: 0; overflow: hidden; }.plan-review .panel-heading h2 { margin: 5px 0 0; font-size: 20px; }.plan-tempo { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }.plan-tempo > * { padding: 5px 8px; border: 1px solid #334158; border-radius: 6px; color: #93a1b3; font-size: 11px; }.plan-tempo strong { color: #62e6ff; }
+.plan-language-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); border-bottom: 1px solid #202838; }.plan-language-grid > div { min-width: 0; padding: 15px 18px; border-right: 1px solid #202838; }.plan-language-grid > div:last-child { border: 0; }.plan-language-grid span, .plan-instruments h3, .plan-references h3 { color: #647286; font-size: 10px; text-transform: uppercase; letter-spacing: .1em; }.plan-language-grid p { margin: 7px 0 0; color: #c5cfdd; font-size: 12px; line-height: 1.55; }
+.plan-sections { padding: 18px; display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,220px),1fr)); gap: 12px; }.plan-sections article { min-width: 0; padding: 14px; border: 1px solid #293346; border-radius: 10px; background: #0f141e; }.plan-sections header { display: flex; justify-content: space-between; gap: 8px; }.plan-sections h3 { margin: 0; font-size: 14px; }.plan-sections header span, .plan-sections small { color: #647286; font-size: 10px; }.plan-sections p { min-height: 38px; color: #93a1b3; font-size: 11px; line-height: 1.5; }.energy-track { height: 4px; margin: 12px 0 7px; overflow: hidden; border-radius: 4px; background: #293346; }.energy-track span { display: block; height: 100%; background: linear-gradient(90deg,#62e6ff,#9b7cff); }
+.plan-instruments, .plan-references { padding: 0 18px 18px; }.plan-instruments h3, .plan-references h3 { margin: 0 0 10px; }.plan-instruments > div { display: flex; flex-wrap: wrap; gap: 8px; }.plan-instruments span { padding: 7px 9px; border: 1px solid #293346; border-radius: 7px; color: #93a1b3; font-size: 11px; }.plan-instruments strong { color: #e8eef7; }.plan-references p { margin: 0; color: #c5cfdd; font-size: 12px; }
+.approval-form { padding: 18px; border-top: 1px solid #293346; background: rgba(11,14,20,.4); }.approval-grid { display: grid; grid-template-columns: .7fr 1.4fr 1fr; gap: 12px; }.decision-row { margin-top: 14px; }.decision-row small { color: #647286; font-size: 10px; }
+.adjustment-form header h2 { margin: 5px 0 14px; font-size: 18px; }.adjustment-grid { display: grid; grid-template-columns: .5fr .7fr 1.8fr; gap: 12px; }.adjustment-form > button { margin-top: 14px; }
+.run-progress { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }.run-progress h1 { margin: 5px 0; font-size: clamp(24px,4vw,38px); }.run-progress > div:first-child > p:last-child { max-width: 420px; margin: 0; color: #647286; font: 10px ui-monospace,SFMono-Regular,Menlo,monospace; overflow-wrap: anywhere; }.progress-facts { display: flex; flex-wrap: wrap; gap: 8px; }.progress-facts span { padding: 8px 10px; border: 1px solid #293346; border-radius: 7px; color: #647286; font-size: 10px; }.progress-facts strong { color: #93a1b3; }.completed-steps, .safe-error { flex-basis: 100%; margin: 0; color: #93a1b3; font-size: 11px; }.safe-error { color: #ff8a96; }.phase-succeeded { border-color: rgba(85,221,164,.3); }.phase-partial_success, .phase-failed { border-color: rgba(255,107,122,.3); }
+.run-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+
 .workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
 .workspace-main { min-width: 0; display: grid; gap: 18px; }
 .panel, .artifact-inspector { border: 1px solid #202838; border-radius: 14px; background: rgba(18, 23, 34, 0.88); box-shadow: 0 16px 44px rgba(0,0,0,0.16); overflow: hidden; }
@@ -186,6 +207,8 @@ footer { padding: 16px clamp(16px, 3vw, 40px); display: flex; justify-content: s
 @media (max-width: 720px) {
   .shell-nav { display: none !important; }
   .create-project-form { grid-template-columns: 1fr; }
+  .brief-grid, .plan-language-grid, .approval-grid, .adjustment-grid { grid-template-columns: 1fr; }
+  .brief-grid label:nth-child(2) { grid-row: auto; }.plan-language-grid > div { border-right: 0; border-bottom: 1px solid #202838; }.plan-language-grid > div:last-child { border-bottom: 0; }
 }
 
 @media (max-width: 560px) {
@@ -200,6 +223,7 @@ footer { padding: 16px clamp(16px, 3vw, 40px); display: flex; justify-content: s
   .create-project-controls { flex-direction: column; }.create-project-controls .primary-button { min-height: 44px; }
   .project-card-heading { display: grid; }.project-run-status { justify-self: start; }
   .project-card-actions > button { min-height: 44px; }
+  .workflow-hero { display: grid; }.storage-state { justify-self: start; }.decision-row > button, .run-actions > button { min-height: 44px; }.plan-review .panel-heading { align-items: flex-start; flex-direction: column; }.plan-tempo { justify-content: flex-start; }
 }
 
 @media (prefers-reduced-motion: reduce) {

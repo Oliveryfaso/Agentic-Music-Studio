@@ -2,6 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { ImportReviewPage } from "../features/import-review/ImportReviewPage";
+import { BriefPage } from "../features/generate/BriefPage";
+import { RunPage } from "../features/generate/RunPage";
 import { ProjectHomePage } from "../features/projects/ProjectHomePage";
 import { AppShell } from "./AppShell";
 import { StatusBanner } from "./StatusBanner";
@@ -31,8 +33,8 @@ export function App() {
       ) : (
         <AppShell>
           {route.name === "home" && <ProjectHomePage />}
-          {route.name === "brief" && <PendingPage title="New Composition Brief" />}
-          {route.name === "run" && <PendingPage title="Plan & Run Progress" />}
+          {route.name === "brief" && <BriefPage projectId={route.projectId} />}
+          {route.name === "run" && <RunPage runId={route.runId} />}
           {route.name === "studio" && <PendingPage title="Read-only Studio" />}
           {route.name === "not_found" && (
             <section className="route-missing">
