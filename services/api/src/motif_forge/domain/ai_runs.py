@@ -45,6 +45,7 @@ class CostStatus(StrEnum):
 
 class ModelRequestKind(StrEnum):
     INITIAL = "initial"
+    CRITIC = "critic"
     TRANSPORT_RETRY = "transport_retry"
     SCHEMA_REPAIR = "schema_repair"
     STRATEGY_REPAIR = "strategy_repair"

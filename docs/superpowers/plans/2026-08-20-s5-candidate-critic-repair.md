@@ -312,7 +312,7 @@ git commit -m "feat: render durable candidate previews"
 - `DeterministicEvidenceCritic.evaluate` returns strict `CandidateCritique` with zero usage.
 - `DeepSeekEvidenceCritic` uses `DeepSeekJsonClient` with request kind `critic`, one attempt, strict schema, and no tools.
 
-- [ ] **Step 1: Write RED evidence and budget tests**
+- [x] **Step 1: Write RED evidence and budget tests**
 
 ```python
 async def test_deterministic_critic_cites_only_supplied_evidence() -> None:
@@ -334,22 +334,22 @@ async def test_invalid_critic_schema_uses_fallback_without_third_http_request() 
     assert ledger.submitted_model_requests == 2
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `.venv/bin/pytest services/api/tests/unit/agent/test_critic.py services/api/tests/unit/providers/test_deepseek.py services/api/tests/integration/test_postgres_ai_runs.py -q`  
 Expected: missing critic boundary and unsupported `critic` request kind.
 
-- [ ] **Step 3: Implement one pairwise call and fallback**
+- [x] **Step 3: Implement one pairwise call and fallback**
 
 Add `ModelRequestKind.CRITIC`. Serialize only bounded evidence summaries, use `temperature=0`, one transport attempt, strict `CandidateCritique`, and no schema-repair HTTP request. Reject unknown evidence refs before returning. `build_generate_critic(settings, run, uow)` selects DeepSeek only when the existing explicit live boundary is enabled and the Run retains request budget; otherwise it returns `DeterministicEvidenceCritic`.
 
-- [ ] **Step 4: Run GREEN and static checks**
+- [x] **Step 4: Run GREEN and static checks**
 
 Run the Step 2 command.  
 Run: `.venv/bin/ruff check services/api/src/motif_forge/agent/critic.py services/api/src/motif_forge/providers/deepseek.py services/api/tests/unit/agent/test_critic.py`  
 Run: `.venv/bin/mypy services/api/src/motif_forge/agent/critic.py services/api/src/motif_forge/providers/deepseek.py`
 
-- [ ] **Step 5: Commit Task 5**
+- [x] **Step 5: Commit Task 5**
 
 ```bash
 git add services/api/src/motif_forge/agent/critic.py services/api/src/motif_forge/agent/planner.py services/api/src/motif_forge/providers/deepseek.py services/api/src/motif_forge/worker/resume_dispatcher.py services/api/tests

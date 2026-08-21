@@ -8,6 +8,11 @@ import socket
 from collections.abc import Mapping
 from typing import Any, cast
 
+from motif_forge.agent.critic import (
+    DeepSeekEvidenceCritic,
+    DeterministicEvidenceCritic,
+    EvidenceCritic,
+)
 from motif_forge.agent.parent_graph import build_parent_graph
 from motif_forge.agent.planner import (
     CompositionPlanner,
@@ -55,7 +60,7 @@ from motif_forge.infrastructure.persistence.generation import (
 )
 from motif_forge.infrastructure.persistence.media_jobs import PostgresMediaJobUnitOfWork
 from motif_forge.infrastructure.persistence.storage import PostgresStorageUnitOfWork
-from motif_forge.providers.deepseek import build_synth_ambient_planner
+from motif_forge.providers.deepseek import DeepSeekJsonClient, build_synth_ambient_planner
 from motif_forge.worker.outbox import (
     GRAPH_ACTION_TOPICS,
     GRAPH_RESUME_TOPICS,
@@ -103,6 +108,28 @@ def build_generate_planner(
     return build_synth_ambient_planner(
         settings, run_id=run.run_id, budget_ledger=cast(Any, ledger)
     )
+
+
+def build_generate_critic(settings: Settings, run: AIRun, ai_uow: object) -> EvidenceCritic:
+    if not settings.deepseek_configured:
+        return DeterministicEvidenceCritic()
+    ledger = PersistentProviderBudgetLedger(
+        ai_uow,
+        run_id=run.run_id,
+        max_requests=run.max_model_requests,
+        max_total_tokens=run.max_total_tokens,
+    )
+    client = DeepSeekJsonClient(
+        api_key=settings.deepseek_api_key,
+        base_url=settings.deepseek_base_url,
+        model=settings.deepseek_model,
+        connect_timeout_seconds=settings.deepseek_connect_timeout_seconds,
+        read_timeout_seconds=settings.deepseek_read_timeout_seconds,
+        max_attempts=1,
+        run_id=run.run_id,
+        budget_ledger=cast(Any, ledger),
+    )
+    return DeepSeekEvidenceCritic(client)
 
 
 async def run_resume_dispatcher() -> None:

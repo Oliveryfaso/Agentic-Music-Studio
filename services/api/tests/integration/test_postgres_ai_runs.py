@@ -871,6 +871,36 @@ async def test_provider_budget_adapter_survives_reconstruction_and_uses_run_ledg
 
 
 @pytest.mark.asyncio
+async def test_critic_request_uses_second_persistent_model_reservation(
+    test_postgres_dsn: str,
+) -> None:
+    await asyncio.to_thread(_upgrade, test_postgres_dsn)
+    run_id, project_id, _, uow, engine = await _seed_run(
+        test_postgres_dsn, key=f"critic-budget-{uuid4().hex}"
+    )
+    try:
+        ledger = PersistentProviderBudgetLedger(uow, run_id=run_id)
+        initial = await ledger.reserve_request(run_id=run_id, kind=ModelRequestKind.INITIAL)
+        await ledger.record_usage(
+            reservation_id=initial.reservation_id,
+            usage=PlannerUsage(prompt_tokens=100, completion_tokens=20, total_tokens=120),
+        )
+        critic = await ledger.reserve_request(run_id=run_id, kind=ModelRequestKind.CRITIC)
+        await ledger.record_usage(
+            reservation_id=critic.reservation_id,
+            usage=PlannerUsage(prompt_tokens=60, completion_tokens=20, total_tokens=80),
+        )
+
+        persisted = await _run(uow, run_id)
+        assert critic.request_ordinal == 2
+        assert persisted.submitted_model_requests == 2
+        assert persisted.total_tokens == 200
+    finally:
+        await _delete_seeded_project(engine, project_id)
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
 async def test_locked_one_request_run_blocks_transport_retry_before_second_post(
     test_postgres_dsn: str,
 ) -> None:
