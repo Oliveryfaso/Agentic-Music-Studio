@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from langgraph.types import Command
-from motif_forge.agent.generate import PlanApprovalDecision
+from motif_forge.agent.generate import CandidateSelectionDecision, PlanApprovalDecision
 from motif_forge.agent.parent_graph import PARENT_TIME_STRETCH_RUN_TYPE
 from motif_forge.domain.ai_runs import AIRun, AIRunStatus
 from motif_forge.worker.outbox import (
@@ -266,6 +266,22 @@ def test_graph_action_payload_is_strict_and_targets_generate_only() -> None:
                 "run_type": "parent.import.v1",
             }
         )
+
+    selection = GraphActionPayload(
+        action="resume",
+        run_id=uuid4(),
+        thread_id="generate-candidate-selection",
+        run_type="parent.generate.v1",
+        decision=CandidateSelectionDecision(
+            decision="select",
+            actor_id="test-user",
+            selection_assertion="I compared both candidate previews and select B.",
+            selected_preview_id=uuid4(),
+            expected_candidate_id=uuid4(),
+            expected_candidate_content_hash="b" * 64,
+        ),
+    )
+    assert isinstance(selection.decision, CandidateSelectionDecision)
     with pytest.raises(ValidationError):
         GraphActionPayload.model_validate(
             {

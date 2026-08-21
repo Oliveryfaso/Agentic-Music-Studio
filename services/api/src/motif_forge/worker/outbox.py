@@ -17,6 +17,7 @@ from sqlalchemy import or_, select, update
 from sqlalchemy.engine import CursorResult
 
 from motif_forge.agent.generate import (
+    CandidateSelectionDecision,
     GenerateRequest,
     PlanApprovalDecision,
     initial_generate_state,
@@ -40,7 +41,7 @@ class GraphActionPayload(DomainModel):
     run_id: UUID
     thread_id: str
     run_type: Literal["parent.generate.v1"]
-    decision: PlanApprovalDecision | None = None
+    decision: PlanApprovalDecision | CandidateSelectionDecision | None = None
 
     def model_post_init(self, __context: object) -> None:
         del __context
@@ -53,7 +54,9 @@ class AIRunLoader(Protocol):
 
 
 class PlanDecisionLoader(Protocol):
-    async def __call__(self, run_id: UUID) -> PlanApprovalDecision: ...
+    async def __call__(
+        self, run_id: UUID
+    ) -> PlanApprovalDecision | CandidateSelectionDecision: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -375,7 +378,10 @@ class ParentGraphActionPublisher:
         if payload.action == "cancel":
             if run.status is not AIRunStatus.CANCELLED:
                 raise ValueError("cancel action must be authoritative before Graph wake")
-            if values.get("phase") == "waiting_plan_approval":
+            if values.get("phase") in {
+                "waiting_plan_approval",
+                "waiting_candidate_selection",
+            }:
                 await graph.ainvoke(Command(resume={"action": "cancel"}), config)
             return
         if values.get("phase") in {"approved", "revision_materialized"}:
@@ -383,13 +389,24 @@ class ParentGraphActionPublisher:
             if self._record_progress is not None and isinstance(result, Mapping):
                 await self._record_progress(result)
             return
-        if values.get("phase") != "waiting_plan_approval":
+        if values.get("phase") not in {
+            "waiting_plan_approval",
+            "waiting_candidate_selection",
+        }:
             return
         decision = payload.decision
         if decision is None:
             if self._load_decision is None:
                 raise ValueError("resume action is missing its authoritative decision")
             decision = await self._load_decision(run.run_id)
+        if values.get("phase") == "waiting_plan_approval" and not isinstance(
+            decision, PlanApprovalDecision
+        ):
+            raise ValueError("candidate decision cannot resume Plan approval")
+        if values.get("phase") == "waiting_candidate_selection" and not isinstance(
+            decision, CandidateSelectionDecision
+        ):
+            raise ValueError("Plan decision cannot resume candidate selection")
         result = await graph.ainvoke(Command(resume=decision.model_dump(mode="json")), config)
         if self._record_progress is not None and isinstance(result, Mapping):
             await self._record_progress(result)

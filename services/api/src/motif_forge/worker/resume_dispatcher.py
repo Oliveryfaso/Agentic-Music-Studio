@@ -26,11 +26,25 @@ from motif_forge.application.ai_runs import (
     RecordAIRunApproval,
     RecordAIRunGraphProgress,
 )
+from motif_forge.application.candidate_previews import (
+    CollectCandidatePreview,
+    EnqueueCandidatePreview,
+)
+from motif_forge.application.candidate_repair import (
+    ApplyBoundedCandidateRepair,
+    EvaluateCandidatePair,
+    MeasureCandidateEvidence,
+)
 from motif_forge.application.generation import (
     CollectCompleteExportArtifact,
     EnqueueNextCompleteExportJob,
     MaterializeApprovedComposition,
     PersistPlanningResult,
+)
+from motif_forge.application.generation_candidates import (
+    CreateCandidateSelectionPreview,
+    CreateCompositionCandidate,
+    MaterializeSelectedCompositionCandidate,
 )
 from motif_forge.application.imports import LoadImportAnalysisContext, MaterializeImport
 from motif_forge.application.media_jobs import (
@@ -151,7 +165,12 @@ async def run_resume_dispatcher() -> None:
             media_uow = PostgresMediaJobUnitOfWork(session_factory)
             ai_uow = PostgresAIRunUnitOfWork(session_factory)
 
-            def graph_with(planner: CompositionPlanner) -> object:
+            def graph_with(
+                planner: CompositionPlanner,
+                *,
+                critic: EvidenceCritic | None = None,
+            ) -> object:
+                compositions = PostgresCompositionMaterializationUnitOfWork(session_factory)
                 return build_parent_graph(
                 EnqueueMediaJob(media_uow),
                 checkpointer=saver,
@@ -190,7 +209,34 @@ async def run_resume_dispatcher() -> None:
                 persist_planning_result=PersistPlanningResult(ai_uow),
                 record_plan_approval=RecordAIRunApproval(ai_uow),
                 materialize_approved_composition=MaterializeApprovedComposition(
-                    PostgresCompositionMaterializationUnitOfWork(session_factory)
+                    compositions
+                ),
+                create_composition_candidate=(
+                    CreateCompositionCandidate(compositions) if critic is not None else None
+                ),
+                enqueue_candidate_preview=(
+                    EnqueueCandidatePreview(media_uow) if critic is not None else None
+                ),
+                collect_candidate_preview=(
+                    CollectCandidatePreview(media_uow) if critic is not None else None
+                ),
+                evidence_critic=critic,
+                create_candidate_selection_preview=(
+                    CreateCandidateSelectionPreview(compositions) if critic is not None else None
+                ),
+                materialize_selected_candidate=(
+                    MaterializeSelectedCompositionCandidate(compositions)
+                    if critic is not None
+                    else None
+                ),
+                measure_candidate_evidence=(
+                    MeasureCandidateEvidence(compositions) if critic is not None else None
+                ),
+                apply_candidate_repair=(
+                    ApplyBoundedCandidateRepair(compositions) if critic is not None else None
+                ),
+                candidate_quality_gate=(
+                    EvaluateCandidatePair(compositions) if critic is not None else None
                 ),
                 enqueue_next_complete_export_job=EnqueueNextCompleteExportJob(
                     media_uow,
@@ -201,7 +247,10 @@ async def run_resume_dispatcher() -> None:
                 )
 
             def graph_for(run: AIRun) -> object:
-                return graph_with(build_generate_planner(settings, run, ai_uow))
+                return graph_with(
+                    build_generate_planner(settings, run, ai_uow),
+                    critic=build_generate_critic(settings, run, ai_uow),
+                )
 
             record_progress = RecordAIRunGraphProgress(ai_uow)
             publisher = ParentGraphActionPublisher(

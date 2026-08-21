@@ -7,6 +7,7 @@ from motif_forge.application.candidate_repair import (
     ApplyBoundedCandidateRepair,
     BoundedRepairRequest,
     EvaluateCandidatePair,
+    MeasureCandidateEvidence,
 )
 from motif_forge.application.generation_candidates import (
     CreateCompositionCandidate,
@@ -140,3 +141,29 @@ def test_repair_is_rejected_when_blocking_theory_errors_increase() -> None:
 
     assert decision.selected_snapshot_id == original
     assert decision.repair_status == "non_improving"
+
+
+@pytest.mark.asyncio
+async def test_candidate_evidence_measurement_names_authoritative_segment() -> None:
+    transaction, run, plan = await _fixture()
+    created = await CreateCompositionCandidate(transaction, clock=lambda: NOW)(
+        CreateCompositionCandidateRequest(
+            run_id=run.run_id,
+            project_id=run.project_id,
+            branch_id=run.branch_id,
+            base_revision_id=run.base_revision_id,
+            plan_id=plan.plan_id,
+            expected_plan_hash=plan.content_hash,
+            label=CandidateLabel.A,
+            seed=0,
+        )
+    )
+
+    measured = await MeasureCandidateEvidence(transaction)(
+        created.candidate_snapshot_id
+    )
+
+    assert measured.segment.candidate_id == created.candidate_id
+    assert measured.evidence.candidate_id == created.candidate_id
+    assert measured.evidence.segment_id == measured.segment.segment_id
+    assert "note_onsets=" in measured.evidence.measured_fact

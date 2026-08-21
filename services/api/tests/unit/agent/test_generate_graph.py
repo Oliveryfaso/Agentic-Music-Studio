@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 import pytest
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
+from motif_forge.agent.critic import DeterministicEvidenceCritic
 from motif_forge.agent.fallback import build_fallback_plan
 from motif_forge.agent.generate import GenerateRequest, initial_generate_state
 from motif_forge.agent.parent_graph import (
@@ -16,6 +18,7 @@ from motif_forge.agent.parent_graph import (
 )
 from motif_forge.agent.planner import StaticCompositionPlanner
 from motif_forge.agent.schemas import CompositionBrief, CompositionPlan
+from motif_forge.application.candidate_previews import CandidatePreviewCursor
 from motif_forge.application.generation import (
     CompleteExportCursor,
     MaterializeApprovedCompositionResult,
@@ -23,6 +26,7 @@ from motif_forge.application.generation import (
 )
 from motif_forge.application.media_jobs import EnqueueMediaJobRequest, EnqueueMediaJobResult
 from motif_forge.domain.ai_runs import AIRunApproval, composition_plan_content_hash
+from motif_forge.domain.candidates import CandidateLabel
 from motif_forge.domain.storage import StoragePressureDecision, StorageRoute
 
 from .sample_data import valid_brief_payload, valid_plan_payload
@@ -169,6 +173,102 @@ class _StorageGate:
                 else "STORAGE_QUOTA_EXCEEDED"
             ),
         )
+
+
+class _S5Candidates:
+    def __init__(self) -> None:
+        self.calls = 0
+        self.ids = {label: uuid4() for label in CandidateLabel}
+        self.snapshots = {label: uuid4() for label in CandidateLabel}
+        self.hashes = {
+            label: ("a" if label is CandidateLabel.A else "b") * 64
+            for label in CandidateLabel
+        }
+
+    async def create(self, request):  # type: ignore[no-untyped-def]
+        self.calls += 1
+        return SimpleNamespace(
+            candidate_id=self.ids[request.label],
+            candidate_snapshot_id=self.snapshots[request.label],
+            candidate_content_hash=self.hashes[request.label],
+            style_pack_version="style:synth-ambient:v1",
+            compiler_version="synth-ambient-compiler.v1",
+        )
+
+
+class _S5Previews:
+    def __init__(self) -> None:
+        self.enqueue_calls = 0
+        self.collect_calls = 0
+        self.runs: dict[UUID, UUID] = {}
+        self.artifacts: dict[UUID, UUID] = {}
+
+    async def enqueue(self, request):  # type: ignore[no-untyped-def]
+        self.enqueue_calls += 1
+        job_id = uuid4()
+        run_id = uuid4()
+        self.runs[job_id] = run_id
+        self.artifacts[job_id] = uuid4()
+        return CandidatePreviewCursor(
+            project_id=request.project_id,
+            candidate_snapshot_id=request.candidate_snapshot_id,
+            candidate_content_hash=request.expected_candidate_content_hash,
+            media_run_id=run_id,
+            job_id=job_id,
+        )
+
+    async def collect(self, cursor, completed_job_id):  # type: ignore[no-untyped-def]
+        self.collect_calls += 1
+        assert completed_job_id == cursor.job_id
+        return cursor.model_copy(
+            update={"preview_artifact_id": self.artifacts[completed_job_id]}
+        )
+
+
+class _S5Selection:
+    def __init__(self) -> None:
+        self.preview_calls = 0
+        self.materialize_calls = 0
+        self.preview_ids: dict[UUID, UUID] = {}
+        self.revision_id = uuid4()
+
+    async def create_preview(self, request):  # type: ignore[no-untyped-def]
+        self.preview_calls += 1
+        preview_id = self.preview_ids.setdefault(request.candidate_snapshot_id, uuid4())
+        return SimpleNamespace(preview_id=preview_id)
+
+    async def materialize(self, request):  # type: ignore[no-untyped-def]
+        self.materialize_calls += 1
+        return SimpleNamespace(revision_id=self.revision_id)
+
+
+def _s5_services():  # type: ignore[no-untyped-def]
+    plan = CompositionPlan.model_validate_json(json.dumps(valid_plan_payload()), strict=True)
+    planner = _CountingPlanner(plan)
+    persist = _Persist()
+    approval = _Approval()
+    legacy_materialize = _Materialize()
+    export = _Export()
+    candidates = _S5Candidates()
+    previews = _S5Previews()
+    selection = _S5Selection()
+    graph = build_parent_graph(
+        _MustNotEnqueue(),
+        checkpointer=MemorySaver(),
+        generate_planner=planner,
+        persist_planning_result=persist,
+        record_plan_approval=approval,
+        materialize_approved_composition=legacy_materialize,
+        enqueue_next_complete_export_job=export.enqueue,
+        collect_complete_export_artifact=export.collect,
+        create_composition_candidate=candidates.create,
+        enqueue_candidate_preview=previews.enqueue,
+        collect_candidate_preview=previews.collect,
+        evidence_critic=DeterministicEvidenceCritic(),
+        create_candidate_selection_preview=selection.create_preview,
+        materialize_selected_candidate=selection.materialize,
+    )
+    return graph, candidates, previews, selection, legacy_materialize, export
 
 
 def _request(**brief_changes: object) -> GenerateRequest:
@@ -425,3 +525,89 @@ async def test_deterministic_fallback_still_reaches_plan_approval() -> None:
     assert waiting["fallback_reason"] == "PLAN_SCHEMA_INVALID_AFTER_REPAIR"
     assert planner.calls == 1
     assert persist.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_s5_waits_for_two_previews_and_explicit_selection_before_revision() -> None:
+    graph, candidates, previews, selection, legacy_materialize, export = _s5_services()
+    thread_id = "generate-s5-selection"
+    waiting_plan = await graph.ainvoke(
+        initial_generate_state(thread_id=thread_id, request=_request()),
+        _config(thread_id),
+    )
+
+    state = await graph.ainvoke(
+        Command(resume=_approval_resume(waiting_plan)), _config(thread_id)
+    )
+    assert state["phase"] == "rendering_candidate_previews"
+    assert candidates.calls == 2
+    assert selection.materialize_calls == legacy_materialize.calls == 0
+
+    state = await graph.ainvoke(Command(resume=_worker_resume(state)), _config(thread_id))
+    assert state["phase"] == "rendering_candidate_previews"
+    state = await graph.ainvoke(Command(resume=_worker_resume(state)), _config(thread_id))
+
+    assert state["phase"] == "waiting_candidate_selection"
+    assert [item["label"] for item in state["candidate_working"]] == ["a", "b"]
+    assert previews.enqueue_calls == previews.collect_calls == 2
+    assert selection.preview_calls == 2
+    assert selection.materialize_calls == legacy_materialize.calls == 0
+    selected = state["candidate_working"][1]
+
+    state = await graph.ainvoke(
+        Command(
+            resume={
+                "decision": "select",
+                "actor_id": "test-user",
+                "selection_assertion": "I compared both previews and select candidate B.",
+                "selected_preview_id": selected["selection_preview_id"],
+                "expected_candidate_id": selected["candidate_id"],
+                "expected_candidate_content_hash": selected["candidate_content_hash"],
+                "note": "B has the preferred evidence profile",
+            }
+        ),
+        _config(thread_id),
+    )
+
+    assert state["selected_candidate_id"] == selected["candidate_id"]
+    assert state["phase"] == "waiting_generate_worker"
+    assert selection.materialize_calls == 1
+    assert legacy_materialize.calls == 0
+    assert export.enqueue_calls == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("resume", "terminal"),
+    [
+        (
+            {
+                "decision": "reject",
+                "actor_id": "test-user",
+                "selection_assertion": "I compared both previews and reject both candidates.",
+            },
+            "rejected",
+        ),
+        ({"action": "cancel"}, "cancelled"),
+    ],
+)
+async def test_s5_candidate_reject_and_cancel_never_materialize(
+    resume: dict[str, object], terminal: str
+) -> None:
+    graph, _, _, selection, legacy_materialize, export = _s5_services()
+    thread_id = f"generate-s5-{terminal}"
+    waiting_plan = await graph.ainvoke(
+        initial_generate_state(thread_id=thread_id, request=_request()),
+        _config(thread_id),
+    )
+    state = await graph.ainvoke(
+        Command(resume=_approval_resume(waiting_plan)), _config(thread_id)
+    )
+    state = await graph.ainvoke(Command(resume=_worker_resume(state)), _config(thread_id))
+    state = await graph.ainvoke(Command(resume=_worker_resume(state)), _config(thread_id))
+
+    result = await graph.ainvoke(Command(resume=resume), _config(thread_id))
+
+    assert result["terminal_status"] == terminal
+    assert selection.materialize_calls == legacy_materialize.calls == 0
+    assert export.enqueue_calls == 0

@@ -12,7 +12,11 @@ from pydantic import Field, model_validator
 from motif_forge.application.errors import ApplicationError
 from motif_forge.application.ports import CompositionMaterializationUnitOfWorkFactory
 from motif_forge.domain.ai_runs import AIRunEvent
-from motif_forge.domain.candidates import CandidateEvidence, CandidateSegment
+from motif_forge.domain.candidates import (
+    CandidateEvidence,
+    CandidateSegment,
+    project_candidate_segments,
+)
 from motif_forge.domain.commands import (
     DeleteNotesCommand,
     DeleteNotesPayload,
@@ -70,6 +74,65 @@ class BoundedRepairResult(DomainModel):
     candidate_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     operation: RepairOperation
     replayed: bool = False
+
+
+class MeasuredCandidateEvidence(DomainModel):
+    candidate_snapshot_id: UUID
+    segment: CandidateSegment
+    evidence: CandidateEvidence
+
+
+class MeasureCandidateEvidence:
+    """Project one reproducible density fact from an immutable Snapshot."""
+
+    def __init__(self, uow_factory: CompositionMaterializationUnitOfWorkFactory) -> None:
+        self._uow_factory = uow_factory
+
+    async def __call__(self, candidate_snapshot_id: UUID) -> MeasuredCandidateEvidence:
+        async with self._uow_factory() as transaction:
+            snapshot = await transaction.get_candidate_snapshot(candidate_snapshot_id)
+        if snapshot is None:
+            raise ApplicationError(
+                "CANDIDATE_NOT_FOUND", "candidate evidence target does not exist"
+            )
+        segments = project_candidate_segments(snapshot.candidate_id, snapshot.candidate_ir)
+
+        def onset_count(segment: CandidateSegment) -> int:
+            track = next(
+                item
+                for item in snapshot.candidate_ir.tracks
+                if item.track_id == segment.track_id
+            )
+            return sum(
+                1
+                for clip in track.clips
+                if isinstance(clip, NoteClip)
+                for note in clip.notes
+                if segment.start_tick
+                <= clip.start_tick + note.start_tick
+                < segment.end_tick
+            )
+
+        measured = tuple((segment, onset_count(segment)) for segment in segments)
+        segment, count = max(measured, key=lambda item: (item[1], str(item[0].segment_id)))
+        severity: Literal["warning", "info"] = "warning" if count > 4 else "info"
+        delta = -min(20, (count - 4) * 2) if count > 4 else 0
+        evidence = CandidateEvidence(
+            evidence_ref=(
+                f"candidate:{snapshot.candidate_id}:segment:{segment.segment_id}:density"
+            ),
+            candidate_id=snapshot.candidate_id,
+            segment_id=segment.segment_id,
+            kind="structure",
+            severity=severity,
+            measured_fact=f"note_onsets={count} in the measured Segment",
+            score_delta=delta,
+        )
+        return MeasuredCandidateEvidence(
+            candidate_snapshot_id=snapshot.candidate_snapshot_id,
+            segment=segment,
+            evidence=evidence,
+        )
 
 
 class QualityDecision(DomainModel):

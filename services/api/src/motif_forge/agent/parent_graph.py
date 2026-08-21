@@ -5,15 +5,16 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 from hashlib import sha256
-from typing import Any, Literal, NotRequired, Protocol, TypedDict
+from typing import Annotated, Any, Literal, NotRequired, Protocol, TypedDict
 from uuid import UUID
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
-from langgraph.types import interrupt
+from langgraph.types import Send, interrupt
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
+from motif_forge.agent.critic import EvidenceCritic
 from motif_forge.agent.generate import (
     PARENT_GRAPH_TOPOLOGY_VERSION,
     PARENT_STATE_SCHEMA_VERSION,
@@ -23,11 +24,25 @@ from motif_forge.agent.generate import (
 from motif_forge.agent.planner import CompositionPlanner
 from motif_forge.agent.worker_gate import wait_for_job_event
 from motif_forge.application.ai_runs import RecordAIRunApproval
+from motif_forge.application.candidate_previews import (
+    CollectCandidatePreview,
+    EnqueueCandidatePreview,
+)
+from motif_forge.application.candidate_repair import (
+    ApplyBoundedCandidateRepair,
+    EvaluateCandidatePair,
+    MeasureCandidateEvidence,
+)
 from motif_forge.application.generation import (
     CollectCompleteExportArtifact,
     EnqueueNextCompleteExportJob,
     MaterializeApprovedComposition,
     PersistPlanningResult,
+)
+from motif_forge.application.generation_candidates import (
+    CreateCandidateSelectionPreview,
+    CreateCompositionCandidate,
+    MaterializeSelectedCompositionCandidate,
 )
 from motif_forge.application.imports import (
     ImportAnalysisContext,
@@ -39,6 +54,7 @@ from motif_forge.application.media_jobs import (
     EnqueueMediaJobResult,
     StartArtifactRehydrationRequest,
 )
+from motif_forge.domain.candidates import merge_candidate_branches
 from motif_forge.domain.import_policy import decide_import_alignment
 from motif_forge.domain.media_jobs import (
     CandidatePreviewJobPayload,
@@ -166,6 +182,25 @@ class ParentGraphState(TypedDict):
     approval_note: NotRequired[str]
     export_cursor: NotRequired[dict[str, object]]
     media_run_id: NotRequired[str | None]
+    candidate_label: NotRequired[str]
+    candidate_branches: NotRequired[
+        Annotated[list[dict[str, Any]], merge_candidate_branches]
+    ]
+    candidate_working: NotRequired[list[dict[str, Any]]]
+    candidate_preview_cursor: NotRequired[dict[str, Any] | None]
+    critique: NotRequired[dict[str, Any]]
+    critic_provider: NotRequired[str]
+    critic_model_calls: NotRequired[int]
+    selected_candidate_id: NotRequired[str]
+    selected_candidate_snapshot_id: NotRequired[str]
+    selected_preview_id: NotRequired[str]
+    selected_candidate_content_hash: NotRequired[str]
+    selection_actor_id: NotRequired[str]
+    selection_assertion: NotRequired[str]
+    selection_note: NotRequired[str]
+    selected_seed: NotRequired[int]
+    candidate_measurements: NotRequired[list[dict[str, Any]]]
+    repair_count: NotRequired[int]
 
 
 def initial_time_stretch_state(
@@ -278,6 +313,15 @@ def build_parent_graph(
     materialize_approved_composition: MaterializeApprovedComposition | None = None,
     enqueue_next_complete_export_job: EnqueueNextCompleteExportJob | None = None,
     collect_complete_export_artifact: CollectCompleteExportArtifact | None = None,
+    create_composition_candidate: CreateCompositionCandidate | None = None,
+    enqueue_candidate_preview: EnqueueCandidatePreview | None = None,
+    collect_candidate_preview: CollectCandidatePreview | None = None,
+    evidence_critic: EvidenceCritic | None = None,
+    create_candidate_selection_preview: CreateCandidateSelectionPreview | None = None,
+    materialize_selected_candidate: MaterializeSelectedCompositionCandidate | None = None,
+    measure_candidate_evidence: MeasureCandidateEvidence | None = None,
+    apply_candidate_repair: ApplyBoundedCandidateRepair | None = None,
+    candidate_quality_gate: EvaluateCandidatePair | None = None,
 ) -> CompiledStateGraph[ParentGraphState, None, ParentGraphState, ParentGraphState]:
     """Compile Import and standalone time-stretch inside one Parent topology."""
 
@@ -696,6 +740,15 @@ def build_parent_graph(
             materialize_approved_composition=materialize_approved_composition,
             enqueue_next_complete_export_job=enqueue_next_complete_export_job,
             collect_complete_export_artifact=collect_complete_export_artifact,
+            create_composition_candidate=create_composition_candidate,
+            enqueue_candidate_preview=enqueue_candidate_preview,
+            collect_candidate_preview=collect_candidate_preview,
+            evidence_critic=evidence_critic,
+            create_candidate_selection_preview=create_candidate_selection_preview,
+            materialize_selected_candidate=materialize_selected_candidate,
+            measure_candidate_evidence=measure_candidate_evidence,
+            apply_candidate_repair=apply_candidate_repair,
+            candidate_quality_gate=candidate_quality_gate,
         )
 
     graph = StateGraph(ParentGraphState)
@@ -716,6 +769,25 @@ def build_parent_graph(
         graph.add_node("PlanInputAdapter", generate_nodes.plan_input_adapter)
         graph.add_node("PlanOutputAdapter", generate_nodes.plan_output_adapter)
         graph.add_node("PlanApproval", generate_nodes.approval_interrupt)
+        if generate_nodes.candidate_flow_enabled:
+            graph.add_node("CreateCandidateBranch", generate_nodes.create_candidate_branch)
+            graph.add_node("CandidateFanIn", generate_nodes.candidate_fan_in)
+            graph.add_node("EnqueueCandidatePreview", generate_nodes.enqueue_candidate_preview)
+            graph.add_node("WaitForCandidatePreview", generate_nodes.wait_for_candidate_preview)
+            graph.add_node("CriticizeCandidates", generate_nodes.criticize_candidates)
+            graph.add_node("ApplyCriticRepair", generate_nodes.apply_critic_repair)
+            graph.add_node(
+                "CreateCandidateSelectionPreviews",
+                generate_nodes.create_selection_previews,
+            )
+            graph.add_node(
+                "CandidateSelection",
+                generate_nodes.candidate_selection_interrupt,
+            )
+            graph.add_node(
+                "MaterializeSelectedCandidate",
+                generate_nodes.materialize_selected_candidate,
+            )
         graph.add_node("MaterializeApprovedComposition", generate_nodes.materialize)
         graph.add_node("EnqueueCompleteExportStep", generate_nodes.enqueue_export)
         graph.add_node("WaitForGenerateJobEvent", generate_nodes.wait_for_export)
@@ -740,21 +812,97 @@ def build_parent_graph(
             ),
             {"approval": "PlanApproval", "error": "RouteError"},
         )
+        def route_plan_approval(state: ParentGraphState):  # type: ignore[no-untyped-def]
+            if state.get("phase") == "approved":
+                if generate_nodes.candidate_flow_enabled:
+                    return [
+                        Send("CreateCandidateBranch", {**state, "candidate_label": "a"}),
+                        Send("CreateCandidateBranch", {**state, "candidate_label": "b"}),
+                    ]
+                return "materialize"
+            if state.get("terminal_status") in {"rejected", "cancelled"}:
+                return "end"
+            return "error"
+
         graph.add_conditional_edges(
             "PlanApproval",
-            lambda state: (
-                "materialize"
-                if state.get("phase") == "approved"
-                else "end"
-                if state.get("terminal_status") in {"rejected", "cancelled"}
-                else "error"
-            ),
+            route_plan_approval,
             {
                 "materialize": "MaterializeApprovedComposition",
                 "end": END,
                 "error": "RouteError",
             },
         )
+        if generate_nodes.candidate_flow_enabled:
+            graph.add_edge("CreateCandidateBranch", "CandidateFanIn")
+            graph.add_edge("CandidateFanIn", "EnqueueCandidatePreview")
+            graph.add_conditional_edges(
+                "EnqueueCandidatePreview",
+                lambda state: (
+                    "wait"
+                    if state.get("phase") == "rendering_candidate_previews"
+                    else "selection"
+                    if state.get("phase") == "candidate_previews_ready"
+                    and state.get("critique") is not None
+                    else "critic"
+                    if state.get("phase") == "candidate_previews_ready"
+                    else "error"
+                ),
+                {
+                    "wait": "WaitForCandidatePreview",
+                    "critic": "CriticizeCandidates",
+                    "selection": "CreateCandidateSelectionPreviews",
+                    "error": "RouteError",
+                },
+            )
+            graph.add_conditional_edges(
+                "WaitForCandidatePreview",
+                lambda state: (
+                    "next"
+                    if state.get("phase") == "candidate_preview_collected"
+                    else "error"
+                ),
+                {"next": "EnqueueCandidatePreview", "error": "RouteError"},
+            )
+            graph.add_edge("CriticizeCandidates", "ApplyCriticRepair")
+            graph.add_conditional_edges(
+                "ApplyCriticRepair",
+                lambda state: (
+                    "preview"
+                    if state.get("phase") == "repair_preview_required"
+                    else "selection"
+                    if state.get("phase") == "repair_complete"
+                    else "error"
+                ),
+                {
+                    "preview": "EnqueueCandidatePreview",
+                    "selection": "CreateCandidateSelectionPreviews",
+                    "error": "RouteError",
+                },
+            )
+            graph.add_edge("CreateCandidateSelectionPreviews", "CandidateSelection")
+            graph.add_conditional_edges(
+                "CandidateSelection",
+                lambda state: (
+                    "materialize"
+                    if state.get("phase") == "candidate_selected"
+                    else "end"
+                    if state.get("terminal_status") in {"rejected", "cancelled"}
+                    else "error"
+                ),
+                {
+                    "materialize": "MaterializeSelectedCandidate",
+                    "end": END,
+                    "error": "RouteError",
+                },
+            )
+            graph.add_conditional_edges(
+                "MaterializeSelectedCandidate",
+                lambda state: (
+                    "storage" if state.get("phase") == "revision_materialized" else "error"
+                ),
+                {"storage": "StoragePressureGate", "error": "RouteError"},
+            )
         graph.add_conditional_edges(
             "MaterializeApprovedComposition",
             lambda state: "storage" if state.get("phase") == "revision_materialized" else "error",

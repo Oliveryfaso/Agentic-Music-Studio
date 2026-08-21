@@ -426,7 +426,7 @@ git commit -m "feat: apply one bounded candidate repair"
 - `CandidateSelectionDecision` is a strict resume union distinct from `PlanApprovalDecision`.
 - `GraphActionPayload.decision` becomes a discriminated PlanApproval/CandidateSelection union.
 
-- [ ] **Step 1: Write RED Graph behavior tests**
+- [x] **Step 1: Write RED Graph behavior tests**
 
 ```python
 async def test_parent_graph_fans_out_two_candidates_and_waits_for_selection() -> None:
@@ -448,21 +448,21 @@ async def test_restart_and_duplicate_resume_do_not_repeat_critic_repair_or_revis
 
 Also cover reject/cancel, wrong Preview/content identity, wrong worker lineage, non-improving Repair, and order-independent fan-in.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `.venv/bin/pytest services/api/tests/unit/agent/test_generate_graph.py services/api/tests/unit/worker/test_outbox.py services/api/tests/integration/test_s5_parent_graph.py -q`  
 Expected: current Graph materializes immediately after PlanApproval and has no selection phase.
 
-- [ ] **Step 3: Mount S5 nodes into the existing Parent Graph**
+- [x] **Step 3: Mount S5 nodes into the existing Parent Graph**
 
 Use LangGraph `Send` for A/B candidate branch inputs and the Task 1 reducer for fan-in. Add sequential preview enqueue/wait/collect, pairwise Critic, optional one-repair re-render, final Preview creation, CandidateSelection interrupt, selected materialization, then reuse the unchanged complete-export nodes. Persist progress after every durable boundary. Generalize action publishing so authoritative plan and selection decisions resume only their matching checkpoint phase.
 
-- [ ] **Step 4: Run GREEN and real PostgreSQL checkpoint restart**
+- [x] **Step 4: Run GREEN and real PostgreSQL checkpoint restart**
 
 Run the Step 2 command with the existing PostgreSQL checkpointer. Assert exact SQL counts before and after duplicate deliveries.  
 Run: `.venv/bin/pytest services/api/tests/integration/test_generate_dispatcher.py services/api/tests/integration/test_s5_parent_graph.py -q`
 
-- [ ] **Step 5: Commit Task 7**
+- [x] **Step 5: Commit Task 7**
 
 ```bash
 git add services/api/src/motif_forge/agent/generate.py services/api/src/motif_forge/agent/parent_graph.py services/api/src/motif_forge/worker/outbox.py services/api/src/motif_forge/worker/resume_dispatcher.py services/api/tests
