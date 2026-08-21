@@ -401,6 +401,15 @@ class ReadAIRun:
             return await transaction.read_ai_run(run_id)
 
 
+class ReadAIRunByThreadId:
+    def __init__(self, uow_factory: AIRunUnitOfWorkFactory) -> None:
+        self._uow_factory = uow_factory
+
+    async def __call__(self, thread_id: str) -> AIRun:
+        async with self._uow_factory() as transaction:
+            return await transaction.read_ai_run_by_thread_id(thread_id)
+
+
 class ReadAIRunProjection:
     def __init__(self, uow_factory: AIRunUnitOfWorkFactory) -> None:
         self._uow_factory = uow_factory

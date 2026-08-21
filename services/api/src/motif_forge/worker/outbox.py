@@ -73,6 +73,7 @@ class OutboxPublisher(Protocol):
 
 
 GraphProgressRecorder = Callable[[Mapping[str, object]], Awaitable[None]]
+WorkerResumeGraphFactory = Callable[[WorkerResumePayload], Any | Awaitable[Any]]
 
 
 class OutboxStore(Protocol):
@@ -252,6 +253,7 @@ class ParentGraphResumePublisher:
         run_type_prefix: str | None = "parent.",
         run_type_exact: str | None = None,
         record_progress: GraphProgressRecorder | None = None,
+        graph_for_resume: WorkerResumeGraphFactory | None = None,
     ) -> None:
         if run_type_prefix is not None and run_type_exact is not None:
             raise ValueError("run type prefix and exact match are mutually exclusive")
@@ -259,6 +261,7 @@ class ParentGraphResumePublisher:
         self._run_type_prefix = run_type_prefix
         self._run_type_exact = run_type_exact
         self._record_progress = record_progress
+        self._graph_for_resume = graph_for_resume
 
     async def publish(self, message: OutboxMessage) -> None:
         if message.topic not in GRAPH_RESUME_TOPICS:
@@ -279,8 +282,13 @@ class ParentGraphResumePublisher:
         )
         if not (matches_prefix or matches_exact):
             raise ValueError("Graph resume payload does not target the Parent Graph")
+        graph = self._graph
+        if self._graph_for_resume is not None:
+            graph = self._graph_for_resume(payload)
+            if hasattr(graph, "__await__"):
+                graph = await graph
         config = {"configurable": {"thread_id": payload.thread_id}}
-        snapshot = await self._graph.aget_state(config)
+        snapshot = await graph.aget_state(config)
         values = snapshot.values
         if (
             payload.resume_event_id is not None
@@ -291,7 +299,7 @@ class ParentGraphResumePublisher:
             return
         if values.get("terminal_status") is not None:
             raise ValueError("Parent Graph checkpoint is terminal for a different resume event")
-        result = await self._graph.ainvoke(
+        result = await graph.ainvoke(
             Command(resume=payload.model_dump(mode="json")),
             config,
         )

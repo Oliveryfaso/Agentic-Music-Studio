@@ -487,7 +487,7 @@ git commit -m "feat: orchestrate S5 candidate selection graph"
 - `AIRunData.pending_action` adds `select_candidate` and `AIRunData.candidates`, `critique`, `selected_candidate_id`, `selected_preview_id`.
 - Persistent projection reconstructs the fields from Candidate/Preview/Artifact/Run events, not checkpoint-only memory.
 
-- [ ] **Step 1: Write RED HTTP and recreated-app SSE tests**
+- [x] **Step 1: Write RED HTTP and recreated-app SSE tests**
 
 ```python
 def test_get_run_exposes_two_ordered_playable_candidates_and_critique(client) -> None:
@@ -506,23 +506,23 @@ def test_select_candidate_is_persistently_idempotent(client) -> None:
 
 SSE test recreates the FastAPI app, resumes from Last-Event-ID before `candidate.preview.ready`, receives ordered Critic/selection events, and closes after terminal status.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `.venv/bin/pytest services/api/tests/unit/api/test_ai_runs.py services/api/tests/integration/test_ai_run_sse.py -q`  
 Expected: route/schema/projection fields missing.
 
-- [ ] **Step 3: Implement public selection and projection**
+- [x] **Step 3: Implement public selection and projection**
 
 Add an application service that performs persistent selection idempotency lookup before validating live pending state, mirroring the repaired Plan resume contract. Store the canonical selection resume outbox payload in the same transaction. Projection joins the two final Previews, Snapshot labels/lineage, candidate-preview Artifacts, and latest Critic/Repair events; absent facts remain nullable rather than fabricated.
 
-- [ ] **Step 4: Run GREEN, regenerate OpenAPI, and build Web types**
+- [x] **Step 4: Run GREEN, regenerate OpenAPI, and build Web types**
 
 Run the Step 2 command.  
 Run: `npm run generate:openapi`  
 Run: `npm run build:web`  
 Run OpenAPI generation twice and verify `git diff --exit-code -- apps/web/src/generated/api-schema.d.ts` after the second generation.
 
-- [ ] **Step 5: Commit Task 8**
+- [x] **Step 5: Commit Task 8**
 
 ```bash
 git add services/api/src/motif_forge/domain/ai_runs.py services/api/src/motif_forge/application/ai_runs.py services/api/src/motif_forge/application/ports.py services/api/src/motif_forge/infrastructure/persistence/ai_runs.py services/api/src/motif_forge/api services/api/tests apps/web/src/generated/api-schema.d.ts
@@ -546,7 +546,7 @@ git commit -m "feat: expose S5 candidate selection API"
 - `selectCandidate(runId, input, idempotencyKey) -> Promise<AIRun>` generated DTO boundary.
 - `CandidateCompare` consumes authoritative ordered candidate summaries and emits one selection request.
 
-- [ ] **Step 1: Write RED responsive behavior tests**
+- [x] **Step 1: Write RED responsive behavior tests**
 
 ```tsx
 it("plays only one authoritative candidate preview and selects B", async () => {
@@ -566,22 +566,22 @@ it("shows evidence recommendation without auto-selecting", () => {
 
 RunPage tests cover loading, preview unavailable/rehydrating/missing, selection conflict refresh, reject/cancel, refresh recovery, and 390 px DOM order/no overflow contract.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `npx vitest run --config apps/web/vitest.config.ts apps/web/src/features/generate/CandidateCompare.test.tsx apps/web/src/features/generate/RunPage.test.tsx apps/web/src/features/generate/runState.test.ts`  
 Expected: missing component and S5 phases.
 
-- [ ] **Step 3: Implement Compare cards and selection flow**
+- [x] **Step 3: Implement Compare cards and selection flow**
 
 Add phases `generating_candidates`, `rendering_candidate_previews`, `criticizing`, `repairing_candidate`, and `waiting_candidate_selection`. Render a desktop two-column/390 px single-column Compare view. Use one HTML audio element at a time; show Style/structure/Theory/Critic/repair facts; label recommendation as evidence; require explicit assertion and selection; reuse existing conflict/readback behavior.
 
-- [ ] **Step 4: Run GREEN and Web build**
+- [x] **Step 4: Run GREEN and Web build**
 
 Run: `npm run test:web`  
 Run: `npm run build:web`  
 Expected: all Web tests pass and Vite build completes without overflow-specific fixed heights.
 
-- [ ] **Step 5: Commit Task 9**
+- [x] **Step 5: Commit Task 9**
 
 ```bash
 git add apps/web/src/features/generate apps/web/src/styles.css
@@ -609,7 +609,7 @@ git commit -m "feat: add candidate A B comparison flow"
 - `npm run smoke:s5` runs the no-Key public HTTP/Graph/queue/selection/export acceptance.
 - Eval fixture contains 12 representative cases: two per style plus repair, non-improving, restart replay, reject/cancel.
 
-- [ ] **Step 1: Write RED Eval and executable smoke contracts**
+- [x] **Step 1: Write RED Eval and executable smoke contracts**
 
 ```python
 def test_s5_eval_has_four_styles_and_behavioral_recovery_cases() -> None:
@@ -630,18 +630,18 @@ def test_smoke_uses_public_actions_and_never_executes_worker_inline() -> None:
 
 The contract test executes controlled fakes; it must not grep source text. Browser smoke starts from Brief, approves Plan, waits for A/B, plays both candidates one at a time, selects one, reaches succeeded, opens Studio, and verifies the selected Preview/Revision lineage through read-only SQL.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `.venv/bin/pytest services/api/tests/eval/test_s5_candidate_eval.py tests/test_s5_script_contract.py -q`  
 Expected: missing fixture and smoke entrypoint.
 
-- [ ] **Step 3: Implement Eval/smoke and truthfully close S5 docs**
+- [x] **Step 3: Implement Eval/smoke and truthfully close S5 docs**
 
 No-Key smoke must attest the live API container has an empty DeepSeek key before creating a Run, use public PlanApproval and CandidateSelection routes, poll queue-produced facts, and verify exactly two final Previews, one Revision, seven canonical export Jobs, six canonical audio Artifacts, one Bundle, and zero request/token usage. Physical candidate previews and canonical outputs are verified inside the owning container when Docker Desktop bind visibility requires it.
 
 Update current-stage docs only after the smoke is green: S5 complete, S6 the only active gate. Record candidate/repair counts, provider usage, exact test commands, known limitations, and no claim of full DAW/edit/release readiness.
 
-- [ ] **Step 4: Run the complete S5 stage gate**
+- [x] **Step 4: Run the complete S5 stage gate**
 
 Run:
 
@@ -661,11 +661,11 @@ git diff --check
 
 Expected no-Key runtime facts: two candidate families, two final selection Previews, zero or one child Repair Snapshot, one selected Revision, seven canonical export Jobs, six canonical audio Artifacts, one Bundle, zero provider requests, zero tokens.
 
-- [ ] **Step 5: Perform one bounded self-review and fix only current-path blockers**
+- [x] **Step 5: Perform one bounded self-review and fix only current-path blockers**
 
 Review against every minimum acceptance item in the S5 spec. Critical and current-path Important findings for Candidate integrity, model spend, HITL, side-effect idempotency, or recovery block completion. Record non-core production hardening in roadmap section 14; do not expand into S7 matrices.
 
-- [ ] **Step 6: Commit Task 10**
+- [x] **Step 6: Commit Task 10**
 
 ```bash
 git add AGENTS.md apps/web/src/generated/api-schema.d.ts docs evals package.json scripts services/api/tests/eval tests/test_s5_script_contract.py

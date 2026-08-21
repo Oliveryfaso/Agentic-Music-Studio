@@ -23,6 +23,7 @@ from motif_forge.agent.planner import (
 from motif_forge.agent.schemas import CompositionBrief
 from motif_forge.application.ai_runs import (
     ReadAIRun,
+    ReadAIRunByThreadId,
     RecordAIRunApproval,
     RecordAIRunGraphProgress,
     RecordCandidateCritique,
@@ -63,6 +64,7 @@ from motif_forge.application.storage import (
 )
 from motif_forge.config import Settings, get_settings
 from motif_forge.domain.ai_runs import AIRun
+from motif_forge.domain.media_jobs import WorkerResumePayload
 from motif_forge.infrastructure.checkpoints import postgres_checkpointer
 from motif_forge.infrastructure.persistence.ai_runs import PostgresAIRunUnitOfWork
 from motif_forge.infrastructure.persistence.database import (
@@ -256,6 +258,11 @@ async def run_resume_dispatcher() -> None:
                     critic=build_generate_critic(settings, run, ai_uow),
                 )
 
+            read_run_by_thread = ReadAIRunByThreadId(ai_uow)
+
+            async def graph_for_worker(payload: WorkerResumePayload) -> object:
+                return graph_for(await read_run_by_thread(payload.thread_id))
+
             record_progress = RecordAIRunGraphProgress(ai_uow)
             publisher = ParentGraphActionPublisher(
                 graph_for,
@@ -269,7 +276,9 @@ async def run_resume_dispatcher() -> None:
                 aggregate_type="run",
             )
             parent_worker_publisher = ParentGraphResumePublisher(
-                graph_with(MissingDeepSeekPlanner())
+                graph_with(MissingDeepSeekPlanner()),
+                graph_for_resume=graph_for_worker,
+                record_progress=record_progress,
             )
             export_worker_store = PostgresOutboxStore(
                 session_factory,
@@ -282,6 +291,7 @@ async def run_resume_dispatcher() -> None:
                 run_type_prefix=None,
                 run_type_exact="complete_song_export.v1",
                 record_progress=record_progress,
+                graph_for_resume=graph_for_worker,
             )
             while True:
                 delivered_actions = await dispatch_once(

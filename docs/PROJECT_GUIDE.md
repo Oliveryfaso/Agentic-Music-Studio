@@ -2,7 +2,7 @@
 
 > 产品工作名：**Motif Forge**（音乐动机锻造台）
 > 文档状态：**架构基线已批准，详细合同已拆分**
-> 当前阶段：**G0、S1、S2、S3、S4 已完成，S5 是唯一活动门**。浏览器已接通 Project Home、四风格 Brief、Plan Review/Approval、版本化 Style Pack/确定性 Theory 证据、持久进度、完整导出、只读 Arrangement Studio、真实 MP3 播放和同一 Project 多 Stem；统一 Parent Graph v2、费用/恢复和不可变 Revision 合同保持不变。下一步实现最多两个候选、Critic/Repair 和 A/B 审批；完整 DAW 和 AI 选区编辑仍按 S6–S7 顺序推进。当前事实与精确路线分别见 `IMPLEMENTATION_STATUS.md` 和 `NEXT_DEVELOPMENT_ROADMAP.md`。
+> 当前阶段：**G0、S1、S2、S3、S4、S5 已完成，S6 是唯一活动门**。浏览器已接通 Project Home、四风格 Brief、Plan Review/Approval、两个有界候选、证据 Critic、至多一次 Repair、显式 A/B 选择、完整导出、只读 Arrangement Studio、真实 MP3 播放和同一 Project 多 Stem；统一 Parent Graph v2、费用/恢复和不可变 Revision 合同保持不变。下一步实现轻量手工编辑和 AI 选区编辑；S7 的准生产硬化仍保持关闭。当前事实与精确路线分别见 `IMPLEMENTATION_STATUS.md` 和 `NEXT_DEVELOPMENT_ROADMAP.md`。
 
 ---
 
@@ -1481,7 +1481,7 @@ Upload、Candidate fan-out 试听、Render、Time-stretch 和 Export 之前运�
 
 ## 21. 当前方案的最终摘要
 
-> 实施同步（2026-08-20）：阶段 2 的受控导入/分析/对齐、S1/S2 的统一 Generate Parent Graph、S3 的 Web 创作闭环和 S4 四个版本化 Style Pack/Theory Engine 均已实现。浏览器可选择 Synth Ambient、Minimal Electronic、Classical Chamber 或 Jazz，审阅来源/许可与策略说明，完成 PlanApproval，并从同一 Parent Graph 得到不可变 Revision 和完整导出。四风格无付费运行态均得到 1 Revision、7 Jobs、6 Audio、1 Bundle、0 request/0 token；真实 S2 单请求证据继续覆盖 provider 边界。当前不扩建通用存储或准生产故障矩阵；下一步只按 `NEXT_DEVELOPMENT_ROADMAP.md` 完成 S5 双候选、Critic/Repair 与 A/B。
+> 实施同步（2026-08-21）：阶段 2 的受控导入/分析/对齐、S1/S2 的统一 Generate Parent Graph、S3 的 Web 创作闭环、S4 四个版本化 Style Pack/Theory Engine，以及 S5 双候选/Critic/Repair/A/B 均已实现。无 Key 浏览器验收从 Brief、PlanApproval、两个候选和显式选择一路完成 1 Revision、7 Jobs、6 Audio、1 Bundle 与只读 Studio，模型用量为 0/0；真实 S2 单请求证据继续覆盖 provider 边界。当前不扩建通用存储或准生产故障矩阵；下一步只按 `NEXT_DEVELOPMENT_ROADMAP.md` 进入 S6 轻量手工编辑与 AI 选区编辑。
 
 > Web 闭环同步（2026-08-12）：Import Review 已从手工 UUID 读取扩展为受控本地上传、权利确认、浏览器 SHA-256、分块 Session、Import Run URL 恢复、低置信度确认/覆盖/跳过/取消、原始/保持音高对齐 Range 试听与独立 Feature Review。`GET /api/v1/imports/{thread_id}` 只投影同一 PostgreSQL checkpoint，不重跑 Graph；音频内容只经 validated Artifact ID 解析，不公开外置盘路径。开发期仍是 host-first，本纵切只在跨服务验收点刷新 API target，没有重建 Media/Chromium Worker。
 

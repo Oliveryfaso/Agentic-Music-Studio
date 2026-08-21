@@ -69,7 +69,7 @@ class EnqueueCandidatePreview:
             EnqueueMediaJobRequest(
                 project_id=request.project_id,
                 thread_id=request.thread_id,
-                run_type="candidate_preview",
+                run_type="parent.candidate_preview.v1",
                 job_type=MediaJobType.RENDER_PREVIEW,
                 input_payload=payload.model_dump(mode="json"),
                 output_quality_profile=MediaQualityProfile.CANDIDATE_PREVIEW_V1,

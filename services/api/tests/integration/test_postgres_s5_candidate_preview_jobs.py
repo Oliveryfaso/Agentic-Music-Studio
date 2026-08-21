@@ -88,6 +88,12 @@ async def test_candidate_preview_real_mp3_and_duplicate_worker_delivery(
         replayed_enqueue = await enqueue(request)
         assert replayed_enqueue.job_id == cursor.job_id
         assert replayed_enqueue.replayed is True
+        async with engine.connect() as connection:
+            run_type = await connection.scalar(
+                text("SELECT run_type FROM app.runs WHERE id=:run_id"),
+                {"run_id": cursor.media_run_id},
+            )
+        assert run_type == "parent.candidate_preview.v1"
 
         # This test owns execution; prevent the already-running local dispatcher from racing it.
         async with engine.begin() as connection:

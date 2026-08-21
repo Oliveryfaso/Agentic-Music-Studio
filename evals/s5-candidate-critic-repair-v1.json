@@ -1,0 +1,17 @@
+{
+  "schema_version": "s5-candidate-critic-repair-eval.v1",
+  "cases": [
+    {"id":"ambient-calm-pair","kind":"generate","style":"synth_ambient","seed":11,"expected":{"candidate_families":2,"selection_previews":2,"repair_children":0,"selected_revisions":1,"provider_requests":0}},
+    {"id":"ambient-drift-pair","kind":"generate","style":"synth_ambient","seed":12,"expected":{"candidate_families":2,"selection_previews":2,"repair_children":1,"selected_revisions":1,"provider_requests":0}},
+    {"id":"minimal-focus-pair","kind":"generate","style":"minimal_electronic","seed":21,"expected":{"candidate_families":2,"selection_previews":2,"repair_children":0,"selected_revisions":1,"provider_requests":0}},
+    {"id":"minimal-motion-pair","kind":"generate","style":"minimal_electronic","seed":22,"expected":{"candidate_families":2,"selection_previews":2,"repair_children":1,"selected_revisions":1,"provider_requests":0}},
+    {"id":"chamber-reflect-pair","kind":"generate","style":"classical_chamber","seed":31,"expected":{"candidate_families":2,"selection_previews":2,"repair_children":0,"selected_revisions":1,"provider_requests":0}},
+    {"id":"chamber-arc-pair","kind":"generate","style":"classical_chamber","seed":32,"expected":{"candidate_families":2,"selection_previews":2,"repair_children":1,"selected_revisions":1,"provider_requests":0}},
+    {"id":"jazz-night-pair","kind":"generate","style":"jazz_harmony_improvisation","seed":41,"expected":{"candidate_families":2,"selection_previews":2,"repair_children":0,"selected_revisions":1,"provider_requests":0}},
+    {"id":"jazz-dialogue-pair","kind":"generate","style":"jazz_harmony_improvisation","seed":42,"expected":{"candidate_families":2,"selection_previews":2,"repair_children":1,"selected_revisions":1,"provider_requests":0}},
+    {"id":"repair-strict-improvement","kind":"repair_improved","expected":{"candidate_families":2,"selection_previews":2,"repair_children":1,"selected_revisions":1,"provider_requests":0}},
+    {"id":"repair-non-improving-discard","kind":"repair_non_improving","expected":{"candidate_families":2,"selection_previews":2,"repair_children":1,"selected_revisions":1,"provider_requests":0}},
+    {"id":"restart-and-duplicate-resume","kind":"restart_replay","expected":{"candidate_families":2,"selection_previews":2,"repair_children":0,"selected_revisions":1,"provider_requests":0}},
+    {"id":"reject-or-cancel-before-materialization","kind":"reject_cancel","expected":{"candidate_families":2,"selection_previews":0,"repair_children":0,"selected_revisions":0,"provider_requests":0}}
+  ]
+}

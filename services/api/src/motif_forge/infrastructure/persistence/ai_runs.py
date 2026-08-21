@@ -204,6 +204,16 @@ class PostgresAIRunTransaction:
             raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
         return _run_from_row(row)
 
+    async def read_ai_run_by_thread_id(self, thread_id: str) -> AIRun:
+        row = (
+            await self._session.execute(
+                select(AIRunRow).where(AIRunRow.thread_id == thread_id)
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
+        return _run_from_row(row)
+
     async def read_ai_run_projection(self, run_id: UUID) -> AIRunProjection:
         run = await self.read_ai_run(run_id)
         receipt = (

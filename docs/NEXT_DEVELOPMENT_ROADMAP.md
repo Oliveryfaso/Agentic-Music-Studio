@@ -3,7 +3,7 @@
 > **For agentic workers:** 实施本路线中的具体纵切前，必须先为该纵切建立 `docs/superpowers/plans/YYYY-MM-DD-<slice>.md`，再使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 逐项执行。
 > 状态：已批准的主路线；S2 Task 6 起采用 ADR-016 作品集工程模式
 > 起点：受控 Upload → Import → 分析 HITL → 保持音高对齐 → Web Preview 已完成
-> 执行断点（2026-08-20）：G0、S1、S2、S3、S4 已验收。浏览器已完成 Project → 四风格 Brief → immutable child Replan → PlanApproval → 七步完整导出 → 只读 Studio/MP3，以及同一 Project 顺序双 Stem；四风格 no-key 旅程均为 0 request/0 token。S5 是唯一活动门，S6–S7 仍关闭。
+> 执行断点（2026-08-21）：G0、S1、S2、S3、S4、S5 已验收。浏览器已完成 Project → 四风格 Brief → PlanApproval → 两个候选 → Critic/至多一次 Repair → 显式 A/B 选择 → 七步完整导出 → 只读 Studio/MP3，以及同一 Project 顺序双 Stem；S5 no-key 旅程为 0 request/0 token。S6 是唯一活动门，S7 仍关闭。
 
 **目标：** 从当前可靠的导入底座，按最短依赖路径完成“可生成、可听、可编辑、可恢复、可评测”的 Agentic Music Studio。
 
@@ -232,7 +232,7 @@ S1 通过前禁止：接入真实 DeepSeek 生成、开发 Timeline 编辑器、
 
 ## 9. S4：四个 Style Pack 与 Theory Engine
 
-> 当前状态：**已完成**。四个 reviewed `StylePack v1`、确定性 `TheoryEngine v1`、MusicStrategyRouter、Parent Graph 物化、Web 风格/来源/许可说明、8 条代表性生成 Eval 与四风格完整导出均已有运行证据；下一入口是 S5。
+> 当前状态：**已完成**。四个 reviewed `StylePack v1`、确定性 `TheoryEngine v1`、MusicStrategyRouter、Parent Graph 物化、Web 风格/来源/许可说明、8 条代表性生成 Eval 与四风格完整导出均已有运行证据；S5 已在此基础上完成，下一入口是 S6。
 
 **用户价值：** 同一工作台能产生四种结构上明显不同且有证据来源的音乐策略。
 
@@ -249,6 +249,8 @@ S1 通过前禁止：接入真实 DeepSeek 生成、开发 Timeline 编辑器、
 每个 `StylePack v1` 必须携带 `pack_id/version`、genre/era、form templates、instrument roles/ranges、harmony/rhythm/timbre constraints、avoidances、production recipes、symbolic exemplar refs、source citations、license snapshot 和 compatible engine/schema versions。Theory Rule 返回稳定 rule ID、severity、bar/track evidence、explanation code 和 suggested bounded operation；RAG 文本不能直接决定音符合法性或许可证。
 
 ## 10. S5：完整候选、Critic 与 Repair Orchestrator
+
+> 当前状态：**已完成**。同一 Parent Graph v2 已实现两个稳定候选、真实候选 Preview Job、结构化证据 Critic、至多一个子 Repair Snapshot、显式 A/B HITL、仅选中候选物化和七步完整导出。无 Key CLI 与真实浏览器验收均得到 `2 candidate families / 3 snapshots / 2 selection previews / 1 Revision / 7 Jobs / 6 Audio / 1 Bundle / 0 request / 0 token`；S6 是下一入口。
 
 - 增加最多两个候选的 fan-out/fan-in，CandidateState 以稳定 ID reducer 合并。
 - 实现 Section/Track Segment DAG、Continuity Validator 和只重算失败段落。

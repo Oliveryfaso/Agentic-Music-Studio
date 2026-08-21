@@ -9,6 +9,7 @@ from langgraph.types import Command
 from motif_forge.agent.generate import CandidateSelectionDecision, PlanApprovalDecision
 from motif_forge.agent.parent_graph import PARENT_TIME_STRETCH_RUN_TYPE
 from motif_forge.domain.ai_runs import AIRun, AIRunStatus
+from motif_forge.domain.media_jobs import WorkerResumePayload
 from motif_forge.worker.outbox import (
     GraphActionPayload,
     OutboxMessage,
@@ -143,6 +144,44 @@ async def test_parent_graph_publisher_resumes_the_payload_thread() -> None:
     command, config = graph.calls[0]
     assert isinstance(command, Command)
     assert config == {"configurable": {"thread_id": thread_id}}
+
+
+@pytest.mark.asyncio
+async def test_parent_graph_publisher_rebuilds_graph_from_worker_payload() -> None:
+    graph = FakeResumableGraph()
+    payloads: list[WorkerResumePayload] = []
+
+    async def graph_for_resume(payload: WorkerResumePayload) -> FakeResumableGraph:
+        payloads.append(payload)
+        return graph
+
+    publisher = ParentGraphResumePublisher(
+        FakeResumableGraph(), graph_for_resume=graph_for_resume
+    )
+    thread_id = f"generate-{uuid4().hex}"
+    message = OutboxMessage(
+        event_id=uuid4(),
+        topic="graph.resume.requested",
+        dedupe_key=f"resume:{uuid4()}",
+        payload={
+            "schema_version": "worker-resume.v1",
+            "run_id": str(uuid4()),
+            "thread_id": thread_id,
+            "run_type": "parent.candidate_preview.v1",
+            "resume_event_id": "candidate-preview-complete",
+            "job_id": str(uuid4()),
+            "status": "succeeded",
+            "artifact_id": str(uuid4()),
+            "error_code": None,
+        },
+        attempts=1,
+    )
+
+    await publisher.publish(message)
+
+    assert len(payloads) == 1
+    assert payloads[0].thread_id == thread_id
+    assert len(graph.calls) == 1
 
 
 @pytest.mark.asyncio

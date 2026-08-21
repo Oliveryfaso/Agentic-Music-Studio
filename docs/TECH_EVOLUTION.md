@@ -343,3 +343,11 @@
 - Parent Graph v2 根据 Brief allowlist 选择精确 Pack，PlanApproval 后的单一事务保存 Candidate/Preview/Revision/receipt 和 pack/compiler/theory lineage；共享七步导出保持 Master、四 Stem、MP3、Bundle。Web Brief 暴露四风格选择，Plan Review 展示 pack、策略、策展来源、许可和“来源解释/规则裁决”边界；390px 布局保持单列无固定高度。
 - 新增 8 条四风格代表性 Eval、未知/未审核知识拒绝与 S4 no-cost smoke。最终集中 Python unit/eval/contract `482 passed`、真实 PostgreSQL `1 passed`（阶段完整物化门 `12 passed`）、Audio 13、Web 41、Mypy strict 89 source、Ruff、Vite build、OpenAPI generation 和 diff clean；独立 Compose 环境中精确 `npm run smoke:s4` 让四风格均从公开 HTTP、持久 Parent Graph 和真实 PlanApproval 完成 `1 Revision / 7 Jobs / 6 Audio / 1 Bundle`，provider usage 为 `0 request / 0 token`，六个实体音频 checksum 和单一 Revision/Media Run/source Job lineage 一致。
 - 运行态先暴露 Render Worker 以 root 创建 0755 job 目录、Media Worker UID 10001 无法清理的权限错误；Render 镜像现使用相同非 root UID，并有 Dockerfile 合同回归。随后 Jazz chord swing 按音符序号错开同一和弦，造成非单调 Tone 事件和 Piano Stem 失败；RED 测试冻结每个 Clip 时间单调后改为按音乐网格成组偏移，Jazz 单独完整导出复验通过。两项均属于当前路径修复，没有扩充 S7 故障/负载矩阵，也没有付费模型调用。
+
+## 2026-08-21：S5 双候选、证据 Critic 与有界 Repair
+
+- 在唯一 Parent Graph v2 中加入两个稳定 candidate seed 的 fan-out/fan-in、Candidate Preview Worker wait/resume、结构化 Evidence Critic、至多一次局部 Repair、两个最终 Preview 和显式 CandidateSelection interrupt。选择前不创建 Revision；选择后仅选中候选进入不可变 Revision、receipt 与共享七步导出。
+- PostgreSQL 新增 Candidate/Preview lineage 与读模型，公开 Run GET/SSE 投影 Plan、Theory、Critic、Repair、availability 和选中事实；CandidateSelection 使用 expected version、candidate/hash、actor/assertion 与持久幂等 outbox。Web A/B Compare 显示 Agent 推荐但不自动选择，两个候选逐一试听时只挂载一个 audio 元素，并覆盖加载、缺失、驱逐、重建、失败和 390px 状态。
+- 12 条 S5 Eval 覆盖四种风格各两例、repair improved/non-improving、restart replay 与 reject/cancel。集中门为 Python `517 passed`、真实 PostgreSQL `8 passed`、Audio `13 passed`、Web `46 passed`；Ruff、Mypy strict 94 source、Audio/Web build、OpenAPI generation 与 diff check 通过。
+- no-Key CLI 与浏览器真实运行均完成 `2 candidate families / 3 snapshots / 1 repair child / 2 selection previews / 1 selected Revision / 7 Jobs / 6 Audio / 1 Bundle / 0 request / 0 token`；浏览器进一步确认 A/B 逐一播放、打开只读 Studio 和 390px 无横向溢出。Artifact checksum 只因导出协议要求而核对，没有对仓库或文档做附带哈希。
+- 运行态依次暴露并修复三个当前路径缺口：Candidate Preview Media Run 类型未匹配 Parent dispatcher；Worker completion 使用不含 S5 节点的静态 Graph；60 秒/72 BPM fallback 向上取整到 20 bars 后超过策略容差。修复分别使用版本化 `parent.candidate_preview.v1`、按权威 AI Run thread 重建同一完整 Graph、最近整数小节投影，并都有 RED/GREEN 与真实 PostgreSQL/浏览器复验。没有调用付费模型，也没有扩大到 S7 的极端并发、负载或多租户矩阵。

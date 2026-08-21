@@ -169,6 +169,63 @@ async def _wait_for_run(
     raise TimeoutError(f"S2 Run did not reach {sorted(statuses)}: {run_id}")
 
 
+async def _select_candidate_if_required(
+    client: httpx.AsyncClient,
+    run_id: UUID,
+    *,
+    actor: str,
+    assertion: str,
+    idempotency_key: str,
+) -> None:
+    """Advance the current S5 HITL when the same public S2 path exposes it."""
+
+    deadline = asyncio.get_running_loop().time() + TIMEOUT_SECONDS
+    while asyncio.get_running_loop().time() < deadline:
+        body = await _request(client, "GET", f"/api/v1/runs/{run_id}")
+        data = body.get("data")
+        if not isinstance(data, dict):
+            raise RuntimeError("S2 Run projection is missing during CandidateSelection")
+        if data.get("revision_id") is not None or data.get("status") in {"succeeded", "failed"}:
+            return
+        if data.get("pending_action") == "select_candidate":
+            candidates = data.get("candidates")
+            critique = data.get("critique")
+            if not isinstance(candidates, list) or len(candidates) != 2:
+                raise RuntimeError("S5 CandidateSelection requires exactly two Previews")
+            recommended = (
+                critique.get("recommended_candidate_id")
+                if isinstance(critique, dict)
+                else None
+            )
+            selected = next(
+                (item for item in candidates if item.get("candidate_id") == recommended),
+                candidates[0],
+            )
+            if selected.get("preview_availability") != "available":
+                raise RuntimeError("S5 recommended Candidate Preview is unavailable")
+            await _request(
+                client,
+                "POST",
+                f"/api/v1/runs/{run_id}/select-candidate",
+                key=idempotency_key,
+                payload={
+                    "expected_version": data["version"],
+                    "preview_id": selected["preview_id"],
+                    "expected_candidate_id": selected["candidate_id"],
+                    "expected_candidate_content_hash": selected[
+                        "candidate_content_hash"
+                    ],
+                    "actor_id": actor,
+                    "selection_assertion": assertion,
+                    "decision": "select",
+                    "note": "deterministic S5 candidate selection",
+                },
+            )
+            return
+        await asyncio.sleep(0.25)
+    raise TimeoutError(f"S5 CandidateSelection did not become ready: {run_id}")
+
+
 async def _wait_for_bundle(
     engine: AsyncEngine, run_id: UUID
 ) -> tuple[
@@ -217,41 +274,39 @@ async def _wait_for_bundle(
                     .mappings()
                     .one_or_none()
                 )
-                jobs = (
+                media_run = (
                     (
                         await connection.execute(
-                        text(
-                            "SELECT id, run_id, status, output_quality_profile, created_at "
-                            "FROM app.jobs WHERE project_id=(SELECT project_id FROM app.ai_runs "
-                            "WHERE id=:run_id) ORDER BY created_at, id"
-                        ),
-                        {"run_id": run_id},
-                    )
-                    )
-                    .mappings()
-                    .all()
+                            text(
+                                "SELECT id, thread_id, run_type, status FROM app.runs "
+                                "WHERE project_id=(SELECT project_id FROM app.ai_runs "
+                                "WHERE id=:run_id) AND run_type='complete_song_export.v1' "
+                                "ORDER BY created_at DESC, id DESC LIMIT 1"
+                            ),
+                            {"run_id": run_id},
+                        )
+                    ).mappings().one_or_none()
                 )
+                jobs = []
+                if media_run is not None:
+                    jobs = (
+                        (
+                            await connection.execute(
+                                text(
+                                    "SELECT id, run_id, status, output_quality_profile, created_at "
+                                    "FROM app.jobs WHERE run_id=:media_run_id "
+                                    "ORDER BY created_at, id"
+                                ),
+                                {"media_run_id": media_run["id"]},
+                            )
+                        ).mappings().all()
+                    )
                 plan_count = (
                     await connection.execute(
                         text("SELECT count(*) FROM app.composition_plans WHERE run_id=:run_id"),
                         {"run_id": run_id},
                     )
                 ).scalar_one()
-                media_run = None
-                if jobs:
-                    media_run = (
-                        (
-                            await connection.execute(
-                                text(
-                                    "SELECT id, thread_id, run_type, status FROM app.runs "
-                                    "WHERE id=:media_run_id"
-                                ),
-                                {"media_run_id": jobs[0]["run_id"]},
-                            )
-                        )
-                        .mappings()
-                        .one_or_none()
-                    )
                 if (
                     bundle is not None
                     and len(audio) == 6
@@ -389,6 +444,13 @@ async def main() -> None:
                     "decision": "approve",
                     "note": "deterministic S2 smoke approval",
                 },
+            )
+            await _select_candidate_if_required(
+                client,
+                run_id,
+                actor=actor,
+                assertion=assertion,
+                idempotency_key=f"s5-select-{invocation}",
             )
             revision_id, audio, bundle, jobs, media_run = await _wait_for_bundle(engine, run_id)
             terminal = await _wait_for_run(client, run_id, statuses={"succeeded", "failed"})

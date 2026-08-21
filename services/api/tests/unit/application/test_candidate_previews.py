@@ -87,6 +87,7 @@ async def test_payload_and_enqueue_bind_snapshot_without_revision() -> None:
     assert replay.job_id == first.job_id
     assert replay.replayed is True
     assert len(transaction.jobs) == 1
+    assert transaction.runs[first.media_run_id].run_type == "parent.candidate_preview.v1"
 
 
 @pytest.mark.asyncio

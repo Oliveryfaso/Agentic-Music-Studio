@@ -1,6 +1,6 @@
 # Motif Forge 当前实施状态
 
-> 状态日期：2026-08-20
+> 状态日期：2026-08-21
 > 性质：当前代码事实与验收证据，不替代产品合同
 > 更新规则：每个被验收的小纵切结束后更新；不要把目标设计写成已实现能力
 
@@ -22,14 +22,15 @@
 
 ```text
 Project Home → Brief → Parent Graph Planning → Plan Review/Adjustment
-→ 人工审批 → 不可变 Revision → 七步完整导出
+→ 人工审批 → 两个候选 Preview → 证据 Critic/至多一次 Repair → 显式 A/B 选择
+→ 仅选中候选物化为不可变 Revision → 七步完整导出
 → 持久 SSE 进度/刷新恢复 → 只读 Arrangement Timeline → MP3 播放
 
 或：既有 Project → 顺序导入多个 WAV/MP3/FLAC Stem
 → 每个文件独立权利确认/分析 HITL → 每次成功后刷新 Branch head
 ```
 
-S3 已把 S2 的 API 级闭环变成用户可操作的作品流，S4 又把它扩展为四个版本化 Style Pack、确定性 Theory 证据和四条结构明显不同的完整导出路径。当前仍不是最终首版：双候选/Critic/Repair、完整 Timeline/Piano Roll/Mixer 编辑和 AI 选区编辑分别属于 S5–S6。
+S3 已把 S2 的 API 级闭环变成用户可操作的作品流，S4 又把它扩展为四个版本化 Style Pack 与确定性 Theory 证据，S5 现已加入双候选、Critic、一次有界 Repair 和 A/B 人工选择。当前仍不是最终首版：Timeline/Piano Roll/Mixer 手工编辑与 AI 选区编辑属于 S6，发布硬化属于 S7。
 
 ## 3. 能力矩阵
 
@@ -43,9 +44,9 @@ S3 已把 S2 的 API 级闭环变成用户可操作的作品流，S4 又把它�
 | 能力 | 状态 | 当前证据 | 主要缺口 |
 |---|---|---|---|
 | ArrangementIR、EditorCommand、Revision、Branch | 可运行 | 严格 Schema、事务写入、乐观锁和测试 | Studio 尚未消费完整编辑命令集 |
-| CandidateSnapshot、PreviewCandidate、L2/L3 审批事务 | 可运行 | Web Plan Review/Adjustment、Plan 驱动的 Candidate/Preview/Revision、原子 receipt 与 PostgreSQL 回放 | 双候选和 A/B 选择在 S5 |
+| CandidateSnapshot、PreviewCandidate、L2/L3 审批事务 | 可运行 | 两个稳定候选、Candidate Preview Artifact、Critic/Repair lineage、Web A/B 选择、原子 selected Revision/receipt 与 PostgreSQL 回放 | 编辑类 Preview/审批在 S6 |
 | DeepSeek Provider | 可运行（API） | 生产 Dispatcher、四风格结构化 Plan、持久请求/token 预算、真实 known usage、严格 JSON envelope、官方 endpoint、MockTransport/重启测试与一次受控 live acceptance | 模型调用继续 opt-in；S4 no-key 路径使用同合同 Fallback |
-| CompositionPlan Graph | 可运行 | Parent Graph v2、四风格 Fallback/Strategy、Web PlanApproval/Replan、PostgreSQL checkpoint、无 Key smoke 与 live accepted Plan | Legacy v3 仅保留回归；双候选/Repair 在 S5 |
+| CompositionPlan Graph | 可运行 | Parent Graph v2、四风格 Fallback/Strategy、Web PlanApproval/Replan、双候选 fan-out/fan-in、Critic/Repair/A-B interrupt、PostgreSQL checkpoint | Legacy v3 仅保留回归；edit 路由在 S6 |
 | Parent Graph Import/Generate/Recovery | 可运行 | 浏览器 Import/generate、time-stretch、HITL、resume/cancel、持久 SSE 与刷新恢复 | 尚无 edit 路由 |
 | PostgreSQL/Redis/Celery/Outbox | 可运行 | Generate start/resume/cancel Dispatcher、权威 outbox、Compose readiness、幂等事件和恢复测试 | S7 才扩充负载与极端故障矩阵 |
 | 受控音频上传与导入 | 可运行 | 单文件 Import 与同一 Project 顺序多 Stem；每项独立权利/错误并刷新 head | 自动 stem separation 明确不做 |
@@ -53,16 +54,25 @@ S3 已把 S2 的 API 级闭环变成用户可操作的作品流，S4 又把它�
 | 保持音高 time-stretch | 可运行的受限基线 | FFmpeg atempo、Artifact lineage、恢复和质量测试 | 尚不是专业弹性音频；复杂 tempo map 不在首版 |
 | Artifact 生命周期与 StoragePressureGate | 可运行 | 四态、配额、驱逐/重建、外置 Root | 暂不扩建通用缓存平台，按新 Artifact 类型增量接入 |
 | Tone.js AudioGraphCompiler | 可运行 | ArrangementIR 编译/渲染、12 个语义 Preset alias、Web 只读 Timeline/Track projection、真实 MP3 Transport | Lite 音色仍投影到 3 个合成核心与 click sample；HQ 音色不属于 S4 |
-| PatternSpec 与确定性 Composer | 可运行 | 四风格 Plan 策略、Minimal groove、Classical stepwise motion、Jazz swing/guide-tone、版本化 Plan hash、Parent Graph 与共享 Export cursor | S5 再增加候选/Segment Repair |
+| PatternSpec 与确定性 Composer | 可运行 | 四风格 Plan 策略、稳定双 seed Candidate、局部 Repair Snapshot、版本化 Plan hash、Parent Graph 与共享 Export cursor | S6 增加用户/AI 局部编辑 |
 | 完整成曲与导出 | 可运行 | 四风格 Web Brief→审批→Revision→7 Jobs→Studio；Master/MP3/四 Stem/MIDI/Project/逻辑 Bundle | 1–5 分钟与最多 12 轨仍留待最终产品验收 |
 | 四个 Style Pack 与 Theory Engine | 可运行 | 四个严格 `StylePack v1`、reviewed source/license snapshot、symbolic exemplar、Preset Palette、稳定 Theory rule/evidence、Web 解释与四风格 no-key 完整导出 | 当前为 Project-authored Lite 知识/音色；更丰富检索与 HQ Pack 非 S4 门槛 |
 | Web Import Review | 可运行 | 上传、分析确认、试听、恢复、同 Project 多 Stem 与窄屏回归 | 更复杂的多轨编辑不属于 Import Review |
-| Web Studio（只读） | 可运行 | Project Home、Brief/Plan、SSE 进度、Arrangement Timeline、Track Header、MP3 Transport、390px | Piano Roll、Mixer、Clip 编辑和 Export UI 尚未开始 |
+| Web Studio（只读） | 可运行 | Project Home、Brief/Plan、A/B Compare、单一候选音频 Transport、SSE 进度、Arrangement Timeline、MP3 Transport、390px | Piano Roll、Mixer、Clip 编辑和 Export UI 尚未开始 |
 | AI 选区编辑 | 未开始 | 有命令与 ChangeImpact 基础 | 缺 EditPatchProposal 生成、Preview、局部性 Eval |
-| Eval/可观测性 | 部分完成 | 16 条 S2 Generate Eval、S1/Parent 双 baseline、持久 Event/Trace/Usage、确定性 smoke 与一条真实 paid 样本 | 完整 OTel/看板和最终 96 条仍缺 |
+| Eval/可观测性 | 部分完成 | 16 条 S2 Generate Eval、12 条 S5 candidate/repair/recovery Eval、持久 Event/Trace/Usage、CLI/browser no-key smoke 与一条真实 paid 样本 | 完整 OTel/看板和最终 96 条仍缺 |
 | CI/CD 与负载测试 | 未开始 | 本地脚本 | 无 CI workflow、P50/P95 和完整一键演示验收 |
 
 ## 4. 当前验证基线
+
+S5 阶段门的最新证据：
+
+- 集中 Python unit/eval/contract `517 passed`；真实 PostgreSQL Candidate/Preview/Parent Graph/SSE `8 passed`；Audio/Render `13 passed`、Web `46 passed`。
+- Ruff、Mypy strict `94 source files`、Audio/Web build、OpenAPI generation 与 `git diff --check` 通过。
+- 12 条 S5 Eval 覆盖四种风格各两例，以及 repair improved、non-improving、restart replay、reject/cancel；Repair 严格限制为至多一个子 Snapshot。
+- no-Key 公共 HTTP/Graph/真实队列 smoke 精确得到 `2 candidate families / 3 snapshots / 1 repair child / 2 selection previews / 1 selected Revision / 7 Jobs / 6 Audio / 1 Bundle / 0 request / 0 token`，并核对协议要求的 Artifact checksum 与单一 Revision/Media Run/source Job lineage。
+- 真实浏览器从 Brief、PlanApproval、A/B 逐一试听、选择 B 到只读 Studio 走通同一事实计数；页面在 390px 无横向溢出，候选播放保持单一 audio 元素。
+- 运行态验收只修复三个真实当前路径问题：Candidate Preview Media Run 未进入 Parent dispatcher、Worker resume 未按 AI Run 重建完整 S5 Graph、60 秒 fallback 的小节取整超过策略时长容差；均有 RED/GREEN 与 PostgreSQL/浏览器复验。没有调用付费模型，也没有扩充 S7 负载/极端并发矩阵。
 
 S4 阶段门的最新证据：
 
@@ -110,7 +120,7 @@ API/Dispatcher 只把 `motif-forge-parent.v2` 作为生产拓扑，`generate` �
 
 ### 5.2 音频可靠性领先于创作主链路
 
-Import、Artifact、恢复和容量治理已达到较高完成度，S4 已证明四风格 Web CompositionPlan 驱动的 `Revision → Render → Bundle → Studio`。继续暂停通用存储/恢复平台扩建；下一产品门是 S5 双候选、Critic/Repair 与 A/B。
+Import、Artifact、恢复和容量治理已达到较高完成度，S5 已证明四风格 Plan 上的 `two Candidates → Critic/Repair → A/B → Revision → Render → Bundle → Studio`。继续暂停通用存储/恢复平台扩建；下一产品门是 S6 手工编辑与 AI 选区编辑。
 
 ### 5.3 前后端 DTO 仍由手工维护
 
@@ -138,15 +148,15 @@ Checkpoint 前复验：Python `152 passed / 13 opt-in skipped`；真实 PostgreS
 
 后续每个可独立验收纵切都必须形成 Git checkpoint，不再跨多个阶段积累未提交业务代码。
 
-## 7. S1–S4 验收事实与当前开发断点：S5
+## 7. S1–S5 验收事实与当前开发断点：S6
 
 S1 已完成：固定作品为 24 bars、80 BPM、4/4、C major、四轨、72 秒；固定 seed 生成完整 ArrangementIR。L3 生成先创建 Candidate/Preview，再由调用者提供 16 字符以上审批断言，事务持久化 actor、审批 payload hash 和原始五条生成命令后物化 Revision。正式 Job 链输出 PCM24 Master（20,736,044 bytes）、四条 PCM24 Stem、经 FFprobe 验证时长/格式/码率/非静音的 256 kbps MP3、MIDI、Project JSON 与 credits/license/provenance/trace/export manifests。
 
 最终新容器/新 `/temp` 挂载真实队列复验为 Project `af988445-9123-40f6-81bf-7a6bcc037099`、Revision `f49b820e-0e56-4038-9108-a72cdc3affa5`、Run `c713a239-d169-4c02-836f-ec20ad657c3e`、Bundle Artifact `86d18388-1159-4c76-83ed-ffc317948007`；逻辑 Bundle 只保存 13 个校验项与音频 Artifact 引用，自身占 `59,396` bytes，不复制约 100 MB Master/Stem/MP3。Worker 会从数据库 Revision 重新编译 AudioGraph并拒绝不匹配 payload；`audio-artifact.v2` 结构化保存 Revision/Arrangement/render scope，转码和 Bundle 均拒绝跨 Revision 输入。Render/Transcode/Bundle 均先过会计入显式 temp root、真实目录与有效 Job lease 的 StoragePressureGate；跨挂载提升先复制到最终目录的唯一 partial、复核 bytes/hash，再在 Artifact 文件系统内原子 rename。运行中显式取消会中断协程/FFmpeg、清理新建但未登记的输出并阻止迟到/分歧 completion；Chromium 客户端断连会关闭页面并清理一次性 sink/partial；MP3 还拒绝 `max_volume <= -80 dBFS` 的数字近静音。
 
-当前下一条业务纵切不是扩充 Import/存储平台，也不是先做完整 DAW，而是：
+当前下一条业务纵切不是扩充 Import/存储平台或先做 S7 硬化，而是：
 
-> **S5：在同一 Parent Graph 中实现最多两个候选、结构化 Critic/局部 Repair 与 A/B 审批。**
+> **S6：在现有 Revision/Command/Preview/HITL 基础上实现轻量手工编辑与 AI 选区编辑。**
 
 S2 仍不得绕过 PlanApproval，也不得创建第三个生产 Graph。S1 的固定策略继续作为无模型降级和回归基线，不改变首版最终要求的 1–5 分钟、最多 12 轨、最多 2 个候选和四个 Style Pack 同时交付。
 
@@ -170,6 +180,8 @@ S3 已完成 Project Home、Brief validation、Plan Review/Approval、immutable 
 
 S4 已完成四个 reviewed Style Pack、稳定 Theory error/warning/advice 证据、四个确定性策略和 Web 风格/来源/许可说明。四风格均通过公开 HTTP → Parent Graph → PlanApproval → Revision → 七步队列导出；每条路径为 7 succeeded Jobs、6 Audio、1 Bundle，provider requests/tokens 为 0/0，物理 checksum 与单一 Revision/Media Run lineage 一致。Compose 验收还真实发现并修复了 Render Worker 与 Media Worker 共享临时文件的 UID 不一致，以及 Jazz chord swing 造成的非单调事件调度。
 
-**当前断点：S4 已关闭，S5 为唯一活动门。** 保留单一 Parent Graph、PlanApproval、不可变 Revision、持久费用/恢复、四风格策略和完整导出合同；下一步只增加双候选、Critic/Repair 与 A/B，不提前进入完整 DAW、AI 选区编辑或 S7 硬化。
+S5 已完成两个稳定 Candidate family 的 fan-out/fan-in、真实候选 Preview Job、结构化 Critic、至多一次局部 Repair、两个最终 Preview 与显式 CandidateSelection interrupt。选择前不写 Revision；选择后只物化一个 Revision 并复用七步导出。重启/重投、reject/cancel、非改善终止和 no-Key 费用事实均有测试；CLI 与浏览器运行态都得到 2 families、3 snapshots、2 previews、1 Revision、7 Jobs、6 Audio、1 Bundle、0 request/0 token。
+
+**当前断点：S5 已关闭，S6 为唯一活动门。** 保留单一 Parent Graph、PlanApproval/CandidateSelection、不可变 Revision、持久费用/恢复、四风格策略和完整导出合同；下一步只增加轻量 Timeline/Piano Roll/Mixer 手工命令和有界 AI 选区 Patch，不提前进入 S7 硬化。
 
 具体前后顺序、阶段门和优化规则见 `NEXT_DEVELOPMENT_ROADMAP.md`。

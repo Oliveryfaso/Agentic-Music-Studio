@@ -33,3 +33,21 @@ def test_synth_ambient_fallback_is_compilation_safe() -> None:
         "rhythm",
     )
     assert validate_synth_ambient_plan(brief, plan).compatible is True
+
+
+def test_fallback_preserves_a_sixty_second_brief_within_duration_policy() -> None:
+    brief = CompositionBrief.model_validate_json(
+        json.dumps(
+            {
+                **valid_brief_payload(),
+                "duration_seconds": 60,
+                "target_bpm": 72,
+            }
+        ),
+        strict=True,
+    )
+
+    plan = build_fallback_plan(brief)
+
+    assert plan.duration_bars == 18
+    assert validate_synth_ambient_plan(brief, plan).compatible is True

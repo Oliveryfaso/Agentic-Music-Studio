@@ -72,7 +72,7 @@ def build_fallback_plan(brief: CompositionBrief) -> CompositionPlan:
     bpm = brief.target_bpm or default_bpm
     beats_per_bar = 3 if brief.meter == "3/4" else 4
     raw_bars = brief.duration_seconds * bpm / (60 * beats_per_bar)
-    duration_bars = min(256, max(8, int(math.ceil(raw_bars / 4) * 4)))
+    duration_bars = min(256, max(8, math.floor(raw_bars + 0.5)))
     opening_end = max(4, duration_bars // 4)
     closing_start = min(duration_bars - 4, max(opening_end + 4, duration_bars * 3 // 4))
     if closing_start >= duration_bars:

@@ -31,6 +31,7 @@ from motif_forge.infrastructure.checkpoints import postgres_checkpointer
 from motif_forge.infrastructure.persistence.generation import (
     PostgresCompositionMaterializationUnitOfWork,
 )
+from motif_forge.worker.outbox import OutboxMessage, ParentGraphResumePublisher
 from sqlalchemy import text
 
 from .test_postgres_generate_materialization import (
@@ -114,13 +115,13 @@ class _ExportBoundary:
 def _worker_resume(state: dict[str, object]) -> dict[str, object]:
     return {
         "schema_version": "worker-resume.v1",
-        "run_id": state["media_run_id"],
-        "thread_id": state["thread_id"],
-        "run_type": "candidate_preview",
+        "run_id": str(state["media_run_id"]),
+        "thread_id": str(state["thread_id"]),
+        "run_type": "parent.candidate_preview.v1",
         "resume_event_id": f"event-{state['pending_job_id']}",
-        "job_id": state["pending_job_id"],
+        "job_id": str(state["pending_job_id"]),
         "status": "succeeded",
-        "artifact_id": uuid4(),
+        "artifact_id": str(uuid4()),
         "error_code": None,
     }
 
@@ -191,12 +192,29 @@ async def test_s5_checkpoint_restart_materializes_only_selected_candidate(
             )
             assert state["phase"] == "rendering_candidate_previews"
 
-            # Recompile the same Parent topology against the persisted checkpoint.
-            graph = build(saver)
-            state = await graph.ainvoke(Command(resume=_worker_resume(state)), config)
-            state = await graph.ainvoke(Command(resume=_worker_resume(state)), config)
+            # The dispatcher must rebuild the same S5 topology for every Worker wake.
+            publisher = ParentGraphResumePublisher(
+                graph,
+                graph_for_resume=lambda payload: build(saver),
+            )
+
+            async def resume_worker(current: dict[str, object]) -> dict[str, object]:
+                payload = _worker_resume(current)
+                await publisher.publish(
+                    OutboxMessage(
+                        event_id=uuid4(),
+                        topic="graph.resume.requested",
+                        dedupe_key=str(payload["resume_event_id"]),
+                        payload=payload,
+                        attempts=1,
+                    )
+                )
+                return dict((await graph.aget_state(config)).values)
+
+            state = await resume_worker(state)
+            state = await resume_worker(state)
             if state["phase"] == "rendering_candidate_previews":
-                state = await graph.ainvoke(Command(resume=_worker_resume(state)), config)
+                state = await resume_worker(state)
             assert state["phase"] == "waiting_candidate_selection"
             selected = state["candidate_working"][1]
             state = await graph.ainvoke(
