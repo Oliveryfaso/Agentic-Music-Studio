@@ -369,7 +369,7 @@ git commit -m "feat: add evidence-grounded candidate critic"
 - `ApplyBoundedCandidateRepair(request: BoundedRepairRequest) -> BoundedRepairResult`.
 - Repair allowlist: one segment-scoped density reduction, velocity rebalance, register shift, or quantized onset alignment expressed with existing EditorCommands.
 
-- [ ] **Step 1: Write RED scope, improvement, and replay tests**
+- [x] **Step 1: Write RED scope, improvement, and replay tests**
 
 ```python
 async def test_repair_changes_only_target_track_and_tick_range() -> None:
@@ -389,21 +389,21 @@ async def test_replay_never_creates_second_repair_child() -> None:
     assert uow.child_snapshot_count == 1
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `.venv/bin/pytest services/api/tests/unit/application/test_candidate_repair.py services/api/tests/integration/test_postgres_s5_candidates.py -q`  
 Expected: missing repair service and quality gate.
 
-- [ ] **Step 3: Implement allowlisted commands and one-repair budget**
+- [x] **Step 3: Implement allowlisted commands and one-repair budget**
 
 Validate the referenced evidence and Segment against the authoritative Snapshot. Build existing EditorCommands with target track/ticks, apply them in memory, reject any diff outside the Segment, run Theory again, and persist a child Snapshot only once. The quality gate selects the child only when the targeted metric improves and blocking Theory errors do not increase; otherwise it keeps the parent and records a deduplicated `candidate.repair.non_improving` event.
 
-- [ ] **Step 4: Run GREEN and Task 1-6 combined regression**
+- [x] **Step 4: Run GREEN and Task 1-6 combined regression**
 
 Run the Step 2 tests.  
 Run: `.venv/bin/pytest services/api/tests/unit/domain/test_candidates.py services/api/tests/unit/application/test_generation_candidates.py services/api/tests/unit/application/test_candidate_previews.py services/api/tests/unit/agent/test_critic.py services/api/tests/unit/application/test_candidate_repair.py -q`
 
-- [ ] **Step 5: Commit Task 6**
+- [x] **Step 5: Commit Task 6**
 
 ```bash
 git add services/api/src/motif_forge/application/candidate_repair.py services/api/src/motif_forge/application/generation_candidates.py services/api/tests

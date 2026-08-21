@@ -12,6 +12,11 @@ from uuid import uuid4
 import pytest
 from alembic import command
 from alembic.config import Config
+from motif_forge.application.candidate_repair import (
+    ApplyBoundedCandidateRepair,
+    BoundedRepairRequest,
+    EvaluateCandidatePair,
+)
 from motif_forge.application.generation_candidates import (
     CreateCandidateSelectionPreview,
     CreateCandidateSelectionPreviewRequest,
@@ -21,8 +26,14 @@ from motif_forge.application.generation_candidates import (
     MaterializeSelectedCompositionCandidateRequest,
 )
 from motif_forge.application.projects import CreateProject, CreateProjectRequest
-from motif_forge.domain.candidates import CandidateLabel, derive_candidate_seed
+from motif_forge.domain.candidates import (
+    CandidateEvidence,
+    CandidateLabel,
+    derive_candidate_seed,
+    project_candidate_segments,
+)
 from motif_forge.domain.composition import build_s1_composition
+from motif_forge.domain.ir import NoteClip
 from motif_forge.domain.revisions import VersionRefs, create_candidate_snapshot
 from motif_forge.infrastructure.persistence.database import (
     PostgresUnitOfWork,
@@ -218,6 +229,106 @@ async def test_two_candidates_persist_before_one_selected_revision_and_replay(
             ).one()
         assert tuple(after[:4]) == (2, 2, 1, 1)
         assert after[4] == first.revision_id
+    finally:
+        await _delete_exact_project(engine, approved.project_id, approved.run_id)
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_one_bounded_repair_child_persists_and_replays(
+    test_postgres_dsn: str,
+) -> None:
+    engine, sessions, _, _, approved = await _approved_materialization_fixture(
+        test_postgres_dsn
+    )
+    uow = PostgresCompositionMaterializationUnitOfWork(sessions)
+    try:
+        created = await CreateCompositionCandidate(uow)(
+            CreateCompositionCandidateRequest(
+                run_id=approved.run_id,
+                project_id=approved.project_id,
+                branch_id=approved.branch_id,
+                base_revision_id=approved.base_revision_id,
+                plan_id=approved.plan_id,
+                expected_plan_hash=approved.expected_plan_hash,
+                label=CandidateLabel.A,
+                seed=0,
+            )
+        )
+        async with uow() as transaction:
+            parent = await transaction.get_candidate_snapshot(created.candidate_snapshot_id)
+        assert parent is not None
+        segment = next(
+            item
+            for item in project_candidate_segments(parent.candidate_id, parent.candidate_ir)
+            if any(
+                isinstance(clip, NoteClip)
+                and any(
+                    item.start_tick <= clip.start_tick + note.start_tick < item.end_tick
+                    for note in clip.notes
+                )
+                for track in parent.candidate_ir.tracks
+                if track.track_id == item.track_id
+                for clip in track.clips
+            )
+        )
+        request = BoundedRepairRequest(
+            run_id=approved.run_id,
+            project_id=approved.project_id,
+            parent_candidate_snapshot_id=parent.candidate_snapshot_id,
+            segment=segment,
+            operation="velocity_rebalance",
+            evidence=(
+                CandidateEvidence(
+                    evidence_ref="candidate:a:velocity",
+                    candidate_id=parent.candidate_id,
+                    segment_id=segment.segment_id,
+                    kind="repair",
+                    severity="warning",
+                    measured_fact="target segment velocities are imbalanced",
+                    score_delta=-4,
+                ),
+            ),
+            evidence_refs=("candidate:a:velocity",),
+        )
+        repair = ApplyBoundedCandidateRepair(uow)
+
+        first = await repair(request)
+        replay = await repair(request)
+
+        quality_gate = EvaluateCandidatePair(uow)
+        decision = quality_gate(
+            original_snapshot_id=parent.candidate_snapshot_id,
+            repaired_snapshot_id=first.child_snapshot_id,
+            original_score=72,
+            repaired_score=71,
+            original_blocking_errors=0,
+            repaired_blocking_errors=0,
+        )
+        await quality_gate.record(run_id=approved.run_id, decision=decision)
+        await quality_gate.record(run_id=approved.run_id, decision=decision)
+
+        assert replay.child_snapshot_id == first.child_snapshot_id
+        assert replay.replayed is True
+        async with engine.connect() as connection:
+            counts = (
+                await connection.execute(
+                    text(
+                        "SELECT "
+                        "(SELECT count(*) FROM app.candidate_snapshots "
+                        " WHERE source_run_id=:run_id), "
+                        "(SELECT count(*) FROM app.ai_run_events "
+                        " WHERE run_id=:run_id AND event_type='candidate.repair.applied'), "
+                        "(SELECT count(*) FROM app.ai_run_events "
+                        " WHERE run_id=:run_id "
+                        " AND event_type='candidate.repair.non_improving'), "
+                        "(SELECT count(*) FROM app.project_revisions "
+                        " WHERE source_run_id=:run_id)"
+                    ),
+                    {"run_id": approved.run_id},
+                )
+            ).one()
+        assert tuple(counts) == (2, 1, 1, 0)
     finally:
         await _delete_exact_project(engine, approved.project_id, approved.run_id)
         await engine.dispose()
