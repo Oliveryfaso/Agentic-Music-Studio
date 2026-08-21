@@ -5,6 +5,7 @@ import type {
   ReplanAIRunInput,
   ResumeAIRunInput,
   RunActionInput,
+  SelectCandidateInput,
 } from "../../shared/openapi";
 
 export class RunActionConflict extends ApiError {
@@ -78,10 +79,18 @@ export async function replanRun(
   return runAction(runId, "replan", input, idempotencyKey);
 }
 
+export async function selectCandidate(
+  runId: string,
+  input: SelectCandidateInput,
+  idempotencyKey: string,
+): Promise<AIRun> {
+  return runAction(runId, "select-candidate", input, idempotencyKey);
+}
+
 async function runAction(
   runId: string,
-  action: "resume" | "cancel" | "retry" | "replan",
-  input: ResumeAIRunInput | ReplanAIRunInput | RunActionInput,
+  action: "resume" | "cancel" | "retry" | "replan" | "select-candidate",
+  input: ResumeAIRunInput | ReplanAIRunInput | RunActionInput | SelectCandidateInput,
   idempotencyKey: string,
 ): Promise<AIRun> {
   try {

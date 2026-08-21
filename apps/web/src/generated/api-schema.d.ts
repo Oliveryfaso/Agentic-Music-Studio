@@ -2023,6 +2023,11 @@ export interface components {
              */
             preview_artifact_id: string;
             /**
+             * Preview Availability
+             * @enum {string}
+             */
+            preview_availability: "available" | "evicted" | "missing" | "rehydrating";
+            /**
              * Preview Id
              * Format: uuid
              */

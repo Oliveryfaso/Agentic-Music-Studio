@@ -16,7 +16,7 @@ export interface PlanDecision {
   note: string;
 }
 
-export function PlanReview({ plan, busy, onDecision }: { plan: RunPlan; busy: boolean; onDecision: (decision: PlanDecision) => void }) {
+export function PlanReview({ plan, busy, onDecision, reviewable = true }: { plan: RunPlan; busy: boolean; onDecision: (decision: PlanDecision) => void; reviewable?: boolean }) {
   const [actorId, setActorId] = useState("");
   const [assertion, setAssertion] = useState("");
   const [note, setNote] = useState("");
@@ -73,7 +73,7 @@ export function PlanReview({ plan, busy, onDecision }: { plan: RunPlan; busy: bo
       {composition.knowledge_references.length > 0 && (
         <section className="plan-references"><h3>规划依据</h3>{composition.knowledge_references.map((reference) => <p key={reference.reference_id}>{reference.summary}</p>)}</section>
       )}
-      <form className="approval-form" onSubmit={(event) => decide(event, "approve")}>
+      {reviewable && <form className="approval-form" onSubmit={(event) => decide(event, "approve")}>
         <div className="approval-grid">
           <label><span>审批人</span><input value={actorId} onChange={(event) => setActorId(event.target.value)} autoComplete="off" /></label>
           <label><span>审批确认</span><input value={assertion} onChange={(event) => setAssertion(event.target.value)} autoComplete="off" /></label>
@@ -85,7 +85,7 @@ export function PlanReview({ plan, busy, onDecision }: { plan: RunPlan; busy: bo
           <button className="danger-button" type="button" disabled={busy} onClick={() => submitDecision("reject")}>拒绝计划</button>
           <small>操作绑定当前 Plan 版本与内容标识；页面不保存审批确认文本。</small>
         </div>
-      </form>
+      </form>}
     </article>
   );
 }

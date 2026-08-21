@@ -5,7 +5,15 @@ import { StatusBanner } from "../../app/StatusBanner";
 import { ApiError } from "../../shared/api";
 import type { AIRun, ReplanAIRunInput } from "../../shared/openapi";
 import { readProject } from "../projects/projectApi";
-import { cancelRun, replanRun, resumeRun, retryRun, RunActionConflict } from "./generateApi";
+import {
+  cancelRun,
+  replanRun,
+  resumeRun,
+  retryRun,
+  RunActionConflict,
+  selectCandidate,
+} from "./generateApi";
+import { CandidateCompare, type CandidateDecision } from "./CandidateCompare";
 import type { PlanDecision } from "./PlanReview";
 import { PlanReview } from "./PlanReview";
 import { PlanAdjustmentForm } from "./PlanAdjustmentForm";
@@ -84,6 +92,20 @@ export function RunPage({ runId }: { runId: string }) {
     }, actionKey("replan")), (child) => navigate({ name: "run", runId: child.run_id }), false);
   }
 
+  function decideCandidate(decision: CandidateDecision) {
+    if (!run || run.pending_action !== "select_candidate") return;
+    void action(() => selectCandidate(run.run_id, {
+      expected_version: run.version,
+      preview_id: decision.previewId ?? null,
+      expected_candidate_id: decision.candidateId ?? null,
+      expected_candidate_content_hash: decision.candidateContentHash ?? null,
+      actor_id: "local-user",
+      selection_assertion: decision.assertion,
+      decision: decision.decision,
+      note: decision.note,
+    }, actionKey("select-candidate")));
+  }
+
   if (!run) {
     return error
       ? <section className="error-state" role="alert"><span>!</span><div><h2>无法恢复 Run</h2><p>{error}</p></div></section>
@@ -97,8 +119,13 @@ export function RunPage({ runId }: { runId: string }) {
       <RunProgress run={run} state={state} />
       {feedback && <StatusBanner tone="warning" message={feedback} detail="页面已重新读取权威 Run；请按当前状态继续。" />}
       {error && <StatusBanner tone="danger" message="操作未完成" detail={error} />}
-      {run.plan && <PlanReview plan={run.plan} busy={busy} onDecision={decide} />}
+      {run.plan && <PlanReview plan={run.plan} busy={busy} onDecision={decide} reviewable={run.pending_action === "approve_plan"} />}
       {run.status === "waiting_approval" && run.plan && <PlanAdjustmentForm busy={busy} onSubmit={replan} />}
+      {run.pending_action === "select_candidate" && (
+        run.candidates.length === 2 && run.critique
+          ? <CandidateCompare run={run} busy={busy} onSelect={decideCandidate} />
+          : <StatusBanner tone="warning" message="候选证据正在恢复" detail="页面会继续读取 PostgreSQL 权威 Preview 和 Critic 结果。" />
+      )}
       <div className="run-actions">
         {canCancel && <button className="danger-button" type="button" disabled={busy} onClick={() => void action(() => cancelRun(run.run_id, run.version, actionKey("cancel")))}>取消 Run</button>}
         {canRetry && <button className="secondary-inline" type="button" disabled={busy} onClick={() => void action(() => retryRun(run.run_id, run.version, actionKey("retry")), (child) => navigate({ name: "run", runId: child.run_id }))}>重试为新 Run</button>}

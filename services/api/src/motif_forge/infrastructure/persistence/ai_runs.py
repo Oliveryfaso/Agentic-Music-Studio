@@ -328,6 +328,7 @@ class PostgresAIRunTransaction:
                 candidate_snapshot_id=snapshot.id,
                 candidate_content_hash=snapshot.candidate_content_hash,
                 preview_id=preview.id, preview_artifact_id=artifact.id,
+                preview_availability=cast(Any, artifact.availability),
                 parent_candidate_snapshot_id=snapshot.parent_candidate_snapshot_id,
                 repair_status=cast(Any, repair_status),
             ))

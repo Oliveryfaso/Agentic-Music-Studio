@@ -18,3 +18,4 @@ export type ResumeAIRunInput = Schemas["ResumeAIRunBody"];
 export type RevisionStudio = Schemas["RevisionStudioData"];
 export type RunActionInput = Schemas["RunActionBody"];
 export type RunProgress = Schemas["RunProgressData"];
+export type SelectCandidateInput = Schemas["SelectCandidateBody"];

@@ -59,4 +59,19 @@ describe("Run UI state reducer", () => {
     expect(state.phase).toBe("partial_success");
     expect(state.errorCode).toBe("RENDER_FAILED");
   });
+
+  it("tracks candidate generation, critic, repair, and selection phases", () => {
+    const phases = [
+      "generating_candidates", "rendering_candidate_previews", "criticizing",
+      "repairing_candidate", "waiting_candidate_selection",
+    ] as const;
+    const state = phases.reduce(
+      (current, phase, index) => reduceRunState(current, {
+        type: "event", event: { sequence: index + 1, phase },
+      }),
+      initialRunState,
+    );
+    expect(state.phase).toBe("waiting_candidate_selection");
+    expect(state.lastSequence).toBe(5);
+  });
 });

@@ -5,6 +5,8 @@ const PHASE_LABELS: Record<RunUiState["phase"], string> = {
   draft: "准备 Brief", submitting: "提交中", queued: "已排队", planning: "Agent 正在规划", waiting_approval: "等待审批",
   approving: "正在批准", rejecting: "正在拒绝", adjusting: "正在调整", child_queued: "子 Run 已排队", child_planning: "子 Run 正在规划",
   child_waiting_approval: "子 Run 等待审批", materializing: "正在写入 Revision", waiting_worker: "正在渲染导出", succeeded: "作品已生成并写入 Revision",
+  generating_candidates: "正在生成候选 A / B", rendering_candidate_previews: "正在渲染候选试听", criticizing: "Critic 正在比较证据",
+  repairing_candidate: "正在执行一次局部修复", waiting_candidate_selection: "等待选择候选",
   rejected: "计划已拒绝", cancelled: "Run 已取消", failed: "Run 执行失败", partial_success: "已有安全 Revision，导出未完整完成",
 };
 

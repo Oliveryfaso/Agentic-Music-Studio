@@ -70,6 +70,7 @@ class AIRunCandidateProjection:
     candidate_content_hash: str
     preview_id: UUID
     preview_artifact_id: UUID
+    preview_availability: Literal["available", "evicted", "missing", "rehydrating"]
     parent_candidate_snapshot_id: UUID | None
     repair_status: Literal["not_requested", "improved", "non_improving"]
 

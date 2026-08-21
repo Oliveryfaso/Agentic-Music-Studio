@@ -13,6 +13,11 @@ export type GeneratePhase =
   | "child_planning"
   | "child_waiting_approval"
   | "materializing"
+  | "generating_candidates"
+  | "rendering_candidate_previews"
+  | "criticizing"
+  | "repairing_candidate"
+  | "waiting_candidate_selection"
   | "waiting_worker"
   | "succeeded"
   | "rejected"
@@ -64,6 +69,11 @@ const PHASES = new Set<GeneratePhase>([
   "child_planning",
   "child_waiting_approval",
   "materializing",
+  "generating_candidates",
+  "rendering_candidate_previews",
+  "criticizing",
+  "repairing_candidate",
+  "waiting_candidate_selection",
   "waiting_worker",
   "succeeded",
   "rejected",

@@ -126,6 +126,7 @@ class RunCandidateData(ApiModel):
     candidate_content_hash: str
     preview_id: UUID
     preview_artifact_id: UUID
+    preview_availability: Literal["available", "evicted", "missing", "rehydrating"]
     parent_candidate_snapshot_id: UUID | None
     repair_status: Literal["not_requested", "improved", "non_improving"]
 
@@ -232,6 +233,7 @@ def run_data(run: AIRun, projection: AIRunProjection | None = None) -> AIRunData
                 candidate_snapshot_id=item.candidate_snapshot_id,
                 candidate_content_hash=item.candidate_content_hash,
                 preview_id=item.preview_id, preview_artifact_id=item.preview_artifact_id,
+                preview_availability=item.preview_availability,
                 parent_candidate_snapshot_id=item.parent_candidate_snapshot_id,
                 repair_status=item.repair_status,
             )

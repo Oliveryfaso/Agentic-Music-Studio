@@ -11,6 +11,7 @@ const RUN_ID = "55555555-5555-4555-8555-555555555555";
 const CHILD_RUN_ID = "66666666-6666-4666-8666-666666666666";
 const PLAN_HASH = "a".repeat(64);
 const ASSERTION = "I reviewed this exact composition plan and approve it.";
+const CANDIDATE_ASSERTION = "I compared both authoritative previews and select B.";
 
 afterEach(() => {
   cleanup();
@@ -171,6 +172,41 @@ describe("Plan review and persistent Run progress", () => {
     expect(await screen.findByText("Run 已取消")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "重试为新 Run" })).toBeInTheDocument();
   });
+
+  it("recovers candidate comparison and submits the exact selected Preview", async () => {
+    let selected = false;
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input);
+      if (path === `/api/v1/runs/${RUN_ID}`) {
+        return jsonResponse({ data: selected ? runData("materializing") : runData("materializing", { candidates: true }) });
+      }
+      if (path === `/api/v1/runs/${RUN_ID}/events`) return pendingEventStream();
+      if (path === `/api/v1/runs/${RUN_ID}/select-candidate` && init?.method === "POST") {
+        const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+        expect(body).toMatchObject({
+          expected_version: 3,
+          preview_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          expected_candidate_id: "99999999-9999-4999-8999-999999999999",
+          expected_candidate_content_hash: "b".repeat(64),
+          actor_id: "local-user",
+          selection_assertion: CANDIDATE_ASSERTION,
+          decision: "select",
+        });
+        selected = true;
+        return jsonResponse({ data: runData("materializing") });
+      }
+      throw new Error(`unexpected request ${path}`);
+    }));
+
+    render(<RunPage runId={RUN_ID} />);
+    expect(await screen.findByText("Agent 建议：候选 B")).toBeVisible();
+    fireEvent.change(screen.getByLabelText("选择确认"), {
+      target: { value: CANDIDATE_ASSERTION },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "选择候选 B" }));
+    await waitFor(() => expect(selected).toBe(true));
+    expect(screen.queryByRole("heading", { name: "比较候选 A / B" })).not.toBeInTheDocument();
+  });
 });
 
 function runData(
@@ -181,6 +217,7 @@ function runData(
     revisionId?: string | null;
     version?: number;
     plan?: boolean;
+    candidates?: boolean;
   } = {},
 ) {
   return {
@@ -192,7 +229,9 @@ function runData(
     thread_id: `generate-${options.runId ?? RUN_ID}`,
     status,
     version: options.version ?? 3,
-    pending_action: status === "waiting_approval" ? "approve_plan" : null,
+    pending_action: status === "waiting_approval"
+      ? "approve_plan"
+      : options.candidates ? "select_candidate" : null,
     pending_plan_id: options.plan ? "77777777-7777-4777-8777-777777777777" : null,
     pending_plan_hash: options.plan ? PLAN_HASH : null,
     submitted_model_requests: 1,
@@ -209,6 +248,10 @@ function runData(
     fallback_reason: options.plan ? "provider unavailable" : null,
     error_code: status === "failed" ? "RENDER_FAILED" : null,
     plan: options.plan ? planProjection() : null,
+    candidates: options.candidates ? candidateProjection() : [],
+    critique: options.candidates ? critiqueProjection() : null,
+    selected_candidate_id: null,
+    selected_preview_id: null,
     progress: {
       phase: status,
       completed_export_steps: status === "succeeded" ? ["master", "stem-pad", "stem-melody", "stem-bass", "stem-rhythm", "delivery-mp3", "bundle"] : [],
@@ -216,6 +259,42 @@ function runData(
       latest_event_sequence: status === "succeeded" ? 13 : 3,
       error_code: status === "failed" ? "RENDER_FAILED" : null,
     },
+  };
+}
+
+function candidateProjection() {
+  return [
+    {
+      label: "a", candidate_id: "88888888-8888-4888-8888-888888888888",
+      candidate_snapshot_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      candidate_content_hash: "a".repeat(64),
+      preview_id: "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa",
+      preview_artifact_id: "aaaaaaaa-2222-4222-8222-aaaaaaaaaaaa",
+      preview_availability: "available",
+      parent_candidate_snapshot_id: null, repair_status: "not_requested",
+    },
+    {
+      label: "b", candidate_id: "99999999-9999-4999-8999-999999999999",
+      candidate_snapshot_id: "bbbbbbbb-1111-4111-8111-bbbbbbbbbbbb",
+      candidate_content_hash: "b".repeat(64),
+      preview_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      preview_artifact_id: "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb",
+      preview_availability: "available",
+      parent_candidate_snapshot_id: null, repair_status: "not_requested",
+    },
+  ];
+}
+
+function critiqueProjection() {
+  return {
+    schema_version: "candidate-critique.v1", evidence: [], findings: [],
+    assessments: [
+      { candidate_id: "88888888-8888-4888-8888-888888888888", label: "a", score: 72, evidence_refs: [] },
+      { candidate_id: "99999999-9999-4999-8999-999999999999", label: "b", score: 81, evidence_refs: [] },
+    ],
+    repair_proposal: null,
+    recommended_candidate_id: "99999999-9999-4999-8999-999999999999",
+    rationale: "Candidate B has stronger continuity.",
   };
 }
 
