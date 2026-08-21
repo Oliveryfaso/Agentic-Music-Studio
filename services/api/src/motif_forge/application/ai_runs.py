@@ -27,6 +27,7 @@ from motif_forge.domain.ai_runs import (
     approval_assertion_hash,
     composition_plan_content_hash,
 )
+from motif_forge.domain.candidates import CandidateCritique
 from motif_forge.domain.ir import DomainModel
 
 CREATE_AI_RUN_OPERATION = "ai-run.create.v1"
@@ -577,6 +578,98 @@ class ResumeAIRunApproval:
                 request_hash=fingerprint, outbox_event_id=self._id_factory(),
             )
             return await transaction.read_ai_run(run_id)
+
+
+class ResumeAIRunCandidateSelection:
+    """Persistently idempotent CandidateSelection wake for the existing Parent Graph."""
+
+    def __init__(
+        self, uow_factory: AIRunUnitOfWorkFactory, *,
+        id_factory: Callable[[], UUID] = uuid4,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> None:
+        self._uow_factory, self._id_factory, self._clock = uow_factory, id_factory, clock
+
+    async def __call__(
+        self, *, run_id: UUID, actor_id: str, decision: str, assertion: str,
+        selected_preview_id: UUID | None, expected_candidate_id: UUID | None,
+        expected_candidate_content_hash: str | None, expected_version: int,
+        note: str, idempotency_key: str,
+    ) -> AIRun:
+        fingerprint = request_hash({
+            "run_id": str(run_id), "actor_id": actor_id, "decision": decision,
+            "assertion": assertion, "selected_preview_id": selected_preview_id,
+            "expected_candidate_id": expected_candidate_id,
+            "expected_candidate_content_hash": expected_candidate_content_hash,
+            "expected_version": expected_version, "note": note,
+        })
+        async with self._uow_factory() as transaction:
+            hit = await transaction.get_ai_run_action_idempotency(
+                parent_run_id=run_id, action="select_candidate", key=idempotency_key
+            )
+            if hit is not None:
+                if hit.request_hash != fingerprint:
+                    raise IdempotencyKeyReusedError
+                return await transaction.read_ai_run(hit.resource_id)
+            projection = await transaction.read_ai_run_projection(run_id)
+            if projection.revision_id is not None or len(projection.candidates) != 2:
+                raise ApplicationError(
+                    "AI_RUN_ACTION_STATE_CONFLICT", "run is not awaiting candidate selection"
+                )
+            if decision == "select":
+                selected = next(
+                    (
+                        item for item in projection.candidates
+                        if item.preview_id == selected_preview_id
+                    ),
+                    None,
+                )
+                if (
+                    selected is None
+                    or selected.candidate_id != expected_candidate_id
+                    or selected.candidate_content_hash != expected_candidate_content_hash
+                ):
+                    raise ApplicationError(
+                        "CANDIDATE_SELECTION_MISMATCH",
+                        "selection must bind one authoritative candidate Preview",
+                    )
+            elif any(item is not None for item in (
+                selected_preview_id, expected_candidate_id, expected_candidate_content_hash
+            )):
+                raise ApplicationError(
+                    "CANDIDATE_SELECTION_INVALID", "candidate rejection forbids Preview identity"
+                )
+            await transaction.record_idempotent_candidate_selection(
+                run_id=run_id, actor_id=actor_id, decision=decision, assertion=assertion,
+                selected_preview_id=selected_preview_id,
+                expected_candidate_id=expected_candidate_id,
+                expected_candidate_content_hash=expected_candidate_content_hash,
+                note=note, expected_version=expected_version,
+                idempotency_key=idempotency_key, request_hash=fingerprint,
+                outbox_event_id=self._id_factory(), event_id=self._id_factory(),
+                now=self._clock(),
+            )
+            return await transaction.read_ai_run(run_id)
+
+
+class RecordCandidateCritique:
+    """Persist the strict Critic result as a replayable Run event."""
+
+    def __init__(
+        self, uow_factory: AIRunUnitOfWorkFactory, *,
+        id_factory: Callable[[], UUID] = uuid4,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> None:
+        self._uow_factory, self._id_factory, self._clock = uow_factory, id_factory, clock
+
+    async def __call__(self, run_id: UUID, critique: CandidateCritique) -> None:
+        async with self._uow_factory() as transaction:
+            await transaction.record_ai_run_event(AIRunEvent(
+                sequence=1, event_id=self._id_factory(), run_id=run_id,
+                event_type="candidate.critic.completed", phase="criticizing",
+                payload=critique.model_dump(mode="json"),
+                dedupe_key="candidate-critic:v1", created_at=self._clock(),
+            ))
 
 
 class ReserveModelRequest:

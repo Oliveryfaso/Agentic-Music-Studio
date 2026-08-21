@@ -17,7 +17,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from motif_forge.application.ai_runs import model_request_allowed
 from motif_forge.application.errors import ApplicationError, IdempotencyKeyReusedError
-from motif_forge.application.ports import AIRunProgress, AIRunProjection, IdempotencyHit
+from motif_forge.application.ports import (
+    AIRunCandidateProjection,
+    AIRunProgress,
+    AIRunProjection,
+    IdempotencyHit,
+)
 from motif_forge.domain.ai_runs import (
     AIRun,
     AIRunApproval,
@@ -39,7 +44,9 @@ from motif_forge.infrastructure.persistence.tables import (
     AIRunApprovalRow,
     AIRunEventRow,
     AIRunRow,
+    AudioArtifactRow,
     BranchRow,
+    CandidateSnapshotRow,
     CompositionMaterializationReceiptRow,
     CompositionPlanRow,
     ExportBundleArtifactRow,
@@ -47,6 +54,7 @@ from motif_forge.infrastructure.persistence.tables import (
     MediaRunRow,
     ModelRequestReservationRow,
     OutboxEventRow,
+    PreviewCandidateRow,
     RevisionRow,
 )
 
@@ -260,6 +268,74 @@ class PostgresAIRunTransaction:
                 if job.status != "succeeded":
                     break
                 completed_count += 1
+        created_labels: dict[UUID, str] = {}
+        for event in reversed(ai_run_events):
+            if event.event_type != "composition.candidate-created":
+                continue
+            try:
+                created_labels[UUID(str(event.payload["candidate_id"]))] = str(
+                    event.payload["label"]
+                )
+            except (KeyError, ValueError):
+                continue
+        preview_rows = (
+            (
+                await self._session.execute(
+                    select(PreviewCandidateRow)
+                    .where(PreviewCandidateRow.source_run_id == run_id)
+                    .order_by(PreviewCandidateRow.created_at, PreviewCandidateRow.id)
+                )
+            ).scalars().all()
+        )
+        candidates: list[AIRunCandidateProjection] = []
+        for preview in preview_rows:
+            snapshot = (
+                await self._session.execute(
+                    select(CandidateSnapshotRow).where(
+                        CandidateSnapshotRow.id == preview.candidate_snapshot_id
+                    )
+                )
+            ).scalar_one_or_none()
+            if snapshot is None or snapshot.candidate_id not in created_labels:
+                continue
+            label = created_labels[snapshot.candidate_id]
+            if label not in {"a", "b"} or not preview.preview_artifact_ids:
+                continue
+            try:
+                artifact_id = UUID(preview.preview_artifact_ids[0])
+            except (ValueError, TypeError):
+                continue
+            artifact = (
+                await self._session.execute(
+                    select(AudioArtifactRow).where(
+                        AudioArtifactRow.id == artifact_id,
+                        AudioArtifactRow.candidate_snapshot_id == snapshot.id,
+                        AudioArtifactRow.quality_profile == "candidate-preview.v1",
+                    )
+                )
+            ).scalar_one_or_none()
+            if artifact is None:
+                continue
+            repair_status = "improved" if snapshot.parent_candidate_snapshot_id else "not_requested"
+            if repair_status == "not_requested" and any(
+                event.event_type == "candidate.repair.non_improving"
+                and event.payload.get("selected_snapshot_id") == str(snapshot.id)
+                for event in ai_run_events
+            ):
+                repair_status = "non_improving"
+            candidates.append(AIRunCandidateProjection(
+                label=cast(Any, label), candidate_id=snapshot.candidate_id,
+                candidate_snapshot_id=snapshot.id,
+                candidate_content_hash=snapshot.candidate_content_hash,
+                preview_id=preview.id, preview_artifact_id=artifact.id,
+                parent_candidate_snapshot_id=snapshot.parent_candidate_snapshot_id,
+                repair_status=cast(Any, repair_status),
+            ))
+        candidates.sort(key=lambda item: item.label)
+        critique_event = next(
+            (event for event in ai_run_events if event.event_type == "candidate.critic.completed"),
+            None,
+        )
         return AIRunProjection(
             run=run, plan=_plan_from_row(plan) if plan else None,
             progress=AIRunProgress(
@@ -272,7 +348,85 @@ class PostgresAIRunTransaction:
             revision_id=receipt.revision_id if receipt else None,
             bundle_id=bundle.id if bundle else None,
             fallback_reason=plan.fallback_reason if plan else None, error_code=error_code,
+            candidates=tuple(candidates),
+            critique=dict(critique_event.payload) if critique_event else None,
+            selected_candidate_id=(
+                receipt.candidate_snapshot_id and next(
+                    (
+                        item.candidate_id for item in candidates
+                        if item.candidate_snapshot_id == receipt.candidate_snapshot_id
+                    ),
+                    None,
+                )
+                if receipt else None
+            ),
+            selected_preview_id=receipt.preview_id if receipt else None,
+            candidate_selection_requested=any(
+                event.event_type == "candidate.selection.requested"
+                for event in ai_run_events
+            ),
         )
+
+    async def record_idempotent_candidate_selection(
+        self, *, run_id: UUID, actor_id: str, decision: str, assertion: str,
+        selected_preview_id: UUID | None, expected_candidate_id: UUID | None,
+        expected_candidate_content_hash: str | None, note: str,
+        expected_version: int, idempotency_key: str, request_hash: str,
+        outbox_event_id: UUID, event_id: UUID, now: datetime,
+    ) -> None:
+        row = (
+            await self._session.execute(
+                select(AIRunRow).where(AIRunRow.id == run_id).with_for_update()
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
+        if row.version != expected_version:
+            raise ApplicationError(
+                "AI_RUN_VERSION_CONFLICT", "candidate selection used a stale Run version"
+            )
+        result = await self._session.execute(
+            update(AIRunRow)
+            .where(AIRunRow.id == run_id, AIRunRow.version == expected_version)
+            .values(version=expected_version + 1, updated_at=now)
+        )
+        if cast(Any, result).rowcount != 1:
+            raise ApplicationError(
+                "AI_RUN_VERSION_CONFLICT", "candidate selection lost its Run version race"
+            )
+        await self._session.execute(insert(AIRunActionIdempotencyRow).values(
+            id=UUID(bytes=secrets.token_bytes(16)), parent_run_id=run_id,
+            action="select_candidate", idempotency_key=idempotency_key,
+            request_hash=request_hash, result_run_id=run_id, created_at=now,
+        ))
+        decision_payload = {
+            "decision": decision, "actor_id": actor_id,
+            "selection_assertion": assertion,
+            "selected_preview_id": str(selected_preview_id) if selected_preview_id else None,
+            "expected_candidate_id": str(expected_candidate_id) if expected_candidate_id else None,
+            "expected_candidate_content_hash": expected_candidate_content_hash,
+            "note": note,
+        }
+        await self._session.execute(insert(AIRunEventRow).values(**_event_values(
+            AIRunEvent(
+                sequence=1, event_id=event_id, run_id=run_id,
+                event_type="candidate.selection.requested", phase="waiting_candidate_selection",
+                payload=cast(dict[str, object], decision_payload),
+                dedupe_key=f"candidate-selection:{idempotency_key}", created_at=now,
+            ),
+            sequence=None,
+        )))
+        await self._session.execute(insert(OutboxEventRow).values(
+            id=outbox_event_id, aggregate_type="ai_run", aggregate_id=run_id,
+            topic="graph.resume.requested",
+            dedupe_key=f"ai-run:{run_id}:candidate-selection:{idempotency_key}",
+            payload={
+                "schema_version": "graph-action.v1", "action": "resume",
+                "run_id": str(run_id), "thread_id": row.thread_id,
+                "run_type": "parent.generate.v1", "decision": decision_payload,
+            },
+            status="pending", attempts=0, available_at=now, created_at=now,
+        ))
 
     async def record_idempotent_ai_run_approval(
         self, *, approval: AIRunApproval, assertion: str, note: str,

@@ -6,7 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from types import TracebackType
-from typing import Protocol, Self
+from typing import Literal, Protocol, Self
 from uuid import UUID
 
 from motif_forge.domain.ai_runs import (
@@ -63,6 +63,18 @@ class AIRunProgress:
 
 
 @dataclass(frozen=True, slots=True)
+class AIRunCandidateProjection:
+    label: Literal["a", "b"]
+    candidate_id: UUID
+    candidate_snapshot_id: UUID
+    candidate_content_hash: str
+    preview_id: UUID
+    preview_artifact_id: UUID
+    parent_candidate_snapshot_id: UUID | None
+    repair_status: Literal["not_requested", "improved", "non_improving"]
+
+
+@dataclass(frozen=True, slots=True)
 class AIRunProjection:
     run: AIRun
     plan: PersistedCompositionPlan | None = None
@@ -71,6 +83,11 @@ class AIRunProjection:
     bundle_id: UUID | None = None
     fallback_reason: str | None = None
     error_code: str | None = None
+    candidates: tuple[AIRunCandidateProjection, ...] = ()
+    critique: dict[str, object] | None = None
+    selected_candidate_id: UUID | None = None
+    selected_preview_id: UUID | None = None
+    candidate_selection_requested: bool = False
 
 
 class ProjectTransaction(Protocol):
@@ -434,6 +451,24 @@ class AIRunTransaction(Protocol):
         request_hash: str,
         outbox_event_id: UUID,
     ) -> AIRunApproval: ...
+    async def record_idempotent_candidate_selection(
+        self,
+        *,
+        run_id: UUID,
+        actor_id: str,
+        decision: str,
+        assertion: str,
+        selected_preview_id: UUID | None,
+        expected_candidate_id: UUID | None,
+        expected_candidate_content_hash: str | None,
+        note: str,
+        expected_version: int,
+        idempotency_key: str,
+        request_hash: str,
+        outbox_event_id: UUID,
+        event_id: UUID,
+        now: datetime,
+    ) -> None: ...
     async def retry_ai_run(
         self,
         *,

@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 from fastapi.testclient import TestClient
 from motif_forge.api.app import create_app
 from motif_forge.application.errors import IdempotencyKeyReusedError
-from motif_forge.application.ports import AIRunProjection, IdempotencyHit
+from motif_forge.application.ports import AIRunCandidateProjection, AIRunProjection, IdempotencyHit
 from motif_forge.config import Settings
 from motif_forge.domain.ai_runs import AIRun, AIRunApproval, AIRunStatus
 
@@ -19,6 +19,7 @@ class FakeAIRunTransaction:
         self.approval: AIRunApproval | None = None
         self.projection: AIRunProjection | None = None
         self.child: AIRun | None = None
+        self.selection: dict[str, object] | None = None
 
     async def __aenter__(self):  # type: ignore[no-untyped-def]
         return self
@@ -87,6 +88,21 @@ class FakeAIRunTransaction:
             result_payload={"run_id": str(self.run.run_id)},
         )
         return self.approval
+
+    async def record_idempotent_candidate_selection(self, **kwargs):  # type: ignore[no-untyped-def]
+        key = ("select_candidate", kwargs["idempotency_key"])
+        prior = self.action_hits.get(key)
+        if prior is not None:
+            if prior.request_hash != kwargs["request_hash"]:
+                raise IdempotencyKeyReusedError
+            return
+        assert self.run is not None
+        self.selection = kwargs
+        self.action_hits[key] = IdempotencyHit(
+            resource_id=self.run.run_id,
+            request_hash=kwargs["request_hash"],
+            result_payload={"run_id": str(self.run.run_id)},
+        )
 
     async def request_ai_run_action(self, **kwargs):  # type: ignore[no-untyped-def]
         key = (kwargs["action"], kwargs["idempotency_key"])
@@ -265,3 +281,69 @@ def test_get_projection_cancel_replay_and_retry_child_replay() -> None:
         assert first_retry.status_code == replay_retry.status_code == 202
         assert first_retry.json()["data"]["run_id"] == replay_retry.json()["data"]["run_id"]
         assert first_retry.json()["data"]["run_id"] != str(run.run_id)
+
+
+def test_get_run_exposes_ordered_candidates_and_select_is_idempotent() -> None:
+    uow = FakeAIRunUOW()
+    run = AIRun(
+        run_id=uuid4(), project_id=uuid4(), branch_id=uuid4(), base_revision_id=uuid4(),
+        thread_id="candidate-selection-http", status=AIRunStatus.MATERIALIZING, version=2,
+    )
+    candidate_a, candidate_b = uuid4(), uuid4()
+    snapshot_a, snapshot_b = uuid4(), uuid4()
+    preview_a, preview_b = uuid4(), uuid4()
+    artifact_a, artifact_b = uuid4(), uuid4()
+    uow.transaction.run = run
+    uow.transaction.projection = AIRunProjection(
+        run=run,
+        candidates=(
+            AIRunCandidateProjection(
+                label="a", candidate_id=candidate_a, candidate_snapshot_id=snapshot_a,
+                candidate_content_hash="a" * 64, preview_id=preview_a,
+                preview_artifact_id=artifact_a, parent_candidate_snapshot_id=None,
+                repair_status="not_requested",
+            ),
+            AIRunCandidateProjection(
+                label="b", candidate_id=candidate_b, candidate_snapshot_id=snapshot_b,
+                candidate_content_hash="b" * 64, preview_id=preview_b,
+                preview_artifact_id=artifact_b, parent_candidate_snapshot_id=None,
+                repair_status="not_requested",
+            ),
+        ),
+        critique={
+            "schema_version": "candidate-critique.v1",
+            "recommended_candidate_id": str(candidate_b),
+            "rationale": "B has stronger continuity.",
+            "assessments": [
+                {"candidate_id": str(candidate_a), "label": "a", "score": 70,
+                 "evidence_refs": []},
+                {"candidate_id": str(candidate_b), "label": "b", "score": 80,
+                 "evidence_refs": []},
+            ],
+            "findings": [], "evidence": [], "repair_proposal": None,
+        },
+    )
+    app = create_app(Settings.for_test(), ai_run_uow_factory=uow)  # type: ignore[arg-type]
+    body = {
+        "expected_version": 2, "preview_id": str(preview_b),
+        "expected_candidate_id": str(candidate_b),
+        "expected_candidate_content_hash": "b" * 64,
+        "actor_id": "human-a", "selection_assertion": "I select candidate B now.",
+        "decision": "select", "note": "reviewed",
+    }
+    url = f"/api/v1/runs/{run.run_id}/select-candidate"
+    with TestClient(app) as client:
+        read = client.get(f"/api/v1/runs/{run.run_id}")
+        assert read.status_code == 200
+        data = read.json()["data"]
+        assert data["pending_action"] == "select_candidate"
+        assert [item["label"] for item in data["candidates"]] == ["a", "b"]
+        assert data["critique"]["recommended_candidate_id"] == str(candidate_b)
+        first = client.post(url, headers={"Idempotency-Key": "select-http-key"}, json=body)
+        replay = client.post(url, headers={"Idempotency-Key": "select-http-key"}, json=body)
+        conflict = client.post(
+            url, headers={"Idempotency-Key": "select-http-key"},
+            json={**body, "preview_id": str(preview_a)},
+        )
+        assert first.status_code == replay.status_code == 200
+        assert conflict.status_code == 409

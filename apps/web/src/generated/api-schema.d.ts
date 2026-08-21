@@ -311,6 +311,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/runs/{run_id}/select-candidate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Select Candidate */
+        post: operations["select_candidate_api_v1_runs__run_id__select_candidate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/upload-sessions": {
         parameters: {
             query?: never;
@@ -414,6 +431,11 @@ export interface components {
             branch_id: string;
             /** Bundle Id */
             bundle_id?: string | null;
+            /**
+             * Candidates
+             * @default []
+             */
+            candidates: components["schemas"]["RunCandidateData"][];
             /** Completion Tokens */
             completion_tokens: number | null;
             /** Cost Amount Microusd */
@@ -422,6 +444,7 @@ export interface components {
             cost_pricing_version: string | null;
             /** Cost Status */
             cost_status: string;
+            critique?: components["schemas"]["CandidateCritique"] | null;
             /** Error Code */
             error_code?: string | null;
             /** Fallback Reason */
@@ -433,7 +456,7 @@ export interface components {
             /** Parent Run Id */
             parent_run_id: string | null;
             /** Pending Action */
-            pending_action: "approve_plan" | null;
+            pending_action: ("approve_plan" | "select_candidate") | null;
             /** Pending Plan Hash */
             pending_plan_hash: string | null;
             /** Pending Plan Id */
@@ -454,6 +477,10 @@ export interface components {
              * Format: uuid
              */
             run_id: string;
+            /** Selected Candidate Id */
+            selected_candidate_id?: string | null;
+            /** Selected Preview Id */
+            selected_preview_id?: string | null;
             status: components["schemas"]["AIRunStatus"];
             /** Submitted Model Requests */
             submitted_model_requests: number;
@@ -767,6 +794,101 @@ export interface components {
          * @enum {string}
          */
         AudioSourceKind: "imported" | "sample" | "generated";
+        /** CandidateAssessment */
+        CandidateAssessment: {
+            /**
+             * Candidate Id
+             * Format: uuid
+             */
+            candidate_id: string;
+            /** Evidence Refs */
+            evidence_refs: string[];
+            label: components["schemas"]["CandidateLabel"];
+            /** Score */
+            score: number;
+        };
+        /** CandidateCritique */
+        CandidateCritique: {
+            /** Assessments */
+            assessments: components["schemas"]["CandidateAssessment"][];
+            /** Evidence */
+            evidence: components["schemas"]["CandidateEvidence"][];
+            /** Findings */
+            findings: components["schemas"]["CandidateFinding"][];
+            /** Rationale */
+            rationale: string;
+            /**
+             * Recommended Candidate Id
+             * Format: uuid
+             */
+            recommended_candidate_id: string;
+            repair_proposal?: components["schemas"]["RepairProposal"] | null;
+            /**
+             * Schema Version
+             * @default candidate-critique.v1
+             * @constant
+             */
+            schema_version: "candidate-critique.v1";
+        };
+        /** CandidateEvidence */
+        CandidateEvidence: {
+            /**
+             * Candidate Id
+             * Format: uuid
+             */
+            candidate_id: string;
+            /** Evidence Ref */
+            evidence_ref: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "theory" | "structure" | "continuity" | "audio" | "repair";
+            /** Measured Fact */
+            measured_fact: string;
+            /**
+             * Schema Version
+             * @default candidate-evidence.v1
+             * @constant
+             */
+            schema_version: "candidate-evidence.v1";
+            /**
+             * Score Delta
+             * @default 0
+             */
+            score_delta: number;
+            /** Segment Id */
+            segment_id?: string | null;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "error" | "warning" | "advice" | "info";
+        };
+        /** CandidateFinding */
+        CandidateFinding: {
+            /**
+             * Candidate Id
+             * Format: uuid
+             */
+            candidate_id: string;
+            /** Evidence Refs */
+            evidence_refs: string[];
+            /** Finding Code */
+            finding_code: string;
+            /** Segment Id */
+            segment_id?: string | null;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "error" | "warning" | "advice";
+        };
+        /**
+         * CandidateLabel
+         * @enum {string}
+         */
+        CandidateLabel: "a" | "b";
         /** ClipTargetPayload */
         ClipTargetPayload: {
             /**
@@ -1742,6 +1864,26 @@ export interface components {
             /** Thread Id */
             thread_id: string;
         };
+        /** RepairProposal */
+        RepairProposal: {
+            /**
+             * Candidate Id
+             * Format: uuid
+             */
+            candidate_id: string;
+            /** Evidence Refs */
+            evidence_refs: string[];
+            /**
+             * Operation
+             * @enum {string}
+             */
+            operation: "density_reduction" | "velocity_rebalance" | "register_shift" | "onset_alignment";
+            /**
+             * Segment Id
+             * Format: uuid
+             */
+            segment_id: string;
+        };
         /** ReplanAIRunBody */
         ReplanAIRunBody: {
             /** Adjustment */
@@ -1854,6 +1996,43 @@ export interface components {
             /** Expected Version */
             expected_version: number;
         };
+        /** RunCandidateData */
+        RunCandidateData: {
+            /** Candidate Content Hash */
+            candidate_content_hash: string;
+            /**
+             * Candidate Id
+             * Format: uuid
+             */
+            candidate_id: string;
+            /**
+             * Candidate Snapshot Id
+             * Format: uuid
+             */
+            candidate_snapshot_id: string;
+            /**
+             * Label
+             * @enum {string}
+             */
+            label: "a" | "b";
+            /** Parent Candidate Snapshot Id */
+            parent_candidate_snapshot_id: string | null;
+            /**
+             * Preview Artifact Id
+             * Format: uuid
+             */
+            preview_artifact_id: string;
+            /**
+             * Preview Id
+             * Format: uuid
+             */
+            preview_id: string;
+            /**
+             * Repair Status
+             * @enum {string}
+             */
+            repair_status: "not_requested" | "improved" | "non_improving";
+        };
         /** RunPlanData */
         RunPlanData: {
             /** Content Hash */
@@ -1926,6 +2105,32 @@ export interface components {
             section_id: string;
             /** Start Bar */
             start_bar: number;
+        };
+        /** SelectCandidateBody */
+        SelectCandidateBody: {
+            /** Actor Id */
+            actor_id: string;
+            /**
+             * Decision
+             * @default select
+             * @enum {string}
+             */
+            decision: "select" | "reject";
+            /** Expected Candidate Content Hash */
+            expected_candidate_content_hash?: string | null;
+            /** Expected Candidate Id */
+            expected_candidate_id?: string | null;
+            /** Expected Version */
+            expected_version: number;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Preview Id */
+            preview_id?: string | null;
+            /** Selection Assertion */
+            selection_assertion: string;
         };
         /** Selection */
         Selection: {
@@ -2990,6 +3195,43 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    select_candidate_api_v1_runs__run_id__select_candidate_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SelectCandidateBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

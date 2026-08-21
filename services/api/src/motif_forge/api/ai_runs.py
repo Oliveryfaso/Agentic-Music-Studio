@@ -10,7 +10,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from motif_forge.agent.schemas import CompositionBrief, CompositionPlan, PlanAdjustment
 from motif_forge.application.ai_runs import (
@@ -23,9 +23,11 @@ from motif_forge.application.ai_runs import (
     ReplanAIRunRequest,
     RequestAIRunAction,
     ResumeAIRunApproval,
+    ResumeAIRunCandidateSelection,
 )
 from motif_forge.application.ports import AIRunProgress, AIRunProjection, AIRunUnitOfWorkFactory
 from motif_forge.domain.ai_runs import AIRun, AIRunEvent, AIRunStatus, PlanHashVersion
+from motif_forge.domain.candidates import CandidateCritique
 
 IdempotencyKey = Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=160)]
 
@@ -61,6 +63,32 @@ class RunActionBody(ApiModel):
     expected_version: int = Field(ge=0)
 
 
+class SelectCandidateBody(ApiModel):
+    expected_version: int = Field(ge=0)
+    preview_id: UUID | None = None
+    expected_candidate_id: UUID | None = None
+    expected_candidate_content_hash: str | None = Field(
+        default=None, pattern=r"^[0-9a-f]{64}$"
+    )
+    actor_id: str = Field(min_length=1, max_length=160)
+    selection_assertion: str = Field(min_length=16, max_length=500)
+    decision: Literal["select", "reject"] = "select"
+    note: str = Field(default="", max_length=500)
+
+    @model_validator(mode="after")
+    def validate_identity(self) -> SelectCandidateBody:
+        values = (
+            self.preview_id,
+            self.expected_candidate_id,
+            self.expected_candidate_content_hash,
+        )
+        if self.decision == "select" and any(item is None for item in values):
+            raise ValueError("candidate selection requires complete Preview identity")
+        if self.decision == "reject" and any(item is not None for item in values):
+            raise ValueError("candidate rejection forbids Preview identity")
+        return self
+
+
 class ReplanAIRunBody(ApiModel):
     expected_version: int = Field(ge=0)
     expected_plan_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
@@ -91,6 +119,17 @@ class RunProgressData(ApiModel):
     error_code: str | None
 
 
+class RunCandidateData(ApiModel):
+    label: Literal["a", "b"]
+    candidate_id: UUID
+    candidate_snapshot_id: UUID
+    candidate_content_hash: str
+    preview_id: UUID
+    preview_artifact_id: UUID
+    parent_candidate_snapshot_id: UUID | None
+    repair_status: Literal["not_requested", "improved", "non_improving"]
+
+
 class AIRunData(ApiModel):
     run_id: UUID
     parent_run_id: UUID | None
@@ -100,7 +139,7 @@ class AIRunData(ApiModel):
     thread_id: str
     status: AIRunStatus
     version: int
-    pending_action: Literal["approve_plan"] | None
+    pending_action: Literal["approve_plan", "select_candidate"] | None
     pending_plan_id: UUID | None
     pending_plan_hash: str | None
     submitted_model_requests: int
@@ -117,6 +156,10 @@ class AIRunData(ApiModel):
     fallback_reason: str | None = None
     error_code: str | None = None
     plan: RunPlanData | None = None
+    candidates: tuple[RunCandidateData, ...] = ()
+    critique: CandidateCritique | None = None
+    selected_candidate_id: UUID | None = None
+    selected_preview_id: UUID | None = None
     progress: RunProgressData
 
 
@@ -144,11 +187,21 @@ def run_data(run: AIRun, projection: AIRunProjection | None = None) -> AIRunData
             error_code=projection.error_code if projection else None,
         )
     )
+    pending_action: Literal["approve_plan", "select_candidate"] | None = None
+    if run.status is AIRunStatus.WAITING_APPROVAL:
+        pending_action = "approve_plan"
+    elif (
+        projection
+        and len(projection.candidates) == 2
+        and projection.revision_id is None
+        and not projection.candidate_selection_requested
+    ):
+        pending_action = "select_candidate"
     return AIRunData(
         run_id=run.run_id, parent_run_id=run.parent_run_id, project_id=run.project_id,
         branch_id=run.branch_id, base_revision_id=run.base_revision_id,
         thread_id=run.thread_id, status=run.status, version=run.version,
-        pending_action="approve_plan" if run.status is AIRunStatus.WAITING_APPROVAL else None,
+        pending_action=pending_action,
         pending_plan_id=run.pending_plan_id, pending_plan_hash=run.pending_plan_content_hash,
         submitted_model_requests=run.submitted_model_requests,
         max_model_requests=run.max_model_requests, prompt_tokens=run.prompt_tokens,
@@ -173,6 +226,24 @@ def run_data(run: AIRun, projection: AIRunProjection | None = None) -> AIRunData
             if projection and projection.plan
             else None
         ),
+        candidates=tuple(
+            RunCandidateData(
+                label=item.label, candidate_id=item.candidate_id,
+                candidate_snapshot_id=item.candidate_snapshot_id,
+                candidate_content_hash=item.candidate_content_hash,
+                preview_id=item.preview_id, preview_artifact_id=item.preview_artifact_id,
+                parent_candidate_snapshot_id=item.parent_candidate_snapshot_id,
+                repair_status=item.repair_status,
+            )
+            for item in (projection.candidates if projection else ())
+        ),
+        critique=(
+            CandidateCritique.model_validate(projection.critique, strict=False)
+            if projection and projection.critique
+            else None
+        ),
+        selected_candidate_id=projection.selected_candidate_id if projection else None,
+        selected_preview_id=projection.selected_preview_id if projection else None,
         progress=RunProgressData(
             phase=progress.phase,
             completed_export_steps=progress.completed_export_steps,
@@ -228,6 +299,20 @@ def build_ai_run_router(uow: AIRunUnitOfWorkFactory) -> APIRouter:
             assertion=body.approval_assertion, expected_version=body.expected_version,
             expected_plan_content_hash=body.expected_plan_hash,
             note=body.note, idempotency_key=idempotency_key,
+        )
+        return AIRunResponse(data=run_data(run))
+
+    @router.post("/runs/{run_id}/select-candidate", response_model=AIRunResponse)
+    async def select_candidate(
+        run_id: UUID, body: SelectCandidateBody, idempotency_key: IdempotencyKey
+    ) -> AIRunResponse:
+        run = await ResumeAIRunCandidateSelection(uow)(
+            run_id=run_id, actor_id=body.actor_id, decision=body.decision,
+            assertion=body.selection_assertion, selected_preview_id=body.preview_id,
+            expected_candidate_id=body.expected_candidate_id,
+            expected_candidate_content_hash=body.expected_candidate_content_hash,
+            expected_version=body.expected_version, note=body.note,
+            idempotency_key=idempotency_key,
         )
         return AIRunResponse(data=run_data(run))
 

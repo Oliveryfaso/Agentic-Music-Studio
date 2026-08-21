@@ -25,6 +25,7 @@ from motif_forge.application.ai_runs import (
     ReadAIRun,
     RecordAIRunApproval,
     RecordAIRunGraphProgress,
+    RecordCandidateCritique,
 )
 from motif_forge.application.candidate_previews import (
     CollectCandidatePreview,
@@ -221,6 +222,9 @@ async def run_resume_dispatcher() -> None:
                     CollectCandidatePreview(media_uow) if critic is not None else None
                 ),
                 evidence_critic=critic,
+                record_candidate_critique=(
+                    RecordCandidateCritique(ai_uow) if critic is not None else None
+                ),
                 create_candidate_selection_preview=(
                     CreateCandidateSelectionPreview(compositions) if critic is not None else None
                 ),

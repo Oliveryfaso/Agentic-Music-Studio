@@ -18,6 +18,7 @@ from motif_forge.agent.critic import EvidenceCritic
 from motif_forge.agent.generate import (
     PARENT_GRAPH_TOPOLOGY_VERSION,
     PARENT_STATE_SCHEMA_VERSION,
+    CandidateCritiqueRecorder,
     GenerateNodes,
     build_generate_nodes,
 )
@@ -322,6 +323,7 @@ def build_parent_graph(
     measure_candidate_evidence: MeasureCandidateEvidence | None = None,
     apply_candidate_repair: ApplyBoundedCandidateRepair | None = None,
     candidate_quality_gate: EvaluateCandidatePair | None = None,
+    record_candidate_critique: CandidateCritiqueRecorder | None = None,
 ) -> CompiledStateGraph[ParentGraphState, None, ParentGraphState, ParentGraphState]:
     """Compile Import and standalone time-stretch inside one Parent topology."""
 
@@ -749,6 +751,7 @@ def build_parent_graph(
             measure_candidate_evidence=measure_candidate_evidence,
             apply_candidate_repair=apply_candidate_repair,
             candidate_quality_gate=candidate_quality_gate,
+            record_candidate_critique=record_candidate_critique,
         )
 
     graph = StateGraph(ParentGraphState)

@@ -43,6 +43,7 @@ from motif_forge.application.generation_candidates import (
     MaterializeSelectedCompositionCandidateRequest,
 )
 from motif_forge.domain.candidates import (
+    CandidateCritique,
     CandidateEvidence,
     CandidateLabel,
     derive_candidate_seed,
@@ -133,6 +134,7 @@ SelectedCandidateMaterializer = Callable[
 ]
 CandidateEvidenceMeasurer = Callable[[UUID], Awaitable[MeasuredCandidateEvidence]]
 CandidateRepairer = Callable[[BoundedRepairRequest], Awaitable[Any]]
+CandidateCritiqueRecorder = Callable[[UUID, CandidateCritique], Awaitable[None]]
 
 
 def initial_generate_state(*, thread_id: str, request: GenerateRequest) -> dict[str, Any]:
@@ -191,6 +193,7 @@ class GenerateNodes:
         measure_candidate_evidence: CandidateEvidenceMeasurer | None = None,
         apply_candidate_repair: CandidateRepairer | None = None,
         candidate_quality_gate: EvaluateCandidatePair | None = None,
+        record_candidate_critique: CandidateCritiqueRecorder | None = None,
         telemetry: TelemetryRecorder | None = None,
     ) -> None:
         self._planning = build_composition_planning_subgraph(planner, telemetry=telemetry)
@@ -215,6 +218,7 @@ class GenerateNodes:
         self._enqueue_candidate_preview = enqueue_candidate_preview
         self._collect_candidate_preview = collect_candidate_preview
         self._critic = evidence_critic
+        self._record_critique = record_candidate_critique
         self._create_selection_preview = create_candidate_selection_preview
         self._materialize_selected = materialize_selected_candidate
         repair_services = (
@@ -539,6 +543,8 @@ class GenerateNodes:
                 evidence=evidence,
             )
         )
+        if self._record_critique is not None:
+            await self._record_critique(UUID(str(state["run_id"])), result.critique)
         return {
             "phase": "critic_complete",
             "critique": result.critique.model_dump(mode="json"),
@@ -826,6 +832,7 @@ def build_generate_nodes(
     measure_candidate_evidence: CandidateEvidenceMeasurer | None = None,
     apply_candidate_repair: CandidateRepairer | None = None,
     candidate_quality_gate: EvaluateCandidatePair | None = None,
+    record_candidate_critique: CandidateCritiqueRecorder | None = None,
     telemetry: TelemetryRecorder | None = None,
 ) -> GenerateNodes:
     return GenerateNodes(
@@ -844,5 +851,6 @@ def build_generate_nodes(
         measure_candidate_evidence=measure_candidate_evidence,
         apply_candidate_repair=apply_candidate_repair,
         candidate_quality_gate=candidate_quality_gate,
+        record_candidate_critique=record_candidate_critique,
         telemetry=telemetry,
     )
