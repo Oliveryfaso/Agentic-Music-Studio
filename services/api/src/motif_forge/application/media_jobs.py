@@ -21,6 +21,7 @@ from motif_forge.domain.media_jobs import (
     ArtifactAvailability,
     ArtifactLifecycle,
     AudioArtifact,
+    CandidatePreviewJobPayload,
     ExportBundleArtifact,
     FeatureArtifact,
     FeatureProfile,
@@ -123,7 +124,10 @@ class LoadArtifactRehydration:
 
     async def __call__(
         self, *, artifact_id: UUID
-    ) -> tuple[UUID, RehydrateJobPayload | FeatureRehydrateJobPayload]:
+    ) -> tuple[
+        UUID,
+        RehydrateJobPayload | FeatureRehydrateJobPayload | CandidatePreviewJobPayload,
+    ]:
         async with self._uow_factory() as transaction:
             target: AudioArtifact | FeatureArtifact | None = await transaction.get_audio_artifact(
                 artifact_id
@@ -133,6 +137,8 @@ class LoadArtifactRehydration:
             payload = _compile_rehydrate_payload(target, project_id=None)
             assert target is not None
             assert target.rebuild_recipe is not None
+            if isinstance(payload, CandidatePreviewJobPayload):
+                return target.project_id, payload
             source = await transaction.get_audio_artifact(payload.source_artifact_id)
             expected_hash = target.rebuild_recipe.input_artifacts[0].content_hash
             if (
@@ -254,11 +260,7 @@ class StartArtifactRehydration:
             )
             existing = await transaction.find_media_job_by_key(
                 project_id=request.project_id,
-                job_type=(
-                    MediaJobType.REHYDRATE_FEATURE
-                    if isinstance(payload, FeatureRehydrateJobPayload)
-                    else MediaJobType.REHYDRATE
-                ),
+                job_type=_rehydration_job_type(payload),
                 idempotency_key=request.idempotency_key,
             )
             if existing is not None:
@@ -299,18 +301,19 @@ class StartArtifactRehydration:
                     "ARTIFACT_MISSING", "the target Artifact cannot be rebuilt automatically"
                 )
             assert target.rebuild_recipe is not None
-            source = await transaction.get_audio_artifact(payload.source_artifact_id)
-            expected_source_hash = target.rebuild_recipe.input_artifacts[0].content_hash
-            if (
-                source is None
-                or source.project_id != request.project_id
-                or source.availability is not ArtifactAvailability.AVAILABLE
-                or source.content_hash != expected_source_hash
-            ):
-                raise ArtifactRehydrationError(
-                    "ARTIFACT_REHYDRATION_DEPENDENCY_UNAVAILABLE",
-                    "the pinned source Artifact is unavailable or has changed",
-                )
+            if not isinstance(payload, CandidatePreviewJobPayload):
+                source = await transaction.get_audio_artifact(payload.source_artifact_id)
+                expected_source_hash = target.rebuild_recipe.input_artifacts[0].content_hash
+                if (
+                    source is None
+                    or source.project_id != request.project_id
+                    or source.availability is not ArtifactAvailability.AVAILABLE
+                    or source.content_hash != expected_source_hash
+                ):
+                    raise ArtifactRehydrationError(
+                        "ARTIFACT_REHYDRATION_DEPENDENCY_UNAVAILABLE",
+                        "the pinned source Artifact is unavailable or has changed",
+                    )
             now = self._clock()
             run_id = self._id_factory()
             job_id = self._id_factory()
@@ -327,11 +330,7 @@ class StartArtifactRehydration:
                 job_id=job_id,
                 run_id=run_id,
                 project_id=request.project_id,
-                job_type=(
-                    MediaJobType.REHYDRATE_FEATURE
-                    if isinstance(payload, FeatureRehydrateJobPayload)
-                    else MediaJobType.REHYDRATE
-                ),
+                job_type=_rehydration_job_type(payload),
                 idempotency_key=request.idempotency_key,
                 request_hash=fingerprint,
                 input_payload=payload.model_dump(mode="json"),
@@ -369,7 +368,7 @@ class StartArtifactRehydration:
 
 def _compile_rehydrate_payload(
     target: object, *, project_id: UUID | None
-) -> RehydrateJobPayload | FeatureRehydrateJobPayload:
+) -> RehydrateJobPayload | FeatureRehydrateJobPayload | CandidatePreviewJobPayload:
     if not isinstance(target, (AudioArtifact, FeatureArtifact)) or (
         project_id is not None and target.project_id != project_id
     ):
@@ -382,19 +381,51 @@ def _compile_rehydrate_payload(
         target.lifecycle_class is not ArtifactLifecycle.REBUILDABLE
         or target.rebuild_recipe is None
         or target.recipe_hash != target.rebuild_recipe.content_hash
-        or target.rebuild_recipe.recipe_kind not in {"time_stretch", "analysis"}
+        or target.rebuild_recipe.recipe_kind not in {"time_stretch", "analysis", "render"}
     ):
         raise ArtifactRehydrationError(
             "ARTIFACT_REHYDRATION_UNSUPPORTED",
-            "only pinned time-stretch and audio-feature recipes are supported",
+            "only pinned time-stretch, audio-feature, and candidate render recipes are supported",
         )
     recipe = target.rebuild_recipe
+    parameters = recipe.parameters
+    if recipe.recipe_kind == "render":
+        if (
+            not isinstance(target, AudioArtifact)
+            or target.quality_profile is not MediaQualityProfile.CANDIDATE_PREVIEW_V1
+            or target.candidate_snapshot_id is None
+            or recipe.input_artifacts
+        ):
+            raise ArtifactRehydrationError(
+                "ARTIFACT_REHYDRATION_UNSUPPORTED",
+                "candidate render rehydration requires Snapshot lineage and no source Artifact",
+            )
+        try:
+            return CandidatePreviewJobPayload(
+                project_id=target.project_id,
+                candidate_snapshot_id=target.candidate_snapshot_id,
+                candidate_content_hash=parameters["candidate_content_hash"],
+                audio_graph=parameters["audio_graph"],
+                audio_graph_hash=parameters["audio_graph_hash"],
+                audio_engine_version=parameters["audio_engine_version"],
+                seed=parameters["seed"],
+                bitrate_kbps=parameters["bitrate_kbps"],
+                timeout_seconds=parameters["timeout_seconds"],
+                maximum_output_bytes=parameters["maximum_output_bytes"],
+                target_artifact_id=target.artifact_id,
+                expected_output_content_hash=target.content_hash,
+                expected_recipe_hash=target.recipe_hash,
+            )
+        except (KeyError, ValueError) as exc:
+            raise ArtifactRehydrationError(
+                "ARTIFACT_REHYDRATION_RECIPE_INVALID",
+                "the candidate render recipe does not satisfy the executable contract",
+            ) from exc
     if len(recipe.input_artifacts) != 1:
         raise ArtifactRehydrationError(
             "ARTIFACT_REHYDRATION_UNSUPPORTED",
             "rehydration requires exactly one source Audio Artifact",
         )
-    parameters = recipe.parameters
     try:
         if isinstance(target, FeatureArtifact):
             return FeatureRehydrateJobPayload(
@@ -420,6 +451,16 @@ def _compile_rehydrate_payload(
             "ARTIFACT_REHYDRATION_RECIPE_INVALID",
             "the stored rebuild recipe does not satisfy the executable contract",
         ) from exc
+
+
+def _rehydration_job_type(
+    payload: RehydrateJobPayload | FeatureRehydrateJobPayload | CandidatePreviewJobPayload,
+) -> MediaJobType:
+    if isinstance(payload, FeatureRehydrateJobPayload):
+        return MediaJobType.REHYDRATE_FEATURE
+    if isinstance(payload, CandidatePreviewJobPayload):
+        return MediaJobType.RENDER_PREVIEW
+    return MediaJobType.REHYDRATE
 
 
 class EnqueueFollowupMediaJob:

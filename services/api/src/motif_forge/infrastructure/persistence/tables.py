@@ -17,6 +17,7 @@ from sqlalchemy import (
     MetaData,
     String,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
@@ -754,11 +755,23 @@ class AudioArtifactRow(Base):
             """,
             name="artifacts_final_revision_lineage",
         ),
-        UniqueConstraint(
+        Index(
+            "uq_artifacts_non_candidate_content",
             "project_id",
             "content_hash",
             "quality_profile",
-            name="uq_artifacts_project_hash_quality",
+            unique=True,
+            postgresql_where=text("candidate_snapshot_id IS NULL"),
+        ),
+        Index(
+            "uq_artifacts_candidate_job_content",
+            "project_id",
+            "candidate_snapshot_id",
+            "source_job_id",
+            "content_hash",
+            "quality_profile",
+            unique=True,
+            postgresql_where=text("candidate_snapshot_id IS NOT NULL"),
         ),
         Index("ix_artifacts_project_lifecycle", "project_id", "lifecycle_class"),
     )

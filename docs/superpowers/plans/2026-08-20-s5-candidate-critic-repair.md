@@ -252,7 +252,7 @@ git commit -m "feat: separate candidate creation from selection"
 - `EnqueueCandidatePreview(request) -> CandidatePreviewCursor` and `CollectCandidatePreview(cursor, completed_job_id) -> CandidatePreviewCursor`.
 - Worker supports `MediaJobType.RENDER_PREVIEW` and returns one rebuildable `candidate-preview.v1` MP3 Artifact.
 
-- [ ] **Step 1: Write RED payload, enqueue, lineage, and physical-output tests**
+- [x] **Step 1: Write RED payload, enqueue, lineage, and physical-output tests**
 
 ```python
 def test_candidate_preview_payload_forbids_revision_and_non_preview_profile() -> None:
@@ -268,12 +268,12 @@ async def test_worker_rejects_payload_snapshot_lineage_mismatch() -> None:
 
 The success test must inspect the produced MP3 with the existing FFprobe boundary and assert 48 kHz stereo, 160 kbps target, non-silence, source Job ID, source Snapshot ID, and exact duration tolerance.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `.venv/bin/pytest services/api/tests/unit/application/test_candidate_previews.py services/api/tests/unit/worker/test_candidate_preview_execution.py services/api/tests/integration/test_postgres_s5_candidate_preview_jobs.py -q`  
 Expected: missing payload/orchestration and unsupported Worker job type.
 
-- [ ] **Step 3: Implement sequential preview rendering**
+- [x] **Step 3: Implement sequential preview rendering**
 
 Compile authoritative Snapshot ArrangementIR to the existing AudioGraph. Generalize `ChromiumRenderClient.render` to accept the common render fields, render a temporary PCM24 WAV, then invoke the existing controlled FFmpeg wrapper to encode candidate MP3 at 160 kbps. Promote under:
 
@@ -283,13 +283,13 @@ rebuildable/candidate-previews/<project_id>/<candidate_snapshot_id>/<content>-pr
 
 Register one `AudioArtifact` with Snapshot lineage and a complete render/transcode rebuild recipe. Cleanup temporary WAV/partial output on cancellation or failure. Enqueue/collect validates ordered cursor, source Job, Snapshot, Project, profile, availability, and content identity.
 
-- [ ] **Step 4: Run GREEN, Audio regression, and PostgreSQL boundary**
+- [x] **Step 4: Run GREEN, Audio regression, and PostgreSQL boundary**
 
 Run the Step 2 tests.  
 Run: `npm run test:audio && npm run build:audio`  
 Run the dedicated PostgreSQL test and assert duplicate completion does not add a Job or Artifact.
 
-- [ ] **Step 5: Commit Task 4**
+- [x] **Step 5: Commit Task 4**
 
 ```bash
 git add services/api/src/motif_forge/domain/media_jobs.py services/api/src/motif_forge/application/candidate_previews.py services/api/src/motif_forge/application/rendering.py services/api/src/motif_forge/audio/chromium_render.py services/api/src/motif_forge/worker/execution.py services/api/src/motif_forge/infrastructure/persistence/media_jobs.py services/api/tests

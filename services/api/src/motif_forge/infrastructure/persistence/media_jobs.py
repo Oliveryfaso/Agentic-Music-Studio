@@ -32,10 +32,20 @@ from motif_forge.domain.media_jobs import (
     RunStatus,
     WorkerEvent,
 )
-from motif_forge.domain.revisions import AuthorKind, ChangeImpact, Revision, VersionRefs
-from motif_forge.infrastructure.persistence.database import SessionFactory
+from motif_forge.domain.revisions import (
+    AuthorKind,
+    CandidateSnapshot,
+    ChangeImpact,
+    Revision,
+    VersionRefs,
+)
+from motif_forge.infrastructure.persistence.database import (
+    SessionFactory,
+    _candidate_snapshot_from_row,
+)
 from motif_forge.infrastructure.persistence.tables import (
     AudioArtifactRow,
+    CandidateSnapshotRow,
     ExportBundleArtifactRow,
     FeatureArtifactRow,
     InboxReceiptRow,
@@ -128,6 +138,16 @@ class PostgresMediaJobTransaction:
             versions=VersionRefs.model_validate_json(json.dumps(row.versions), strict=True),
             created_at=row.created_at,
         )
+
+    async def get_candidate_snapshot(
+        self, candidate_snapshot_id: UUID
+    ) -> CandidateSnapshot | None:
+        row = (
+            await self._session.execute(
+                select(CandidateSnapshotRow).where(CandidateSnapshotRow.id == candidate_snapshot_id)
+            )
+        ).scalar_one_or_none()
+        return None if row is None else _candidate_snapshot_from_row(row)
 
     async def get_audio_artifact(self, artifact_id: UUID) -> AudioArtifact | None:
         row = (
@@ -268,7 +288,10 @@ class PostgresMediaJobTransaction:
             JobStatus.FAILED_TERMINAL.value,
             JobStatus.CANCELLED.value,
         }:
-            return _job_from_row(row)
+            terminal_job = _job_from_row(row)
+            if terminal_job.status is JobStatus.CANCELLED and _is_rehydration_job(terminal_job):
+                await self._release_failed_rehydration(terminal_job)
+            return terminal_job
         row.status = JobStatus.CANCELLED.value
         row.error_code = "MEDIA_JOB_CANCELLED"
         row.lease_owner = None
@@ -290,7 +313,10 @@ class PostgresMediaJobTransaction:
                 created_at=now,
             )
         )
-        return _job_from_row(row)
+        cancelled_job = _job_from_row(row)
+        if _is_rehydration_job(cancelled_job):
+            await self._release_failed_rehydration(cancelled_job)
+        return cancelled_job
 
     async def heartbeat_media_job(
         self,
@@ -398,7 +424,7 @@ class PostgresMediaJobTransaction:
         job_event_id: UUID,
         outbox_event_id: UUID,
     ) -> None:
-        if job.job_type is not MediaJobType.REHYDRATE:
+        if job.job_type not in {MediaJobType.REHYDRATE, MediaJobType.RENDER_PREVIEW}:
             raise RuntimeError("rehydration transaction requires a rehydrate Job")
         changed = await self._session.execute(
             update(AudioArtifactRow)
@@ -562,14 +588,7 @@ class PostgresMediaJobTransaction:
             persisted_artifact = await self._register_or_reuse_artifact(artifact)
         for feature in feature_artifacts:
             await self._register_or_reuse_feature(feature)
-        if (
-            updated_job.job_type
-            in {
-                MediaJobType.REHYDRATE,
-                MediaJobType.REHYDRATE_FEATURE,
-            }
-            and updated_job.status is JobStatus.FAILED_TERMINAL
-        ):
+        if _is_rehydration_job(updated_job) and updated_job.status is JobStatus.FAILED_TERMINAL:
             await self._release_failed_rehydration(updated_job)
         result_artifact_id = (
             persisted_artifact.artifact_id if persisted_artifact is not None else None
@@ -699,13 +718,28 @@ class PostgresMediaJobTransaction:
             return None
         existing = (
             await self._session.execute(
-                select(AudioArtifactRow).where(
-                    AudioArtifactRow.project_id == artifact.project_id,
-                    AudioArtifactRow.content_hash == artifact.content_hash,
-                    AudioArtifactRow.quality_profile == artifact.quality_profile.value,
-                )
+                select(AudioArtifactRow).where(AudioArtifactRow.id == artifact.artifact_id)
             )
         ).scalar_one_or_none()
+        if existing is None:
+            identity = [
+                AudioArtifactRow.project_id == artifact.project_id,
+                AudioArtifactRow.content_hash == artifact.content_hash,
+                AudioArtifactRow.quality_profile == artifact.quality_profile.value,
+            ]
+            if artifact.candidate_snapshot_id is not None:
+                identity.extend(
+                    [
+                        AudioArtifactRow.candidate_snapshot_id
+                        == artifact.candidate_snapshot_id,
+                        AudioArtifactRow.source_job_id == artifact.source_job_id,
+                    ]
+                )
+            else:
+                identity.append(AudioArtifactRow.candidate_snapshot_id.is_(None))
+            existing = (
+                await self._session.execute(select(AudioArtifactRow).where(*identity))
+            ).scalar_one_or_none()
         if existing is not None:
             if artifact.artifact_id == existing.id and artifact.source_job_id is not None:
                 if (
@@ -817,6 +851,16 @@ def _run_values(run: MediaRun) -> dict[str, object]:
         "created_at": run.created_at,
         "updated_at": run.updated_at,
     }
+
+
+def _is_rehydration_job(job: MediaJob) -> bool:
+    return job.job_type in {
+        MediaJobType.REHYDRATE,
+        MediaJobType.REHYDRATE_FEATURE,
+    } or (
+        job.job_type is MediaJobType.RENDER_PREVIEW
+        and job.input_payload.get("target_artifact_id") is not None
+    )
 
 
 def _job_values(job: MediaJob) -> dict[str, object]:

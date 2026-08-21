@@ -11,6 +11,7 @@ from motif_forge.domain.media_jobs import (
     ArtifactLifecycle,
     AudioArtifact,
     MediaQualityProfile,
+    RenderScope,
     WorkerEvent,
 )
 
@@ -20,6 +21,9 @@ def test_persisted_completion_routes_to_artifact_validation_without_binary_state
     artifact = AudioArtifact(
         artifact_id=uuid4(),
         project_id=uuid4(),
+        candidate_snapshot_id=uuid4(),
+        arrangement_hash="a" * 64,
+        render_scope=RenderScope.MASTER,
         source_job_id=job_id,
         content_hash="d" * 64,
         byte_size=2048,

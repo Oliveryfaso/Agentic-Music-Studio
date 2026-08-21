@@ -54,6 +54,7 @@ from motif_forge.domain.media_jobs import (
     ArtifactValidationStatus,
     AudioArtifact,
     BundleAudioInput,
+    CandidatePreviewJobPayload,
     CanonicalRenderJobPayload,
     ExportBundleArtifact,
     ExportBundleJobPayload,
@@ -73,6 +74,7 @@ from motif_forge.domain.media_jobs import (
     TimeStretchJobPayload,
     WorkerEvent,
 )
+from motif_forge.domain.revisions import CandidateSnapshot
 from motif_forge.domain.storage import StorageRoute
 from motif_forge.infrastructure.persistence.database import (
     create_postgres_engine,
@@ -94,6 +96,57 @@ class WorkerExecutionResult:
 
 class _PersistedJobCancelled(RuntimeError):
     pass
+
+
+def validate_candidate_preview_lineage(
+    payload: CandidatePreviewJobPayload, snapshot: CandidateSnapshot
+) -> None:
+    projection = compile_audio_graph(snapshot.candidate_ir)
+    if (
+        snapshot.project_id != payload.project_id
+        or snapshot.candidate_snapshot_id != payload.candidate_snapshot_id
+        or snapshot.candidate_content_hash != payload.candidate_content_hash
+        or projection.arrangement_hash != payload.candidate_content_hash
+        or projection.graph_hash != payload.audio_graph_hash
+        or projection.graph != payload.audio_graph
+    ):
+        raise ChromiumRenderError("CANDIDATE_PREVIEW_LINEAGE_MISMATCH")
+
+
+def _candidate_preview_rebuild_recipe(payload: CandidatePreviewJobPayload) -> RebuildRecipe:
+    return RebuildRecipe(
+        recipe_id=uuid5(
+            NAMESPACE_URL,
+            f"motif-forge:candidate-preview-rebuild:{payload.candidate_snapshot_id}:"
+            f"{payload.audio_graph_hash}:{payload.seed}",
+        ),
+        recipe_kind="render",
+        parameters={
+            "candidate_snapshot_id": str(payload.candidate_snapshot_id),
+            "candidate_content_hash": payload.candidate_content_hash,
+            "audio_graph": payload.audio_graph,
+            "audio_graph_hash": payload.audio_graph_hash,
+            "audio_engine_version": payload.audio_engine_version,
+            "seed": payload.seed,
+            "bitrate_kbps": payload.bitrate_kbps,
+            "timeout_seconds": payload.timeout_seconds,
+            "maximum_output_bytes": payload.maximum_output_bytes,
+        },
+        engine="motif-forge-chromium-renderer+ffmpeg-libmp3lame",
+        engine_version=payload.audio_engine_version,
+        policy_version="candidate-preview-render.v1",
+        output_quality_profile=MediaQualityProfile.CANDIDATE_PREVIEW_V1,
+        expected_container="mp3",
+        expected_codec="mp3",
+        expected_sample_rate_hz=48_000,
+        expected_channels=2,
+        validation_rules=(
+            "candidate-snapshot-lineage.v1",
+            "duration-tolerance.v1",
+            "non-silence.v1",
+        ),
+        idempotency_key=f"candidate-preview:{payload.candidate_snapshot_id}",
+    )
 
 
 async def _await_work_or_cancellation(
@@ -142,6 +195,9 @@ def _cleanup_cancelled_output(
         created_new = media_result.created_new
     elif isinstance(media_result, tuple) and isinstance(media_result[1], ExportBundleArtifact):
         key = media_result[1].storage_prefix
+        created_new = media_result[1].created_new
+    elif isinstance(media_result, tuple) and isinstance(media_result[1], Mp3TranscodeResult):
+        key = media_result[1].storage_key
         created_new = media_result[1].created_new
     if not created_new or key is None:
         return
@@ -221,6 +277,7 @@ def _same_authoritative_artifact(persisted: object, candidate: object) -> bool:
             and persisted.project_id == candidate.project_id
             and persisted.source_job_id == candidate.source_job_id
             and persisted.revision_id == candidate.revision_id
+            and persisted.candidate_snapshot_id == candidate.candidate_snapshot_id
             and persisted.arrangement_hash == candidate.arrangement_hash
             and persisted.render_scope == candidate.render_scope
             and persisted.render_track_ids == candidate.render_track_ids
@@ -298,16 +355,29 @@ async def execute_media_job(
                 | FeatureOutput
                 | CanonicalRenderResult
                 | Mp3TranscodeResult
+                | tuple[CandidatePreviewJobPayload, Mp3TranscodeResult]
                 | tuple[ExportBundleJobPayload, ExportBundleArtifact]
             )
             source: AudioArtifact | None = None
             if claimed.job_type not in {
+                MediaJobType.RENDER_PREVIEW,
                 MediaJobType.RENDER_CANONICAL,
                 MediaJobType.EXPORT_BUNDLE,
             }:
                 async with uow() as transaction:
                     source = await _load_source(transaction, claimed)
-            if claimed.job_type is MediaJobType.RENDER_CANONICAL:
+            if claimed.job_type is MediaJobType.RENDER_PREVIEW:
+                cancel_event = threading.Event()
+                media_result = await _await_work_or_cancellation(
+                    _execute_candidate_preview(
+                        claimed, uow, settings, cancel_event=cancel_event
+                    ),
+                    job_id=claimed.job_id,
+                    uow=uow,
+                    on_cancel=cancel_event.set,
+                )
+                source_update = None
+            elif claimed.job_type is MediaJobType.RENDER_CANONICAL:
                 media_result = await _await_work_or_cancellation(
                     _execute_canonical_render(claimed, uow, settings),
                     job_id=claimed.job_id,
@@ -409,10 +479,64 @@ async def execute_media_job(
                 ),
             )
         if heartbeat_at > claimed.deadline_at:
+            _cleanup_cancelled_output(media_result, artifact_root=settings.artifact_root)
             return await _record_failure(
                 claimed, uow, "MEDIA_JOB_DEADLINE_EXCEEDED", retryable=False
             )
 
+        if claimed.job_type is MediaJobType.RENDER_PREVIEW:
+            assert isinstance(media_result, tuple)
+            preview_payload, preview_mp3 = media_result
+            assert isinstance(preview_payload, CandidatePreviewJobPayload)
+            assert isinstance(preview_mp3, Mp3TranscodeResult)
+            recipe = _candidate_preview_rebuild_recipe(preview_payload)
+            audio_artifact = AudioArtifact(
+                artifact_id=preview_payload.target_artifact_id or uuid4(),
+                project_id=claimed.project_id,
+                candidate_snapshot_id=preview_payload.candidate_snapshot_id,
+                arrangement_hash=preview_payload.candidate_content_hash,
+                render_scope=RenderScope.MASTER,
+                source_job_id=claimed.job_id,
+                content_hash=preview_mp3.sha256,
+                byte_size=preview_mp3.byte_size,
+                storage_key=preview_mp3.storage_key,
+                media_role="candidate_preview",
+                quality_profile=MediaQualityProfile.CANDIDATE_PREVIEW_V1,
+                container="mp3",
+                codec="mp3",
+                sample_rate_hz=preview_mp3.sample_rate_hz,
+                channels=preview_mp3.channels,
+                duration_seconds=preview_mp3.duration_seconds,
+                bitrate_kbps=preview_mp3.bitrate_kbps,
+                encoder="ffmpeg-libmp3lame",
+                encoder_version="ffmpeg-system.v1",
+                lifecycle_class=ArtifactLifecycle.REBUILDABLE,
+                recipe_hash=recipe.content_hash,
+                rebuild_recipe=recipe,
+                created_at=heartbeat_at,
+                last_accessed_at=heartbeat_at,
+            )
+            event = WorkerEvent(
+                event_id=(
+                    f"job:{claimed.job_id}:attempt:{claimed.attempts}:completed:"
+                    f"{preview_mp3.sha256}"
+                ),
+                job_id=claimed.job_id,
+                event_type="job.completed",
+                artifact=audio_artifact,
+                occurred_at=heartbeat_at,
+            )
+            persisted = await _apply_worker_event_fail_closed(
+                event,
+                uow=uow,
+                media_result=media_result,
+                artifact_root=settings.artifact_root,
+            )
+            return WorkerExecutionResult(
+                job_id=claimed.job_id,
+                status=persisted.status.value,
+                artifact_id=persisted.artifact_id,
+            )
         if claimed.job_type is MediaJobType.RENDER_CANONICAL:
             assert isinstance(media_result, CanonicalRenderResult)
             render_payload = _parse_canonical_render_payload(claimed)
@@ -468,6 +592,7 @@ async def execute_media_job(
         if claimed.job_type is MediaJobType.EXPORT_BUNDLE:
             assert isinstance(media_result, tuple)
             _, bundle_artifact = media_result
+            assert isinstance(bundle_artifact, ExportBundleArtifact)
             event = WorkerEvent(
                 event_id=(
                     f"job:{claimed.job_id}:attempt:{claimed.attempts}:completed:"
@@ -969,6 +1094,12 @@ def _parse_canonical_render_payload(job: MediaJob) -> CanonicalRenderJobPayload:
     return CanonicalRenderJobPayload.model_validate_json(json.dumps(job.input_payload), strict=True)
 
 
+def _parse_candidate_preview_payload(job: MediaJob) -> CandidatePreviewJobPayload:
+    return CandidatePreviewJobPayload.model_validate_json(
+        json.dumps(job.input_payload), strict=True
+    )
+
+
 def _parse_export_mp3_payload(job: MediaJob) -> ExportMp3JobPayload:
     return ExportMp3JobPayload.model_validate_json(json.dumps(job.input_payload), strict=True)
 
@@ -1122,12 +1253,80 @@ async def _execute_canonical_render(
     ).render(job_id=job.job_id, payload=payload)
 
 
+async def _execute_candidate_preview(
+    job: MediaJob,
+    uow: PostgresMediaJobUnitOfWork,
+    settings: Settings,
+    *,
+    cancel_event: threading.Event | None = None,
+) -> tuple[CandidatePreviewJobPayload, Mp3TranscodeResult]:
+    payload = _parse_candidate_preview_payload(job)
+    if (
+        payload.project_id != job.project_id
+        or job.output_quality_profile is not MediaQualityProfile.CANDIDATE_PREVIEW_V1
+    ):
+        raise ChromiumRenderError("CANDIDATE_PREVIEW_LINEAGE_MISMATCH")
+    async with uow() as transaction:
+        snapshot = await transaction.get_candidate_snapshot(payload.candidate_snapshot_id)
+    if snapshot is None:
+        raise ChromiumRenderError("CANDIDATE_PREVIEW_SNAPSHOT_UNAVAILABLE")
+    validate_candidate_preview_lineage(payload, snapshot)
+    rendered = await ChromiumRenderClient(
+        artifact_root=settings.artifact_root,
+        temp_root=settings.temp_root,
+        service_url=settings.render_service_url,
+    ).render(job_id=job.job_id, payload=payload)
+    try:
+        mp3 = await asyncio.to_thread(
+            transcode_master_to_mp3,
+            artifact_root=settings.artifact_root,
+            temp_root=settings.temp_root,
+            job_id=job.job_id,
+            project_id=job.project_id,
+            candidate_snapshot_id=payload.candidate_snapshot_id,
+            source_storage_key=rendered.storage_key,
+            expected_duration_seconds=rendered.duration_seconds,
+            timeout_seconds=payload.timeout_seconds,
+            bitrate_kbps=payload.bitrate_kbps,
+            cancel_event=cancel_event,
+        )
+        if (
+            payload.expected_output_content_hash is not None
+            and mp3.sha256 != payload.expected_output_content_hash
+        ):
+            _discard_candidate_preview_output(mp3, artifact_root=settings.artifact_root)
+            raise ExportTranscodeError("ARTIFACT_REHYDRATION_CHECKSUM_MISMATCH")
+        if payload.expected_recipe_hash is not None:
+            recipe = _candidate_preview_rebuild_recipe(payload)
+            if recipe.content_hash != payload.expected_recipe_hash:
+                _discard_candidate_preview_output(mp3, artifact_root=settings.artifact_root)
+                raise ExportTranscodeError("ARTIFACT_REHYDRATION_RECIPE_MISMATCH")
+    finally:
+        root = settings.artifact_root.resolve()
+        temporary_wav = (root / rendered.storage_key).resolve()
+        if temporary_wav.is_relative_to(root):
+            temporary_wav.unlink(missing_ok=True)
+    return payload, mp3
+
+
+def _discard_candidate_preview_output(
+    result: Mp3TranscodeResult, *, artifact_root: Path
+) -> None:
+    if not result.created_new:
+        return
+    root = artifact_root.resolve()
+    output = (root / result.storage_key).resolve()
+    if output.is_relative_to(root):
+        output.unlink(missing_ok=True)
+
+
 async def _run_artifact_storage_gate(
     job: MediaJob,
     settings: Settings,
     media_uow: PostgresMediaJobUnitOfWork,
 ) -> str | None:
     if job.job_type not in {
+        MediaJobType.RENDER_PREVIEW,
         MediaJobType.RENDER_CANONICAL,
         MediaJobType.TRANSCODE_EXPORT,
         MediaJobType.EXPORT_BUNDLE,
@@ -1136,7 +1335,11 @@ async def _run_artifact_storage_gate(
     session_factory = media_uow.session_factory
     storage_uow = PostgresStorageUnitOfWork(session_factory)
     dependency_ids: tuple[UUID, ...] = ()
-    if job.job_type is MediaJobType.RENDER_CANONICAL:
+    if job.job_type is MediaJobType.RENDER_PREVIEW:
+        payload_preview = _parse_candidate_preview_payload(job)
+        artifact_bytes = payload_preview.maximum_output_bytes
+        temp_bytes = payload_preview.maximum_output_bytes
+    elif job.job_type is MediaJobType.RENDER_CANONICAL:
         payload = _parse_canonical_render_payload(job)
         artifact_bytes = payload.maximum_output_bytes
         temp_bytes = payload.maximum_output_bytes

@@ -55,12 +55,18 @@ def transcode_master_to_mp3(
     temp_root: Path,
     job_id: UUID,
     project_id: UUID,
-    revision_id: UUID,
+    revision_id: UUID | None = None,
+    candidate_snapshot_id: UUID | None = None,
+    bitrate_kbps: int = 256,
     source_storage_key: str,
     expected_duration_seconds: float,
     timeout_seconds: int,
     cancel_event: threading.Event | None = None,
 ) -> Mp3TranscodeResult:
+    if (revision_id is None) == (candidate_snapshot_id is None):
+        raise ExportTranscodeError("TRANSCODE_LINEAGE_INVALID")
+    if bitrate_kbps not in {160, 256}:
+        raise ExportTranscodeError("TRANSCODE_BITRATE_INVALID")
     root = artifact_root.resolve()
     resolved_temp_root = temp_root.resolve()
     source = _safe(root, source_storage_key)
@@ -88,7 +94,7 @@ def transcode_master_to_mp3(
                 "-codec:a",
                 "libmp3lame",
                 "-b:a",
-                "256k",
+                f"{bitrate_kbps}k",
                 "-map_metadata",
                 "-1",
                 "-f",
@@ -134,7 +140,8 @@ def transcode_master_to_mp3(
             bitrate = int(stream.get("bit_rate") or metadata["format"]["bit_rate"])
         except (KeyError, IndexError, TypeError, ValueError) as exc:
             raise ExportTranscodeError("TRANSCODE_MEDIA_INVALID") from exc
-        if sample_rate != 48_000 or channels != 2 or duration <= 0 or bitrate < 224_000:
+        minimum_bitrate = (bitrate_kbps - 24) * 1000
+        if sample_rate != 48_000 or channels != 2 or duration <= 0 or bitrate < minimum_bitrate:
             raise ExportTranscodeError("TRANSCODE_MEDIA_PROFILE_INVALID")
         if abs(duration - expected_duration_seconds) > 0.05:
             raise ExportTranscodeError("TRANSCODE_DURATION_MISMATCH")
@@ -171,7 +178,14 @@ def transcode_master_to_mp3(
         checksum = hashlib.sha256(bytes_).hexdigest()
         if cancel_event is not None and cancel_event.is_set():
             raise ExportTranscodeError("TRANSCODE_CANCELLED")
-        final_key = f"protected/exports/{project_id}/{revision_id}/audio/{checksum}-master.mp3"
+        final_key = (
+            f"protected/exports/{project_id}/{revision_id}/audio/{checksum}-master.mp3"
+            if revision_id is not None
+            else (
+                f"rebuildable/candidate-previews/{project_id}/{candidate_snapshot_id}/"
+                f"{checksum}-preview.mp3"
+            )
+        )
         final = _safe(root, final_key)
         final.parent.mkdir(parents=True, exist_ok=True)
         try:

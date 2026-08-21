@@ -128,6 +128,54 @@ class CanonicalRenderJobPayload(DomainModel):
         return self
 
 
+class CandidatePreviewJobPayload(DomainModel):
+    schema_version: Literal["candidate-preview-job.v1"] = "candidate-preview-job.v1"
+    project_id: UUID
+    candidate_snapshot_id: UUID
+    candidate_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    render_scope: Literal[RenderScope.MASTER] = RenderScope.MASTER
+    render_track_ids: tuple[()] = ()
+    quality_profile: Literal[MediaQualityProfile.CANDIDATE_PREVIEW_V1] = (
+        MediaQualityProfile.CANDIDATE_PREVIEW_V1
+    )
+    audio_graph: dict[str, Any]
+    audio_graph_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    audio_engine_version: Literal["motif-forge-audio-engine.v1"]
+    seed: int = Field(ge=0, le=2**31 - 1)
+    bitrate_kbps: Literal[160] = 160
+    timeout_seconds: int = Field(ge=30, le=600)
+    maximum_output_bytes: int = Field(ge=1_048_576, le=536_870_912)
+    target_artifact_id: UUID | None = None
+    expected_output_content_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    expected_recipe_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def validate_preview_render_contract(self) -> Self:
+        rehydration_fields = (
+            self.target_artifact_id,
+            self.expected_output_content_hash,
+            self.expected_recipe_hash,
+        )
+        if any(item is not None for item in rehydration_fields) and not all(
+            item is not None for item in rehydration_fields
+        ):
+            raise ValueError("candidate preview rehydration identity must be complete")
+        encoded = json.dumps(
+            self.audio_graph,
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+        if hashlib.sha256(encoded).hexdigest() != self.audio_graph_hash:
+            raise ValueError("audio_graph_hash must match canonical audio_graph JSON")
+        if self.audio_graph.get("engineVersion") != self.audio_engine_version:
+            raise ValueError("audio_engine_version must match AudioGraphSpec")
+        if self.audio_graph.get("sampleRate") != 48_000 or self.audio_graph.get("channels") != 2:
+            raise ValueError("candidate preview requires 48 kHz stereo AudioGraphSpec")
+        return self
+
+
 class ExportMp3JobPayload(DomainModel):
     schema_version: Literal["export-mp3-job.v1"] = "export-mp3-job.v1"
     project_id: UUID
@@ -324,7 +372,7 @@ class RebuildRecipe(DomainModel):
     schema_version: Literal["rebuild-recipe.v1"] = "rebuild-recipe.v1"
     recipe_id: UUID
     recipe_kind: Literal["time_stretch", "render", "analysis", "transcode"]
-    input_artifacts: tuple[RebuildInputArtifact, ...] = Field(min_length=1)
+    input_artifacts: tuple[RebuildInputArtifact, ...] = ()
     parameters: dict[str, Any]
     engine: str = Field(min_length=1, max_length=120)
     engine_version: str = Field(min_length=1, max_length=80)
@@ -341,6 +389,8 @@ class RebuildRecipe(DomainModel):
 
     @model_validator(mode="after")
     def validate_output_profile(self) -> Self:
+        if self.recipe_kind != "render" and not self.input_artifacts:
+            raise ValueError("non-render rebuild recipes require an input Artifact")
         if (self.output_quality_profile is None) == (self.output_feature_profile is None):
             raise ValueError("rebuild recipe requires exactly one output profile")
         if self.output_quality_profile is not None:

@@ -41,6 +41,7 @@ from motif_forge.application.media_jobs import (
 )
 from motif_forge.domain.import_policy import decide_import_alignment
 from motif_forge.domain.media_jobs import (
+    CandidatePreviewJobPayload,
     FeatureRehydrateJobPayload,
     IngestJobPayload,
     MediaJobType,
@@ -70,7 +71,10 @@ class ArtifactRehydrationEnqueuer(Protocol):
 class ArtifactRehydrationLoader(Protocol):
     async def __call__(
         self, *, artifact_id: UUID
-    ) -> tuple[UUID, RehydrateJobPayload | FeatureRehydrateJobPayload]: ...
+    ) -> tuple[
+        UUID,
+        RehydrateJobPayload | FeatureRehydrateJobPayload | CandidatePreviewJobPayload,
+    ]: ...
 
 
 class ImportMaterializer(Protocol):
@@ -363,10 +367,16 @@ def build_parent_graph(
                     json.dumps(state["request_payload"]), strict=True
                 ).source_artifact_id
             except ValidationError:
-                dependency_id = FeatureRehydrateJobPayload.model_validate_json(
-                    json.dumps(state["request_payload"]), strict=True
-                ).source_artifact_id
-            dependency_ids = (dependency_id,)
+                try:
+                    dependency_id = FeatureRehydrateJobPayload.model_validate_json(
+                        json.dumps(state["request_payload"]), strict=True
+                    ).source_artifact_id
+                except ValidationError:
+                    CandidatePreviewJobPayload.model_validate_json(
+                        json.dumps(state["request_payload"]), strict=True
+                    )
+                    dependency_id = None
+            dependency_ids = () if dependency_id is None else (dependency_id,)
         decision = await storage_pressure_gate(
             operation_id=f"{_idempotency_key(state)}:storage-v1",
             project_id=UUID(state["project_id"]),
@@ -430,15 +440,25 @@ def build_parent_graph(
                     "error_code": "ARTIFACT_REHYDRATION_NOT_CONFIGURED",
                 }
             try:
-                payload: RehydrateJobPayload | FeatureRehydrateJobPayload = (
+                payload: (
+                    RehydrateJobPayload
+                    | FeatureRehydrateJobPayload
+                    | CandidatePreviewJobPayload
+                ) = (
                     RehydrateJobPayload.model_validate_json(
                         json.dumps(state["request_payload"]), strict=True
                     )
                 )
             except ValidationError:
-                payload = FeatureRehydrateJobPayload.model_validate_json(
-                    json.dumps(state["request_payload"]), strict=True
-                )
+                try:
+                    payload = FeatureRehydrateJobPayload.model_validate_json(
+                        json.dumps(state["request_payload"]), strict=True
+                    )
+                except ValidationError:
+                    payload = CandidatePreviewJobPayload.model_validate_json(
+                        json.dumps(state["request_payload"]), strict=True
+                    )
+            assert payload.target_artifact_id is not None
             result = await enqueue_artifact_rehydration(
                 StartArtifactRehydrationRequest(
                     project_id=UUID(state["project_id"]),

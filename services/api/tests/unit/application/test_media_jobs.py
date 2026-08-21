@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import UTC, datetime
 from types import TracebackType
 from typing import Self
@@ -15,11 +17,13 @@ from motif_forge.application.media_jobs import (
     EnqueueMediaJobRequest,
     StartArtifactRehydration,
     StartArtifactRehydrationRequest,
+    _compile_rehydrate_payload,
 )
 from motif_forge.domain.media_jobs import (
     ArtifactAvailability,
     ArtifactLifecycle,
     AudioArtifact,
+    CandidatePreviewJobPayload,
     JobStatus,
     MediaJob,
     MediaJobType,
@@ -27,6 +31,7 @@ from motif_forge.domain.media_jobs import (
     MediaRun,
     RebuildInputArtifact,
     RebuildRecipe,
+    RenderScope,
     RunStatus,
     WorkerEvent,
 )
@@ -201,6 +206,9 @@ def _artifact(project_id: UUID, job_id: UUID, created_at: datetime) -> AudioArti
     return AudioArtifact(
         artifact_id=uuid4(),
         project_id=project_id,
+        candidate_snapshot_id=uuid4(),
+        arrangement_hash="a" * 64,
+        render_scope=RenderScope.MASTER,
         source_job_id=job_id,
         content_hash="b" * 64,
         byte_size=1000,
@@ -218,6 +226,81 @@ def _artifact(project_id: UUID, job_id: UUID, created_at: datetime) -> AudioArti
         lifecycle_class=ArtifactLifecycle.PROTECTED,
         created_at=created_at,
     )
+
+
+def test_candidate_render_recipe_compiles_to_executable_rehydration_payload() -> None:
+    project_id = uuid4()
+    snapshot_id = uuid4()
+    artifact_id = uuid4()
+    now = datetime.now(UTC)
+    audio_graph = {
+        "schemaVersion": "audio-graph-spec.v1",
+        "engineVersion": "motif-forge-audio-engine.v1",
+        "sampleRate": 48_000,
+        "channels": 2,
+    }
+    audio_graph_hash = hashlib.sha256(
+        json.dumps(audio_graph, separators=(",", ":"), sort_keys=True).encode()
+    ).hexdigest()
+    recipe = RebuildRecipe(
+        recipe_id=uuid4(),
+        recipe_kind="render",
+        parameters={
+            "candidate_snapshot_id": str(snapshot_id),
+            "candidate_content_hash": "a" * 64,
+            "audio_graph": audio_graph,
+            "audio_graph_hash": audio_graph_hash,
+            "audio_engine_version": "motif-forge-audio-engine.v1",
+            "seed": 0,
+            "bitrate_kbps": 160,
+            "timeout_seconds": 240,
+            "maximum_output_bytes": 64 * 1024 * 1024,
+        },
+        engine="motif-forge-chromium-renderer+ffmpeg-libmp3lame",
+        engine_version="motif-forge-audio-engine.v1",
+        policy_version="candidate-preview-render.v1",
+        output_quality_profile=MediaQualityProfile.CANDIDATE_PREVIEW_V1,
+        expected_container="mp3",
+        expected_codec="mp3",
+        expected_sample_rate_hz=48_000,
+        expected_channels=2,
+        validation_rules=("candidate-snapshot-lineage.v1",),
+        idempotency_key="candidate-preview-rebuild",
+    )
+    target = AudioArtifact(
+        artifact_id=artifact_id,
+        project_id=project_id,
+        candidate_snapshot_id=snapshot_id,
+        arrangement_hash="a" * 64,
+        render_scope=RenderScope.MASTER,
+        source_job_id=uuid4(),
+        content_hash="c" * 64,
+        byte_size=4096,
+        storage_key=f"rebuildable/candidate-previews/{project_id}/{snapshot_id}/preview.mp3",
+        media_role="candidate_preview",
+        quality_profile=MediaQualityProfile.CANDIDATE_PREVIEW_V1,
+        container="mp3",
+        codec="mp3",
+        sample_rate_hz=48_000,
+        channels=2,
+        duration_seconds=30.0,
+        bitrate_kbps=160,
+        encoder="ffmpeg-libmp3lame",
+        encoder_version="ffmpeg-system.v1",
+        lifecycle_class=ArtifactLifecycle.REBUILDABLE,
+        availability=ArtifactAvailability.EVICTED,
+        recipe_hash=recipe.content_hash,
+        rebuild_recipe=recipe,
+        created_at=now,
+        evicted_at=now,
+    )
+
+    payload = _compile_rehydrate_payload(target, project_id=project_id)
+
+    assert isinstance(payload, CandidatePreviewJobPayload)
+    assert payload.target_artifact_id == artifact_id
+    assert payload.expected_output_content_hash == target.content_hash
+    assert payload.expected_recipe_hash == recipe.content_hash
 
 
 @pytest.mark.asyncio

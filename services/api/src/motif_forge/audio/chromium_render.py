@@ -13,7 +13,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
 from motif_forge.audio.atomic_promote import AtomicPromoteError, promote_verified_file
-from motif_forge.domain.media_jobs import CanonicalRenderJobPayload
+from motif_forge.domain.media_jobs import CandidatePreviewJobPayload, CanonicalRenderJobPayload
 
 
 class ChromiumRenderError(RuntimeError):
@@ -89,7 +89,10 @@ class ChromiumRenderClient:
         self._transport = transport
 
     async def render(
-        self, *, job_id: UUID, payload: CanonicalRenderJobPayload
+        self,
+        *,
+        job_id: UUID,
+        payload: CanonicalRenderJobPayload | CandidatePreviewJobPayload,
     ) -> CanonicalRenderResult:
         if not self._root.is_dir():
             raise ChromiumRenderError("ARTIFACT_ROOT_UNAVAILABLE", retryable=True)
@@ -159,15 +162,21 @@ class ChromiumRenderClient:
             expected_duration = float(payload.audio_graph["durationSeconds"])
             if abs(duration - expected_duration) > tolerance:
                 raise ChromiumRenderError("RENDER_DURATION_MISMATCH")
-            suffix = (
-                f"stem-{payload.render_track_ids[0]}.wav"
-                if payload.render_track_ids
-                else "master.wav"
-            )
-            final_key = (
-                f"protected/exports/{payload.project_id}/{payload.revision_id}/audio/"
-                f"{receipt.sha256}-{suffix}"
-            )
+            if isinstance(payload, CandidatePreviewJobPayload):
+                final_key = (
+                    f"rebuildable/candidate-previews/{payload.project_id}/"
+                    f"{payload.candidate_snapshot_id}/{receipt.sha256}-source.wav"
+                )
+            else:
+                suffix = (
+                    f"stem-{payload.render_track_ids[0]}.wav"
+                    if payload.render_track_ids
+                    else "master.wav"
+                )
+                final_key = (
+                    f"protected/exports/{payload.project_id}/{payload.revision_id}/audio/"
+                    f"{receipt.sha256}-{suffix}"
+                )
             final = _safe_path(self._root, final_key)
             final.parent.mkdir(parents=True, exist_ok=True)
             try:

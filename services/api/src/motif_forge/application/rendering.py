@@ -11,11 +11,12 @@ from pydantic import Field
 
 from motif_forge.domain.ir import ArrangementIR, DomainModel, NoteClip, Track, TrackRole
 from motif_forge.domain.media_jobs import (
+    CandidatePreviewJobPayload,
     CanonicalRenderJobPayload,
     MediaQualityProfile,
     RenderScope,
 )
-from motif_forge.domain.revisions import Revision
+from motif_forge.domain.revisions import CandidateSnapshot, Revision
 from motif_forge.domain.timebase import ticks_to_seconds
 
 AUDIO_GRAPH_SCHEMA_VERSION = "audio-graph-spec.v1"
@@ -175,6 +176,27 @@ def build_canonical_render_payload(
         audio_graph=projection.graph,
         audio_graph_hash=projection.graph_hash,
         arrangement_hash=projection.arrangement_hash,
+        audio_engine_version=AUDIO_ENGINE_VERSION,
+        seed=seed,
+        timeout_seconds=240,
+        maximum_output_bytes=64 * 1024 * 1024,
+    )
+
+
+def build_candidate_preview_payload(
+    snapshot: CandidateSnapshot, *, seed: int
+) -> CandidatePreviewJobPayload:
+    """Compile immutable CandidateSnapshot truth into a bounded audition request."""
+
+    projection = compile_audio_graph(snapshot.candidate_ir)
+    if projection.arrangement_hash != snapshot.candidate_content_hash:
+        raise ValueError("CANDIDATE_ARRANGEMENT_HASH_MISMATCH")
+    return CandidatePreviewJobPayload(
+        project_id=snapshot.project_id,
+        candidate_snapshot_id=snapshot.candidate_snapshot_id,
+        candidate_content_hash=snapshot.candidate_content_hash,
+        audio_graph=projection.graph,
+        audio_graph_hash=projection.graph_hash,
         audio_engine_version=AUDIO_ENGINE_VERSION,
         seed=seed,
         timeout_seconds=240,
