@@ -81,6 +81,12 @@ class FakeTransaction:
     async def get_revision(self, revision_id: UUID) -> Revision | None:
         return self.revisions.get(revision_id)
 
+    async def list_revision_commands(self, revision_id: UUID) -> tuple[EditorCommand, ...]:
+        for revision, commands in self.command_batches:
+            if revision.revision_id == revision_id:
+                return commands
+        return ()
+
     async def get_candidate_snapshot(self, candidate_snapshot_id: UUID) -> CandidateSnapshot | None:
         return self.candidate_snapshots.get(candidate_snapshot_id)
 

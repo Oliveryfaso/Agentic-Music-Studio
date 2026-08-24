@@ -54,6 +54,7 @@ from motif_forge.application.storage import (
     RunStoragePressureGate,
     StorageRootSnapshot,
 )
+from motif_forge.application.undo import UndoCommittedRevision, UndoCommittedRevisionRequest
 from motif_forge.application.uploads import (
     CompleteUpload,
     CompleteUploadResult,
@@ -139,6 +140,16 @@ class CommandBatchData(ApiModel):
     actual_change_impact: Literal["L0", "L1", "L2", "L3"]
     render_state: Literal["dirty"] = "dirty"
     replayed: bool
+
+
+class UndoRevisionBody(ApiModel):
+    branch_id: UUID
+    base_revision_id: UUID
+    target_revision_id: UUID
+
+
+class UndoRevisionData(CommandBatchData):
+    undone_revision_id: UUID
 
 
 class CreateUploadBody(ApiModel):
@@ -237,6 +248,7 @@ class SuccessEnvelope(ApiModel):
     status: Literal["succeeded"] = "succeeded"
     data: (
         CreateProjectData
+        | UndoRevisionData
         | CommandBatchData
         | UploadSessionData
         | UploadPartData
@@ -618,6 +630,41 @@ def create_app(
             data=CommandBatchData(
                 branch_id=result.branch_id,
                 revision_id=result.revision_id,
+                content_hash=result.content_hash,
+                actual_change_impact=result.actual_change_impact.name,
+                replayed=result.replayed,
+            ),
+        )
+
+    @app.post(
+        "/api/v1/projects/{project_id}/undo",
+        response_model=SuccessEnvelope,
+        status_code=201,
+    )
+    async def undo_committed_revision(
+        project_id: UUID,
+        body: UndoRevisionBody,
+        request: Request,
+        idempotency_key: IdempotencyKey,
+    ) -> SuccessEnvelope:
+        request_id, trace_id = _request_identity(request)
+        result = await UndoCommittedRevision(require_uow())(
+            UndoCommittedRevisionRequest(
+                project_id=project_id,
+                branch_id=body.branch_id,
+                base_revision_id=body.base_revision_id,
+                target_revision_id=body.target_revision_id,
+                actor_id=LOCAL_ACTOR_ID,
+                idempotency_key=idempotency_key,
+            )
+        )
+        return SuccessEnvelope(
+            request_id=request_id,
+            trace_id=trace_id,
+            data=UndoRevisionData(
+                branch_id=result.branch_id,
+                revision_id=result.revision_id,
+                undone_revision_id=result.undone_revision_id,
                 content_hash=result.content_hash,
                 actual_change_impact=result.actual_change_impact.name,
                 replayed=result.replayed,

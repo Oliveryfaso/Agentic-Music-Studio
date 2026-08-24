@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from motif_forge.application.ports import IdempotencyHit
-from motif_forge.domain.commands import EditorCommand
+from motif_forge.domain.commands import EDITOR_COMMAND_ADAPTER, EditorCommand
 from motif_forge.domain.ir import ArrangementIR
 from motif_forge.domain.revisions import (
     AuthorKind,
@@ -231,6 +231,29 @@ class PostgresTransaction:
         if row is None:
             return None
         return _revision_from_row(row)
+
+    async def list_revision_commands(self, revision_id: UUID) -> tuple[EditorCommand, ...]:
+        rows = (
+            await self._session.execute(
+                select(RevisionCommandRow)
+                .where(RevisionCommandRow.revision_id == revision_id)
+                .order_by(RevisionCommandRow.client_sequence)
+            )
+        ).scalars()
+        return tuple(
+            EDITOR_COMMAND_ADAPTER.validate_python(
+                {
+                    "command_id": row.command_id,
+                    "command_type": row.command_type,
+                    "schema_version": row.schema_version,
+                    "payload": row.payload,
+                    "selection": row.selection,
+                    "actor_kind": row.actor_kind,
+                    "client_sequence": row.client_sequence,
+                }
+            )
+            for row in rows
+        )
 
     async def get_candidate_snapshot(self, candidate_snapshot_id: UUID) -> CandidateSnapshot | None:
         row = (

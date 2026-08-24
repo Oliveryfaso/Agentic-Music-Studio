@@ -125,6 +125,47 @@ async def test_human_l1_command_batch_advances_branch() -> None:
 
 
 @pytest.mark.asyncio
+async def test_committed_revision_can_be_undone_idempotently() -> None:
+    transaction = FakeTransaction()
+    transport = ASGITransport(app=create_app(Settings.for_test(), uow_factory=transaction))
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        project = await _create_project(client)
+        committed = await client.post(
+            f"/api/v1/projects/{project['project_id']}/command-batches",
+            headers={"Idempotency-Key": "commit-before-undo"},
+            json={
+                "branch_id": project["active_branch_id"],
+                "base_revision_id": project["root_revision_id"],
+                "commands": [_add_track_command()],
+                "client_sequence": 0,
+                "reason": "TRACK_ADDED",
+            },
+        )
+        revision_id = committed.json()["data"]["revision_id"]
+        body = {
+            "branch_id": project["active_branch_id"],
+            "base_revision_id": revision_id,
+            "target_revision_id": revision_id,
+        }
+        first = await client.post(
+            f"/api/v1/projects/{project['project_id']}/undo",
+            headers={"Idempotency-Key": "undo-revision-0001"},
+            json=body,
+        )
+        replay = await client.post(
+            f"/api/v1/projects/{project['project_id']}/undo",
+            headers={"Idempotency-Key": "undo-revision-0001"},
+            json=body,
+        )
+
+    assert first.status_code == 201
+    assert replay.status_code == 201
+    assert first.json()["data"]["undone_revision_id"] == revision_id
+    assert replay.json()["data"]["replayed"] is True
+    assert len(transaction.command_batches) == 2
+
+
+@pytest.mark.asyncio
 async def test_stale_base_returns_problem_details_with_current_revision() -> None:
     transaction = FakeTransaction()
     transport = ASGITransport(app=create_app(Settings.for_test(), uow_factory=transaction))
