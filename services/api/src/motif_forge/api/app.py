@@ -451,7 +451,9 @@ def create_app(
     app.state.parent_graph = None
     app.include_router(build_sound_catalog_router())
     if runtime_ai_run_uow is not None:
-        app.include_router(build_ai_run_router(runtime_ai_run_uow))
+        app.include_router(
+            build_ai_run_router(runtime_ai_run_uow, project_uow=runtime_uow)
+        )
     if runtime_project_reads is not None:
         app.include_router(
             build_project_read_router(

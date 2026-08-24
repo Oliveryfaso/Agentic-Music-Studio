@@ -28,6 +28,7 @@ from motif_forge.domain.ai_runs import (
     AIRunApproval,
     AIRunEvent,
     AIRunStatus,
+    AIRunType,
     CostStatus,
     ModelCost,
     ModelRequestKind,
@@ -42,6 +43,7 @@ from motif_forge.infrastructure.persistence.database import SessionFactory
 from motif_forge.infrastructure.persistence.tables import (
     AIRunActionIdempotencyRow,
     AIRunApprovalRow,
+    AIRunEditDecisionRow,
     AIRunEventRow,
     AIRunRow,
     AudioArtifactRow,
@@ -186,7 +188,9 @@ class PostgresAIRunTransaction:
                     "action": "start",
                     "run_id": str(run.run_id),
                     "thread_id": run.thread_id,
-                    "run_type": "parent.generate.v1",
+                    "run_type": (
+                        "parent.edit.v1" if run.run_type.value == "edit" else "parent.generate.v1"
+                    ),
                     "decision": None,
                 },
                 status="pending",
@@ -696,14 +700,24 @@ class PostgresAIRunTransaction:
             )
         original_version = run.version
         try:
-            if target_status is AIRunStatus.WAITING_WORKER:
+            if target_status is AIRunStatus.WAITING_EDIT_APPROVAL:
+                if run.status is AIRunStatus.QUEUED:
+                    run = run.transition(AIRunStatus.PLANNING, now=now)
+                run = run.transition(AIRunStatus.WAITING_EDIT_APPROVAL, now=now)
+            elif target_status is AIRunStatus.WAITING_WORKER:
+                if run.run_type is AIRunType.EDIT and run.status is AIRunStatus.QUEUED:
+                    run = run.transition(AIRunStatus.PLANNING, now=now)
                 run = run.transition(AIRunStatus.WAITING_WORKER, now=now)
             elif target_status is AIRunStatus.SUCCEEDED:
+                if run.run_type is AIRunType.EDIT and run.status is AIRunStatus.QUEUED:
+                    run = run.transition(AIRunStatus.PLANNING, now=now)
                 if run.status is AIRunStatus.MATERIALIZING:
                     run = run.transition(AIRunStatus.WAITING_WORKER, now=now)
                 run = run.transition(AIRunStatus.SUCCEEDED, now=now)
             elif target_status is AIRunStatus.FAILED:
                 run = run.transition(AIRunStatus.FAILED, now=now)
+            elif target_status in {AIRunStatus.REJECTED, AIRunStatus.CANCELLED}:
+                run = run.transition(target_status, now=now)
             else:
                 raise ValueError("unsupported Graph progress target")
         except ValueError as exc:
@@ -735,6 +749,131 @@ class PostgresAIRunTransaction:
             )
         )
         return run
+
+    async def mark_edit_preview_pending(
+        self, *, run_id: UUID, preview_id: UUID, now: datetime
+    ) -> AIRun:
+        row = (
+            await self._session.execute(
+                select(AIRunRow).where(AIRunRow.id == run_id).with_for_update()
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
+        run = _run_from_row(row)
+        if run.status is AIRunStatus.WAITING_EDIT_APPROVAL:
+            if run.pending_preview_id != preview_id:
+                raise ApplicationError(
+                    "EDIT_PREVIEW_IDENTITY_CONFLICT", "Run waits on another Preview"
+                )
+            return run
+        if run.run_type is not AIRunType.EDIT:
+            raise ApplicationError("AI_RUN_TYPE_INVALID", "only Edit Runs accept edit Preview")
+        if run.status is AIRunStatus.QUEUED:
+            run = run.transition(AIRunStatus.PLANNING, now=now)
+        run = run.model_copy(update={"pending_preview_id": preview_id})
+        run = run.transition(AIRunStatus.WAITING_EDIT_APPROVAL, now=now)
+        await self._session.execute(
+            update(AIRunRow).where(AIRunRow.id == run_id).values(**_run_values(run))
+        )
+        return run
+
+    async def read_edit_preview_decision(self, run_id: UUID) -> dict[str, object] | None:
+        row = (
+            await self._session.execute(
+                select(AIRunEditDecisionRow).where(AIRunEditDecisionRow.run_id == run_id)
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            return None
+        return {
+            "run_id": row.run_id,
+            "preview_id": row.preview_id,
+            "action": row.action,
+            "expected_candidate_content_hash": row.expected_candidate_content_hash,
+            "actor_id": row.actor_id,
+            "assertion_hash": row.assertion_hash,
+            "idempotency_key": row.idempotency_key,
+            "request_hash": row.request_hash,
+            "note": row.note,
+        }
+
+    async def record_edit_preview_decision(
+        self,
+        *,
+        decision_id: UUID,
+        run_id: UUID,
+        preview_id: UUID,
+        action: str,
+        expected_candidate_content_hash: str,
+        actor_id: str,
+        assertion_hash: str,
+        assertion: str,
+        idempotency_key: str,
+        request_hash: str,
+        note: str,
+        outbox_event_id: UUID,
+        now: datetime,
+    ) -> None:
+        run_row = (
+            await self._session.execute(
+                select(AIRunRow).where(AIRunRow.id == run_id).with_for_update()
+            )
+        ).scalar_one_or_none()
+        if run_row is None:
+            raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
+        run = _run_from_row(run_row)
+        if (
+            run.status is not AIRunStatus.WAITING_EDIT_APPROVAL
+            or run.pending_preview_id != preview_id
+        ):
+            raise ApplicationError(
+                "EDIT_PREVIEW_STATE_CONFLICT",
+                "Run is not waiting on the requested Preview",
+            )
+        await self._session.execute(
+            insert(AIRunEditDecisionRow).values(
+                id=decision_id,
+                run_id=run_id,
+                preview_id=preview_id,
+                action=action,
+                expected_candidate_content_hash=expected_candidate_content_hash,
+                actor_id=actor_id,
+                assertion_hash=assertion_hash,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                note=note,
+                created_at=now,
+            )
+        )
+        await self._session.execute(
+            insert(OutboxEventRow).values(
+                id=outbox_event_id,
+                aggregate_type="ai_run",
+                aggregate_id=run_id,
+                topic="graph.resume.requested",
+                dedupe_key=f"ai-run:{run_id}:edit-preview-decision",
+                payload={
+                    "schema_version": "graph-action.v1",
+                    "action": "resume",
+                    "run_id": str(run_id),
+                    "thread_id": run.thread_id,
+                    "run_type": "parent.edit.v1",
+                    "decision": {
+                        "action": action,
+                        "preview_id": str(preview_id),
+                        "expected_candidate_content_hash": expected_candidate_content_hash,
+                        "actor_id": actor_id,
+                        "approval_assertion": assertion,
+                        "note": note,
+                    },
+                },
+                status="pending",
+                attempts=0,
+                available_at=now,
+                created_at=now,
+            )
+        )
 
     async def record_ai_run_approval(
         self,
@@ -1331,6 +1470,8 @@ def _run_values(run: AIRun) -> dict[str, object]:
     values = run.model_dump(mode="python")
     values["id"] = values.pop("run_id")
     values["brief"] = run.brief
+    values["run_type"] = run.run_type.value
+    values["edit_request"] = run.edit_request
     values["status"] = run.status.value
     values["cost_status"] = run.cost.status.value
     values["cost_microusd"] = run.cost.amount_microusd
@@ -1349,7 +1490,9 @@ def _run_from_row(row: AIRunRow) -> AIRun:
         parent_run_id=row.parent_run_id,
         graph_topology_version=row.graph_topology_version,
         state_schema_version=row.state_schema_version,
+        run_type=AIRunType(row.run_type),
         brief=row.brief,
+        edit_request=row.edit_request,
         status=AIRunStatus(row.status),
         version=row.version,
         idempotency_key=row.idempotency_key,
@@ -1357,6 +1500,7 @@ def _run_from_row(row: AIRunRow) -> AIRun:
         pending_plan_id=row.pending_plan_id,
         pending_plan_content_hash=row.pending_plan_content_hash,
         pending_interrupt_ref=row.pending_interrupt_ref,
+        pending_preview_id=row.pending_preview_id,
         submitted_model_requests=row.submitted_model_requests,
         max_model_requests=row.max_model_requests,
         max_total_tokens=row.max_total_tokens,
@@ -1540,6 +1684,19 @@ def _approval_from_row(row: AIRunApprovalRow) -> AIRunApproval:
 def _ai_run_request_hash(row: AIRunRow) -> str:
     from motif_forge.application._hashing import request_hash
 
+    if row.run_type == AIRunType.EDIT.value:
+        return request_hash(
+            {
+                "schema": "ai-run.create-edit.v1",
+                "project_id": str(row.project_id),
+                "branch_id": str(row.branch_id),
+                "base_revision_id": str(row.base_revision_id),
+                "thread_id": row.thread_id,
+                "edit_request": row.edit_request,
+                "max_model_requests": row.max_model_requests,
+                "max_total_tokens": row.max_total_tokens,
+            }
+        )
     return request_hash(
         {
             "schema": "ai-run.create.v1",

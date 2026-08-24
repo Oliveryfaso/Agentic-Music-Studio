@@ -435,6 +435,27 @@ class AIRunTransaction(Protocol):
         event_id: UUID,
         now: datetime,
     ) -> AIRun: ...
+    async def mark_edit_preview_pending(
+        self, *, run_id: UUID, preview_id: UUID, now: datetime
+    ) -> AIRun: ...
+    async def read_edit_preview_decision(self, run_id: UUID) -> dict[str, object] | None: ...
+    async def record_edit_preview_decision(
+        self,
+        *,
+        decision_id: UUID,
+        run_id: UUID,
+        preview_id: UUID,
+        action: str,
+        expected_candidate_content_hash: str,
+        actor_id: str,
+        assertion_hash: str,
+        assertion: str,
+        idempotency_key: str,
+        request_hash: str,
+        note: str,
+        outbox_event_id: UUID,
+        now: datetime,
+    ) -> None: ...
     async def record_ai_run_approval(
         self,
         *,

@@ -55,6 +55,7 @@ from motif_forge.application.media_jobs import (
     EnqueueMediaJobResult,
     StartArtifactRehydrationRequest,
 )
+from motif_forge.domain.ai_runs import EDIT_RUN_STATE_SCHEMA_VERSION
 from motif_forge.domain.candidates import merge_candidate_branches
 from motif_forge.domain.import_policy import decide_import_alignment
 from motif_forge.domain.media_jobs import (
@@ -139,7 +140,9 @@ class ImportAnalysisConfirmation(BaseModel):
 class ParentGraphState(TypedDict):
     thread_id: str
     project_id: str
-    operation: Literal["generate", "time_stretch", "import_audio", "artifact_rehydrate"]
+    operation: Literal[
+        "generate", "edit", "time_stretch", "import_audio", "artifact_rehydrate"
+    ]
     graph_topology_version: str
     state_schema_version: str
     request_payload: Mapping[str, Any]
@@ -202,6 +205,12 @@ class ParentGraphState(TypedDict):
     selected_seed: NotRequired[int]
     candidate_measurements: NotRequired[list[dict[str, Any]]]
     repair_count: NotRequired[int]
+    edit_request: NotRequired[dict[str, object]]
+    base_arrangement: NotRequired[dict[str, object]]
+    planner_context: NotRequired[dict[str, object]]
+    proposal: NotRequired[dict[str, object]]
+    simulation: NotRequired[dict[str, object]]
+    edit_route: NotRequired[str]
 
 
 def initial_time_stretch_state(
@@ -324,19 +333,29 @@ def build_parent_graph(
     apply_candidate_repair: ApplyBoundedCandidateRepair | None = None,
     candidate_quality_gate: EvaluateCandidatePair | None = None,
     record_candidate_critique: CandidateCritiqueRecorder | None = None,
+    edit_graph: Any | None = None,
 ) -> CompiledStateGraph[ParentGraphState, None, ParentGraphState, ParentGraphState]:
     """Compile Import and standalone time-stretch inside one Parent topology."""
 
     async def validate_request(state: ParentGraphState) -> dict[str, Any]:
         if state.get("graph_topology_version") != PARENT_GRAPH_TOPOLOGY_VERSION:
             return {"phase": "failed", "error_code": "GRAPH_TOPOLOGY_VERSION_UNSUPPORTED"}
-        if state.get("state_schema_version") != PARENT_STATE_SCHEMA_VERSION:
+        expected_state_schema = (
+            EDIT_RUN_STATE_SCHEMA_VERSION
+            if state.get("operation") == "edit"
+            else PARENT_STATE_SCHEMA_VERSION
+        )
+        if state.get("state_schema_version") != expected_state_schema:
             return {"phase": "failed", "error_code": "STATE_SCHEMA_VERSION_UNSUPPORTED"}
         try:
             if state["operation"] == "generate":
                 if generate_nodes is None:
                     return {"phase": "failed", "error_code": "GENERATE_NOT_CONFIGURED"}
                 return await generate_nodes.validate_generate(state)
+            if state["operation"] == "edit":
+                if edit_graph is None:
+                    return {"phase": "failed", "error_code": "EDIT_NOT_CONFIGURED"}
+                return {"phase": "edit_validated"}
             if state["operation"] == "time_stretch":
                 UUID(state["project_id"])
                 TimeStretchJobPayload.model_validate_json(
@@ -359,9 +378,11 @@ def build_parent_graph(
 
     def validation_route(
         state: ParentGraphState,
-    ) -> Literal["generate", "load", "storage", "error"]:
+    ) -> Literal["generate", "edit", "load", "storage", "error"]:
         if state.get("phase") == "generate_validated":
             return "generate"
+        if state.get("phase") == "edit_validated":
+            return "edit"
         if state.get("phase") != "request_validated":
             return "error"
         return "load" if state["operation"] == "artifact_rehydrate" else "storage"
@@ -768,6 +789,8 @@ def build_parent_graph(
     graph.add_node("MaterializeImportRevision", materialize)
     graph.add_node("CompleteTimeStretch", complete_time_stretch)
     graph.add_node("RouteError", route_error)
+    if edit_graph is not None:
+        graph.add_node("EditSubgraph", edit_graph)
     if generate_nodes is not None:
         graph.add_node("PlanInputAdapter", generate_nodes.plan_input_adapter)
         graph.add_node("PlanOutputAdapter", generate_nodes.plan_output_adapter)
@@ -801,11 +824,14 @@ def build_parent_graph(
         validation_route,
         {
             "generate": "PlanInputAdapter" if generate_nodes is not None else "RouteError",
+            "edit": "EditSubgraph" if edit_graph is not None else "RouteError",
             "load": "LoadArtifactMetadata",
             "storage": "StoragePressureGate",
             "error": "RouteError",
         },
     )
+    if edit_graph is not None:
+        graph.add_edge("EditSubgraph", END)
     if generate_nodes is not None:
         graph.add_edge("PlanInputAdapter", "PlanOutputAdapter")
         graph.add_conditional_edges(

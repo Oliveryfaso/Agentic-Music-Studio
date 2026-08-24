@@ -7,12 +7,14 @@ import os
 import socket
 from collections.abc import Mapping
 from typing import Any, cast
+from uuid import UUID
 
 from motif_forge.agent.critic import (
     DeepSeekEvidenceCritic,
     DeterministicEvidenceCritic,
     EvidenceCritic,
 )
+from motif_forge.agent.edit import BoundedEditContext, EditGraphDependencies, build_edit_subgraph
 from motif_forge.agent.parent_graph import build_parent_graph
 from motif_forge.agent.planner import (
     CompositionPlanner,
@@ -37,6 +39,13 @@ from motif_forge.application.candidate_repair import (
     EvaluateCandidatePair,
     MeasureCandidateEvidence,
 )
+from motif_forge.application.edit_decisions import (
+    ApplyEditPreviewDecision,
+    AttachEditPreviewArtifact,
+    AutoCommitEdit,
+    CreateEditPreview,
+)
+from motif_forge.application.edit_runs import ReadEditBase
 from motif_forge.application.generation import (
     CollectCompleteExportArtifact,
     EnqueueNextCompleteExportJob,
@@ -63,7 +72,7 @@ from motif_forge.application.storage import (
     RunStoragePressureGate,
 )
 from motif_forge.config import Settings, get_settings
-from motif_forge.domain.ai_runs import AIRun
+from motif_forge.domain.ai_runs import AIRun, AIRunType, EditRunRequest
 from motif_forge.domain.media_jobs import WorkerResumePayload
 from motif_forge.infrastructure.checkpoints import postgres_checkpointer
 from motif_forge.infrastructure.persistence.ai_runs import PostgresAIRunUnitOfWork
@@ -111,9 +120,7 @@ class MissingDeepSeekPlanner:
         raise AssertionError("missing-key planner cannot enter schema repair")
 
 
-def build_generate_planner(
-    settings: Settings, run: AIRun, ai_uow: object
-) -> CompositionPlanner:
+def build_generate_planner(settings: Settings, run: AIRun, ai_uow: object) -> CompositionPlanner:
     if not settings.deepseek_configured:
         return MissingDeepSeekPlanner()
     ledger = PersistentProviderBudgetLedger(
@@ -122,9 +129,7 @@ def build_generate_planner(
         max_requests=run.max_model_requests,
         max_total_tokens=run.max_total_tokens,
     )
-    return build_synth_ambient_planner(
-        settings, run_id=run.run_id, budget_ledger=cast(Any, ledger)
-    )
+    return build_synth_ambient_planner(settings, run_id=run.run_id, budget_ledger=cast(Any, ledger))
 
 
 def build_generate_critic(settings: Settings, run: AIRun, ai_uow: object) -> EvidenceCritic:
@@ -172,87 +177,135 @@ async def run_resume_dispatcher() -> None:
                 planner: CompositionPlanner,
                 *,
                 critic: EvidenceCritic | None = None,
+                edit_graph: object | None = None,
             ) -> object:
                 compositions = PostgresCompositionMaterializationUnitOfWork(session_factory)
                 return build_parent_graph(
-                EnqueueMediaJob(media_uow),
-                checkpointer=saver,
-                materialize_import=MaterializeImport(
-                    PostgresUnitOfWork(session_factory),
-                    PostgresMediaJobUnitOfWork(session_factory),
-                ),
-                load_import_context=LoadImportAnalysisContext(
-                    PostgresUnitOfWork(session_factory),
-                    PostgresMediaJobUnitOfWork(session_factory),
-                ),
-                enqueue_followup_media_job=EnqueueFollowupMediaJob(
-                    PostgresMediaJobUnitOfWork(session_factory)
-                ),
-                enqueue_artifact_rehydration=StartArtifactRehydration(
-                    PostgresMediaJobUnitOfWork(session_factory)
-                ),
-                load_artifact_rehydration=LoadArtifactRehydration(
-                    PostgresMediaJobUnitOfWork(session_factory)
-                ),
-                storage_pressure_gate=RunStoragePressureGate(
-                    inspect_root=LocalStorageRootInspector(settings.artifact_root),
-                    load_facts=PostgresStorageFactsLoader(
-                        storage_uow, temp_root=settings.temp_root
+                    EnqueueMediaJob(media_uow),
+                    checkpointer=saver,
+                    materialize_import=MaterializeImport(
+                        PostgresUnitOfWork(session_factory),
+                        PostgresMediaJobUnitOfWork(session_factory),
                     ),
-                    collector=LocalArtifactCollector(
-                        storage_uow, artifact_root=settings.artifact_root
+                    load_import_context=LoadImportAnalysisContext(
+                        PostgresUnitOfWork(session_factory),
+                        PostgresMediaJobUnitOfWork(session_factory),
                     ),
-                    record_event=PersistentStorageEventRecorder(storage_uow),
-                    global_quota_bytes=settings.artifact_global_quota_bytes,
-                    project_quota_bytes=settings.artifact_project_quota_bytes,
-                    temp_quota_bytes=settings.temp_quota_bytes,
-                    minimum_free_bytes=settings.storage_min_free_bytes,
-                ),
-                generate_planner=planner,
-                persist_planning_result=PersistPlanningResult(ai_uow),
-                record_plan_approval=RecordAIRunApproval(ai_uow),
-                materialize_approved_composition=MaterializeApprovedComposition(
-                    compositions
-                ),
-                create_composition_candidate=(
-                    CreateCompositionCandidate(compositions) if critic is not None else None
-                ),
-                enqueue_candidate_preview=(
-                    EnqueueCandidatePreview(media_uow) if critic is not None else None
-                ),
-                collect_candidate_preview=(
-                    CollectCandidatePreview(media_uow) if critic is not None else None
-                ),
-                evidence_critic=critic,
-                record_candidate_critique=(
-                    RecordCandidateCritique(ai_uow) if critic is not None else None
-                ),
-                create_candidate_selection_preview=(
-                    CreateCandidateSelectionPreview(compositions) if critic is not None else None
-                ),
-                materialize_selected_candidate=(
-                    MaterializeSelectedCompositionCandidate(compositions)
-                    if critic is not None
-                    else None
-                ),
-                measure_candidate_evidence=(
-                    MeasureCandidateEvidence(compositions) if critic is not None else None
-                ),
-                apply_candidate_repair=(
-                    ApplyBoundedCandidateRepair(compositions) if critic is not None else None
-                ),
-                candidate_quality_gate=(
-                    EvaluateCandidatePair(compositions) if critic is not None else None
-                ),
-                enqueue_next_complete_export_job=EnqueueNextCompleteExportJob(
-                    media_uow,
-                    enqueue_first=EnqueueMediaJob(media_uow),
-                    enqueue_followup=EnqueueFollowupMediaJob(media_uow),
-                ),
+                    enqueue_followup_media_job=EnqueueFollowupMediaJob(
+                        PostgresMediaJobUnitOfWork(session_factory)
+                    ),
+                    enqueue_artifact_rehydration=StartArtifactRehydration(
+                        PostgresMediaJobUnitOfWork(session_factory)
+                    ),
+                    load_artifact_rehydration=LoadArtifactRehydration(
+                        PostgresMediaJobUnitOfWork(session_factory)
+                    ),
+                    storage_pressure_gate=RunStoragePressureGate(
+                        inspect_root=LocalStorageRootInspector(settings.artifact_root),
+                        load_facts=PostgresStorageFactsLoader(
+                            storage_uow, temp_root=settings.temp_root
+                        ),
+                        collector=LocalArtifactCollector(
+                            storage_uow, artifact_root=settings.artifact_root
+                        ),
+                        record_event=PersistentStorageEventRecorder(storage_uow),
+                        global_quota_bytes=settings.artifact_global_quota_bytes,
+                        project_quota_bytes=settings.artifact_project_quota_bytes,
+                        temp_quota_bytes=settings.temp_quota_bytes,
+                        minimum_free_bytes=settings.storage_min_free_bytes,
+                    ),
+                    generate_planner=planner,
+                    persist_planning_result=PersistPlanningResult(ai_uow),
+                    record_plan_approval=RecordAIRunApproval(ai_uow),
+                    materialize_approved_composition=MaterializeApprovedComposition(compositions),
+                    create_composition_candidate=(
+                        CreateCompositionCandidate(compositions) if critic is not None else None
+                    ),
+                    enqueue_candidate_preview=(
+                        EnqueueCandidatePreview(media_uow) if critic is not None else None
+                    ),
+                    collect_candidate_preview=(
+                        CollectCandidatePreview(media_uow) if critic is not None else None
+                    ),
+                    evidence_critic=critic,
+                    record_candidate_critique=(
+                        RecordCandidateCritique(ai_uow) if critic is not None else None
+                    ),
+                    edit_graph=edit_graph,
+                    create_candidate_selection_preview=(
+                        CreateCandidateSelectionPreview(compositions)
+                        if critic is not None
+                        else None
+                    ),
+                    materialize_selected_candidate=(
+                        MaterializeSelectedCompositionCandidate(compositions)
+                        if critic is not None
+                        else None
+                    ),
+                    measure_candidate_evidence=(
+                        MeasureCandidateEvidence(compositions) if critic is not None else None
+                    ),
+                    apply_candidate_repair=(
+                        ApplyBoundedCandidateRepair(compositions) if critic is not None else None
+                    ),
+                    candidate_quality_gate=(
+                        EvaluateCandidatePair(compositions) if critic is not None else None
+                    ),
+                    enqueue_next_complete_export_job=EnqueueNextCompleteExportJob(
+                        media_uow,
+                        enqueue_first=EnqueueMediaJob(media_uow),
+                        enqueue_followup=EnqueueFollowupMediaJob(media_uow),
+                    ),
                     collect_complete_export_artifact=CollectCompleteExportArtifact(media_uow),
                 )
 
-            def graph_for(run: AIRun) -> object:
+            edit_base = ReadEditBase(PostgresUnitOfWork(session_factory))
+
+            async def graph_for(run: AIRun) -> object:
+                if run.run_type is AIRunType.EDIT:
+
+                    async def load_context(request: EditRunRequest) -> BoundedEditContext:
+                        base = await edit_base(run)
+                        return BoundedEditContext.from_arrangement(base, request)
+
+                    attach_artifact = AttachEditPreviewArtifact(
+                        PostgresUnitOfWork(session_factory),
+                        run_id=run.run_id,
+                        ai_uow_factory=ai_uow,
+                    )
+
+                    async def attach_preview_artifact(
+                        cursor: Any, state: dict[str, object]
+                    ) -> dict[str, object]:
+                        attached = await attach_artifact(
+                            preview_id=UUID(str(state["pending_preview_id"])),
+                            candidate_snapshot_id=cursor.candidate_snapshot_id,
+                            expected_candidate_content_hash=cursor.candidate_content_hash,
+                            preview_artifact_id=cursor.preview_artifact_id,
+                        )
+                        return {"preview_artifact_id": str(attached.preview_artifact_ids[0])}
+
+                    edit_graph = build_edit_subgraph(
+                        EditGraphDependencies(
+                            load_context=load_context,
+                            planner=None,
+                            auto_commit=AutoCommitEdit(
+                                PostgresUnitOfWork(session_factory), run_id=run.run_id
+                            ),
+                            create_preview=CreateEditPreview(
+                                PostgresUnitOfWork(session_factory),
+                                run_id=run.run_id,
+                                ai_uow_factory=ai_uow,
+                            ),
+                            enqueue_candidate_preview=EnqueueCandidatePreview(media_uow),
+                            collect_candidate_preview=CollectCandidatePreview(media_uow),
+                            attach_preview_artifact=attach_preview_artifact,
+                            apply_decision=ApplyEditPreviewDecision(
+                                PostgresUnitOfWork(session_factory), run_id=run.run_id
+                            ),
+                        ),
+                    )
+                    return graph_with(MissingDeepSeekPlanner(), edit_graph=edit_graph)
                 return graph_with(
                     build_generate_planner(settings, run, ai_uow),
                     critic=build_generate_critic(settings, run, ai_uow),
@@ -267,6 +320,7 @@ async def run_resume_dispatcher() -> None:
             publisher = ParentGraphActionPublisher(
                 graph_for,
                 load_run=ReadAIRun(ai_uow),
+                load_edit_base=edit_base,
                 record_progress=record_progress,
             )
             parent_worker_store = PostgresOutboxStore(
@@ -315,12 +369,7 @@ async def run_resume_dispatcher() -> None:
                     batch_size=settings.outbox_batch_size,
                     lease_seconds=settings.outbox_lease_seconds,
                 )
-                if (
-                    delivered_actions
-                    + delivered_parent_workers
-                    + delivered_export_workers
-                    == 0
-                ):
+                if delivered_actions + delivered_parent_workers + delivered_export_workers == 0:
                     await asyncio.sleep(settings.outbox_poll_interval_seconds)
     finally:
         await engine.dispose()

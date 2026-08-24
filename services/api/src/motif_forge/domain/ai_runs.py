@@ -13,6 +13,8 @@ from uuid import UUID
 from pydantic import Field, model_validator
 
 from motif_forge.agent.schemas import CompositionPlan
+from motif_forge.domain.commands import Selection
+from motif_forge.domain.editing import LockedRangeRef
 from motif_forge.domain.ir import DomainModel
 
 AI_RUN_SCHEMA_VERSION = "ai-run.v1"
@@ -20,6 +22,7 @@ MAX_MODEL_REQUESTS = 3
 MAX_MODEL_TOKENS = 12_000
 PARENT_GRAPH_TOPOLOGY_VERSION = "motif-forge-parent.v2"
 GENERATE_RUN_STATE_SCHEMA_VERSION = "generate-run-state.v1"
+EDIT_RUN_STATE_SCHEMA_VERSION = "edit-run-state.v1"
 PlanHashVersion = Literal["composition-plan-hash.rounded-v1", "composition-plan-hash.lossless-v2"]
 PLAN_HASH_VERSION_V1: PlanHashVersion = "composition-plan-hash.rounded-v1"
 PLAN_HASH_VERSION_V2: PlanHashVersion = "composition-plan-hash.lossless-v2"
@@ -29,12 +32,26 @@ class AIRunStatus(StrEnum):
     QUEUED = "queued"
     PLANNING = "planning"
     WAITING_APPROVAL = "waiting_approval"
+    WAITING_EDIT_APPROVAL = "waiting_edit_approval"
     MATERIALIZING = "materializing"
     WAITING_WORKER = "waiting_worker"
     SUCCEEDED = "succeeded"
     REJECTED = "rejected"
     FAILED = "failed"
     CANCELLED = "cancelled"
+
+
+class AIRunType(StrEnum):
+    GENERATE = "generate"
+    EDIT = "edit"
+
+
+class EditRunRequest(DomainModel):
+    intent: str = Field(min_length=1, max_length=800)
+    selection: Selection
+    locked_ranges: tuple[LockedRangeRef, ...] = ()
+    allow_local_catalog: Literal[True] = True
+    seed: int = Field(default=0, ge=0, le=2**31 - 1)
 
 
 class CostStatus(StrEnum):
@@ -77,7 +94,17 @@ _TRANSITIONS: dict[AIRunStatus, frozenset[AIRunStatus]] = {
         {AIRunStatus.PLANNING, AIRunStatus.CANCELLED, AIRunStatus.FAILED}
     ),
     AIRunStatus.PLANNING: frozenset(
-        {AIRunStatus.WAITING_APPROVAL, AIRunStatus.FAILED, AIRunStatus.CANCELLED}
+        {
+            AIRunStatus.WAITING_APPROVAL,
+            AIRunStatus.WAITING_EDIT_APPROVAL,
+            AIRunStatus.WAITING_WORKER,
+            AIRunStatus.SUCCEEDED,
+            AIRunStatus.FAILED,
+            AIRunStatus.CANCELLED,
+        }
+    ),
+    AIRunStatus.WAITING_EDIT_APPROVAL: frozenset(
+        {AIRunStatus.SUCCEEDED, AIRunStatus.REJECTED, AIRunStatus.CANCELLED, AIRunStatus.FAILED}
     ),
     AIRunStatus.WAITING_APPROVAL: frozenset(
         {AIRunStatus.MATERIALIZING, AIRunStatus.REJECTED, AIRunStatus.CANCELLED}
@@ -86,7 +113,12 @@ _TRANSITIONS: dict[AIRunStatus, frozenset[AIRunStatus]] = {
         {AIRunStatus.WAITING_WORKER, AIRunStatus.FAILED, AIRunStatus.CANCELLED}
     ),
     AIRunStatus.WAITING_WORKER: frozenset(
-        {AIRunStatus.SUCCEEDED, AIRunStatus.FAILED, AIRunStatus.CANCELLED}
+        {
+            AIRunStatus.WAITING_EDIT_APPROVAL,
+            AIRunStatus.SUCCEEDED,
+            AIRunStatus.FAILED,
+            AIRunStatus.CANCELLED,
+        }
     ),
     AIRunStatus.SUCCEEDED: frozenset(),
     AIRunStatus.REJECTED: frozenset(),
@@ -98,6 +130,7 @@ _ACTION_TRANSITIONS: dict[str, dict[AIRunStatus, AIRunStatus]] = {
         AIRunStatus.QUEUED: AIRunStatus.CANCELLED,
         AIRunStatus.PLANNING: AIRunStatus.CANCELLED,
         AIRunStatus.WAITING_APPROVAL: AIRunStatus.CANCELLED,
+        AIRunStatus.WAITING_EDIT_APPROVAL: AIRunStatus.CANCELLED,
         AIRunStatus.MATERIALIZING: AIRunStatus.CANCELLED,
         AIRunStatus.WAITING_WORKER: AIRunStatus.CANCELLED,
     },
@@ -257,7 +290,9 @@ class AIRun(DomainModel):
     state_schema_version: str = Field(
         default=GENERATE_RUN_STATE_SCHEMA_VERSION, min_length=1, max_length=80
     )
+    run_type: AIRunType = AIRunType.GENERATE
     brief: dict[str, object] | None = None
+    edit_request: dict[str, object] | None = None
     status: AIRunStatus = AIRunStatus.QUEUED
     version: int = Field(default=0, ge=0)
     idempotency_key: str | None = Field(default=None, min_length=8, max_length=160)
@@ -265,6 +300,7 @@ class AIRun(DomainModel):
     pending_plan_id: UUID | None = None
     pending_plan_content_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     pending_interrupt_ref: str | None = Field(default=None, min_length=16, max_length=160)
+    pending_preview_id: UUID | None = None
     submitted_model_requests: int = Field(default=0, ge=0, le=MAX_MODEL_REQUESTS)
     max_model_requests: int = Field(default=MAX_MODEL_REQUESTS, ge=1, le=MAX_MODEL_REQUESTS)
     max_total_tokens: int = Field(default=MAX_MODEL_TOKENS, ge=1, le=MAX_MODEL_TOKENS)
@@ -280,8 +316,26 @@ class AIRun(DomainModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     terminal_at: datetime | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def default_run_state_schema(cls, value: object) -> object:
+        if isinstance(value, dict) and value.get("run_type") in {AIRunType.EDIT, "edit"}:
+            normalized = dict(value)
+            normalized.setdefault("state_schema_version", EDIT_RUN_STATE_SCHEMA_VERSION)
+            return normalized
+        return value
+
     @model_validator(mode="after")
     def validate_terminal_state(self) -> Self:
+        if self.run_type is AIRunType.GENERATE:
+            if self.edit_request is not None:
+                raise ValueError("Generate Run forbids edit_request")
+        else:
+            if self.brief is not None or self.edit_request is None:
+                raise ValueError("Edit Run requires edit_request and forbids brief")
+            EditRunRequest.model_validate_json(json.dumps(self.edit_request), strict=True)
+            if self.state_schema_version != EDIT_RUN_STATE_SCHEMA_VERSION:
+                raise ValueError("Edit Run requires edit-run-state.v1")
         if (self.status in _TERMINAL) != (self.terminal_at is not None):
             raise ValueError("terminal status and terminal_at must be present together")
         pending = (
@@ -294,6 +348,11 @@ class AIRun(DomainModel):
                 raise ValueError("waiting approval runs require a complete pending Plan interrupt")
         elif any(value is not None for value in pending):
             raise ValueError("only waiting approval runs may retain pending Plan fields")
+        if self.status is AIRunStatus.WAITING_EDIT_APPROVAL:
+            if self.run_type is not AIRunType.EDIT or self.pending_preview_id is None:
+                raise ValueError("waiting Edit approval requires Edit Run Preview identity")
+        elif self.pending_preview_id is not None:
+            raise ValueError("only waiting Edit approval may retain pending_preview_id")
         return self
 
     def transition(self, status: AIRunStatus, *, now: datetime) -> AIRun:
@@ -309,6 +368,8 @@ class AIRun(DomainModel):
                 "pending_plan_content_hash": None,
                 "pending_interrupt_ref": None,
             }
+        if self.status is AIRunStatus.WAITING_EDIT_APPROVAL:
+            pending_update["pending_preview_id"] = None
         return self.model_copy(
             update={
                 "status": status,

@@ -16,14 +16,16 @@ from pydantic import ValidationError
 from sqlalchemy import or_, select, update
 from sqlalchemy.engine import CursorResult
 
+from motif_forge.agent.edit import initial_edit_state
 from motif_forge.agent.generate import (
     CandidateSelectionDecision,
     GenerateRequest,
     PlanApprovalDecision,
     initial_generate_state,
 )
-from motif_forge.domain.ai_runs import AIRun, AIRunStatus
-from motif_forge.domain.ir import DomainModel
+from motif_forge.application.edit_decisions import EditPreviewDecision
+from motif_forge.domain.ai_runs import AIRun, AIRunStatus, AIRunType, EditRunRequest
+from motif_forge.domain.ir import ArrangementIR, DomainModel
 from motif_forge.domain.media_jobs import WorkerResumePayload
 from motif_forge.infrastructure.persistence.database import SessionFactory
 from motif_forge.infrastructure.persistence.tables import OutboxEventRow
@@ -40,8 +42,8 @@ class GraphActionPayload(DomainModel):
     action: Literal["start", "resume", "cancel"]
     run_id: UUID
     thread_id: str
-    run_type: Literal["parent.generate.v1"]
-    decision: PlanApprovalDecision | CandidateSelectionDecision | None = None
+    run_type: Literal["parent.generate.v1", "parent.edit.v1"]
+    decision: PlanApprovalDecision | CandidateSelectionDecision | EditPreviewDecision | None = None
 
     def model_post_init(self, __context: object) -> None:
         del __context
@@ -53,10 +55,14 @@ class AIRunLoader(Protocol):
     async def __call__(self, run_id: UUID) -> AIRun: ...
 
 
+class EditBaseLoader(Protocol):
+    async def __call__(self, run: AIRun) -> ArrangementIR: ...
+
+
 class PlanDecisionLoader(Protocol):
     async def __call__(
         self, run_id: UUID
-    ) -> PlanApprovalDecision | CandidateSelectionDecision: ...
+    ) -> PlanApprovalDecision | CandidateSelectionDecision | EditPreviewDecision: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -322,11 +328,13 @@ class ParentGraphActionPublisher:
         *,
         load_run: AIRunLoader,
         load_decision: PlanDecisionLoader | None = None,
+        load_edit_base: EditBaseLoader | None = None,
         record_progress: GraphProgressRecorder | None = None,
     ) -> None:
         self._graph = graph
         self._load_run = load_run
         self._load_decision = load_decision
+        self._load_edit_base = load_edit_base
         self._record_progress = record_progress
 
     async def _graph_for(self, run: AIRun) -> Any:
@@ -352,6 +360,11 @@ class ParentGraphActionPublisher:
         run = await self._load_run(payload.run_id)
         if run.thread_id != payload.thread_id or run.run_id != payload.run_id:
             raise ValueError("Graph action does not match authoritative AI Run")
+        expected_run_type = (
+            "parent.edit.v1" if run.run_type is AIRunType.EDIT else "parent.generate.v1"
+        )
+        if payload.run_type != expected_run_type:
+            raise ValueError("Graph action run type does not match authoritative AI Run")
         config = {"configurable": {"thread_id": run.thread_id}}
         graph = await self._graph_for(run)
         snapshot = await graph.aget_state(config)
@@ -361,9 +374,31 @@ class ParentGraphActionPublisher:
         if payload.action == "start":
             if values:
                 return
+            if run.run_type is AIRunType.EDIT:
+                if run.edit_request is None or self._load_edit_base is None:
+                    raise ValueError("authoritative Edit Run context is unavailable")
+                edit_request = EditRunRequest.model_validate_json(
+                    json.dumps(run.edit_request), strict=True
+                )
+                base = await self._load_edit_base(run)
+                result = await graph.ainvoke(
+                    initial_edit_state(
+                        thread_id=run.thread_id,
+                        project_id=run.project_id,
+                        branch_id=run.branch_id,
+                        base_revision_id=run.base_revision_id,
+                        request=edit_request,
+                        base_arrangement=base,
+                        run_id=run.run_id,
+                    ),
+                    config,
+                )
+                if self._record_progress is not None and isinstance(result, Mapping):
+                    await self._record_progress(result)
+                return
             if run.brief is None:
                 raise ValueError("authoritative AI Run is missing its Brief")
-            request = GenerateRequest.model_validate_json(
+            generate_request = GenerateRequest.model_validate_json(
                 json.dumps({
                     "run_id": run.run_id,
                     "project_id": run.project_id,
@@ -376,7 +411,7 @@ class ParentGraphActionPublisher:
                 strict=True,
             )
             result = await graph.ainvoke(
-                initial_generate_state(thread_id=run.thread_id, request=request), config
+                initial_generate_state(thread_id=run.thread_id, request=generate_request), config
             )
             if self._record_progress is not None and isinstance(result, Mapping):
                 await self._record_progress(result)
@@ -389,6 +424,7 @@ class ParentGraphActionPublisher:
             if values.get("phase") in {
                 "waiting_plan_approval",
                 "waiting_candidate_selection",
+                "waiting_edit_approval",
             }:
                 await graph.ainvoke(Command(resume={"action": "cancel"}), config)
             return
@@ -400,6 +436,7 @@ class ParentGraphActionPublisher:
         if values.get("phase") not in {
             "waiting_plan_approval",
             "waiting_candidate_selection",
+            "waiting_edit_approval",
         }:
             return
         decision = payload.decision
@@ -415,6 +452,10 @@ class ParentGraphActionPublisher:
             decision, CandidateSelectionDecision
         ):
             raise ValueError("Plan decision cannot resume candidate selection")
+        if values.get("phase") == "waiting_edit_approval" and not isinstance(
+            decision, EditPreviewDecision
+        ):
+            raise ValueError("non-Edit decision cannot resume Edit Preview approval")
         result = await graph.ainvoke(Command(resume=decision.model_dump(mode="json")), config)
         if self._record_progress is not None and isinstance(result, Mapping):
             await self._record_progress(result)

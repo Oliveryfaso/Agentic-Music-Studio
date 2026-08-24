@@ -25,8 +25,25 @@ from motif_forge.application.ai_runs import (
     ResumeAIRunApproval,
     ResumeAIRunCandidateSelection,
 )
-from motif_forge.application.ports import AIRunProgress, AIRunProjection, AIRunUnitOfWorkFactory
-from motif_forge.domain.ai_runs import AIRun, AIRunEvent, AIRunStatus, PlanHashVersion
+from motif_forge.application.edit_decisions import (
+    EditPreviewDecision,
+    RecordEditPreviewDecision,
+)
+from motif_forge.application.edit_runs import CreateEditAIRun, CreateEditAIRunRequest
+from motif_forge.application.ports import (
+    AIRunProgress,
+    AIRunProjection,
+    AIRunUnitOfWorkFactory,
+    UnitOfWorkFactory,
+)
+from motif_forge.domain.ai_runs import (
+    AIRun,
+    AIRunEvent,
+    AIRunStatus,
+    AIRunType,
+    EditRunRequest,
+    PlanHashVersion,
+)
 from motif_forge.domain.candidates import CandidateCritique
 
 IdempotencyKey = Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=160)]
@@ -37,17 +54,31 @@ class ApiModel(BaseModel):
 
 
 class CreateAIRunBody(ApiModel):
+    run_type: AIRunType = AIRunType.GENERATE
     branch_id: UUID
     base_revision_id: UUID
     max_model_requests: int = Field(default=3, ge=1, le=3)
     max_total_tokens: int = Field(default=12_000, ge=1, le=12_000)
-    brief: dict[str, object]
+    brief: dict[str, object] | None = None
+    edit_request: dict[str, object] | None = None
 
     @field_validator("brief")
     @classmethod
     def validate_brief(cls, value: dict[str, object]) -> dict[str, object]:
-        CompositionBrief.model_validate(value, strict=False)
+        if value is not None:
+            CompositionBrief.model_validate(value, strict=False)
         return value
+
+    @model_validator(mode="after")
+    def validate_run_payload(self) -> CreateAIRunBody:
+        if self.run_type is AIRunType.GENERATE:
+            if self.brief is None or self.edit_request is not None:
+                raise ValueError("Generate Run requires brief and forbids edit_request")
+        elif self.edit_request is None or self.brief is not None:
+            raise ValueError("Edit Run requires edit_request and forbids brief")
+        else:
+            EditRunRequest.model_validate_json(json.dumps(self.edit_request), strict=True)
+        return self
 
 
 class ResumeAIRunBody(ApiModel):
@@ -56,6 +87,15 @@ class ResumeAIRunBody(ApiModel):
     actor_id: str = Field(min_length=1, max_length=160)
     approval_assertion: str = Field(min_length=16, max_length=500)
     decision: Literal["approve", "reject"] = "approve"
+    note: str = Field(default="", max_length=500)
+
+
+class EditPreviewDecisionBody(ApiModel):
+    action: Literal["approve", "reject", "cancel"]
+    preview_id: UUID
+    expected_candidate_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    actor_id: str = Field(min_length=1, max_length=160)
+    approval_assertion: str = Field(min_length=16, max_length=500)
     note: str = Field(default="", max_length=500)
 
 
@@ -138,11 +178,14 @@ class AIRunData(ApiModel):
     branch_id: UUID
     base_revision_id: UUID
     thread_id: str
+    run_type: AIRunType
+    edit_request: EditRunRequest | None = None
     status: AIRunStatus
     version: int
-    pending_action: Literal["approve_plan", "select_candidate"] | None
+    pending_action: Literal["approve_plan", "select_candidate", "approve_edit"] | None
     pending_plan_id: UUID | None
     pending_plan_hash: str | None
+    pending_preview_id: UUID | None = None
     submitted_model_requests: int
     max_model_requests: int
     prompt_tokens: int | None
@@ -188,9 +231,11 @@ def run_data(run: AIRun, projection: AIRunProjection | None = None) -> AIRunData
             error_code=projection.error_code if projection else None,
         )
     )
-    pending_action: Literal["approve_plan", "select_candidate"] | None = None
+    pending_action: Literal["approve_plan", "select_candidate", "approve_edit"] | None = None
     if run.status is AIRunStatus.WAITING_APPROVAL:
         pending_action = "approve_plan"
+    elif run.status is AIRunStatus.WAITING_EDIT_APPROVAL:
+        pending_action = "approve_edit"
     elif (
         projection
         and len(projection.candidates) == 2
@@ -201,9 +246,16 @@ def run_data(run: AIRun, projection: AIRunProjection | None = None) -> AIRunData
     return AIRunData(
         run_id=run.run_id, parent_run_id=run.parent_run_id, project_id=run.project_id,
         branch_id=run.branch_id, base_revision_id=run.base_revision_id,
-        thread_id=run.thread_id, status=run.status, version=run.version,
+        thread_id=run.thread_id, run_type=run.run_type,
+        edit_request=(
+            EditRunRequest.model_validate_json(json.dumps(run.edit_request), strict=True)
+            if run.edit_request is not None
+            else None
+        ),
+        status=run.status, version=run.version,
         pending_action=pending_action,
         pending_plan_id=run.pending_plan_id, pending_plan_hash=run.pending_plan_content_hash,
+        pending_preview_id=run.pending_preview_id,
         submitted_model_requests=run.submitted_model_requests,
         max_model_requests=run.max_model_requests, prompt_tokens=run.prompt_tokens,
         completion_tokens=run.completion_tokens, total_tokens=run.total_tokens,
@@ -265,7 +317,9 @@ def format_sse_event(event: AIRunEvent) -> str:
     )
 
 
-def build_ai_run_router(uow: AIRunUnitOfWorkFactory) -> APIRouter:
+def build_ai_run_router(
+    uow: AIRunUnitOfWorkFactory, *, project_uow: UnitOfWorkFactory | None = None
+) -> APIRouter:
     router = APIRouter(prefix="/api/v1", tags=["ai-runs"])
 
     @router.post(
@@ -276,6 +330,25 @@ def build_ai_run_router(uow: AIRunUnitOfWorkFactory) -> APIRouter:
     async def create_run(
         project_id: UUID, body: CreateAIRunBody, idempotency_key: IdempotencyKey
     ) -> CreateAIRunResponse:
+        if body.run_type is AIRunType.EDIT:
+            assert body.edit_request is not None
+            edit_request = EditRunRequest.model_validate_json(
+                json.dumps(body.edit_request), strict=True
+            )
+            run = await CreateEditAIRun(uow)(
+                CreateEditAIRunRequest(
+                    project_id=project_id,
+                    branch_id=body.branch_id,
+                    base_revision_id=body.base_revision_id,
+                    thread_id=f"edit-{idempotency_key}",
+                    edit_request=edit_request,
+                    idempotency_key=idempotency_key,
+                    max_model_requests=body.max_model_requests,
+                    max_total_tokens=body.max_total_tokens,
+                )
+            )
+            return CreateAIRunResponse(status="accepted", data=run_data(run))
+        assert body.brief is not None
         brief = CompositionBrief.model_validate(body.brief, strict=False)
         run = await CreateAIRun(uow)(CreateAIRunRequest(
             project_id=project_id, branch_id=body.branch_id,
@@ -316,6 +389,22 @@ def build_ai_run_router(uow: AIRunUnitOfWorkFactory) -> APIRouter:
             expected_version=body.expected_version, note=body.note,
             idempotency_key=idempotency_key,
         )
+        return AIRunResponse(data=run_data(run))
+
+    @router.post("/runs/{run_id}/edit-decision", response_model=AIRunResponse)
+    async def decide_edit_preview(
+        run_id: UUID,
+        body: EditPreviewDecisionBody,
+        idempotency_key: IdempotencyKey,
+    ) -> AIRunResponse:
+        if project_uow is None:
+            raise RuntimeError("Edit Preview decisions require project persistence")
+        await RecordEditPreviewDecision(uow, project_uow_factory=project_uow)(
+            run_id=run_id,
+            decision=EditPreviewDecision.model_validate(body.model_dump()),
+            idempotency_key=idempotency_key,
+        )
+        run = await ReadAIRun(uow)(run_id)
         return AIRunResponse(data=run_data(run))
 
     async def action(

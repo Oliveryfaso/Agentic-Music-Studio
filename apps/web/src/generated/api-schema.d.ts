@@ -260,6 +260,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/runs/{run_id}/edit-decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide Edit Preview */
+        post: operations["decide_edit_preview_api_v1_runs__run_id__edit_decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runs/{run_id}/events": {
         parameters: {
             query?: never;
@@ -479,6 +496,7 @@ export interface components {
             /** Cost Status */
             cost_status: string;
             critique?: components["schemas"]["CandidateCritique"] | null;
+            edit_request?: components["schemas"]["EditRunRequest"] | null;
             /** Error Code */
             error_code?: string | null;
             /** Fallback Reason */
@@ -490,11 +508,13 @@ export interface components {
             /** Parent Run Id */
             parent_run_id: string | null;
             /** Pending Action */
-            pending_action: ("approve_plan" | "select_candidate") | null;
+            pending_action: ("approve_plan" | "select_candidate" | "approve_edit") | null;
             /** Pending Plan Hash */
             pending_plan_hash: string | null;
             /** Pending Plan Id */
             pending_plan_id: string | null;
+            /** Pending Preview Id */
+            pending_preview_id?: string | null;
             plan?: components["schemas"]["RunPlanData"] | null;
             progress: components["schemas"]["RunProgressData"];
             /**
@@ -511,6 +531,7 @@ export interface components {
              * Format: uuid
              */
             run_id: string;
+            run_type: components["schemas"]["AIRunType"];
             /** Selected Candidate Id */
             selected_candidate_id?: string | null;
             /** Selected Preview Id */
@@ -563,7 +584,12 @@ export interface components {
          * AIRunStatus
          * @enum {string}
          */
-        AIRunStatus: "queued" | "planning" | "waiting_approval" | "materializing" | "waiting_worker" | "succeeded" | "rejected" | "failed" | "cancelled";
+        AIRunStatus: "queued" | "planning" | "waiting_approval" | "waiting_edit_approval" | "materializing" | "waiting_worker" | "succeeded" | "rejected" | "failed" | "cancelled";
+        /**
+         * AIRunType
+         * @enum {string}
+         */
+        AIRunType: "generate" | "edit";
         /** AddClipCommand */
         AddClipCommand: {
             /**
@@ -1099,9 +1125,13 @@ export interface components {
              */
             branch_id: string;
             /** Brief */
-            brief: {
+            brief?: {
                 [key: string]: unknown;
-            };
+            } | null;
+            /** Edit Request */
+            edit_request?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Max Model Requests
              * @default 3
@@ -1112,6 +1142,8 @@ export interface components {
              * @default 12000
              */
             max_total_tokens: number;
+            /** @default generate */
+            run_type: components["schemas"]["AIRunType"];
         };
         /** CreateAIRunResponse */
         CreateAIRunResponse: {
@@ -1347,6 +1379,52 @@ export interface components {
              * Format: uuid
              */
             track_id: string;
+        };
+        /** EditPreviewDecisionBody */
+        EditPreviewDecisionBody: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "approve" | "reject" | "cancel";
+            /** Actor Id */
+            actor_id: string;
+            /** Approval Assertion */
+            approval_assertion: string;
+            /** Expected Candidate Content Hash */
+            expected_candidate_content_hash: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Preview Id
+             * Format: uuid
+             */
+            preview_id: string;
+        };
+        /** EditRunRequest */
+        EditRunRequest: {
+            /**
+             * Allow Local Catalog
+             * @default true
+             * @constant
+             */
+            allow_local_catalog: true;
+            /** Intent */
+            intent: string;
+            /**
+             * Locked Ranges
+             * @default []
+             */
+            locked_ranges: components["schemas"]["LockedRangeRef"][];
+            /**
+             * Seed
+             * @default 0
+             */
+            seed: number;
+            selection: components["schemas"]["Selection"];
         };
         /** Equalizer3Band */
         Equalizer3Band: {
@@ -1613,6 +1691,18 @@ export interface components {
             end_tick: number;
             /** Start Tick */
             start_tick: number;
+        };
+        /** LockedRangeRef */
+        LockedRangeRef: {
+            /** End Tick */
+            end_tick: number;
+            /** Start Tick */
+            start_tick: number;
+            /**
+             * Track Id
+             * Format: uuid
+             */
+            track_id: string;
         };
         /** Marker */
         Marker: {
@@ -3221,6 +3311,43 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RunActionBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_edit_preview_api_v1_runs__run_id__edit_decision_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditPreviewDecisionBody"];
             };
         };
         responses: {

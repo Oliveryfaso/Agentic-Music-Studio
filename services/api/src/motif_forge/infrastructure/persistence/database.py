@@ -296,6 +296,9 @@ class PostgresTransaction:
             update(PreviewCandidateRow)
             .where(PreviewCandidateRow.id == preview.preview_id)
             .values(
+                preview_artifact_ids=[str(value) for value in preview.preview_artifact_ids],
+                analysis_artifact_ids=[str(value) for value in preview.analysis_artifact_ids],
+                evidence_refs=list(preview.evidence_refs),
                 status=preview.status.value,
                 approved_revision_id=preview.approved_revision_id,
                 decision_by=preview.decision_by,

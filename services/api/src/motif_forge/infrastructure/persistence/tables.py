@@ -512,7 +512,9 @@ class AIRunRow(Base):
     )
     graph_topology_version: Mapped[str] = mapped_column(String(80), nullable=False)
     state_schema_version: Mapped[str] = mapped_column(String(80), nullable=False)
-    brief: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    run_type: Mapped[str] = mapped_column(String(16), nullable=False, default="generate")
+    brief: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
+    edit_request: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     idempotency_key: Mapped[str | None] = mapped_column(String(160))
@@ -522,6 +524,9 @@ class AIRunRow(Base):
     )
     pending_plan_content_hash: Mapped[str | None] = mapped_column(String(64))
     pending_interrupt_ref: Mapped[str | None] = mapped_column(String(160))
+    pending_preview_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.preview_candidates.id")
+    )
     submitted_model_requests: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     max_model_requests: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
     max_total_tokens: Mapped[int] = mapped_column(BigInteger, nullable=False, default=12_000)
@@ -538,6 +543,28 @@ class AIRunRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     terminal_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class AIRunEditDecisionRow(Base):
+    __tablename__ = "ai_run_edit_decisions"
+    __table_args__ = (UniqueConstraint("run_id", name="uq_ai_run_edit_decisions_run"),)
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    run_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(f"{APP_SCHEMA}.ai_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    preview_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.preview_candidates.id"), nullable=False
+    )
+    action: Mapped[str] = mapped_column(String(16), nullable=False)
+    expected_candidate_content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    assertion_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    note: Mapped[str] = mapped_column(String(500), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class AIRunApprovalRow(Base):

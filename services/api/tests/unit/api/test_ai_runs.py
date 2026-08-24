@@ -184,6 +184,39 @@ def test_create_ai_run_is_async_safe_and_forbids_runtime_internals() -> None:
         assert uow.transaction.outbox_creates == 1
 
 
+def test_create_edit_run_persists_only_bounded_request() -> None:
+    uow = FakeAIRunUOW()
+    project_id, branch_id, revision_id, track_id = uuid4(), uuid4(), uuid4(), uuid4()
+    app = create_app(Settings.for_test(), ai_run_uow_factory=uow)  # type: ignore[arg-type]
+    with TestClient(app) as client:
+        response = client.post(
+            f"/api/v1/projects/{project_id}/ai-runs",
+            headers={"Idempotency-Key": "edit-safe-0001"},
+            json={
+                "run_type": "edit",
+                "branch_id": str(branch_id),
+                "base_revision_id": str(revision_id),
+                "max_model_requests": 1,
+                "max_total_tokens": 4000,
+                "edit_request": {
+                    "intent": "把这里降低 2 dB",
+                    "selection": {
+                        "track_ids": [str(track_id)],
+                        "start_tick": 0,
+                        "end_tick": 1920,
+                    },
+                },
+            },
+        )
+    assert response.status_code == 202
+    assert response.json()["data"]["run_type"] == "edit"
+    assert response.json()["data"]["edit_request"]["selection"]["track_ids"] == [
+        str(track_id)
+    ]
+    assert uow.transaction.run is not None
+    assert uow.transaction.run.brief is None
+
+
 def test_create_rejects_unsupported_style_and_meter_before_persistence() -> None:
     uow = FakeAIRunUOW()
     app = create_app(Settings.for_test(), ai_run_uow_factory=uow)  # type: ignore[arg-type]

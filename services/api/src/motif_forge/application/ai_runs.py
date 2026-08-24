@@ -167,8 +167,16 @@ def graph_progress_target(
             AIRunStatus.FAILED,
             error_code if isinstance(error_code, str) else "GRAPH_TERMINAL_FAILURE",
         )
-    if state.get("phase") == "waiting_generate_worker":
+    if terminal == "rejected":
+        return run_id, AIRunStatus.REJECTED, None
+    if terminal == "cancelled":
+        return run_id, AIRunStatus.CANCELLED, None
+    if state.get("phase") in {"waiting_generate_worker", "waiting_worker"}:
         return run_id, AIRunStatus.WAITING_WORKER, None
+    if state.get("phase") == "waiting_edit_approval":
+        return run_id, AIRunStatus.WAITING_EDIT_APPROVAL, None
+    if state.get("phase") == "committed":
+        return run_id, AIRunStatus.SUCCEEDED, None
     return None
 
 
