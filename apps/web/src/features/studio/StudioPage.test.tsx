@@ -16,6 +16,29 @@ afterEach(() => {
 });
 
 describe("Read-only Arrangement Studio", () => {
+  it("keeps pointer edits local until Save Revision", async () => {
+    let commits = 0;
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input);
+      if (path.endsWith(`/revisions/${REVISION_ID}/studio`)) return jsonResponse({ data: studio("available") });
+      if (path === `/api/v1/projects/${PROJECT_ID}`) return jsonResponse({ data: project("ready") });
+      if (path.endsWith("/command-batches") && init?.method === "POST") {
+        commits += 1;
+        return new Response(JSON.stringify({ data: { branch_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", revision_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", content_hash: "a".repeat(64), actual_change_impact: "L0", render_state: "dirty", replayed: false } }), { status: 201, headers: { "Content-Type": "application/json" } });
+      }
+      throw new Error(`unexpected request ${path}`);
+    }));
+    renderStudio();
+    const clip = (await screen.findAllByRole("button", { name: /Clip A very long atmospheric pad/ }))[0]!;
+    const canvas = screen.getByLabelText("时间线画布");
+    fireEvent.pointerDown(clip, { clientX: 100, pointerId: 1 });
+    fireEvent.pointerUp(canvas, { clientX: 212, pointerId: 1 });
+    expect(screen.getByText("1 个未保存修改")).toBeInTheDocument();
+    expect(commits).toBe(0);
+    fireEvent.click(screen.getByRole("button", { name: "保存 Revision" }));
+    await waitFor(() => expect(commits).toBe(1));
+  });
+
   it("renders persistent IR and drives play, pause, seek, stop, and RAF cleanup from one media clock", async () => {
     const playable = studio("available");
     playable.delivery_assets[0]!.duration_milliseconds = null;

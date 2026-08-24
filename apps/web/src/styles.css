@@ -246,3 +246,10 @@ footer { padding: 16px clamp(16px, 3vw, 40px); display: flex; justify-content: s
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
 }
+.studio-toolbar { display: flex; flex-wrap: wrap; gap: .65rem; align-items: center; padding: .8rem 1rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(15,20,30,.82); }
+.studio-toolbar button { min-height: 2.4rem; }
+.studio-toolbar [role="status"] { margin-inline-start: auto; color: var(--muted); }
+.timeline-scroll { position: relative; }
+.timeline-hit-layer { position: absolute; inset: 0 auto auto 0; pointer-events: none; }
+.timeline-hit-layer button { position: absolute; pointer-events: auto; border: 1px solid transparent; background: transparent; border-radius: 6px; color: transparent; cursor: grab; }
+.timeline-hit-layer button:focus-visible { border-color: var(--cyan); outline: 2px solid var(--cyan); }

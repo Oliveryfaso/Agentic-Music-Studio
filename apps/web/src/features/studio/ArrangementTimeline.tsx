@@ -1,12 +1,18 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { TimelineProjection } from "./timelineProjection";
 
 const RULER_HEIGHT = 34;
 const TRACK_HEIGHT = 64;
 
-export function ArrangementTimeline({ projection, currentTime }: { projection: TimelineProjection; currentTime: number }) {
+export function ArrangementTimeline({ projection, currentTime, onMoveClip, onSelectClip }: {
+  projection: TimelineProjection;
+  currentTime: number;
+  onMoveClip?: (trackId: string, clipId: string, startTick: number) => void;
+  onSelectClip?: (trackId: string, clipId: string, startTick: number, endTick: number) => void;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [drag, setDrag] = useState<{ trackId: string; clipId: string; originX: number; startTick: number } | null>(null);
   const height = RULER_HEIGHT + Math.max(1, projection.tracks.length) * TRACK_HEIGHT;
   const accessible = fallbackSummary(projection);
 
@@ -16,10 +22,27 @@ export function ArrangementTimeline({ projection, currentTime }: { projection: T
   }, [currentTime, height, projection]);
 
   return (
-    <div className="timeline-scroll" tabIndex={0} aria-label="可横向滚动的只读时间线">
+    <div className="timeline-scroll" tabIndex={0} aria-label="时间线画布"
+      onPointerMove={(event) => { if (drag) event.currentTarget.dataset.dragX = String(event.clientX); }}
+      onPointerUp={(event) => {
+        if (!drag || !onMoveClip) return;
+        const pixelsPerBar = projection.widthPixels / projection.totalBars;
+        const rawTick = drag.startTick + (event.clientX - drag.originX) / pixelsPerBar * projection.ticksPerBar;
+        const snap = projection.ticksPerBar / 16;
+        onMoveClip(drag.trackId, drag.clipId, Math.max(0, Math.round(rawTick / snap) * snap));
+        setDrag(null);
+      }}>
       <canvas ref={canvasRef} width={projection.widthPixels} height={height} role="img" aria-label={`只读 Arrangement 时间线：${projection.totalBars} 小节`}>
         {accessible}
       </canvas>
+      <div className="timeline-hit-layer" style={{ width: projection.widthPixels, height }}>
+        {projection.tracks.flatMap((track, trackIndex) => track.clips.map((clip) =>
+          <button key={clip.clipId} type="button" aria-label={`Clip ${track.name}`}
+            style={{ left: clip.startPixels, top: RULER_HEIGHT + trackIndex * TRACK_HEIGHT + 10, width: Math.max(20, clip.widthPixels), height: TRACK_HEIGHT - 20 }}
+            onClick={() => onSelectClip?.(track.trackId, clip.clipId, clip.startTick, clip.endTick)}
+            onPointerDown={(event) => { event.currentTarget.setPointerCapture?.(event.pointerId); setDrag({ trackId: track.trackId, clipId: clip.clipId, originX: event.clientX, startTick: clip.startTick }); }} />
+        ))}
+      </div>
     </div>
   );
 }

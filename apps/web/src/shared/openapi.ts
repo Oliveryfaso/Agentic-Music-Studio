@@ -3,6 +3,11 @@ import type { components } from "../generated/api-schema";
 type Schemas = components["schemas"];
 
 export type ArrangementIR = Schemas["ArrangementIR"];
+export type EditorCommand = Schemas["CommandBatchBody"]["commands"][number];
+export type CommitCommandBatchInput = Schemas["CommandBatchBody"];
+export type CommandBatchData = Schemas["CommandBatchData"];
+export type UndoCommittedRevisionInput = Schemas["UndoRevisionBody"];
+export type UndoRevisionData = Schemas["UndoRevisionData"];
 export type AIRun = Schemas["AIRunData"];
 export type AIRunEvent = Schemas["AIRunEvent"];
 export type AIRunStatus = Schemas["AIRunStatus"];

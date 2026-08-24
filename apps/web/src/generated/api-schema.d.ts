@@ -209,6 +209,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo Committed Revision */
+        post: operations["undo_committed_revision_api_v1_projects__project_id__undo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runs/{run_id}": {
         parameters: {
             query?: never;
@@ -917,7 +934,7 @@ export interface components {
             /** Client Sequence */
             client_sequence: number;
             /** Commands */
-            commands: (components["schemas"]["InitializeCompositionCommand"] | components["schemas"]["AddTrackCommand"] | components["schemas"]["ImportAudioCommand"] | components["schemas"]["DeleteTrackCommand"] | components["schemas"]["AddClipCommand"] | components["schemas"]["DeleteClipCommand"] | components["schemas"]["MoveClipCommand"] | components["schemas"]["TrimClipCommand"] | components["schemas"]["SplitClipCommand"] | components["schemas"]["SetTrackParamCommand"] | components["schemas"]["SetClipParamCommand"] | components["schemas"]["AddNotesCommand"] | components["schemas"]["UpdateNotesCommand"] | components["schemas"]["DeleteNotesCommand"])[];
+            commands: (components["schemas"]["InitializeCompositionCommand"] | components["schemas"]["AddTrackCommand"] | components["schemas"]["ImportAudioCommand"] | components["schemas"]["DeleteTrackCommand"] | components["schemas"]["AddClipCommand"] | components["schemas"]["DeleteClipCommand"] | components["schemas"]["DuplicateClipCommand"] | components["schemas"]["MoveClipCommand"] | components["schemas"]["TrimClipCommand"] | components["schemas"]["SplitClipCommand"] | components["schemas"]["SetTrackParamCommand"] | components["schemas"]["SetClipParamCommand"] | components["schemas"]["AddNotesCommand"] | components["schemas"]["UpdateNotesCommand"] | components["schemas"]["DeleteNotesCommand"])[];
             /** Reason */
             reason: string;
         };
@@ -1265,6 +1282,54 @@ export interface components {
              * @constant
              */
             quality_profile: "delivery-mp3.v1";
+        };
+        /** DuplicateClipCommand */
+        DuplicateClipCommand: {
+            /**
+             * Actor Kind
+             * @enum {string}
+             */
+            actor_kind: "human" | "agent" | "system";
+            /** Client Sequence */
+            client_sequence: number;
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            command_type: "duplicate_clip";
+            payload: components["schemas"]["DuplicateClipPayload"];
+            /**
+             * Schema Version
+             * @default editor-command.v1
+             * @constant
+             */
+            schema_version: "editor-command.v1";
+            selection?: components["schemas"]["Selection"];
+        };
+        /** DuplicateClipPayload */
+        DuplicateClipPayload: {
+            /**
+             * Clip Id
+             * Format: uuid
+             */
+            clip_id: string;
+            /**
+             * Duplicate Clip Id
+             * Format: uuid
+             */
+            duplicate_clip_id: string;
+            /** Start Tick */
+            start_tick: number;
+            /**
+             * Track Id
+             * Format: uuid
+             */
+            track_id: string;
         };
         /** Equalizer3Band */
         Equalizer3Band: {
@@ -2231,7 +2296,7 @@ export interface components {
              * Parameter
              * @enum {string}
              */
-            parameter: "name" | "role" | "mute" | "solo" | "gain_db" | "pan" | "instrument_ref";
+            parameter: "name" | "role" | "mute" | "solo" | "gain_db" | "pan" | "instrument_ref" | "eq_low_db" | "eq_mid_db" | "eq_high_db";
             /**
              * Track Id
              * Format: uuid
@@ -2314,7 +2379,7 @@ export interface components {
         /** SuccessEnvelope */
         SuccessEnvelope: {
             /** Data */
-            data: components["schemas"]["CreateProjectData"] | components["schemas"]["CommandBatchData"] | components["schemas"]["UploadSessionData"] | components["schemas"]["UploadPartData"] | components["schemas"]["CompleteUploadData"] | components["schemas"]["ImportRunData"] | components["schemas"]["RehydrateRunData"] | components["schemas"]["FeatureArtifactData"] | components["schemas"]["AudioFeatureSetData"];
+            data: components["schemas"]["CreateProjectData"] | components["schemas"]["UndoRevisionData"] | components["schemas"]["CommandBatchData"] | components["schemas"]["UploadSessionData"] | components["schemas"]["UploadPartData"] | components["schemas"]["CompleteUploadData"] | components["schemas"]["ImportRunData"] | components["schemas"]["RehydrateRunData"] | components["schemas"]["FeatureArtifactData"] | components["schemas"]["AudioFeatureSetData"];
             /**
              * Request Id
              * Format: uuid
@@ -2475,6 +2540,57 @@ export interface components {
              * Format: uuid
              */
             track_id: string;
+        };
+        /** UndoRevisionBody */
+        UndoRevisionBody: {
+            /**
+             * Base Revision Id
+             * Format: uuid
+             */
+            base_revision_id: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /**
+             * Target Revision Id
+             * Format: uuid
+             */
+            target_revision_id: string;
+        };
+        /** UndoRevisionData */
+        UndoRevisionData: {
+            /**
+             * Actual Change Impact
+             * @enum {string}
+             */
+            actual_change_impact: "L0" | "L1" | "L2" | "L3";
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Content Hash */
+            content_hash: string;
+            /**
+             * Render State
+             * @default dirty
+             * @constant
+             */
+            render_state: "dirty";
+            /** Replayed */
+            replayed: boolean;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+            /**
+             * Undone Revision Id
+             * Format: uuid
+             */
+            undone_revision_id: string;
         };
         /** UpdateNotesCommand */
         UpdateNotesCommand: {
@@ -2993,6 +3109,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RevisionStudioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    undo_committed_revision_api_v1_projects__project_id__undo_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UndoRevisionBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"];
                 };
             };
             /** @description Validation Error */
