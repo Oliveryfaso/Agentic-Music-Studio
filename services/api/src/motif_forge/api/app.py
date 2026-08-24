@@ -28,6 +28,7 @@ from motif_forge.agent.parent_graph import (
 )
 from motif_forge.api.ai_runs import build_ai_run_router
 from motif_forge.api.project_reads import build_project_read_router
+from motif_forge.api.sound_catalog import build_sound_catalog_router
 from motif_forge.application.audio_content import ResolveAudioContent
 from motif_forge.application.errors import ApplicationError, RevisionConflictError
 from motif_forge.application.features import ListAudioFeatures, ReadFeatureArtifact
@@ -448,6 +449,7 @@ def create_app(
     app.state.upload_uow_factory = runtime_upload_uow
     app.state.upload_workspace = LocalUploadWorkspace(runtime_settings.artifact_root)
     app.state.parent_graph = None
+    app.include_router(build_sound_catalog_router())
     if runtime_ai_run_uow is not None:
         app.include_router(build_ai_run_router(runtime_ai_run_uow))
     if runtime_project_reads is not None:

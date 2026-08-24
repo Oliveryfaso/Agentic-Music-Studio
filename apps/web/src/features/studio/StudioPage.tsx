@@ -3,10 +3,16 @@ import { useEffect, useMemo, useState } from "react";
 
 import { StatusBanner } from "../../app/StatusBanner";
 import { ApiError, audioContentUrl, rehydrateArtifact } from "../../shared/api";
+import type { EditorCommand } from "../../shared/openapi";
 import { readProject, readRevisionStudio } from "../projects/projectApi";
 import { ArrangementTimeline } from "./ArrangementTimeline";
+import { ClipInspector } from "./ClipInspector";
 import { createEditorState, editorReducer, projectDraft, type EditorState } from "./editorState";
-import { commitCommandBatch, undoCommittedRevision } from "./studioApi";
+import { MixerPanel } from "./MixerPanel";
+import { PianoRoll } from "./PianoRoll";
+import { SampleLibrary } from "./SampleLibrary";
+import { commitCommandBatch, listSoundCatalog, undoCommittedRevision } from "./studioApi";
+import { StudioDock } from "./StudioDock";
 import { StudioToolbar } from "./StudioToolbar";
 import { TrackHeaders } from "./TrackHeaders";
 import { Transport } from "./Transport";
@@ -16,6 +22,7 @@ import { useAudioTransport } from "./useAudioTransport";
 export function StudioPage({ projectId, revisionId }: { projectId: string; revisionId: string }) {
   const studio = useQuery({ queryKey: ["revision-studio", projectId, revisionId], queryFn: () => readRevisionStudio(projectId, revisionId) });
   const project = useQuery({ queryKey: ["project", projectId], queryFn: () => readProject(projectId) });
+  const catalog = useQuery({ queryKey: ["sound-catalog"], queryFn: listSoundCatalog });
   const [recoveryFeedback, setRecoveryFeedback] = useState<string | null>(null);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const delivery = studio.data?.delivery_assets.find((asset) => asset.quality_profile === "delivery-mp3.v1") ?? null;
@@ -56,6 +63,9 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
     } catch { dispatch({ type: "saveError" }); }
   };
   const moveClip = (trackId: string, clipId: string, startTick: number) => dispatch({ type: "append", command: { command_id: crypto.randomUUID(), command_type: "move_clip", schema_version: "editor-command.v1", actor_kind: "human", client_sequence: editor.historyCursor, selection: { track_ids: [trackId], start_tick: 0, end_tick: Math.max(projection.ticksPerBar, projection.totalBars * projection.ticksPerBar) }, payload: { track_id: trackId, clip_id: clipId, start_tick: startTick } } });
+  const appendCommand = (command: EditorCommand) => dispatch({ type: "append", command: { ...command, client_sequence: editor.historyCursor } });
+  const selectedTrack = draft?.tracks.find((track) => track.track_id === editor.selection?.trackIds[0]) ?? draft?.tracks[0] ?? null;
+  const selectedClip = selectedTrack?.clips.find((clip) => clip.clip_id === editor.selection?.clipId) ?? selectedTrack?.clips[0] ?? null;
 
   const rootReady = project.data.storage_root_status === "ready";
   return (
@@ -92,6 +102,12 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
           <div className="section-ledger" aria-label="段落列表">{projection.sections.map((section) => <span key={section.sectionId}><strong>{section.label}</strong> · {Math.round(section.energy * 100)}%</span>)}</div>
         </section>
       )}
+      <StudioDock
+        piano={selectedTrack && selectedClip?.clip_type === "note" ? <PianoRoll trackId={selectedTrack.track_id} clip={selectedClip} onCommand={appendCommand} /> : <p>选择一个音符片段打开钢琴卷帘。</p>}
+        mixer={<MixerPanel tracks={(draft?.tracks ?? []).map((track) => ({ track_id: track.track_id, name: track.name, gain_db: track.gain_db, pan: track.pan, mute: track.mute, solo: track.solo }))} onCommand={appendCommand} />}
+        inspector={<ClipInspector trackId={selectedTrack?.track_id ?? ""} clip={selectedClip} onCommand={appendCommand} />}
+        library={<SampleLibrary entries={catalog.data ?? []} onChoose={selectedTrack ? (entry) => appendCommand({ command_id: crypto.randomUUID(), command_type: "set_track_param", schema_version: "editor-command.v1", actor_kind: "human", client_sequence: 0, selection: { track_ids: [selectedTrack.track_id] }, payload: { track_id: selectedTrack.track_id, parameter: "instrument_ref", value: entry.preset_id } }) : undefined} />}
+      />
     </section>
   );
 }

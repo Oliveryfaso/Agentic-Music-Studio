@@ -345,6 +345,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sound-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sound Catalog */
+        get: operations["list_sound_catalog_api_v1_sound_catalog_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/upload-sessions": {
         parameters: {
             query?: never;
@@ -3395,6 +3412,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AIRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sound_catalog_api_v1_sound_catalog_get: {
+        parameters: {
+            query?: {
+                style?: ("synth_ambient" | "minimal_electronic" | "classical_chamber" | "jazz_harmony_improvisation") | null;
+                role?: components["schemas"]["TrackRole"] | null;
+                query?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

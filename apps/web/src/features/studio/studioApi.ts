@@ -5,6 +5,11 @@ import type {
   UndoCommittedRevisionInput,
   UndoRevisionData,
 } from "../../shared/openapi";
+import type { SoundCatalogEntry } from "./SampleLibrary";
+
+export async function listSoundCatalog(): Promise<SoundCatalogEntry[]> {
+  return readData<SoundCatalogEntry[]>(await requestJson("/api/v1/sound-catalog"));
+}
 
 export async function commitCommandBatch(
   projectId: string,
