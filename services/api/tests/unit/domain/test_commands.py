@@ -16,6 +16,8 @@ from motif_forge.domain import (
     DeleteNotesCommand,
     DeleteNotesPayload,
     DomainValidationError,
+    DuplicateClipCommand,
+    DuplicateClipPayload,
     ImportAudioCommand,
     ImportAudioPayload,
     LockedRange,
@@ -27,6 +29,8 @@ from motif_forge.domain import (
     Section,
     SetClipParamCommand,
     SetClipParamPayload,
+    SetTrackParamCommand,
+    SetTrackParamPayload,
     SplitClipCommand,
     SplitClipPayload,
     Track,
@@ -184,6 +188,40 @@ def test_move_trim_split_and_clip_parameter_commands() -> None:
     left, right = changed.tracks[0].clips
     assert (left.start_tick, left.duration_tick) == (2_160, 480)
     assert (right.start_tick, right.duration_tick, right.gain_db) == (2_640, 720, -3.0)
+
+
+def test_duplicate_clip_and_track_eq_use_stable_allowlisted_commands() -> None:
+    clip = NoteClip(clip_id=uid(20), start_tick=0, duration_tick=960)
+    base = ArrangementIR(
+        project_id=uid(1),
+        sections=(Section(section_id=uid(2), start_tick=0, end_tick=3840, label="A"),),
+        tracks=(instrument_track().model_copy(update={"clips": (clip,)}),),
+    )
+
+    duplicated = apply_command(
+        base,
+        DuplicateClipCommand(
+            payload=DuplicateClipPayload(
+                track_id=uid(10), clip_id=uid(20), duplicate_clip_id=uid(21), start_tick=1920
+            ),
+            **command_fields(0),
+        ),
+    )
+    equalized = apply_command(
+        duplicated,
+        SetTrackParamCommand(
+            payload=SetTrackParamPayload(
+                track_id=uid(10), parameter="eq_low_db", value=-2.5
+            ),
+            **command_fields(1),
+        ),
+    )
+
+    assert [(item.clip_id, item.start_tick) for item in equalized.tracks[0].clips] == [
+        (uid(20), 0),
+        (uid(21), 1920),
+    ]
+    assert equalized.tracks[0].eq.low_db == -2.5
 
 
 def test_update_delete_notes_and_delete_clip() -> None:

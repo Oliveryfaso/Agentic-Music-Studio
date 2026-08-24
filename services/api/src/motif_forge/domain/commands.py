@@ -141,6 +141,16 @@ class DeleteClipCommand(CommandEnvelope):
     payload: ClipTargetPayload
 
 
+class DuplicateClipPayload(ClipTargetPayload):
+    duplicate_clip_id: UUID
+    start_tick: int = Field(ge=0)
+
+
+class DuplicateClipCommand(CommandEnvelope):
+    command_type: Literal["duplicate_clip"] = "duplicate_clip"
+    payload: DuplicateClipPayload
+
+
 class MoveClipPayload(ClipTargetPayload):
     start_tick: int = Field(ge=0)
 
@@ -178,7 +188,18 @@ class SplitClipCommand(CommandEnvelope):
 
 class SetTrackParamPayload(DomainModel):
     track_id: UUID
-    parameter: Literal["name", "role", "mute", "solo", "gain_db", "pan", "instrument_ref"]
+    parameter: Literal[
+        "name",
+        "role",
+        "mute",
+        "solo",
+        "gain_db",
+        "pan",
+        "instrument_ref",
+        "eq_low_db",
+        "eq_mid_db",
+        "eq_high_db",
+    ]
     value: str | bool | float | TrackRole
 
     @model_validator(mode="after")
@@ -186,7 +207,13 @@ class SetTrackParamPayload(DomainModel):
         value = self.value
         if self.parameter in {"mute", "solo"} and type(value) is not bool:
             raise ValueError(f"{self.parameter} requires a boolean value")
-        if self.parameter in {"gain_db", "pan"} and type(value) is not float:
+        if self.parameter in {
+            "gain_db",
+            "pan",
+            "eq_low_db",
+            "eq_mid_db",
+            "eq_high_db",
+        } and type(value) is not float:
             raise ValueError(f"{self.parameter} requires a float value")
         if self.parameter in {"name", "instrument_ref"} and type(value) is not str:
             raise ValueError(f"{self.parameter} requires a string value")
@@ -281,6 +308,7 @@ EditorCommand = Annotated[
     | DeleteTrackCommand
     | AddClipCommand
     | DeleteClipCommand
+    | DuplicateClipCommand
     | MoveClipCommand
     | TrimClipCommand
     | SplitClipCommand
@@ -579,7 +607,12 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
                 f"tracks.{track.track_id}.locked_ranges",
                 "track-wide parameters cannot change while material is locked",
             )
-        changed_track = _rebuild_track(track, **{payload.parameter: payload.value})
+        if payload.parameter.startswith("eq_"):
+            eq_data = track.eq.model_dump(mode="python")
+            eq_data[payload.parameter.removeprefix("eq_")] = payload.value
+            changed_track = _rebuild_track(track, eq=eq_data)
+        else:
+            changed_track = _rebuild_track(track, **{payload.parameter: payload.value})
         return _replace_track(arrangement, track_index, changed_track)
 
     clip_index = _clip_index(track, payload.clip_id)
@@ -590,6 +623,18 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
         _assert_unlocked(track, clip.start_tick, clip_end)
         updated = tuple(item for item in track.clips if item.clip_id != clip.clip_id)
         return _replace_track(arrangement, track_index, _rebuild_track(track, clips=updated))
+
+    if isinstance(command, DuplicateClipCommand):
+        _assert_unlocked(track, clip.start_tick, clip_end)
+        _assert_unlocked(track, payload.start_tick, payload.start_tick + clip.duration_tick)
+        data = clip.model_dump(mode="python")
+        data.update(clip_id=payload.duplicate_clip_id, start_tick=payload.start_tick)
+        duplicated = type(clip).model_validate(data)
+        return _replace_track(
+            arrangement,
+            track_index,
+            _rebuild_track(track, clips=(*track.clips, duplicated)),
+        )
 
     if isinstance(command, MoveClipCommand):
         _assert_unlocked(track, clip.start_tick, clip_end)

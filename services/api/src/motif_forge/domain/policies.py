@@ -9,6 +9,7 @@ from motif_forge.domain.commands import (
     DeleteClipCommand,
     DeleteNotesCommand,
     DeleteTrackCommand,
+    DuplicateClipCommand,
     EditorCommand,
     ImportAudioCommand,
     InitializeCompositionCommand,
@@ -32,7 +33,15 @@ def command_change_impact(command: EditorCommand) -> ChangeImpact:
         return ChangeImpact.L3
 
     if isinstance(command, SetTrackParamCommand):
-        if command.payload.parameter in {"mute", "solo", "gain_db", "pan"}:
+        if command.payload.parameter in {
+            "mute",
+            "solo",
+            "gain_db",
+            "pan",
+            "eq_low_db",
+            "eq_mid_db",
+            "eq_high_db",
+        }:
             return ChangeImpact.L0
         if command.actor_kind == "agent" and command.payload.parameter == "instrument_ref":
             return ChangeImpact.L2
@@ -64,6 +73,9 @@ def command_change_impact(command: EditorCommand) -> ChangeImpact:
 
     if isinstance(command, creative_commands):
         return ChangeImpact.L1
+
+    if isinstance(command, DuplicateClipCommand):
+        return ChangeImpact.L0 if command.actor_kind == "human" else ChangeImpact.L1
 
     return ChangeImpact.L0
 
