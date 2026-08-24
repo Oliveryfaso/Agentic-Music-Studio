@@ -24,3 +24,5 @@ export type RevisionStudio = Schemas["RevisionStudioData"];
 export type RunActionInput = Schemas["RunActionBody"];
 export type RunProgress = Schemas["RunProgressData"];
 export type SelectCandidateInput = Schemas["SelectCandidateBody"];
+export type EditPreviewDecisionInput = Schemas["EditPreviewDecisionBody"];
+export type RunEditPreview = Schemas["RunEditPreviewData"];

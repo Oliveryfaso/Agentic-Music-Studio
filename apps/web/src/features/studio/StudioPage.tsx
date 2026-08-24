@@ -1,12 +1,18 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useReducer, useState } from "react";
 
 import { StatusBanner } from "../../app/StatusBanner";
+import { navigate } from "../../app/routes";
 import { ApiError, audioContentUrl, rehydrateArtifact } from "../../shared/api";
-import type { EditorCommand } from "../../shared/openapi";
+import type { AIRun, EditorCommand } from "../../shared/openapi";
 import { readProject, readRevisionStudio } from "../projects/projectApi";
+import { watchRunEvents } from "../generate/runEvents";
 import { ArrangementTimeline } from "./ArrangementTimeline";
 import { ClipInspector } from "./ClipInspector";
+import { EditPanel } from "./EditPanel";
+import { EditPreviewCard } from "./EditPreviewCard";
+import { decideEditPreview } from "./editRunApi";
+import { createEditRunState, reduceEditRunState } from "./editRunState";
 import { createEditorState, editorReducer, projectDraft, type EditorState } from "./editorState";
 import { MixerPanel } from "./MixerPanel";
 import { PianoRoll } from "./PianoRoll";
@@ -20,15 +26,47 @@ import { projectTimeline } from "./timelineProjection";
 import { useAudioTransport } from "./useAudioTransport";
 
 export function StudioPage({ projectId, revisionId }: { projectId: string; revisionId: string }) {
+  const queryClient = useQueryClient();
   const studio = useQuery({ queryKey: ["revision-studio", projectId, revisionId], queryFn: () => readRevisionStudio(projectId, revisionId) });
   const project = useQuery({ queryKey: ["project", projectId], queryFn: () => readProject(projectId) });
   const catalog = useQuery({ queryKey: ["sound-catalog"], queryFn: listSoundCatalog });
   const [recoveryFeedback, setRecoveryFeedback] = useState<string | null>(null);
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const [editRun, dispatchEditRun] = useReducer(reduceEditRunState, undefined, createEditRunState);
+  const [editDecisionPending, setEditDecisionPending] = useState(false);
+  const [editRunId, setEditRunId] = useState<string | null>(() =>
+    sessionStorage.getItem(`motif-forge:project:${projectId}:edit-run`),
+  );
   const delivery = studio.data?.delivery_assets.find((asset) => asset.quality_profile === "delivery-mp3.v1") ?? null;
   useEffect(() => {
     if (studio.data && project.data && editor === null) setEditor(createEditorState(project.data.active_branch_id, studio.data.revision_id, studio.data.arrangement_ir));
   }, [editor, project.data, studio.data]);
+  useEffect(() => {
+    if (!editRunId) return;
+    const controller = new AbortController();
+    void watchRunEvents(editRunId, {
+      onEvent: (event) => dispatchEditRun({ type: "event", event }),
+      onAuthoritativeRun: (run) => {
+        dispatchEditRun({ type: "authoritative", run });
+        if (run.revision_id) {
+          void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+          void queryClient.invalidateQueries({
+            queryKey: ["revision-studio", projectId, run.revision_id],
+          });
+        }
+      },
+      onConnectionChange: (connection) => {
+        if (connection === "offline_error") {
+          dispatchEditRun({ type: "disconnected", errorCode: "RUN_EVENT_STREAM_FAILED" });
+        }
+      },
+    }, controller.signal).catch(() => {
+      if (!controller.signal.aborted) {
+        dispatchEditRun({ type: "disconnected", errorCode: "RUN_EVENT_STREAM_FAILED" });
+      }
+    });
+    return () => controller.abort();
+  }, [editRunId, projectId, queryClient]);
   const draft = useMemo(() => editor ? projectDraft(editor) : studio.data?.arrangement_ir, [editor, studio.data]);
   const projection = useMemo(() => draft ? projectTimeline(draft) : null, [draft]);
   const duration = delivery?.duration_milliseconds ? delivery.duration_milliseconds / 1000 : (projection?.durationSeconds ?? 0);
@@ -68,6 +106,32 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
   const selectedClip = selectedTrack?.clips.find((clip) => clip.clip_id === editor.selection?.clipId) ?? selectedTrack?.clips[0] ?? null;
 
   const rootReady = project.data.storage_root_status === "ready";
+  const handleRunCreated = (run: AIRun) => {
+    sessionStorage.setItem(`motif-forge:project:${projectId}:edit-run`, run.run_id);
+    setEditRunId(run.run_id);
+    dispatchEditRun({ type: "authoritative", run });
+  };
+  const decidePreview = async (action: "approve" | "reject" | "cancel") => {
+    if (!editRun.runId || !editRun.preview) return;
+    setEditDecisionPending(true);
+    try {
+      const run = await decideEditPreview(editRun.runId, {
+        action,
+        preview_id: editRun.preview.preview_id,
+        expected_candidate_content_hash: editRun.preview.candidate_content_hash,
+        actor_id: "human:web",
+        approval_assertion: `Web user confirmed rendered edit: ${action}`,
+        note: "",
+      }, `web-edit-decision:${editRun.runId}:${action}`);
+      dispatchEditRun({ type: "authoritative", run });
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        dispatchEditRun({ type: "conflict", serverRevisionId: project.data.head_revision_id });
+      } else dispatchEditRun({ type: "disconnected", errorCode: errorMessage(error as Error) });
+    } finally {
+      setEditDecisionPending(false);
+    }
+  };
   return (
     <section className="studio-page" aria-labelledby="studio-title">
       <header className="studio-hero">
@@ -78,6 +142,26 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
       {studio.data.bundle_id === null && <StatusBanner tone="warning" message="部分成功 Revision" detail="安全 Revision 已保留，但完整 Bundle 尚未形成。" />}
       {!rootReady && <StatusBanner tone="danger" message="外置 Artifact Root 当前不可用" detail={`存储状态：${project.data.storage_root_status}。页面不会改用内部磁盘。`} />}
       <StudioToolbar state={editor} onUndo={() => dispatch({ type: "undo" })} onRedo={() => dispatch({ type: "redo" })} onSave={() => void saveDraft()} onUndoRevision={() => void undoRevision()} />
+
+      <EditPanel
+        projectId={projectId}
+        branchId={editor.base.branchId}
+        baseRevisionId={editor.base.revisionId}
+        selection={editor.selection}
+        lockedRanges={[]}
+        rootReady={rootReady}
+        onRunCreated={handleRunCreated}
+      />
+      {editRun.mode !== "idle" && <section className="edit-run-status" aria-live="polite">
+        <strong>{editRunModeLabel(editRun.mode)}</strong>
+        {editRun.errorCode && <span>{editRun.errorCode}</span>}
+        {editRun.mode === "committed" && editRun.revisionId &&
+          <button className="primary-button" type="button" onClick={() => navigate({
+            name: "studio", projectId, revisionId: editRun.revisionId as string,
+          })}>打开新 Revision</button>}
+      </section>}
+      {editRun.preview && <EditPreviewCard preview={editRun.preview}
+        busy={editDecisionPending} rootReady={rootReady} onDecision={(action) => void decidePreview(action)} />}
 
       <section className="studio-panel" aria-labelledby="transport-title">
         <div className="panel-heading"><div><p className="eyebrow">DELIVERY MP3</p><h2 id="transport-title">作品试听</h2></div>{delivery && <span className={`status-pill ${delivery.availability}`}>{availabilityLabel(delivery.availability)}</span>}</div>
@@ -143,3 +227,6 @@ function StudioLoading() { return <section className="loading-state"><div classN
 function StudioError({ error, retry }: { error: Error; retry: () => void }) { return <section className="error-state" role="alert"><span>!</span><div><h2>无法打开 Studio</h2><p>{errorMessage(error)}</p><button type="button" onClick={retry}>重试</button></div></section>; }
 function errorMessage(error: Error): string { return error instanceof ApiError ? `${error.message}（${error.code}）` : error.message || "客户端发生未知错误"; }
 function availabilityLabel(value: "available" | "evicted" | "rehydrating" | "missing"): string { return ({ available: "可播放", evicted: "已回收", rehydrating: "重建中", missing: "缺失" })[value]; }
+function editRunModeLabel(value: import("./editRunState").EditRunMode): string {
+  return ({ idle: "待命", submitting: "正在提交", planning: "正在规划与模拟", rendering_preview: "正在渲染 Preview", waiting_approval: "等待 Preview 审批", committed: "已提交新 Revision", rejected: "Preview 已拒绝", cancelled: "Edit Run 已取消", failed: "Edit Run 失败", disconnected: "事件连接中断，可刷新恢复", conflict: "Base 已变化，本地 Draft 已保留" })[value];
+}

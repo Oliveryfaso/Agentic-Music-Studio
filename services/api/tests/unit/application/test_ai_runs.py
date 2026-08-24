@@ -16,10 +16,10 @@ def test_graph_progress_maps_worker_and_terminal_states() -> None:
 
     assert graph_progress_target(
         {"run_id": str(run_id), "phase": "waiting_generate_worker"}
-    ) == (run_id, AIRunStatus.WAITING_WORKER, None)
+    ) == (run_id, AIRunStatus.WAITING_WORKER, None, None)
     assert graph_progress_target(
         {"run_id": str(run_id), "phase": "completed", "terminal_status": "succeeded"}
-    ) == (run_id, AIRunStatus.SUCCEEDED, None)
+    ) == (run_id, AIRunStatus.SUCCEEDED, None, None)
     assert graph_progress_target(
         {
             "run_id": str(run_id),
@@ -27,7 +27,7 @@ def test_graph_progress_maps_worker_and_terminal_states() -> None:
             "terminal_status": "failed",
             "error_code": "WORKER_TERMINAL_FAILURE",
         }
-    ) == (run_id, AIRunStatus.FAILED, "WORKER_TERMINAL_FAILURE")
+    ) == (run_id, AIRunStatus.FAILED, "WORKER_TERMINAL_FAILURE", None)
 
 
 def test_model_request_budget_refuses_fourth_upstream_request() -> None:

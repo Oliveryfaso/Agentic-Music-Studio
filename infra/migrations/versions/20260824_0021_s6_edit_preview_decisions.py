@@ -18,11 +18,25 @@ def upgrade() -> None:
         sa.Column("pending_preview_id", postgresql.UUID(as_uuid=True), nullable=True),
         schema="app",
     )
+    op.add_column(
+        "ai_runs",
+        sa.Column("materialized_revision_id", postgresql.UUID(as_uuid=True), nullable=True),
+        schema="app",
+    )
     op.create_foreign_key(
         "fk_ai_runs_pending_preview",
         "ai_runs",
         "preview_candidates",
         ["pending_preview_id"],
+        ["id"],
+        source_schema="app",
+        referent_schema="app",
+    )
+    op.create_foreign_key(
+        "fk_ai_runs_materialized_revision",
+        "ai_runs",
+        "project_revisions",
+        ["materialized_revision_id"],
         ["id"],
         source_schema="app",
         referent_schema="app",
@@ -50,4 +64,8 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_table("ai_run_edit_decisions", schema="app")
     op.drop_constraint("fk_ai_runs_pending_preview", "ai_runs", schema="app", type_="foreignkey")
+    op.drop_constraint(
+        "fk_ai_runs_materialized_revision", "ai_runs", schema="app", type_="foreignkey"
+    )
+    op.drop_column("ai_runs", "materialized_revision_id", schema="app")
     op.drop_column("ai_runs", "pending_preview_id", schema="app")

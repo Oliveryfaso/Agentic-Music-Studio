@@ -351,3 +351,12 @@
 - 12 条 S5 Eval 覆盖四种风格各两例、repair improved/non-improving、restart replay 与 reject/cancel。集中门为 Python `517 passed`、真实 PostgreSQL `8 passed`、Audio `13 passed`、Web `46 passed`；Ruff、Mypy strict 94 source、Audio/Web build、OpenAPI generation 与 diff check 通过。
 - no-Key CLI 与浏览器真实运行均完成 `2 candidate families / 3 snapshots / 1 repair child / 2 selection previews / 1 selected Revision / 7 Jobs / 6 Audio / 1 Bundle / 0 request / 0 token`；浏览器进一步确认 A/B 逐一播放、打开只读 Studio 和 390px 无横向溢出。Artifact checksum 只因导出协议要求而核对，没有对仓库或文档做附带哈希。
 - 运行态依次暴露并修复三个当前路径缺口：Candidate Preview Media Run 类型未匹配 Parent dispatcher；Worker completion 使用不含 S5 节点的静态 Graph；60 秒/72 BPM fallback 向上取整到 20 bars 后超过策略容差。修复分别使用版本化 `parent.candidate_preview.v1`、按权威 AI Run thread 重建同一完整 Graph、最近整数小节投影，并都有 RED/GREEN 与真实 PostgreSQL/浏览器复验。没有调用付费模型，也没有扩大到 S7 的极端并发、负载或多租户矩阵。
+
+## 2026-08-25：S6 轻量 DAW 与 AI 选区编辑闭环
+
+- 新增有界 `EditPatchProposal v1` 与确定性模拟：只读选区、邻接小节和锁定范围，实际 diff 可把模型预测影响向上升级；非目标修改、锁定范围、越界命令和不支持的 no-key 意图 fail closed。显式 gain 与 reviewed local preset 可在无 Key 下生成稳定 Patch。
+- Studio 新增 lightweight Timeline/Piano Roll/Mixer/Library draft，所有保存仍转换为现有 EditorCommand 并产生不可变 Revision；Undo/Redo 通过新 Revision 恢复历史状态，不回写旧 Revision。390px 只保留 review-only，桌面和移动端均无页面级横向溢出。
+- 唯一 Parent Graph v2 挂载 EditSubgraph：L0/L1 自动提交，L2/L3 创建 Candidate/Preview、经真实 Preview Job/Artifact 后 interrupt，人工 approve/reject/cancel 由 PostgreSQL 决策与 outbox 幂等恢复。没有模型或 UI 直接写 Revision，也没有第三个生产 Graph。
+- 真实运行发现 LangGraph 嵌套子图连续 worker/HITL interrupt 共用 Parent checkpoint 时，第二次 root resume 会被首次 `__resume__` 写入遮蔽。修复为 EditSubgraph 共享同一个 PostgreSQL saver，publisher 从 `parent.aget_state(..., subgraphs=True)` 取得权威 namespace，定向恢复子图后再由 Parent 合并；同一已发布审批消息重投后 Run 从 `waiting_edit_approval` 恢复到 `succeeded`，无新模型调用。
+- 12 条代表性 Eval 与 stage contract 通过；最终主机门为 Python unit `485 passed`、S6 Eval/contract `8 passed`、PostgreSQL Edit/Dispatcher/SSE `5 passed`、Web `58 passed`，Ruff、Mypy 101 source、Vite build、OpenAPI 与 diff checks 通过。no-key deterministic smoke 完成手工 Revision/Undo、L0、L2 真实 Preview/approve，provider usage 为 `0/0`；Chromium 再验证 Clip 选择、AI edit、刷新、desktop/mobile overflow 和 mobile review-only。
+- 本阶段未调用付费 API。外部音源搜索、完整专业 DAW、主观音质规模化评估、全 checkpoint/并发矩阵、负载/P95、多租户、正式 Export/Run Inspector/Eval Lab 和公开发布硬化进入 S7；数据库卷、业务 Artifact 和共享 Docker 资源均保留。

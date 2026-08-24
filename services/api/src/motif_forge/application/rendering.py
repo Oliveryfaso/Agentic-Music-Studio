@@ -90,8 +90,12 @@ def _track_spec(track: Track, *, bpm: float, ppq: int) -> dict[str, object]:
         }
     preset_by_ref = {
         "builtin:warm_pad": "warm_pad",
+        "builtin:warm-pad": "warm_pad",
         "builtin:glass_pluck": "glass_pluck",
+        "builtin:glass-pluck": "glass_pluck",
         "builtin:sub_bass": "sub_bass",
+        "builtin:sub-bass": "sub_bass",
+        "builtin:soft-pulse": "warm_pad",
         "builtin:poly-synth": "warm_pad",
         "builtin:short-pluck": "glass_pluck",
         "builtin:mono-bass": "sub_bass",

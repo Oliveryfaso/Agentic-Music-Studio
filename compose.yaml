@@ -76,6 +76,7 @@ services:
     env_file:
       - .env
     environment:
+      DEEPSEEK_API_KEY: ""
       MOTIF_FORGE_STORAGE_PROFILE: lean
       MOTIF_FORGE_ARTIFACT_ROOT: /artifacts
       MOTIF_FORGE_TEMP_ROOT: /temp

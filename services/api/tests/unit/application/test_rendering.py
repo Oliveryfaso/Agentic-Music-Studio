@@ -72,6 +72,29 @@ def test_ir_projection_rejects_unreviewed_instrument_reference() -> None:
         compile_audio_graph(changed)
 
 
+def test_ir_projection_accepts_reviewed_catalog_timbre_alias() -> None:
+    arrangement = build_s1_composition(PROJECT_ID, seed=25).arrangement
+    changed = arrangement.model_copy(
+        update={
+            "tracks": (
+                arrangement.tracks[0].model_copy(
+                    update={"instrument_ref": "builtin:glass-pluck"}
+                ),
+                *arrangement.tracks[1:],
+            )
+        }
+    )
+
+    projection = compile_audio_graph(changed)
+
+    edited = next(
+        track
+        for track in projection.graph["tracks"]
+        if track["trackId"] == str(arrangement.tracks[0].track_id)
+    )
+    assert edited["presetId"] == "glass_pluck"
+
+
 @pytest.mark.parametrize(
     "style",
     [

@@ -9,6 +9,7 @@ from motif_forge.agent.edit import (
     build_edit_subgraph,
     initial_edit_state,
 )
+from motif_forge.agent.parent_graph import build_parent_graph
 from motif_forge.application.candidate_previews import CandidatePreviewCursor
 from motif_forge.application.edit_decisions import EditPreviewDecision
 from motif_forge.domain.ai_runs import EditRunRequest
@@ -57,7 +58,7 @@ async def test_fallback_edit_graph_routes_explicit_gain_to_auto_commit() -> None
         {"configurable": {"thread_id": "edit-test"}},
     )
 
-    assert result["edit_route"] == "auto_commit"
+    assert result["edit_route"] == "auto_commit", result
     assert result["simulation"]["actual_change_impact"] == 0
     assert result["planner_context"]["contains_full_arrangement"] is False
 
@@ -95,6 +96,32 @@ async def test_fallback_rejects_unsupported_intent_without_model() -> None:
     )
     assert result["phase"] == "failed"
     assert result["error_code"] == "EDIT_FALLBACK_UNSUPPORTED"
+
+
+@pytest.mark.asyncio
+async def test_fallback_routes_reviewed_local_timbre_to_preview() -> None:
+    base = ArrangementIR(
+        project_id=uid(1),
+        sections=(Section(section_id=uid(2), start_tick=0, end_tick=3840, label="A"),),
+        tracks=(Track(
+            track_id=uid(3), track_type=TrackType.INSTRUMENT,
+            name="Pad", role=TrackRole.HARMONY,
+        ),),
+    )
+    request = EditRunRequest(
+        intent="把选中轨道的音色改成 builtin:glass-pluck",
+        selection=Selection(track_ids=(uid(3),), start_tick=0, end_tick=1920),
+    )
+    graph = build_edit_subgraph(EditGraphDependencies(
+        load_context=lambda value: BoundedEditContext.from_arrangement(base, value),
+        planner=None,
+    ))
+    result = await graph.ainvoke(initial_edit_state(
+        thread_id="edit-timbre", project_id=uid(1), branch_id=uid(4),
+        base_revision_id=uid(5), request=request, base_arrangement=base,
+    ))
+    assert result["edit_route"] == "preview_required", result
+    assert result["simulation"]["actual_change_impact"] == ChangeImpact.L2
 
 
 @pytest.mark.asyncio
@@ -208,3 +235,91 @@ async def test_high_impact_edit_waits_for_rendered_artifact_before_approval() ->
     assert second["phase"] == "waiting_edit_approval"
     assert attached == [artifact_id]
     assert second["preview_artifact_id"] == str(artifact_id)
+
+    third = await graph.ainvoke(
+        Command(
+            resume={
+                "action": "approve",
+                "preview_id": str(preview_id),
+                "expected_candidate_content_hash": "a" * 64,
+                "actor_id": "portfolio-owner",
+                "approval_assertion": "I approve this rendered edit Preview.",
+                "note": "",
+            }
+        ),
+        config,
+    )
+    assert third["phase"] == "committed"
+    assert third["terminal_status"] == "succeeded"
+
+    async def unused_parent_enqueuer(_request: object) -> object:
+        raise AssertionError("Edit route must not use the Parent media enqueuer")
+
+    mounted_saver = MemorySaver()
+    mounted_edit = build_edit_subgraph(
+        EditGraphDependencies(
+            load_context=lambda value: BoundedEditContext.from_arrangement(base, value),
+            planner=planner,
+            create_preview=create_preview,
+            enqueue_candidate_preview=enqueue,
+            collect_candidate_preview=collect,
+            attach_preview_artifact=attach,
+            apply_decision=decide,
+        ),
+        checkpointer=mounted_saver,
+    )
+    parent = build_parent_graph(
+        unused_parent_enqueuer,  # type: ignore[arg-type]
+        checkpointer=mounted_saver,
+        edit_graph=mounted_edit,
+    )
+    mounted_config = {"configurable": {"thread_id": "mounted-edit-render"}}
+    await parent.ainvoke(
+        initial_edit_state(
+            thread_id="mounted-edit-render",
+            run_id=uid(8),
+            project_id=uid(1),
+            branch_id=uid(4),
+            base_revision_id=uid(5),
+            request=request,
+            base_arrangement=base,
+        ),
+        mounted_config,
+    )
+    await parent.ainvoke(
+        Command(
+            resume={
+                "schema_version": "worker-resume.v1",
+                "run_id": str(media_run_id),
+                "thread_id": "mounted-edit-render",
+                "run_type": "parent.candidate_preview.v1",
+                "resume_event_id": "mounted-event-1",
+                "job_id": str(job_id),
+                "status": "succeeded",
+                "artifact_id": str(artifact_id),
+            }
+        ),
+        mounted_config,
+    )
+    mounted_snapshot = await parent.aget_state(mounted_config)
+    assert len(mounted_snapshot.interrupts) == 1
+    edit_task_config = next(
+        task.state for task in mounted_snapshot.tasks if isinstance(task.state, dict)
+    )
+    mounted_subgraph = dict(parent.get_subgraphs())["EditSubgraph"]
+    await mounted_subgraph.ainvoke(
+        Command(
+            resume={
+                "action": "approve",
+                "preview_id": str(preview_id),
+                "expected_candidate_content_hash": "a" * 64,
+                "actor_id": "portfolio-owner",
+                "approval_assertion": "I approve this mounted edit Preview.",
+                "note": "",
+            }
+        ),
+        edit_task_config,
+    )
+    mounted_terminal = await parent.ainvoke(None, mounted_config)
+    assert mounted_terminal["phase"] == "committed"
+    assert mounted_terminal["terminal_status"] == "succeeded"

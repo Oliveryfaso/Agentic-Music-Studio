@@ -5,6 +5,7 @@ const RECOVERABLE: ReadonlySet<AIRunStatus> = new Set([
   "queued",
   "planning",
   "waiting_approval",
+  "waiting_edit_approval",
   "materializing",
   "waiting_worker",
 ]);
@@ -13,6 +14,7 @@ const STATUS_LABELS = {
   queued: "等待执行",
   planning: "正在规划",
   waiting_approval: "等待审批",
+  waiting_edit_approval: "等待编辑审批",
   materializing: "正在创建版本",
   waiting_worker: "正在导出",
   succeeded: "已完成",

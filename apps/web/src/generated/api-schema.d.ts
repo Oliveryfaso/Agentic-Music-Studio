@@ -496,6 +496,7 @@ export interface components {
             /** Cost Status */
             cost_status: string;
             critique?: components["schemas"]["CandidateCritique"] | null;
+            edit_preview?: components["schemas"]["RunEditPreviewData"] | null;
             edit_request?: components["schemas"]["EditRunRequest"] | null;
             /** Error Code */
             error_code?: string | null;
@@ -2209,6 +2210,34 @@ export interface components {
              * @enum {string}
              */
             repair_status: "not_requested" | "improved" | "non_improving";
+        };
+        /** RunEditPreviewData */
+        RunEditPreviewData: {
+            /** Actual Change Impact */
+            actual_change_impact: number;
+            /** Candidate Content Hash */
+            candidate_content_hash: string;
+            /**
+             * Candidate Snapshot Id
+             * Format: uuid
+             */
+            candidate_snapshot_id: string;
+            /** Preview Artifact Id */
+            preview_artifact_id: string | null;
+            /**
+             * Preview Availability
+             * @enum {string}
+             */
+            preview_availability: "available" | "evicted" | "missing" | "rehydrating";
+            /**
+             * Preview Id
+             * Format: uuid
+             */
+            preview_id: string;
+            /** Structural Diff */
+            structural_diff: {
+                [key: string]: unknown;
+            }[];
         };
         /** RunPlanData */
         RunPlanData: {

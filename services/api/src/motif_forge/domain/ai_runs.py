@@ -301,6 +301,7 @@ class AIRun(DomainModel):
     pending_plan_content_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     pending_interrupt_ref: str | None = Field(default=None, min_length=16, max_length=160)
     pending_preview_id: UUID | None = None
+    materialized_revision_id: UUID | None = None
     submitted_model_requests: int = Field(default=0, ge=0, le=MAX_MODEL_REQUESTS)
     max_model_requests: int = Field(default=MAX_MODEL_REQUESTS, ge=1, le=MAX_MODEL_REQUESTS)
     max_total_tokens: int = Field(default=MAX_MODEL_TOKENS, ge=1, le=MAX_MODEL_TOKENS)

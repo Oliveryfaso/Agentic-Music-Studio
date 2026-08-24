@@ -35,6 +35,7 @@ from motif_forge.domain.commands import (
 from motif_forge.domain.editing import (
     EditPatchProposal,
     EditVersionRefs,
+    LockedRangeRef,
     simulate_edit_patch,
 )
 from motif_forge.domain.errors import DomainValidationError
@@ -51,7 +52,7 @@ class BoundedEditContext(DomainModel):
     selection: Selection
     selected_tracks: tuple[Track, ...] = Field(min_length=1)
     adjacent_sections: tuple[Section, ...] = ()
-    locked_ranges: tuple[dict[str, object], ...] = ()
+    locked_ranges: tuple[LockedRangeRef, ...] = ()
     contains_full_arrangement: bool = False
     base_arrangement: ArrangementIR = Field(exclude=True)
 
@@ -77,7 +78,7 @@ class BoundedEditContext(DomainModel):
             selection=request.selection,
             selected_tracks=tracks,
             adjacent_sections=adjacent,
-            locked_ranges=tuple(item.model_dump(mode="json") for item in request.locked_ranges),
+            locked_ranges=request.locked_ranges,
             base_arrangement=arrangement,
         )
 
@@ -118,29 +119,57 @@ class FallbackEditPlanner:
     """Small no-key allowlist: explicit track gain changes only."""
 
     _GAIN = re.compile(r"(?:降低|减小|lower|reduce).*?(\d+(?:\.\d+)?)\s*dB", re.I)
+    _PRESET = re.compile(r"\b(builtin:[a-z0-9-]+)\b", re.I)
+    _REVIEWED_PRESETS = frozenset(
+        {
+            "builtin:warm-pad", "builtin:glass-pluck", "builtin:sub-bass",
+            "builtin:soft-pulse", "builtin:poly-synth", "builtin:short-pluck",
+            "builtin:mono-bass", "builtin:drum-machine", "builtin:viola",
+            "builtin:violin", "builtin:cello", "builtin:pizz-cello",
+            "builtin:jazz-piano", "builtin:tenor-lead", "builtin:upright-bass",
+            "builtin:brush-kit",
+        }
+    )
 
     async def __call__(self, context: BoundedEditContext) -> EditPatchProposal:
         match = self._GAIN.search(context.intent)
-        if match is None:
+        preset_match = self._PRESET.search(context.intent)
+        preset = preset_match.group(1).lower() if preset_match else None
+        if match is None and preset not in self._REVIEWED_PRESETS:
             raise ApplicationError(
                 "EDIT_FALLBACK_UNSUPPORTED", "edit is outside the deterministic allowlist"
             )
-        amount = float(match.group(1))
         track = context.selected_tracks[0]
         project_id = context.project_id
         branch_id = context.branch_id or UUID(int=0)
         base_revision_id = context.base_revision_id or UUID(int=0)
         identity = f"{project_id}:{branch_id}:{base_revision_id}:{context.intent}:{track.track_id}"
+        if match is not None:
+            amount = float(match.group(1))
+            payload = SetTrackParamPayload(
+                track_id=track.track_id,
+                parameter="gain_db",
+                value=max(-60.0, track.gain_db - amount),
+            )
+            impact = ChangeImpact.L0
+            expected_effect = f"lower selected track by {amount:g} dB"
+            rationale = "deterministic explicit gain adjustment"
+        else:
+            assert preset is not None
+            payload = SetTrackParamPayload(
+                track_id=track.track_id,
+                parameter="instrument_ref",
+                value=preset,
+            )
+            impact = ChangeImpact.L2
+            expected_effect = f"switch selected track to reviewed preset {preset}"
+            rationale = "deterministic reviewed local-catalog timbre selection"
         command = SetTrackParamCommand(
             command_id=uuid5(NAMESPACE_URL, f"{identity}:gain"),
             actor_kind="agent",
             client_sequence=0,
             selection=context.selection,
-            payload=SetTrackParamPayload(
-                track_id=track.track_id,
-                parameter="gain_db",
-                value=max(-60.0, track.gain_db - amount),
-            ),
+            payload=payload,
         )
         return EditPatchProposal(
             proposal_id=uuid5(NAMESPACE_URL, f"{identity}:proposal"),
@@ -148,11 +177,12 @@ class FallbackEditPlanner:
             branch_id=branch_id,
             base_revision_id=base_revision_id,
             selection=context.selection,
+            locked_ranges=context.locked_ranges,
             commands=(command,),
-            rationale="deterministic explicit gain adjustment",
+            rationale=rationale,
             evidence_refs=(f"track:{track.track_id}",),
-            expected_effect=f"lower selected track by {amount:g} dB",
-            predicted_change_impact=ChangeImpact.L0,
+            expected_effect=expected_effect,
+            predicted_change_impact=impact,
             confidence=1.0,
             versions=EditVersionRefs(prompt="fallback-edit.v1", model="deterministic"),
         )

@@ -1,5 +1,7 @@
 # S6 Lightweight DAW and AI Selection Editing Implementation Plan
 
+> Completion note (2026-08-25): Tasks 1–8 are implemented and stage-accepted. The optional paid Edit-planner acceptance was not needed; S6 closed on deterministic no-key and existing paid Generate-provider evidence. Portfolio Engineering Mode kept browser coverage on the representative save/edit/refresh/mobile journey while reducer/component tests cover the broader manual-control matrix.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Turn the read-only Studio into a lightweight command-based DAW and add bounded AI selection editing under the existing Parent Graph, with L0/L1 atomic Revision commits and L2/L3 Preview/HITL.

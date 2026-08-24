@@ -3,7 +3,7 @@
 > **For agentic workers:** 实施本路线中的具体纵切前，必须先为该纵切建立 `docs/superpowers/plans/YYYY-MM-DD-<slice>.md`，再使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 逐项执行。
 > 状态：已批准的主路线；S2 Task 6 起采用 ADR-016 作品集工程模式
 > 起点：受控 Upload → Import → 分析 HITL → 保持音高对齐 → Web Preview 已完成
-> 执行断点（2026-08-21）：G0、S1、S2、S3、S4、S5 已验收。浏览器已完成 Project → 四风格 Brief → PlanApproval → 两个候选 → Critic/至多一次 Repair → 显式 A/B 选择 → 七步完整导出 → 只读 Studio/MP3，以及同一 Project 顺序双 Stem；S5 no-key 旅程为 0 request/0 token。S6 是唯一活动门，S7 仍关闭。
+> 执行断点（2026-08-25）：G0、S1–S6 已验收。浏览器已完成 Project → 四风格 Brief → PlanApproval → 两个候选 → Critic/至多一次 Repair → 显式 A/B 选择 → 七步完整导出 → Studio/MP3，以及轻量手工编辑、不可变 Undo/Redo 和有界 AI 选区编辑；S6 no-key 旅程为 0 request/0 token。S7 是唯一活动门。
 
 **目标：** 从当前可靠的导入底座，按最短依赖路径完成“可生成、可听、可编辑、可恢复、可评测”的 Agentic Music Studio。
 
@@ -264,6 +264,8 @@ Candidate fan-out 使用独立 `candidate_id + seed + CandidateState`；fan-in r
 
 ## 11. S6：轻量 DAW 与 AI 选区编辑
 
+> 当前状态：**已完成**。Studio 已接入 lightweight Timeline/Piano Roll/Mixer draft、服务端 EditorCommand/Revision、不可变 Undo/Redo，以及同一 Parent Graph v2 的 EditSubgraph。L0/L1 自动提交 Revision；L2/L3 只有在真实 Candidate Preview Artifact 可用后才开放人工决定。12 条代表性 Eval、真实 PostgreSQL 重启恢复、no-key Compose smoke 和桌面/390px 浏览器 smoke 已通过；S7 是下一入口。
+
 ### S6.1 手工编辑
 
 - Timeline、Piano Roll、Mixer、Sample Library。
@@ -278,7 +280,7 @@ Candidate fan-out 使用独立 `candidate_id + seed + CandidateState`；fan-in r
 - 实际 diff 计算后：L0/L1 自动 Revision + Undo；L2/L3 Preview/HITL。
 - 锁定元素和非目标区域保持度进入自动回归。
 
-验收：简单 AI 参数修改可自动落地；旋律、曲风、曲式或大范围变更必须先试听和确认。
+验收：简单 AI 参数修改可自动落地；旋律、音色或大范围变更必须先试听和确认。S6 交付的是个人作品集级轻量编辑器，不冒充完整专业 DAW；更丰富工具、长作品性能与发布硬化进入 S7。
 
 前端始终区分四种状态：服务端不可变 Revision、浏览器可撤销 Draft、待审批 Candidate/Preview、Tone/Web Audio runtime。`EditPatchProposal v1` 必须带 `base_revision_id`、selection、commands、rationale/evidence 和 expected effect；服务端模拟后计算真实 ChangeImpact。模型可调用的工具保持纯函数/只读，`commit_revision`、Render enqueue、外部下载和持久化仍只属于 Application/Graph。
 

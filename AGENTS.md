@@ -17,7 +17,7 @@ Record the Git revision and working-tree state of `docs/PROJECT_GUIDE.md` at tas
 
 ## Active gate
 
-`G0`, `S1`, `S2`, `S3`, `S4` and `S5` are complete. The browser now owns Project → four-style Brief → Plan Review/Approval → two bounded candidates → evidence Critic/at most one Repair → explicit A/B selection → complete export → read-only Studio/MP3, plus same-Project multi-Stem import, without weakening the single Parent Graph v2 contracts. `S6` is the only active gate: add lightweight manual editing and bounded AI selection edits without starting S7 hardening early.
+`G0` and `S1`–`S6` are complete. The browser now owns Project → four-style Brief → Plan Review/Approval → two bounded candidates → evidence Critic/at most one Repair → explicit A/B selection → complete export → Studio/MP3, plus same-Project multi-Stem import, lightweight Timeline/Piano Roll/Mixer drafts, immutable Undo/Redo, and bounded AI selection edits with L0/L1 auto-commit or L2/L3 rendered Preview/HITL. `S7` is the only active gate: productize export, finish portfolio evidence and observability, and add only risk-driven release hardening without weakening the single Parent Graph v2 contracts.
 
 ## Scope and traceability
 

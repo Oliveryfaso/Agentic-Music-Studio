@@ -8,7 +8,9 @@ import pytest
 from langgraph.types import Command
 from motif_forge.agent.generate import CandidateSelectionDecision, PlanApprovalDecision
 from motif_forge.agent.parent_graph import PARENT_TIME_STRETCH_RUN_TYPE
-from motif_forge.domain.ai_runs import AIRun, AIRunStatus
+from motif_forge.application.edit_decisions import EditPreviewDecision
+from motif_forge.domain.ai_runs import AIRun, AIRunStatus, AIRunType, EditRunRequest
+from motif_forge.domain.commands import Selection
 from motif_forge.domain.media_jobs import WorkerResumePayload
 from motif_forge.worker.outbox import (
     GraphActionPayload,
@@ -151,9 +153,12 @@ async def test_parent_graph_publisher_rebuilds_graph_from_worker_payload() -> No
     graph = FakeResumableGraph()
     payloads: list[WorkerResumePayload] = []
 
-    async def graph_for_resume(payload: WorkerResumePayload) -> FakeResumableGraph:
-        payloads.append(payload)
+    async def build_graph() -> FakeResumableGraph:
         return graph
+
+    async def graph_for_resume(payload: WorkerResumePayload):  # type: ignore[no-untyped-def]
+        payloads.append(payload)
+        return build_graph()
 
     publisher = ParentGraphResumePublisher(
         FakeResumableGraph(), graph_for_resume=graph_for_resume
@@ -358,6 +363,46 @@ async def test_graph_action_publisher_rejects_topic_action_mismatch() -> None:
 
 
 @pytest.mark.asyncio
+async def test_graph_start_redelivery_continues_partial_checkpoint() -> None:
+    graph = FakeResumableGraph()
+    graph.values = {"phase": "preview_created"}
+    run = AIRun(
+        run_id=uuid4(),
+        project_id=uuid4(),
+        branch_id=uuid4(),
+        base_revision_id=uuid4(),
+        thread_id="edit-partial-start-redelivery",
+        status=AIRunStatus.QUEUED,
+        version=0,
+    )
+
+    class Loader:
+        async def __call__(self, run_id: UUID) -> AIRun:
+            assert run_id == run.run_id
+            return run
+
+    publisher = ParentGraphActionPublisher(graph, load_run=Loader())
+    message = OutboxMessage(
+        event_id=uuid4(),
+        topic="graph.start.requested",
+        dedupe_key=f"start:{uuid4()}",
+        payload={
+            "schema_version": "graph-action.v1",
+            "action": "start",
+            "run_id": str(run.run_id),
+            "thread_id": run.thread_id,
+            "run_type": "parent.generate.v1",
+            "decision": None,
+        },
+        attempts=2,
+    )
+
+    await publisher.publish(message)
+
+    assert graph.calls == [(None, {"configurable": {"thread_id": run.thread_id}})]
+
+
+@pytest.mark.asyncio
 async def test_graph_action_redelivery_continues_post_approval_checkpoint() -> None:
     graph = FakeResumableGraph()
     graph.values = {"phase": "approved"}
@@ -403,3 +448,97 @@ async def test_graph_action_redelivery_continues_post_approval_checkpoint() -> N
     assert graph.calls == [
         (None, {"configurable": {"thread_id": run.thread_id}}),
     ]
+
+
+@pytest.mark.asyncio
+async def test_edit_approval_resumes_nested_checkpoint_then_parent() -> None:
+    preview_id = uuid4()
+    nested_config = {
+        "configurable": {
+            "thread_id": "edit-nested-approval",
+            "checkpoint_ns": f"EditSubgraph:{uuid4()}",
+        }
+    }
+
+    class NestedGraph:
+        def __init__(self) -> None:
+            self.calls: list[tuple[object, dict[str, object]]] = []
+
+        async def ainvoke(self, value: object, config: dict[str, object]) -> object:
+            self.calls.append((value, config))
+            return {"phase": "committed", "terminal_status": "succeeded"}
+
+    nested = NestedGraph()
+
+    class MountedGraph(FakeResumableGraph):
+        async def aget_state(
+            self, config: dict[str, object], *, subgraphs: bool = False
+        ) -> SimpleNamespace:
+            del config
+            assert subgraphs is True
+            return SimpleNamespace(
+                values={"phase": "edit_validated"},
+                tasks=(
+                    SimpleNamespace(
+                        state=SimpleNamespace(
+                            config=nested_config,
+                            values={"phase": "waiting_edit_approval"},
+                        )
+                    ),
+                ),
+            )
+
+        def get_subgraphs(self):  # type: ignore[no-untyped-def]
+            return iter((("EditSubgraph", nested),))
+
+    graph = MountedGraph()
+    run = AIRun(
+        run_id=uuid4(),
+        project_id=uuid4(),
+        branch_id=uuid4(),
+        base_revision_id=uuid4(),
+        thread_id="edit-nested-approval",
+        run_type=AIRunType.EDIT,
+        edit_request=EditRunRequest(
+            intent="add a local melody",
+            selection=Selection(track_ids=(uuid4(),), start_tick=0, end_tick=960),
+        ).model_dump(mode="json"),
+        status=AIRunStatus.WAITING_EDIT_APPROVAL,
+        pending_preview_id=preview_id,
+    )
+
+    async def load_run(run_id: UUID) -> AIRun:
+        assert run_id == run.run_id
+        return run
+
+    decision = EditPreviewDecision(
+        action="approve",
+        preview_id=preview_id,
+        expected_candidate_content_hash="a" * 64,
+        actor_id="portfolio-owner",
+        approval_assertion="I approve this rendered edit Preview.",
+    )
+    publisher = ParentGraphActionPublisher(graph, load_run=load_run)
+    await publisher.publish(
+        OutboxMessage(
+            event_id=uuid4(),
+            topic="graph.resume.requested",
+            dedupe_key=f"edit-resume:{run.run_id}",
+            payload={
+                "schema_version": "graph-action.v1",
+                "action": "resume",
+                "run_id": str(run.run_id),
+                "thread_id": run.thread_id,
+                "run_type": "parent.edit.v1",
+                "decision": decision.model_dump(mode="json"),
+            },
+            attempts=1,
+        )
+    )
+
+    assert len(nested.calls) == 1
+    nested_command, config = nested.calls[0]
+    assert isinstance(nested_command, Command)
+    assert nested_command.resume == decision.model_dump(mode="json")
+    assert config == nested_config
+    assert graph.calls == [(None, {"configurable": {"thread_id": run.thread_id}})]

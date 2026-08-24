@@ -98,6 +98,17 @@ def _assert_scope(arrangement: ArrangementIR, proposal: EditPatchProposal) -> No
     if not selected:
         raise issue("EDIT_SCOPE_INVALID", "selection.track_ids", "edit selection requires a track")
     start_tick, end_tick = _selection_range(proposal.selection, arrangement)
+    for locked in proposal.locked_ranges:
+        if (
+            locked.track_id in selected
+            and start_tick < locked.end_tick
+            and locked.start_tick < end_tick
+        ):
+            raise issue(
+                "LOCKED_RANGE_VIOLATION",
+                f"locked_ranges.{locked.track_id}",
+                "edit selection overlaps an authoritative locked range",
+            )
     for command in proposal.commands:
         track_id = _command_track_id(command)
         if track_id is not None and track_id not in selected:

@@ -250,7 +250,8 @@ class PostgresTransaction:
                     "selection": row.selection,
                     "actor_kind": row.actor_kind,
                     "client_sequence": row.client_sequence,
-                }
+                },
+                strict=False,
             )
             for row in rows
         )

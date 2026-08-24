@@ -1,0 +1,17 @@
+{
+  "schema_version": "s6-edit-eval.v1",
+  "cases": [
+    {"id":"s6-l0-gain","kind":"route","expected_route":"auto_commit","expected_impact":"L0","measurement":"deterministic"},
+    {"id":"s6-l1-duplicate","kind":"route","expected_route":"auto_commit","expected_impact":"L1","measurement":"deterministic"},
+    {"id":"s6-l1-to-l2","kind":"route","expected_route":"preview","expected_impact":"L2","measurement":"deterministic"},
+    {"id":"s6-l2-melody","kind":"route","expected_route":"preview","expected_impact":"L2","measurement":"deterministic"},
+    {"id":"s6-catalog-timbre","kind":"fallback","intent":"把选中轨道的音色改成 builtin:glass-pluck","expected_route":"preview","expected_impact":"L2","expected_model_requests":0,"measurement":"deterministic"},
+    {"id":"s6-new-accompaniment","kind":"audio","expected_route":"preview","expected_impact":"L2","measurement":"runtime_only"},
+    {"id":"s6-locked","kind":"rejection","expected_error":"LOCKED_RANGE_VIOLATION","measurement":"deterministic"},
+    {"id":"s6-non-target","kind":"rejection","expected_error":"EDIT_SCOPE_VIOLATION","measurement":"deterministic"},
+    {"id":"s6-conflict","kind":"recovery","expected_error":"REVISION_CONFLICT","measurement":"postgres"},
+    {"id":"s6-duplicate-resume","kind":"recovery","expected_duplicate_spend":0,"measurement":"postgres"},
+    {"id":"s6-fallback-supported","kind":"fallback","intent":"把这里的 Pad 降低 2 dB","expected_route":"auto_commit","expected_impact":"L0","expected_model_requests":0,"measurement":"deterministic"},
+    {"id":"s6-fallback-unsupported","kind":"fallback","intent":"重新创作整首歌","expected_error":"EDIT_FALLBACK_UNSUPPORTED","expected_model_requests":0,"measurement":"deterministic"}
+  ]
+}

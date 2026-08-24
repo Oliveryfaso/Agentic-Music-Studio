@@ -147,7 +147,7 @@ class ReplanAIRun:
 
 def graph_progress_target(
     state: Mapping[str, object],
-) -> tuple[UUID, AIRunStatus, str | None] | None:
+) -> tuple[UUID, AIRunStatus, str | None, UUID | None] | None:
     """Map a validated Parent Graph result to the authoritative AI Run ledger."""
 
     raw_run_id = state.get("run_id")
@@ -158,25 +158,33 @@ def graph_progress_target(
     except ValueError:
         return None
     terminal = state.get("terminal_status")
+    raw_revision_id = state.get("materialized_revision_id")
+    try:
+        materialized_revision_id = (
+            UUID(raw_revision_id) if isinstance(raw_revision_id, str) else None
+        )
+    except ValueError:
+        materialized_revision_id = None
     if terminal == "succeeded":
-        return run_id, AIRunStatus.SUCCEEDED, None
+        return run_id, AIRunStatus.SUCCEEDED, None, materialized_revision_id
     if terminal == "failed":
         error_code = state.get("error_code")
         return (
             run_id,
             AIRunStatus.FAILED,
             error_code if isinstance(error_code, str) else "GRAPH_TERMINAL_FAILURE",
+            None,
         )
     if terminal == "rejected":
-        return run_id, AIRunStatus.REJECTED, None
+        return run_id, AIRunStatus.REJECTED, None, None
     if terminal == "cancelled":
-        return run_id, AIRunStatus.CANCELLED, None
+        return run_id, AIRunStatus.CANCELLED, None, None
     if state.get("phase") in {"waiting_generate_worker", "waiting_worker"}:
-        return run_id, AIRunStatus.WAITING_WORKER, None
+        return run_id, AIRunStatus.WAITING_WORKER, None, None
     if state.get("phase") == "waiting_edit_approval":
-        return run_id, AIRunStatus.WAITING_EDIT_APPROVAL, None
+        return run_id, AIRunStatus.WAITING_EDIT_APPROVAL, None, None
     if state.get("phase") == "committed":
-        return run_id, AIRunStatus.SUCCEEDED, None
+        return run_id, AIRunStatus.SUCCEEDED, None, materialized_revision_id
     return None
 
 
@@ -198,12 +206,13 @@ class RecordAIRunGraphProgress:
         target = graph_progress_target(state)
         if target is None:
             return
-        run_id, status, error_code = target
+        run_id, status, error_code, materialized_revision_id = target
         async with self._uow_factory() as transaction:
             await transaction.record_ai_run_graph_progress(
                 run_id=run_id,
                 target_status=status,
                 error_code=error_code,
+                materialized_revision_id=materialized_revision_id,
                 event_id=self._id_factory(),
                 now=self._clock(),
             )

@@ -19,6 +19,7 @@ from motif_forge.application.ai_runs import model_request_allowed
 from motif_forge.application.errors import ApplicationError, IdempotencyKeyReusedError
 from motif_forge.application.ports import (
     AIRunCandidateProjection,
+    AIRunEditPreviewProjection,
     AIRunProgress,
     AIRunProjection,
     IdempotencyHit,
@@ -351,6 +352,39 @@ class PostgresAIRunTransaction:
             (event for event in ai_run_events if event.event_type == "candidate.critic.completed"),
             None,
         )
+        edit_preview = None
+        if run.pending_preview_id is not None:
+            preview_row = await self._session.scalar(
+                select(PreviewCandidateRow).where(
+                    PreviewCandidateRow.id == run.pending_preview_id,
+                    PreviewCandidateRow.source_run_id == run_id,
+                )
+            )
+            if preview_row is not None:
+                edit_artifact_id: UUID | None = None
+                availability = "missing"
+                if preview_row.preview_artifact_ids:
+                    try:
+                        edit_artifact_id = UUID(preview_row.preview_artifact_ids[0])
+                    except (TypeError, ValueError):
+                        edit_artifact_id = None
+                    if edit_artifact_id is not None:
+                        artifact_row = await self._session.scalar(
+                            select(AudioArtifactRow).where(
+                                AudioArtifactRow.id == edit_artifact_id
+                            )
+                        )
+                        if artifact_row is not None:
+                            availability = artifact_row.availability
+                edit_preview = AIRunEditPreviewProjection(
+                    preview_id=preview_row.id,
+                    candidate_snapshot_id=preview_row.candidate_snapshot_id,
+                    candidate_content_hash=preview_row.candidate_content_hash,
+                    preview_artifact_id=edit_artifact_id,
+                    preview_availability=cast(Any, availability),
+                    actual_change_impact=preview_row.actual_change_impact,
+                    structural_diff=tuple(preview_row.structural_diff),
+                )
         return AIRunProjection(
             run=run, plan=_plan_from_row(plan) if plan else None,
             progress=AIRunProgress(
@@ -360,7 +394,9 @@ class PostgresAIRunTransaction:
                 latest_event_sequence=(ai_run_events[0].sequence if ai_run_events else 0),
                 error_code=error_code,
             ),
-            revision_id=receipt.revision_id if receipt else None,
+            revision_id=(
+                receipt.revision_id if receipt else run.materialized_revision_id
+            ),
             bundle_id=bundle.id if bundle else None,
             fallback_reason=plan.fallback_reason if plan else None, error_code=error_code,
             candidates=tuple(candidates),
@@ -380,6 +416,7 @@ class PostgresAIRunTransaction:
                 event.event_type == "candidate.selection.requested"
                 for event in ai_run_events
             ),
+            edit_preview=edit_preview,
         )
 
     async def record_idempotent_candidate_selection(
@@ -675,6 +712,7 @@ class PostgresAIRunTransaction:
         run_id: UUID,
         target_status: AIRunStatus,
         error_code: str | None,
+        materialized_revision_id: UUID | None,
         event_id: UUID,
         now: datetime,
     ) -> AIRun:
@@ -725,6 +763,21 @@ class PostgresAIRunTransaction:
                 "AI_RUN_GRAPH_PROGRESS_CONFLICT",
                 "Parent Graph progress is incompatible with the AI Run ledger",
             ) from exc
+        if materialized_revision_id is not None:
+            revision_exists = await self._session.scalar(
+                select(RevisionRow.id).where(
+                    RevisionRow.id == materialized_revision_id,
+                    RevisionRow.project_id == run.project_id,
+                )
+            )
+            if revision_exists is None:
+                raise ApplicationError(
+                    "EDIT_REVISION_LINEAGE_MISMATCH",
+                    "Graph result Revision does not belong to the Edit Run project",
+                )
+            run = run.model_copy(
+                update={"materialized_revision_id": materialized_revision_id}
+            )
         result = await self._session.execute(
             update(AIRunRow)
             .where(AIRunRow.id == run_id, AIRunRow.version == original_version)
@@ -1501,6 +1554,7 @@ def _run_from_row(row: AIRunRow) -> AIRun:
         pending_plan_content_hash=row.pending_plan_content_hash,
         pending_interrupt_ref=row.pending_interrupt_ref,
         pending_preview_id=row.pending_preview_id,
+        materialized_revision_id=row.materialized_revision_id,
         submitted_model_requests=row.submitted_model_requests,
         max_model_requests=row.max_model_requests,
         max_total_tokens=row.max_total_tokens,

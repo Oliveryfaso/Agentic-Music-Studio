@@ -76,6 +76,17 @@ class AIRunCandidateProjection:
 
 
 @dataclass(frozen=True, slots=True)
+class AIRunEditPreviewProjection:
+    preview_id: UUID
+    candidate_snapshot_id: UUID
+    candidate_content_hash: str
+    preview_artifact_id: UUID | None
+    preview_availability: Literal["available", "evicted", "missing", "rehydrating"]
+    actual_change_impact: int
+    structural_diff: tuple[dict[str, object], ...]
+
+
+@dataclass(frozen=True, slots=True)
 class AIRunProjection:
     run: AIRun
     plan: PersistedCompositionPlan | None = None
@@ -89,6 +100,7 @@ class AIRunProjection:
     selected_candidate_id: UUID | None = None
     selected_preview_id: UUID | None = None
     candidate_selection_requested: bool = False
+    edit_preview: AIRunEditPreviewProjection | None = None
 
 
 class ProjectTransaction(Protocol):
@@ -432,6 +444,7 @@ class AIRunTransaction(Protocol):
         run_id: UUID,
         target_status: AIRunStatus,
         error_code: str | None,
+        materialized_revision_id: UUID | None,
         event_id: UUID,
         now: datetime,
     ) -> AIRun: ...

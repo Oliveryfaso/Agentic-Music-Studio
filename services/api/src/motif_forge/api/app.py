@@ -314,6 +314,7 @@ def _application_status(error: ApplicationError) -> int:
         "ARTIFACT_REHYDRATION_STATE_CONFLICT",
         "ARTIFACT_REHYDRATION_DEPENDENCY_UNAVAILABLE",
         "ARTIFACT_EVICTED",
+        "AI_RUN_BASE_REVISION_CONFLICT",
         "AI_RUN_REPLAN_STATE_CONFLICT",
     }:
         return 409

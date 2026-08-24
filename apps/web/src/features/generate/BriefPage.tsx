@@ -13,11 +13,12 @@ export function BriefPage({ projectId }: { projectId: string }) {
   const [accepted, setAccepted] = useState(false);
   const project = useQuery({ queryKey: ["project", projectId], queryFn: () => readProject(projectId) });
   const creation = useMutation({
-    mutationFn: (brief: CreateAIRunInput["brief"]) => {
+    mutationFn: (brief: NonNullable<CreateAIRunInput["brief"]>) => {
       if (!project.data?.active_branch_id || !project.data.head_revision_id) throw new Error("Project 没有可用的基线 Revision");
       return createRun(projectId, {
         branch_id: project.data.active_branch_id,
         base_revision_id: project.data.head_revision_id,
+        run_type: "generate",
         brief,
         max_model_requests: 1,
         max_total_tokens: 12000,

@@ -72,6 +72,7 @@ function waitingSelectionRun(): AIRun {
     branch_id: "99999999-9999-4999-8999-999999999999",
     base_revision_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     thread_id: "candidate-compare",
+    run_type: "generate",
     status: "materializing",
     version: 4,
     pending_action: "select_candidate",

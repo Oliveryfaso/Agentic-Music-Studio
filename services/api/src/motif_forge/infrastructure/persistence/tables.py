@@ -527,6 +527,9 @@ class AIRunRow(Base):
     pending_preview_id: Mapped[UUID | None] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.preview_candidates.id")
     )
+    materialized_revision_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey(f"{APP_SCHEMA}.project_revisions.id")
+    )
     submitted_model_requests: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     max_model_requests: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
     max_total_tokens: Mapped[int] = mapped_column(BigInteger, nullable=False, default=12_000)

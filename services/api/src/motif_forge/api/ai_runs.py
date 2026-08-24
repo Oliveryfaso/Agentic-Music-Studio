@@ -171,6 +171,16 @@ class RunCandidateData(ApiModel):
     repair_status: Literal["not_requested", "improved", "non_improving"]
 
 
+class RunEditPreviewData(ApiModel):
+    preview_id: UUID
+    candidate_snapshot_id: UUID
+    candidate_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    preview_artifact_id: UUID | None
+    preview_availability: Literal["available", "evicted", "missing", "rehydrating"]
+    actual_change_impact: int = Field(ge=0, le=3)
+    structural_diff: tuple[dict[str, object], ...]
+
+
 class AIRunData(ApiModel):
     run_id: UUID
     parent_run_id: UUID | None
@@ -204,6 +214,7 @@ class AIRunData(ApiModel):
     critique: CandidateCritique | None = None
     selected_candidate_id: UUID | None = None
     selected_preview_id: UUID | None = None
+    edit_preview: RunEditPreviewData | None = None
     progress: RunProgressData
 
 
@@ -298,6 +309,19 @@ def run_data(run: AIRun, projection: AIRunProjection | None = None) -> AIRunData
         ),
         selected_candidate_id=projection.selected_candidate_id if projection else None,
         selected_preview_id=projection.selected_preview_id if projection else None,
+        edit_preview=(
+            RunEditPreviewData(
+                preview_id=projection.edit_preview.preview_id,
+                candidate_snapshot_id=projection.edit_preview.candidate_snapshot_id,
+                candidate_content_hash=projection.edit_preview.candidate_content_hash,
+                preview_artifact_id=projection.edit_preview.preview_artifact_id,
+                preview_availability=projection.edit_preview.preview_availability,
+                actual_change_impact=projection.edit_preview.actual_change_impact,
+                structural_diff=projection.edit_preview.structural_diff,
+            )
+            if projection and projection.edit_preview
+            else None
+        ),
         progress=RunProgressData(
             phase=progress.phase,
             completed_export_steps=progress.completed_export_steps,
@@ -404,8 +428,8 @@ def build_ai_run_router(
             decision=EditPreviewDecision.model_validate(body.model_dump()),
             idempotency_key=idempotency_key,
         )
-        run = await ReadAIRun(uow)(run_id)
-        return AIRunResponse(data=run_data(run))
+        projection = await ReadAIRunProjection(uow)(run_id)
+        return AIRunResponse(data=run_data(projection.run, projection))
 
     async def action(
         run_id: UUID, body: RunActionBody, key: str, name: str

@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 
 import type { CreateAIRunInput } from "../../shared/openapi";
 
-type Brief = CreateAIRunInput["brief"];
+type Brief = NonNullable<CreateAIRunInput["brief"]>;
 type StyleId = "synth_ambient" | "minimal_electronic" | "classical_chamber" | "jazz_harmony_improvisation";
 
 export function BriefForm({ disabled, onSubmit }: { disabled: boolean; onSubmit: (brief: Brief) => void }) {

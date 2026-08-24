@@ -304,6 +304,7 @@ async def run_resume_dispatcher() -> None:
                                 PostgresUnitOfWork(session_factory), run_id=run.run_id
                             ),
                         ),
+                        checkpointer=saver,
                     )
                     return graph_with(MissingDeepSeekPlanner(), edit_graph=edit_graph)
                 return graph_with(
@@ -314,7 +315,7 @@ async def run_resume_dispatcher() -> None:
             read_run_by_thread = ReadAIRunByThreadId(ai_uow)
 
             async def graph_for_worker(payload: WorkerResumePayload) -> object:
-                return graph_for(await read_run_by_thread(payload.thread_id))
+                return await graph_for(await read_run_by_thread(payload.thread_id))
 
             record_progress = RecordAIRunGraphProgress(ai_uow)
             publisher = ParentGraphActionPublisher(

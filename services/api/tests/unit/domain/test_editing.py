@@ -13,6 +13,7 @@ from motif_forge.domain.commands import (
 from motif_forge.domain.editing import (
     EditPatchProposal,
     EditVersionRefs,
+    LockedRangeRef,
     simulate_edit_patch,
 )
 from motif_forge.domain.errors import DomainValidationError
@@ -62,13 +63,17 @@ def arrangement() -> ArrangementIR:
     )
 
 
-def proposal(*, selection: Selection, commands: tuple[object, ...], predicted: ChangeImpact):
+def proposal(
+    *, selection: Selection, commands: tuple[object, ...], predicted: ChangeImpact,
+    locked_ranges: tuple[LockedRangeRef, ...] = (),
+):
     return EditPatchProposal(
         proposal_id=uid(30),
         project_id=PROJECT_ID,
         branch_id=BRANCH_ID,
         base_revision_id=REVISION_ID,
         selection=selection,
+        locked_ranges=locked_ranges,
         commands=commands,
         rationale="Apply the requested bounded change.",
         expected_effect="Only the selected material changes.",
@@ -143,3 +148,19 @@ def test_command_target_outside_declared_selection_fails_closed() -> None:
         )
 
     assert {item.code for item in captured.value.issues} == {"EDIT_SCOPE_VIOLATION"}
+
+
+def test_command_overlapping_locked_range_fails_closed() -> None:
+    selection = Selection(track_ids=(PAD_TRACK_ID,), start_tick=0, end_tick=1920)
+    command = SetTrackParamCommand(
+        command_id=uid(34), actor_kind="agent", client_sequence=0, selection=selection,
+        payload=SetTrackParamPayload(track_id=PAD_TRACK_ID, parameter="gain_db", value=-2),
+    )
+    with pytest.raises(DomainValidationError) as captured:
+        simulate_edit_patch(arrangement(), proposal(
+            selection=selection, commands=(command,), predicted=ChangeImpact.L0,
+            locked_ranges=(
+                LockedRangeRef(track_id=PAD_TRACK_ID, start_tick=960, end_tick=2880),
+            ),
+        ))
+    assert {item.code for item in captured.value.issues} == {"LOCKED_RANGE_VIOLATION"}

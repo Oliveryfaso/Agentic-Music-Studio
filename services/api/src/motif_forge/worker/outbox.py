@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
+import logging
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -35,6 +37,8 @@ GRAPH_RESUME_TOPICS = frozenset({"graph.resume.requested"})
 GRAPH_ACTION_TOPICS = frozenset(
     {"graph.start.requested", "graph.resume.requested", "graph.cancel.requested"}
 )
+
+logger = logging.getLogger(__name__)
 
 
 class GraphActionPayload(DomainModel):
@@ -291,7 +295,7 @@ class ParentGraphResumePublisher:
         graph = self._graph
         if self._graph_for_resume is not None:
             graph = self._graph_for_resume(payload)
-            if hasattr(graph, "__await__"):
+            while inspect.isawaitable(graph):
                 graph = await graph
         config = {"configurable": {"thread_id": payload.thread_id}}
         snapshot = await graph.aget_state(config)
@@ -367,12 +371,39 @@ class ParentGraphActionPublisher:
             raise ValueError("Graph action run type does not match authoritative AI Run")
         config = {"configurable": {"thread_id": run.thread_id}}
         graph = await self._graph_for(run)
-        snapshot = await graph.aget_state(config)
+        snapshot = (
+            await graph.aget_state(config, subgraphs=True)
+            if run.run_type is AIRunType.EDIT
+            else await graph.aget_state(config)
+        )
         values = snapshot.values
+        edit_graph = None
+        edit_task_config = None
+        if run.run_type is AIRunType.EDIT and values:
+            edit_graph = dict(graph.get_subgraphs()).get("EditSubgraph")
+            task_states = [
+                task.state
+                for task in getattr(snapshot, "tasks", ())
+                if getattr(task.state, "config", None) is not None
+                and getattr(task.state, "values", None) is not None
+            ]
+            if len(task_states) == 1 and edit_graph is not None:
+                edit_task_config = task_states[0].config
+                if task_states[0].values:
+                    values = task_states[0].values
         if values and self._record_progress is not None and isinstance(values, Mapping):
             await self._record_progress(values)
         if payload.action == "start":
             if values:
+                if values.get("terminal_status") is not None or values.get("phase") in {
+                    "waiting_plan_approval",
+                    "waiting_candidate_selection",
+                    "waiting_edit_approval",
+                }:
+                    return
+                result = await graph.ainvoke(None, config)
+                if self._record_progress is not None and isinstance(result, Mapping):
+                    await self._record_progress(result)
                 return
             if run.run_type is AIRunType.EDIT:
                 if run.edit_request is None or self._load_edit_base is None:
@@ -426,7 +457,16 @@ class ParentGraphActionPublisher:
                 "waiting_candidate_selection",
                 "waiting_edit_approval",
             }:
-                await graph.ainvoke(Command(resume={"action": "cancel"}), config)
+                if values.get("phase") == "waiting_edit_approval":
+                    if edit_graph is None or edit_task_config is None:
+                        raise ValueError("Edit Preview cancellation checkpoint is unavailable")
+                    await edit_graph.ainvoke(
+                        Command(resume={"action": "cancel"}),
+                        edit_task_config,
+                    )
+                    await graph.ainvoke(None, config)
+                else:
+                    await graph.ainvoke(Command(resume={"action": "cancel"}), config)
             return
         if values.get("phase") in {"approved", "revision_materialized"}:
             result = await graph.ainvoke(None, config)
@@ -456,7 +496,21 @@ class ParentGraphActionPublisher:
             decision, EditPreviewDecision
         ):
             raise ValueError("non-Edit decision cannot resume Edit Preview approval")
-        result = await graph.ainvoke(Command(resume=decision.model_dump(mode="json")), config)
+        if isinstance(decision, EditPreviewDecision):
+            if edit_graph is None or edit_task_config is None:
+                raise ValueError("Edit Preview approval checkpoint is unavailable")
+            await edit_graph.ainvoke(
+                Command(resume=decision.model_dump(mode="json")),
+                edit_task_config,
+            )
+            result = await graph.ainvoke(None, config)
+            if self._record_progress is not None and isinstance(result, Mapping):
+                await self._record_progress(result)
+            return
+        result = await graph.ainvoke(
+            Command(resume=decision.model_dump(mode="json")),
+            config,
+        )
         if self._record_progress is not None and isinstance(result, Mapping):
             await self._record_progress(result)
 
@@ -481,6 +535,14 @@ async def dispatch_once(
         try:
             await publisher.publish(message)
         except Exception:
+            logger.exception(
+                "outbox publish failed",
+                extra={
+                    "event_id": str(message.event_id),
+                    "topic": message.topic,
+                    "attempt": message.attempts,
+                },
+            )
             await store.mark_failed(
                 message.event_id,
                 owner=owner,

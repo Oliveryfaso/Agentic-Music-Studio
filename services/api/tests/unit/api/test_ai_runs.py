@@ -4,11 +4,20 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
-from motif_forge.api.app import create_app
-from motif_forge.application.errors import IdempotencyKeyReusedError
+from motif_forge.api.app import _application_status, create_app
+from motif_forge.application.errors import ApplicationError, IdempotencyKeyReusedError
 from motif_forge.application.ports import AIRunCandidateProjection, AIRunProjection, IdempotencyHit
 from motif_forge.config import Settings
 from motif_forge.domain.ai_runs import AIRun, AIRunApproval, AIRunStatus
+
+
+def test_stale_edit_base_revision_is_an_http_conflict() -> None:
+    error = ApplicationError(
+        "AI_RUN_BASE_REVISION_CONFLICT",
+        "base revision must be the locked branch head",
+    )
+
+    assert _application_status(error) == 409
 
 
 class FakeAIRunTransaction:
