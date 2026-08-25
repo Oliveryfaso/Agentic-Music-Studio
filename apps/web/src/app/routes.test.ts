@@ -12,6 +12,8 @@ describe("native application routes", () => {
   it("parses and formats all five frozen S3 routes", () => {
     const cases = [
       ["/", { name: "home" }],
+      ["/about", { name: "about" }],
+      ["/evaluation", { name: "evaluation" }],
       [`/projects/${PROJECT_ID}/new-composition`, { name: "brief", projectId: PROJECT_ID }],
       [`/runs/${RUN_ID}`, { name: "run", runId: RUN_ID }],
       [`/runs/${RUN_ID}/inspect`, { name: "inspect", runId: RUN_ID }],

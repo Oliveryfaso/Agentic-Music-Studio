@@ -8,6 +8,8 @@ import { ProjectHomePage } from "../features/projects/ProjectHomePage";
 import { StudioPage } from "../features/studio/StudioPage";
 import { ExportPage } from "../features/exports/ExportPage";
 import { RunInspectorPage } from "../features/inspection/RunInspectorPage";
+import { EvaluationPage } from "../features/evaluation/EvaluationPage";
+import { PortfolioPage } from "../features/portfolio/PortfolioPage";
 import { AppShell } from "./AppShell";
 import { StatusBanner } from "./StatusBanner";
 import { navigate, parseRoute, routeTitle, subscribeToRoute } from "./routes";
@@ -36,6 +38,8 @@ export function App() {
       ) : (
         <AppShell>
           {route.name === "home" && <ProjectHomePage />}
+          {route.name === "about" && <PortfolioPage />}
+          {route.name === "evaluation" && <EvaluationPage />}
           {route.name === "brief" && <BriefPage projectId={route.projectId} />}
           {route.name === "run" && <RunPage runId={route.runId} />}
           {route.name === "studio" && <StudioPage projectId={route.projectId} revisionId={route.revisionId} />}
@@ -50,15 +54,5 @@ export function App() {
         </AppShell>
       )}
     </QueryClientProvider>
-  );
-}
-
-function PendingPage({ title }: { title: string }) {
-  return (
-    <section className="route-pending">
-      <p className="eyebrow">S3 WORKSPACE</p>
-      <h1>{title}</h1>
-      <StatusBanner message="页面合同已冻结" detail="对应功能将在后续 S3 纵切接入真实 API。" />
-    </section>
   );
 }

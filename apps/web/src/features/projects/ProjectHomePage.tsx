@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useState } from "react";
 
+import { navigate } from "../../app/routes";
 import { ApiError } from "../../shared/api";
 import { createProject, listProjects } from "./projectApi";
 import { ProjectCard } from "./ProjectCard";
@@ -37,6 +38,11 @@ export function ProjectHomePage() {
         </div>
         <div className="agent-orbit" aria-hidden="true"><i /><i /><i /></div>
       </div>
+
+      <aside className="portfolio-entry">
+        <div><p className="eyebrow">S7 PORTFOLIO RELEASE</p><strong>查看 Agent 架构、恢复语义与 96-case Eval。</strong></div>
+        <button className="secondary-inline" type="button" onClick={() => navigate({ name: "about" })}>了解工程闭环</button>
+      </aside>
 
       <form className="create-project-form" onSubmit={submit}>
         <div>
