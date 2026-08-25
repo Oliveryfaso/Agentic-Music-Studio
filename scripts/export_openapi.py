@@ -37,6 +37,11 @@ class UnconfiguredExportReadStore:
     ) -> None:
         raise RuntimeError("OpenAPI export does not execute persistence")
 
+
+class UnconfiguredRunInspectionStore:
+    async def read_run_inspection(self, run_id: object) -> None:
+        raise RuntimeError("OpenAPI export does not execute persistence")
+
     async def read_bundle(self, bundle_id: object) -> None:
         raise RuntimeError("OpenAPI export does not execute persistence")
 
@@ -55,6 +60,7 @@ def main() -> None:
         ai_run_uow_factory=UnconfiguredAIRunUOW(),  # type: ignore[arg-type]
         project_read_store=UnconfiguredProjectReadStore(),  # type: ignore[arg-type]
         export_read_store=UnconfiguredExportReadStore(),  # type: ignore[arg-type]
+        run_inspection_store=UnconfiguredRunInspectionStore(),  # type: ignore[arg-type]
     )
     Path("/private/tmp/motif-forge-openapi.json").write_text(
         json.dumps(app.openapi(), sort_keys=True, separators=(",", ":")), encoding="utf-8"
