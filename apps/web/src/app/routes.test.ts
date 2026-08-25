@@ -14,6 +14,7 @@ describe("native application routes", () => {
       ["/", { name: "home" }],
       [`/projects/${PROJECT_ID}/new-composition`, { name: "brief", projectId: PROJECT_ID }],
       [`/runs/${RUN_ID}`, { name: "run", runId: RUN_ID }],
+      [`/runs/${RUN_ID}/inspect`, { name: "inspect", runId: RUN_ID }],
       [
         `/projects/${PROJECT_ID}/studio/${REVISION_ID}`,
         { name: "studio", projectId: PROJECT_ID, revisionId: REVISION_ID },

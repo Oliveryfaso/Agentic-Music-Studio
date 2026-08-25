@@ -328,6 +328,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/runs/{run_id}/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Run Inspection */
+        get: operations["read_run_inspection_api_v1_runs__run_id__inspect_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runs/{run_id}/replan": {
         parameters: {
             query?: never;
@@ -1232,6 +1249,23 @@ export interface components {
             project_id: string;
             rights_declaration: components["schemas"]["RightsDeclaration"];
         };
+        /** DecisionSummary */
+        DecisionSummary: {
+            /** Actor Id */
+            actor_id: string;
+            /**
+             * Decided At
+             * Format: date-time
+             */
+            decided_at: string;
+            /** Decision */
+            decision: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "plan" | "edit";
+        };
         /**
          * DeclaredAudioFormat
          * @enum {string}
@@ -1729,6 +1763,84 @@ export interface components {
             sections: components["schemas"]["Section"][];
             tempo: components["schemas"]["TempoPoint"];
         };
+        /** InspectionArtifact */
+        InspectionArtifact: {
+            /**
+             * Artifact Id
+             * Format: uuid
+             */
+            artifact_id: string;
+            /** Availability */
+            availability: string;
+            /** Byte Size */
+            byte_size: number;
+            /** Quality Profile */
+            quality_profile: string;
+            /**
+             * Source Job Id
+             * Format: uuid
+             */
+            source_job_id: string;
+        };
+        /** InspectionEvent */
+        InspectionEvent: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Event Type */
+            event_type: string;
+            /** Phase */
+            phase: string;
+            /** Sequence */
+            sequence: number;
+            /** Summary */
+            summary: {
+                [key: string]: components["schemas"]["SafeValue"];
+            };
+        };
+        /** InspectionJob */
+        InspectionJob: {
+            /** Attempts */
+            attempts: number;
+            /** Error Code */
+            error_code: string | null;
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+            /** Job Type */
+            job_type: string;
+            /** Status */
+            status: string;
+        };
+        /** InspectionRunSummary */
+        InspectionRunSummary: {
+            /** Bundle Id */
+            bundle_id: string | null;
+            /** Error Code */
+            error_code: string | null;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Revision Id */
+            revision_id: string | null;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /** Run Type */
+            run_type: string;
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+        };
         /** InstrumentPlan */
         InstrumentPlan: {
             /** Entry Section Id */
@@ -2103,6 +2215,19 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** RecoverySummary */
+        RecoverySummary: {
+            /** Cancel Events */
+            cancel_events: number;
+            /** Replay Events */
+            replay_events: number;
+            /** Resume Events */
+            resume_events: number;
+            /** Retry Events */
+            retry_events: number;
+            /** Terminal Outcome */
+            terminal_outcome: string | null;
+        };
         /** RehydrateRunData */
         RehydrateRunData: {
             /**
@@ -2365,6 +2490,27 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
+        /** RunInspectionFacts */
+        RunInspectionFacts: {
+            /** Artifacts */
+            artifacts: components["schemas"]["InspectionArtifact"][];
+            /** Decisions */
+            decisions: components["schemas"]["DecisionSummary"][];
+            /** Jobs */
+            jobs: components["schemas"]["InspectionJob"][];
+            recovery: components["schemas"]["RecoverySummary"];
+            run: components["schemas"]["InspectionRunSummary"];
+            /** Timeline */
+            timeline: components["schemas"]["InspectionEvent"][];
+            /** Timeline Truncated */
+            timeline_truncated: boolean;
+            usage: components["schemas"]["RunUsageSummary"];
+            versions: components["schemas"]["RunVersionSummary"];
+        };
+        /** RunInspectionResponse */
+        RunInspectionResponse: {
+            data: components["schemas"]["RunInspectionFacts"];
+        };
         /** RunPlanData */
         RunPlanData: {
             /** Content Hash */
@@ -2399,6 +2545,35 @@ export interface components {
             /** Total Export Steps */
             total_export_steps: number;
         };
+        /** RunUsageSummary */
+        RunUsageSummary: {
+            /** Completion Tokens */
+            completion_tokens?: number | null;
+            /** Cost Amount Microusd */
+            cost_amount_microusd?: number | null;
+            /** Cost Status */
+            cost_status: string;
+            /** Max Model Requests */
+            max_model_requests: number;
+            /** Max Total Tokens */
+            max_total_tokens: number;
+            /** Prompt Tokens */
+            prompt_tokens?: number | null;
+            /** Submitted Model Requests */
+            submitted_model_requests: number;
+            /** Total Tokens */
+            total_tokens?: number | null;
+            /** Usage Status */
+            usage_status: string;
+        };
+        /** RunVersionSummary */
+        RunVersionSummary: {
+            /** Graph Topology Version */
+            graph_topology_version: string;
+            /** State Schema Version */
+            state_schema_version: string;
+        };
+        SafeValue: string | number | boolean | null;
         /** Section */
         Section: {
             /** End Tick */
@@ -3608,6 +3783,37 @@ export interface operations {
                 };
                 content: {
                     "text/event-stream": components["schemas"]["AIRunEvent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_run_inspection_api_v1_runs__run_id__inspect_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunInspectionResponse"];
                 };
             };
             /** @description Validation Error */

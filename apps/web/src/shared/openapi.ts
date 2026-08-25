@@ -27,3 +27,4 @@ export type SelectCandidateInput = Schemas["SelectCandidateBody"];
 export type EditPreviewDecisionInput = Schemas["EditPreviewDecisionBody"];
 export type RunEditPreview = Schemas["RunEditPreviewData"];
 export type RevisionExportProjection = Schemas["RevisionExportProjection"];
+export type RunInspectionFacts = Schemas["RunInspectionFacts"];
