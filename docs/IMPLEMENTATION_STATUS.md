@@ -32,7 +32,7 @@ Project Home → Brief → Parent Graph Planning → Plan Review/Adjustment
 → 每个文件独立权利确认/分析 HITL → 每次成功后刷新 Branch head
 ```
 
-S3 已把 S2 的 API 级闭环变成用户可操作的作品流，S4/S5 加入四个 Style Pack、Theory 证据、双候选、Critic/Repair 和 A/B 人工选择，S6 再加入轻量手工编辑与有界 AI 选区编辑。当前仍不是最终首版：正式 Export/Run Inspector/Eval Lab、96+ Eval、性能与发布硬化属于 S7。
+S3 已把 S2 的 API 级闭环变成用户可操作的作品流，S4/S5 加入四个 Style Pack、Theory 证据、双候选、Critic/Repair 和 A/B 人工选择，S6 加入轻量手工编辑与有界 AI 选区编辑，S7 再补齐正式 Export、Run Inspector、About/Eval 证据面和 96 条内部 Eval。当前已经达到个人作品集首版；负载、多租户和发布运维属于按需后置硬化，不再是默认活动阶段。
 
 ## 3. 能力矩阵
 
@@ -60,12 +60,21 @@ S3 已把 S2 的 API 级闭环变成用户可操作的作品流，S4/S5 加入�
 | 完整成曲与导出 | 可运行 | 四风格 Web Brief→审批→Revision→7 Jobs→Studio；Master/MP3/四 Stem/MIDI/Project/逻辑 Bundle | 1–5 分钟与最多 12 轨仍留待最终产品验收 |
 | 四个 Style Pack 与 Theory Engine | 可运行 | 四个严格 `StylePack v1`、reviewed source/license snapshot、symbolic exemplar、Preset Palette、稳定 Theory rule/evidence、Web 解释与四风格 no-key 完整导出 | 当前为 Project-authored Lite 知识/音色；更丰富检索与 HQ Pack 非 S4 门槛 |
 | Web Import Review | 可运行 | 上传、分析确认、试听、恢复、同 Project 多 Stem 与窄屏回归 | 更复杂的多轨编辑不属于 Import Review |
-| Web Studio（轻量编辑） | 可运行 | Timeline/Piano Roll/Mixer/Library 面板、Draft/save/Undo/Redo、AI Edit/Preview、MP3 Transport、390px review-only | Export UI 与更丰富专业 DAW 工具在 S7 |
+| Web Studio（轻量编辑） | 可运行 | Timeline/Piano Roll/Mixer/Library 面板、Draft/save/Undo/Redo、AI Edit/Preview、MP3 Transport、390px review-only | 更丰富专业 DAW 工具不属于个人作品集首版 |
 | AI 选区编辑 | 可运行 | 有界上下文、EditPatchProposal/真实影响升级、锁定/非目标保持、L0/L1 自动提交、L2 Preview/HITL、重启恢复 | 付费 Edit planner 未验收；no-key fallback 只覆盖显式 gain/本地音色 |
-| Eval/可观测性 | 部分完成 | S2 16 条、S5 12 条、S6 12 条代表性 Eval，持久 Event/Trace/Usage、CLI/browser no-key smoke 与一条 Generate paid 样本 | 完整 OTel/看板和最终 96 条仍缺 |
-| CI/CD 与负载测试 | 未开始 | 本地脚本 | 无 CI workflow、P50/P95 和完整一键演示验收 |
+| Export / Run Inspector | 可运行 | 权威七步 Export 投影、安全下载、最多 200 条脱敏 Timeline、决策/预算/Job/Artifact/恢复事实；重复读取不写库 | 大规模历史 Trace 与外部对象存储不属于首版 |
+| Eval/可观测性 | 可运行（作品集） | S1–S7 共 96 条内部案例、80 条公开 measured 分母、持久 Event/Trace/Usage、About/Eval 页面、一条历史 Generate paid 样本 | 主观音质、长时负载和完整 OTel 看板明确未测 |
+| CI/CD 与负载测试 | 后置可选 | 精确本地 S7 gate、确定性报告、PostgreSQL 与浏览器代表性验收 | CI workflow、soak、正式容量 P95 在公开托管/多人使用前再做 |
 
 ## 4. 当前验证基线
+
+S7 阶段门的最新证据：
+
+- Python unit `494 passed`；全阶段 Eval `36 passed`；S7 contract/report focused `6 passed`；Web `67 passed`。
+- 真实 PostgreSQL Export、Inspector、Dispatcher 三个代表性边界 `3 passed`；Export 为 7 steps/13 files，Inspector 对已有成功 Run 投影 7 Jobs/6 Artifacts。
+- Ruff、Mypy strict `107 source files`、Vite production build、OpenAPI generation、确定性 Eval 报告与 `git diff --check` 通过。
+- Eval inventory 正好 96 条内部案例；公开 measured 分母 80，另列 13 个 expected reject 与 3 个 not measured；报告生成用量为 `0 request / 0 token`。
+- Chromium 真实读取 `/about`、`/evaluation`、一个 Run Inspector 和一个 ready Export；桌面与 390px 无横向溢出。新的完整 no-key Run 因测试环境混用了旧 S6 dispatcher 而停在 `materializing`，未伪报为 S7 端到端成功，并在诊断后通过公开 API 正常取消；S2/S5/S6 已有完整 no-key 队列证据仍有效。
 
 S6 阶段门的最新证据：
 

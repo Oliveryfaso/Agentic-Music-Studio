@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { StatusBanner } from "../../app/StatusBanner";
-import { loadEvaluationReport } from "./evaluationApi";
+import { readEvaluationReport } from "./evaluationApi";
 
 export function EvaluationPage() {
-  const query = useQuery({ queryKey: ["s7-evaluation"], queryFn: loadEvaluationReport });
+  const query = useQuery({ queryKey: ["s7-evaluation"], queryFn: readEvaluationReport });
 
   if (query.isPending) {
     return <section className="evidence-page"><p className="eyebrow">EVIDENCE</p><h1>读取 Eval 报告…</h1></section>;
@@ -51,6 +51,10 @@ export function EvaluationPage() {
           <p className="evidence-footnote">当前报告生成：{report.current_run_usage.provider_requests} provider requests / {report.current_run_usage.total_tokens} tokens。聚焦测试延迟 P50 {report.latency.p50_ms}、P95 {report.latency.p95_ms}。</p>
         </section>
       </div>
+      <section className="portfolio-architecture evaluation-provenance">
+        <div><p className="eyebrow">HISTORICAL LIVE ACCEPTANCE</p><h2>{report.historical_live_acceptance.stage} 的一次有界付费证据</h2></div>
+        <p>{report.historical_live_acceptance.evidence}（最多 {report.historical_live_acceptance.bounded_provider_requests} 次 provider request）；它不计入本轮 0/0 用量。</p>
+      </section>
     </section>
   );
 }

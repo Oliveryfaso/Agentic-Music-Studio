@@ -360,3 +360,12 @@
 - 真实运行发现 LangGraph 嵌套子图连续 worker/HITL interrupt 共用 Parent checkpoint 时，第二次 root resume 会被首次 `__resume__` 写入遮蔽。修复为 EditSubgraph 共享同一个 PostgreSQL saver，publisher 从 `parent.aget_state(..., subgraphs=True)` 取得权威 namespace，定向恢复子图后再由 Parent 合并；同一已发布审批消息重投后 Run 从 `waiting_edit_approval` 恢复到 `succeeded`，无新模型调用。
 - 12 条代表性 Eval 与 stage contract 通过；最终主机门为 Python unit `485 passed`、S6 Eval/contract `8 passed`、PostgreSQL Edit/Dispatcher/SSE `5 passed`、Web `58 passed`，Ruff、Mypy 101 source、Vite build、OpenAPI 与 diff checks 通过。no-key deterministic smoke 完成手工 Revision/Undo、L0、L2 真实 Preview/approve，provider usage 为 `0/0`；Chromium 再验证 Clip 选择、AI edit、刷新、desktop/mobile overflow 和 mobile review-only。
 - 本阶段未调用付费 API。外部音源搜索、完整专业 DAW、主观音质规模化评估、全 checkpoint/并发矩阵、负载/P95、多租户、正式 Export/Run Inspector/Eval Lab 和公开发布硬化进入 S7；数据库卷、业务 Artifact 和共享 Docker 资源均保留。
+
+## 2026-08-25：S7 个人作品集发布
+
+- 新增权威 Revision Export read model 与安全下载：页面固定展示七步 cursor、safe partial 文件和 ready Bundle；Bundle 成员必须属于 manifest，文件名、lineage、bytes 与协议 checksum 均 fail closed，响应不暴露存储路径。
+- 新增只读 Run Inspector：最多 200 条按序事件只保留 allowlist 字段，并汇总 Graph/schema version、Plan/Edit 决策、模型预算、Jobs、Artifacts 与恢复次数；真实 PostgreSQL 重复读取不增加任何事实。
+- Web 新增 Export、Run Inspector、About 与 Evaluation 页面；About 解释单一 LangGraph Parent Graph、HITL、确定性 IR 与恢复/费用边界，Eval 页面把 measured、expected reject 和 not measured 分开显示。
+- S1–S7 版本化 inventory 合计 96 条内部案例，公开 measured 分母为 80，另有 13 条 expected reject 与 3 条 not measured。报告生成不调用模型，当前用量为 0/0；S2 的一次付费 DeepSeek acceptance 只作为历史证据列出。
+- 最终主机门为 Python unit 494、Eval 36、Web 67、真实 PostgreSQL 3；Ruff、Mypy 107 source、Vite build、OpenAPI 和 diff check 通过。Chromium 读取真实成功 Run 的 Inspector/Export，并验证 About/Eval 与 390px 无横向溢出。
+- 一次新 no-key runtime 尝试因当前 S7 host API 与仍运行的旧 S6 dispatcher 混用，outbox 被旧进程消费后停在 `materializing`。该运行未记为成功、未调用付费模型、未修改数据库以伪造恢复，诊断后通过公开 cancel API 进入 `cancelled`；S7 浏览器验收改用已有真实成功 Run 的只读事实。全套同版本容器重建仅在正式发布触发时再做。

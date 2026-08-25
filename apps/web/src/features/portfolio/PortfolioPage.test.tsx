@@ -10,6 +10,7 @@ describe("PortfolioPage", () => {
     expect(screen.getByRole("heading", { name: /Brief 到可编辑作品/ })).toBeInTheDocument();
     expect(screen.getByText("LangGraph Parent Graph")).toBeInTheDocument();
     expect(screen.getByText("Human approval gate")).toBeInTheDocument();
+    expect(screen.getByText("Critic & bounded Repair")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "查看 Eval 证据" })).toBeInTheDocument();
   });
 });

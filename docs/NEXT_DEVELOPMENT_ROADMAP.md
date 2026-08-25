@@ -3,7 +3,7 @@
 > **For agentic workers:** 实施本路线中的具体纵切前，必须先为该纵切建立 `docs/superpowers/plans/YYYY-MM-DD-<slice>.md`，再使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 逐项执行。
 > 状态：已批准的主路线；S2 Task 6 起采用 ADR-016 作品集工程模式
 > 起点：受控 Upload → Import → 分析 HITL → 保持音高对齐 → Web Preview 已完成
-> 执行断点（2026-08-25）：G0、S1–S6 已验收。浏览器已完成 Project → 四风格 Brief → PlanApproval → 两个候选 → Critic/至多一次 Repair → 显式 A/B 选择 → 七步完整导出 → Studio/MP3，以及轻量手工编辑、不可变 Undo/Redo 和有界 AI 选区编辑；S6 no-key 旅程为 0 request/0 token。S7 是唯一活动门。
+> 执行断点（2026-08-25）：G0 与 S1–S7 已验收，个人作品集首版封板。下一步没有默认功能阶段；只有公开托管、多人使用、长时运行或真实风险触发时，才从第 14 节选择对应硬化纵切。
 
 **目标：** 从当前可靠的导入底座，按最短依赖路径完成“可生成、可听、可编辑、可恢复、可评测”的 Agentic Music Studio。
 
@@ -39,7 +39,7 @@ G0 前曾存在 48 个修改项、65 个未跟踪项、目标/状态文档漂移
 每个纵切都必须遵守：
 
 1. 先读取 `DECISION_LOG.md`、`PROJECT_GUIDE.md`、`IMPLEMENTATION_STATUS.md`、本路线和项目 Skill。
-2. 记录 `PROJECT_GUIDE.md` 哈希；结束前复核没有被并发修改。
+2. 用 Git status/diff 复核 `PROJECT_GUIDE.md` 没有被并发修改；除协议或完整性要求外不计算文档哈希。
 3. 写出单独实施计划，包含精确文件、接口、当前主路径失败边、代表性测试、Eval/Trace 影响和验收命令；不为未触发的准生产场景穷举矩阵。
 4. 测试先行；每个 Task 先跑窄测试和一个真实边界，每 2–3 个 Task 或跨服务接线点跑组合回归，阶段末跑完整门。
 5. LLM 只负责审美语义；节拍、音域、Pattern 展开、渲染、存储、错误和预算由确定性代码负责。
@@ -286,6 +286,8 @@ Candidate fan-out 使用独立 `candidate_id + seed + CandidateState`；fan-in r
 
 ## 12. S7：导出产品化复验、Eval、可观测性与发布演示
 
+> 状态：**已完成（个人作品集门）**。正式 Export、Run Inspector、About/Eval 页面、96 条内部 Eval、精确本地 gate、真实 PostgreSQL 代表性边界与桌面/390px 浏览器验收已落地。长作品负载、完整 OTel、CI/CD、多租户和全故障矩阵没有伪装成已完成，移入第 14 节的触发式后置路线。
+
 - 把 S1 已完成的 Master WAV/MP3、按需 Stem、MIDI、项目文件和 manifests 接入正式 Export 页面、长作品/12 轨性能矩阵、失败恢复和发布兼容性复验，不在 S7 才首次实现格式能力。
 - Eval Set 扩展到至少 96 条；对比规则模板、单次 DeepSeek 和完整 Graph。
 - 打通 OTel、Run Inspector、失败分类、P50/P95、token/任务成本和恢复率。
@@ -336,7 +338,7 @@ Candidate fan-out 使用独立 `candidate_id + seed + CandidateState`；fan-in r
 - 因“大文件看起来不舒服”而进行的全仓重构。
 - 不能由现有产品用例和 Eval 证明收益的多 Agent 角色。
 
-以下准生产事项不阻塞 S2–S6 的功能闭环，统一在 S7/公开发布前按风险排序：
+以下准生产事项不阻塞已经封板的个人作品集；在公开托管、多人使用或相应风险出现时按风险排序：
 
 - 全 checkpoint 崩溃注入、全取消时点、所有重复投递与并发交错组合。
 - 所有历史 Schema 的 populated downgrade；当前只要求前向迁移、版本化读取、关键引用一致和危险降级 fail closed。

@@ -44,7 +44,7 @@
 - Produce `build_export_router(store, artifact_root)` with `GET /projects/{project_id}/revisions/{revision_id}/exports` and `GET /export-bundles/{bundle_id}/files/{filename}`.
 - Consume existing `RevisionRow`, `AIRunRow`, `MediaRunRow`, `MediaJobRow`, `AudioArtifactRow`, `ExportBundleArtifactRow`, `EXPORT_STEPS`, and Artifact availability/status enums.
 
-- [ ] **Step 1: Write RED projection and lineage tests**
+- [x] **Step 1: Write RED projection and lineage tests**
 
 ```python
 async def test_export_projection_returns_exact_ordered_delivery_facts() -> None:
@@ -61,7 +61,7 @@ async def test_cross_revision_artifact_fails_closed_without_a_download_url() -> 
     assert all(item.artifact_id != MALICIOUS_ARTIFACT_ID for item in projection.files)
 ```
 
-- [ ] **Step 2: Write RED secure file resolver tests**
+- [x] **Step 2: Write RED secure file resolver tests**
 
 ```python
 @pytest.mark.parametrize("filename", ("../master.wav", "folder/master.wav", "master.wav%2f.."))
@@ -76,13 +76,13 @@ async def test_bundle_file_requires_manifest_membership_size_and_checksum() -> N
     assert resolved.media_type == "application/json"
 ```
 
-- [ ] **Step 3: Run RED**
+- [x] **Step 3: Run RED**
 
 Run: `.venv/bin/pytest services/api/tests/unit/application/test_export_reads.py services/api/tests/unit/api/test_exports.py -q`
 
 Expected: collection fails because `motif_forge.application.export_reads` and `motif_forge.api.exports` do not exist.
 
-- [ ] **Step 4: Implement strict application models and safe resolver**
+- [x] **Step 4: Implement strict application models and safe resolver**
 
 ```python
 class RevisionExportProjection(DomainModel):
@@ -108,11 +108,11 @@ class ResolveBundleFile:
         return BundleFile(path=target, filename=filename, media_type=media_type_for(filename))
 ```
 
-- [ ] **Step 5: Implement PostgreSQL exact-lineage projection and routes**
+- [x] **Step 5: Implement PostgreSQL exact-lineage projection and routes**
 
 Query the Revision first, select its source Run and one Media Run, then load only Jobs and Artifacts tied to that exact Revision. Build seven step slots in `EXPORT_STEPS` order even when Jobs are missing. Bundle manifest files use `/api/v1/export-bundles/{bundle_id}/files/{filename}`; audio rows use the existing audio content route. Mount the router only when PostgreSQL persistence is configured.
 
-- [ ] **Step 6: Run GREEN and real PostgreSQL boundary**
+- [x] **Step 6: Run GREEN and real PostgreSQL boundary**
 
 Run: `.venv/bin/pytest services/api/tests/unit/application/test_export_reads.py services/api/tests/unit/api/test_exports.py -q`
 
@@ -122,7 +122,7 @@ Run: `.venv/bin/ruff check services/api/src/motif_forge/application/export_reads
 
 Run: `.venv/bin/mypy services/api/src/motif_forge/application/export_reads.py services/api/src/motif_forge/infrastructure/persistence/export_reads.py services/api/src/motif_forge/api/exports.py`
 
-- [ ] **Step 7: Commit Task 1**
+- [x] **Step 7: Commit Task 1**
 
 ```bash
 git add services/api/src/motif_forge/application/export_reads.py services/api/src/motif_forge/application/generation.py services/api/src/motif_forge/infrastructure/persistence/export_reads.py services/api/src/motif_forge/api/exports.py services/api/src/motif_forge/api/app.py services/api/tests/unit/application/test_export_reads.py services/api/tests/unit/api/test_exports.py services/api/tests/integration/test_postgres_s7_export_reads.py
@@ -148,7 +148,7 @@ git commit -m "feat: expose authoritative S7 exports"
 - Produce `readRevisionExport(projectId, revisionId)` and `ExportPage`.
 - Consume generated `RevisionExportProjection` and existing `requestJson`, `readData`, `navigate`, and Artifact rehydration helpers.
 
-- [ ] **Step 1: Write RED route/API tests**
+- [x] **Step 1: Write RED route/API tests**
 
 ```typescript
 expect(parseRoute(`/projects/${PROJECT_ID}/exports/${REVISION_ID}`)).toEqual({
@@ -157,7 +157,7 @@ expect(parseRoute(`/projects/${PROJECT_ID}/exports/${REVISION_ID}`)).toEqual({
 expect(await readRevisionExport(PROJECT_ID, REVISION_ID)).toEqual(READY_EXPORT);
 ```
 
-- [ ] **Step 2: Write RED page states**
+- [x] **Step 2: Write RED page states**
 
 ```tsx
 it("renders seven steps and only authoritative download links", async () => {
@@ -176,21 +176,21 @@ it("keeps safe partial files visible and labels the failed step", async () => {
 });
 ```
 
-- [ ] **Step 3: Run RED**
+- [x] **Step 3: Run RED**
 
 Run: `npm run test:web -- apps/web/src/app/routes.test.ts apps/web/src/features/exports/exportApi.test.ts apps/web/src/features/exports/ExportPage.test.tsx`
 
 Expected: missing route/module failures.
 
-- [ ] **Step 4: Implement route, API, and page**
+- [x] **Step 4: Implement route, API, and page**
 
 Render a header with Revision/Run links, a seven-step ordered list, grouped delivery files, availability/status text, and download links supplied by the API. Unavailable audio shows the existing rehydrate action. A missing Bundle never removes completed safe audio. Add small `查看导出` and `检查 Run` links to Studio/Run only when their identities exist.
 
-- [ ] **Step 5: Add responsive layout**
+- [x] **Step 5: Add responsive layout**
 
 Use wrapping action rows, `min-width: 0`, and horizontal overflow on the step evidence region. At `max-width: 540px`, stack file metadata and keep labels visible. Do not set a fixed content height.
 
-- [ ] **Step 6: Run GREEN and combined Task 1–2 regression**
+- [x] **Step 6: Run GREEN and combined Task 1–2 regression**
 
 Run: `npm run test:web -- apps/web/src/app/routes.test.ts apps/web/src/features/exports/exportApi.test.ts apps/web/src/features/exports/ExportPage.test.tsx apps/web/src/features/studio/StudioPage.test.tsx apps/web/src/features/generate/RunPage.test.tsx`
 
@@ -198,7 +198,7 @@ Run: `npm run build:web`
 
 Run: `npm run generate:openapi && npm run build:web`
 
-- [ ] **Step 7: Commit Task 2**
+- [x] **Step 7: Commit Task 2**
 
 ```bash
 git add apps/web/src
@@ -222,7 +222,7 @@ git commit -m "feat: add S7 Export workspace"
 - Produce `PostgresRunInspectionStore(SessionFactory)` and `build_run_inspection_router(store, ai_run_uow)`.
 - Reuse existing `ReadAIRun`, `ReadAIRunProjection`, and `run_data`; do not duplicate authoritative Run projection rules.
 
-- [ ] **Step 1: Write RED redaction and ordering tests**
+- [x] **Step 1: Write RED redaction and ordering tests**
 
 ```python
 def test_safe_event_summary_drops_secret_assertion_path_and_unknown_keys() -> None:
@@ -238,17 +238,17 @@ async def test_inspection_orders_events_and_caps_timeline() -> None:
     assert result.timeline_truncated is True
 ```
 
-- [ ] **Step 2: Write RED read-only PostgreSQL facts test**
+- [x] **Step 2: Write RED read-only PostgreSQL facts test**
 
 Capture counts of Runs, events, Jobs, Artifacts, approvals, and usage before and after two identical Inspector reads. Assert the response is identical and every count is unchanged. Include one replay event, one approval, one selection, seven Jobs, six audio Artifacts, and one Bundle.
 
-- [ ] **Step 3: Run RED**
+- [x] **Step 3: Run RED**
 
 Run: `.venv/bin/pytest services/api/tests/unit/application/test_run_inspection.py services/api/tests/unit/api/test_run_inspection.py -q`
 
 Expected: missing Inspector modules.
 
-- [ ] **Step 4: Implement safe models, allowlist summarizer, and projection**
+- [x] **Step 4: Implement safe models, allowlist summarizer, and projection**
 
 ```python
 SAFE_EVENT_FIELDS: dict[str, tuple[str, ...]] = {
@@ -269,11 +269,11 @@ def safe_event_summary(event_type: str, payload: Mapping[str, object]) -> dict[s
 
 Load at most 200 newest persisted events, return them in ascending sequence, and set `timeline_truncated`. Derive recovery counts only from known event types. Load Jobs/Artifacts through exact Run/Media Run/Revision lineage and exclude storage keys.
 
-- [ ] **Step 5: Mount GET route and reuse authoritative AIRunData**
+- [x] **Step 5: Mount GET route and reuse authoritative AIRunData**
 
 The route first reads `AIRunData` using the existing service/UoW, then adds the Inspector projection. A missing Run returns the existing stable `AI_RUN_NOT_FOUND` error. The endpoint performs no audit write.
 
-- [ ] **Step 6: Run GREEN, PostgreSQL, Ruff, and mypy**
+- [x] **Step 6: Run GREEN, PostgreSQL, Ruff, and mypy**
 
 Run: `.venv/bin/pytest services/api/tests/unit/application/test_run_inspection.py services/api/tests/unit/api/test_run_inspection.py -q`
 
@@ -283,7 +283,7 @@ Run: `.venv/bin/ruff check services/api/src/motif_forge/application/run_inspecti
 
 Run: `.venv/bin/mypy services/api/src/motif_forge/application/run_inspection.py services/api/src/motif_forge/infrastructure/persistence/run_inspection.py services/api/src/motif_forge/api/run_inspection.py`
 
-- [ ] **Step 7: Commit Task 3**
+- [x] **Step 7: Commit Task 3**
 
 ```bash
 git add services/api/src/motif_forge/application/run_inspection.py services/api/src/motif_forge/infrastructure/persistence/run_inspection.py services/api/src/motif_forge/api/run_inspection.py services/api/src/motif_forge/api/app.py services/api/tests/unit/application/test_run_inspection.py services/api/tests/unit/api/test_run_inspection.py services/api/tests/integration/test_postgres_s7_run_inspection.py
@@ -308,7 +308,7 @@ git commit -m "feat: expose safe Parent Graph inspection"
 - Produce `readRunInspection(runId)` and `RunInspectorPage`.
 - Consume generated `AIRunInspection`, existing status vocabulary, and navigation helpers.
 
-- [ ] **Step 1: Write RED route/API/page tests**
+- [x] **Step 1: Write RED route/API/page tests**
 
 ```tsx
 it("shows graph versions, usage budget, decisions, and ordered timeline", async () => {
@@ -327,19 +327,19 @@ it("renders terminal failure and preserved outputs together", async () => {
 });
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `npm run test:web -- apps/web/src/app/routes.test.ts apps/web/src/features/inspection/inspectionApi.test.ts apps/web/src/features/inspection/RunInspectorPage.test.tsx`
 
-- [ ] **Step 3: Implement Inspector route, query, and view**
+- [x] **Step 3: Implement Inspector route, query, and view**
 
 Use semantic sections rather than a canvas: Overview, Graph Timeline, Decisions, Usage/Budget, Recovery, and Outputs. Present event sequences and safe summaries in a horizontally scrollable table. Show `timeline_truncated` as explicit copy. Provide links to the Run page, Studio, and Export only when identities exist.
 
-- [ ] **Step 4: Implement responsive and error states**
+- [x] **Step 4: Implement responsive and error states**
 
 At 390 px, sections stack, evidence tables scroll, and status/error labels remain textual. A read failure offers a retry button and never falls back to raw event JSON.
 
-- [ ] **Step 5: Run GREEN and combined Task 3–4 regression**
+- [x] **Step 5: Run GREEN and combined Task 3–4 regression**
 
 Run: `npm run generate:openapi`
 
@@ -349,7 +349,7 @@ Run: `.venv/bin/pytest services/api/tests/unit/api/test_run_inspection.py servic
 
 Run: `npm run build:web`
 
-- [ ] **Step 6: Commit Task 4**
+- [x] **Step 6: Commit Task 4**
 
 ```bash
 git add apps/web/src
@@ -372,7 +372,7 @@ git commit -m "feat: add S7 Run Inspector"
 - Produce `build_report() -> dict[str, object]` and CLI `python scripts/run_s7_eval_report.py`.
 - Produce deterministic JSON and Markdown without timestamps or machine paths.
 
-- [ ] **Step 1: Write RED inventory semantics tests**
+- [x] **Step 1: Write RED inventory semantics tests**
 
 ```python
 def test_s7_inventory_reaches_internal_and_public_contracts() -> None:
@@ -388,17 +388,17 @@ def test_expected_reject_and_not_measured_do_not_enter_denominators() -> None:
     assert measured["denominator"] < report["internal_case_count"]
 ```
 
-- [ ] **Step 2: Write RED deterministic output and redaction contracts**
+- [x] **Step 2: Write RED deterministic output and redaction contracts**
 
 Generate twice and compare bytes. Assert output contains no absolute path, API key name/value, approval assertion, raw prompt, or `generated_at`. Assert perceptual qualities are `not_measured` unless backed by an actual evaluator.
 
-- [ ] **Step 3: Run RED**
+- [x] **Step 3: Run RED**
 
 Run: `.venv/bin/pytest services/api/tests/eval/test_s7_portfolio_eval.py tests/test_s7_eval_report_contract.py -q`
 
 Expected: missing fixture and runner.
 
-- [ ] **Step 4: Add 24 bounded cases and runner**
+- [x] **Step 4: Add 24 bounded cases and runner**
 
 ```python
 def classify(result: CaseResult) -> Literal[
@@ -413,7 +413,7 @@ def classify(result: CaseResult) -> Literal[
 
 Inventory the versioned S1–S7 assets explicitly. Do not infer case counts from pytest collection. Execute pure domain/API serializers for S7 measured cases; report historical live provider evidence in a separate `historical_live_acceptance` object.
 
-- [ ] **Step 5: Generate bounded artifacts and run GREEN**
+- [x] **Step 5: Generate bounded artifacts and run GREEN**
 
 Run: `.venv/bin/python scripts/run_s7_eval_report.py`
 
@@ -421,7 +421,7 @@ Run: `.venv/bin/pytest services/api/tests/eval/test_s1_deterministic_eval.py ser
 
 Run: `.venv/bin/ruff check scripts/run_s7_eval_report.py services/api/tests/eval/test_s7_portfolio_eval.py tests/test_s7_eval_report_contract.py`
 
-- [ ] **Step 6: Commit Task 5**
+- [x] **Step 6: Commit Task 5**
 
 ```bash
 git add evals/s7-portfolio-release-v1.json services/api/tests/eval/test_s7_portfolio_eval.py scripts/run_s7_eval_report.py tests/test_s7_eval_report_contract.py apps/web/public/evals/s7-report.v1.json docs/evals/S7_EVAL_REPORT.md package.json
@@ -448,7 +448,7 @@ git commit -m "feat: publish truthful S7 evaluation report"
 - Produce `readEvaluationReport()` from `/evals/s7-report.v1.json`.
 - Consume Project Home navigation and the committed report; no backend mutation is added.
 
-- [ ] **Step 1: Write RED portfolio and report UI tests**
+- [x] **Step 1: Write RED portfolio and report UI tests**
 
 ```tsx
 it("explains the finite Agent loop and links to the evidence surfaces", () => {
@@ -465,21 +465,21 @@ it("shows honest measured denominators and not-measured categories", async () =>
 });
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `npm run test:web -- apps/web/src/features/portfolio/PortfolioPage.test.tsx apps/web/src/features/evaluation/EvaluationPage.test.tsx apps/web/src/app/routes.test.ts`
 
-- [ ] **Step 3: Implement pages and navigation**
+- [x] **Step 3: Implement pages and navigation**
 
 Portfolio content covers Product Loop, Why LangGraph, Human Gates, Deterministic Music Core, Recovery/Cost, and Evidence. Eval Lab shows inventory, measured metrics, style/behavior breakdowns, latency samples, known failure labels, and historical live acceptance as distinct evidence. Add unobtrusive About/Eval navigation to `AppShell`; preserve Project Home as the primary working entry.
 
-- [ ] **Step 4: Add mobile/empty/error coverage and run GREEN**
+- [x] **Step 4: Add mobile/empty/error coverage and run GREEN**
 
 Run: `npm run test:web -- apps/web/src/features/portfolio/PortfolioPage.test.tsx apps/web/src/features/evaluation/EvaluationPage.test.tsx apps/web/src/app/routes.test.ts apps/web/src/features/projects/ProjectHomePage.test.tsx`
 
 Run: `npm run build:web`
 
-- [ ] **Step 5: Commit Task 6**
+- [x] **Step 5: Commit Task 6**
 
 ```bash
 git add apps/web/src
@@ -506,7 +506,7 @@ git commit -m "feat: add Motif Forge portfolio evidence pages"
 - Produce browser smoke covering `/about`, `/evaluation`, one `/runs/:id/inspect`, one Export page, and 390 px review.
 - Produce `scripts/check_s7.sh` as the exact stage gate.
 
-- [ ] **Step 1: Write RED smoke and gate contract tests**
+- [x] **Step 1: Write RED smoke and gate contract tests**
 
 ```python
 def test_s7_smoke_uses_public_actions_and_attests_no_paid_usage() -> None:
@@ -522,25 +522,25 @@ def test_s7_gate_runs_eval_web_static_and_postgres_boundaries() -> None:
         assert required in source
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `.venv/bin/pytest tests/test_s7_script_contract.py -q`
 
-- [ ] **Step 3: Implement fail-closed deterministic smoke**
+- [x] **Step 3: Implement fail-closed deterministic smoke**
 
 Before creating a Project/Run, attest the live container has no DeepSeek key and deterministic fallback is active. Use stable smoke idempotency keys to reuse the same Project/Run after interruption. Drive Plan approval and Candidate selection through HTTP, poll terminal Run, then read Inspector/Export and download one audio plus one manifest. Query PostgreSQL read-only for exact Run usage and lineage; print a bounded JSON summary.
 
-- [ ] **Step 4: Implement browser smoke and exact stage gate**
+- [x] **Step 4: Implement browser smoke and exact stage gate**
 
 Browser smoke uses the public UI and visible text; it does not inspect React internals. `check_s7.sh` runs the focused S7 suite, all backend unit tests, all Eval tests, Web tests/build, deterministic OpenAPI regeneration, Ruff, mypy, and the three representative PostgreSQL S7 files when `MOTIF_FORGE_TEST_POSTGRES_DSN` is present.
 
-- [ ] **Step 5: Run host GREEN and combined regression**
+- [x] **Step 5: Run host GREEN and combined regression**
 
 Run: `.venv/bin/pytest tests/test_s7_script_contract.py services/api/tests/eval/test_s7_portfolio_eval.py tests/test_s7_eval_report_contract.py -q`
 
 Run: `MOTIF_FORGE_TEST_POSTGRES_DSN=postgresql://motif_forge:motif_forge@127.0.0.1:5432/motif_forge scripts/check_s7.sh`
 
-- [ ] **Step 6: Run representative Compose and browser acceptance**
+- [x] **Step 6: Run representative Compose and browser acceptance**
 
 Run: `docker compose up -d --build api worker render-worker web postgres redis`
 
@@ -550,11 +550,11 @@ Run: `node scripts/run_s7_browser_smoke.mjs`
 
 Expected deterministic facts: terminal succeeded; one selected Revision; seven Jobs; six audio Artifacts; one Bundle; Inspector/Export/Eval reads succeed; provider requests/tokens are 0/0.
 
-- [ ] **Step 7: Synchronize stage documentation**
+- [x] **Step 7: Synchronize stage documentation**
 
 Update the five project memory documents with actual evidence only. `PROJECT_GUIDE.md` must state S1–S7 complete. `IMPLEMENTATION_STATUS.md` records exact commands/counts and remaining limitations. `NEXT_DEVELOPMENT_ROADMAP.md` closes S7 and moves deferred production hardening to an optional post-portfolio release section. `TECH_EVOLUTION.md` records implementation and runtime findings. `DECISION_LOG.md` adds a concise S7 portfolio-release ADR without changing earlier history.
 
-- [ ] **Step 8: Re-run final stage gate and diff checks**
+- [x] **Step 8: Re-run final stage gate and diff checks**
 
 Run: `MOTIF_FORGE_TEST_POSTGRES_DSN=postgresql://motif_forge:motif_forge@127.0.0.1:5432/motif_forge scripts/check_s7.sh`
 
@@ -562,7 +562,7 @@ Run: `git diff --check`
 
 Run: `git status --short`
 
-- [ ] **Step 9: Commit Task 7**
+- [x] **Step 9: Commit Task 7**
 
 ```bash
 git add scripts/run_s7_portfolio_smoke.py scripts/run_s7_browser_smoke.mjs scripts/check_s7.sh tests/test_s7_script_contract.py package.json docs

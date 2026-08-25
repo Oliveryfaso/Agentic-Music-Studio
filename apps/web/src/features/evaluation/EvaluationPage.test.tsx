@@ -7,7 +7,7 @@ import { EvaluationPage } from "./EvaluationPage";
 
 describe("EvaluationPage", () => {
   it("renders measured, rejected, and unmeasured evidence separately", async () => {
-    vi.spyOn(api, "loadEvaluationReport").mockResolvedValue({
+    vi.spyOn(api, "readEvaluationReport").mockResolvedValue({
       schema_version: "motif-forge-eval-report.v1",
       internal_case_count: 96,
       public_measured_case_count: 80,
@@ -19,6 +19,10 @@ describe("EvaluationPage", () => {
       stage_inventory: { S7: { internal: 24, measured: 19, expected_reject: 3, not_measured: 2 } },
       current_run_usage: { provider_requests: 0, total_tokens: 0 },
       latency: { p50_ms: "<100", p95_ms: "<100" },
+      s7_categories: { export: 8, inspection: 6, recovery: 6, portfolio: 4 },
+      historical_live_acceptance: {
+        stage: "S2", bounded_provider_requests: 1, evidence: "one bounded acceptance",
+      },
       not_measured_claims: ["perceptual audio quality"],
     });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -29,5 +33,6 @@ describe("EvaluationPage", () => {
     expect(screen.getByText("80 / 80")).toBeInTheDocument();
     expect(screen.getByText("Expected reject")).toBeInTheDocument();
     expect(screen.getByText("perceptual audio quality")).toBeInTheDocument();
+    expect(screen.getByText(/它不计入本轮 0\/0 用量/)).toBeInTheDocument();
   });
 });

@@ -5,6 +5,7 @@ const pillars = [
   ["02", "Human approval gate", "结构化 Plan 必须经人类审批；拒绝、重规划、取消和重试都成为持久事实。"],
   ["03", "Deterministic core", "模型只负责提议；ArrangementIR、编辑命令、音频任务和 Bundle 由确定性代码编译。"],
   ["04", "Recovery & cost", "PostgreSQL checkpoint、outbox 与幂等键让 Run 可恢复；模型请求和 token 预算进入账本。"],
+  ["05", "Critic & bounded Repair", "证据 Critic 比较结构事实；每个候选最多一次局部 Repair，随后由用户做 A/B 选择。"],
 ] as const;
 
 export function PortfolioPage() {

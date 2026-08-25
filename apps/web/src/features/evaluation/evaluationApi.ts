@@ -13,10 +13,16 @@ export interface EvaluationReport {
   >;
   current_run_usage: { provider_requests: number; total_tokens: number };
   latency: { p50_ms: string; p95_ms: string };
+  s7_categories: Record<string, number>;
+  historical_live_acceptance: {
+    stage: string;
+    bounded_provider_requests: number;
+    evidence: string;
+  };
   not_measured_claims: string[];
 }
 
-export async function loadEvaluationReport(): Promise<EvaluationReport> {
+export async function readEvaluationReport(): Promise<EvaluationReport> {
   const response = await fetch("/evals/s7-report.v1.json", {
     headers: { Accept: "application/json" },
   });
