@@ -78,7 +78,7 @@ from motif_forge.domain.revisions import (
 )
 from motif_forge.domain.style_packs import builtin_style_pack_registry
 
-_EXPORT_STEPS = (
+EXPORT_STEPS = (
     "master",
     "stem:pad",
     "stem:melody",
@@ -114,7 +114,7 @@ class CompleteExportCursor(DomainModel):
     @model_validator(mode="after")
     def validate_progress(self) -> CompleteExportCursor:
         completed_count = len(self.completed_steps)
-        if self.completed_steps != _EXPORT_STEPS[:completed_count]:
+        if self.completed_steps != EXPORT_STEPS[:completed_count]:
             raise ValueError("completed_steps must be an ordered export prefix")
         if len(self.completed_job_ids) != completed_count:
             raise ValueError("completed Job count must match completed steps")
@@ -140,7 +140,7 @@ class CompleteExportCursor(DomainModel):
 
     @property
     def pending_steps(self) -> tuple[str, ...]:
-        return _EXPORT_STEPS[len(self.completed_steps) :]
+        return EXPORT_STEPS[len(self.completed_steps) :]
 
 
 def _export_key(cursor: CompleteExportCursor, step: str) -> str:
@@ -272,7 +272,7 @@ def build_export_bundle_payload(
         item.render_track_ids[0]: item for item in stems if len(item.render_track_ids) == 1
     }
     ordered_stems: list[tuple[str, AudioArtifact]] = []
-    for step in _EXPORT_STEPS[1:5]:
+    for step in EXPORT_STEPS[1:5]:
         track_id = _track_id_for_step(revision, step)
         artifact = stem_by_track.get(track_id)
         if artifact is None:

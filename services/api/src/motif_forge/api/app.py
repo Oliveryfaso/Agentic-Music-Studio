@@ -27,10 +27,12 @@ from motif_forge.agent.parent_graph import (
     initial_import_state,
 )
 from motif_forge.api.ai_runs import build_ai_run_router
+from motif_forge.api.exports import build_export_router
 from motif_forge.api.project_reads import build_project_read_router
 from motif_forge.api.sound_catalog import build_sound_catalog_router
 from motif_forge.application.audio_content import ResolveAudioContent
 from motif_forge.application.errors import ApplicationError, RevisionConflictError
+from motif_forge.application.export_reads import ExportProjectionStore
 from motif_forge.application.features import ListAudioFeatures, ReadFeatureArtifact
 from motif_forge.application.imports import LoadImportAnalysisContext, MaterializeImport
 from motif_forge.application.media_jobs import (
@@ -77,6 +79,7 @@ from motif_forge.infrastructure.persistence.database import (
     create_postgres_engine,
     create_session_factory,
 )
+from motif_forge.infrastructure.persistence.export_reads import PostgresExportProjectionStore
 from motif_forge.infrastructure.persistence.media_jobs import PostgresMediaJobUnitOfWork
 from motif_forge.infrastructure.persistence.project_reads import PostgresProjectReadStore
 from motif_forge.infrastructure.persistence.storage import PostgresStorageUnitOfWork
@@ -300,6 +303,7 @@ def _application_status(error: ApplicationError) -> int:
         "UPLOAD_NOT_FOUND",
         "ARTIFACT_NOT_FOUND",
         "IMPORT_RUN_NOT_FOUND",
+        "EXPORT_BUNDLE_NOT_FOUND",
     }:
         return 404
     if error.code in {
@@ -335,6 +339,7 @@ def _application_status(error: ApplicationError) -> int:
         "ARTIFACT_REHYDRATION_RECIPE_INVALID",
         "ARTIFACT_NOT_PLAYABLE",
         "PLAN_ADJUSTMENT_TOO_LARGE",
+        "EXPORT_FILE_NAME_INVALID",
     }:
         return 422
     if error.code in {"PERSISTENCE_NOT_CONFIGURED", "ARTIFACT_ROOT_UNAVAILABLE"}:
@@ -353,6 +358,7 @@ def create_app(
     upload_uow_factory: UploadUnitOfWorkFactory | None = None,
     ai_run_uow_factory: AIRunUnitOfWorkFactory | None = None,
     project_read_store: ProjectReadStore | None = None,
+    export_read_store: ExportProjectionStore | None = None,
     storage_root_inspector: Callable[[], StorageRootSnapshot] | None = None,
     readiness_probes: Mapping[str, Callable[[], Awaitable[bool]]] | None = None,
 ) -> FastAPI:
@@ -363,6 +369,7 @@ def create_app(
     runtime_upload_uow = upload_uow_factory
     runtime_ai_run_uow = ai_run_uow_factory
     runtime_project_reads = project_read_store
+    runtime_export_reads = export_read_store
     runtime_media_uow = None
     runtime_storage_gate = None
     if runtime_uow is None and runtime_settings.postgres_dsn is not None:
@@ -373,6 +380,9 @@ def create_app(
         runtime_upload_uow = PostgresUploadUnitOfWork(session_factory)
         runtime_ai_run_uow = PostgresAIRunUnitOfWork(session_factory)
         runtime_project_reads = PostgresProjectReadStore(session_factory)
+        runtime_export_reads = PostgresExportProjectionStore(
+            session_factory, artifact_root=runtime_settings.artifact_root
+        )
         runtime_media_uow = PostgresMediaJobUnitOfWork(session_factory)
         storage_uow = PostgresStorageUnitOfWork(session_factory)
         runtime_storage_gate = RunStoragePressureGate(
@@ -461,6 +471,12 @@ def create_app(
                 runtime_project_reads,
                 storage_root_inspector
                 or LocalStorageRootInspector(runtime_settings.artifact_root),
+            )
+        )
+    if runtime_export_reads is not None:
+        app.include_router(
+            build_export_router(
+                runtime_export_reads, artifact_root=runtime_settings.artifact_root
             )
         )
 
