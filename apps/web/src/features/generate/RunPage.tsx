@@ -127,6 +127,8 @@ export function RunPage({ runId }: { runId: string }) {
           : <StatusBanner tone="warning" message="候选证据正在恢复" detail="页面会继续读取 PostgreSQL 权威 Preview 和 Critic 结果。" />
       )}
       <div className="run-actions">
+        <a className="secondary-inline" href={`/runs/${encodeURIComponent(run.run_id)}/inspect`}>检查 Run</a>
+        {run.revision_id && <a className="secondary-inline" href={`/projects/${encodeURIComponent(run.project_id)}/exports/${encodeURIComponent(run.revision_id)}`}>查看导出</a>}
         {canCancel && <button className="danger-button" type="button" disabled={busy} onClick={() => void action(() => cancelRun(run.run_id, run.version, actionKey("cancel")))}>取消 Run</button>}
         {canRetry && <button className="secondary-inline" type="button" disabled={busy} onClick={() => void action(() => retryRun(run.run_id, run.version, actionKey("retry")), (child) => navigate({ name: "run", runId: child.run_id }))}>重试为新 Run</button>}
         {run.revision_id && studioReady && <button className="primary-button" type="button" onClick={() => navigate({ name: "studio", projectId: run.project_id, revisionId: run.revision_id as string })}>打开只读 Studio</button>}

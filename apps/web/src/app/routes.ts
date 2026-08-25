@@ -4,6 +4,8 @@ export type AppRoute =
   | { name: "run"; runId: string }
   | { name: "studio"; projectId: string; revisionId: string }
   | { name: "import"; projectId: string }
+  | { name: "export"; projectId: string; revisionId: string }
+  | { name: "inspect"; runId: string }
   | { name: "not_found" };
 
 const NAVIGATION_EVENT = "motif-forge:navigate";
@@ -27,6 +29,13 @@ export function parseRoute(pathname = window.location.pathname): AppRoute {
   ) {
     return { name: "studio", projectId: parts[1], revisionId: parts[3] };
   }
+  if (
+    parts.length === 4 && parts[0] === "projects" && parts[1]
+    && parts[2] === "exports" && parts[3]
+  ) return { name: "export", projectId: parts[1], revisionId: parts[3] };
+  if (parts.length === 3 && parts[0] === "runs" && parts[1] && parts[2] === "inspect") {
+    return { name: "inspect", runId: parts[1] };
+  }
   return { name: "not_found" };
 }
 
@@ -42,6 +51,10 @@ export function routePath(route: Exclude<AppRoute, { name: "not_found" }>): stri
       return `/projects/${encodeURIComponent(route.projectId)}/studio/${encodeURIComponent(route.revisionId)}`;
     case "import":
       return `/projects/${encodeURIComponent(route.projectId)}/import`;
+    case "export":
+      return `/projects/${encodeURIComponent(route.projectId)}/exports/${encodeURIComponent(route.revisionId)}`;
+    case "inspect":
+      return `/runs/${encodeURIComponent(route.runId)}/inspect`;
   }
 }
 
@@ -57,6 +70,10 @@ export function routeTitle(route: AppRoute): string {
       return "Motif Forge · Studio";
     case "import":
       return "Motif Forge · Import Review";
+    case "export":
+      return "Motif Forge · Export";
+    case "inspect":
+      return "Motif Forge · Run Inspector";
     case "not_found":
       return "Motif Forge · Not Found";
   }

@@ -138,6 +138,10 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
         <div><p className="eyebrow">ARRANGEMENT / REVISION STUDIO</p><h1 id="studio-title">{project.data.name} / Revision</h1><p>在不可变 Base 上编辑本地 Draft，确认后保存为新的 Revision。</p></div>
         <div className="studio-meta"><span>{studio.data.arrangement_ir.tracks.length} tracks</span><span>{projection.totalBars} bars</span><span>{studio.data.arrangement_ir.tempo_map?.[0]?.bpm ?? 120} BPM</span></div>
       </header>
+      <div className="run-actions">
+        <a className="secondary-inline" href={`/projects/${encodeURIComponent(projectId)}/exports/${encodeURIComponent(revisionId)}`}>查看导出</a>
+        {studio.data.source_run_id && <a className="secondary-inline" href={`/runs/${encodeURIComponent(studio.data.source_run_id)}/inspect`}>检查 Run</a>}
+      </div>
 
       {studio.data.bundle_id === null && <StatusBanner tone="warning" message="部分成功 Revision" detail="安全 Revision 已保留，但完整 Bundle 尚未形成。" />}
       {!rootReady && <StatusBanner tone="danger" message="外置 Artifact Root 当前不可用" detail={`存储状态：${project.data.storage_root_status}。页面不会改用内部磁盘。`} />}

@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/export-bundles/{bundle_id}/files/{filename}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Bundle File */
+        get: operations["read_bundle_file_api_v1_export_bundles__bundle_id__files__filename__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/feature-artifacts/{artifact_id}": {
         parameters: {
             query?: never;
@@ -186,6 +203,23 @@ export interface paths {
         put?: never;
         /** Start Import */
         post: operations["start_import_api_v1_projects__project_id__imports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/revisions/{revision_id}/exports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Revision Export */
+        get: operations["read_revision_export_api_v1_projects__project_id__revisions__revision_id__exports_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1445,6 +1479,67 @@ export interface components {
              */
             mid_db: number;
         };
+        /** ExportBundleSummary */
+        ExportBundleSummary: {
+            availability: components["schemas"]["ArtifactAvailability"];
+            /**
+             * Bundle Id
+             * Format: uuid
+             */
+            bundle_id: string;
+            /** Byte Size */
+            byte_size: number;
+            /** Content Hash */
+            content_hash: string;
+            /** File Count */
+            file_count: number;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+        };
+        /** ExportFileSummary */
+        ExportFileSummary: {
+            /** Artifact Id */
+            artifact_id?: string | null;
+            availability: components["schemas"]["ArtifactAvailability"];
+            /** Byte Size */
+            byte_size: number;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "master" | "stem" | "delivery" | "midi" | "project" | "manifest";
+            /** Checksum */
+            checksum: string;
+            /** Content Url */
+            content_url: string;
+            /** File Id */
+            file_id: string;
+            /** Filename */
+            filename: string;
+            /** Media Type */
+            media_type: string;
+        };
+        /** ExportStepSummary */
+        ExportStepSummary: {
+            /** Artifact Id */
+            artifact_id: string | null;
+            /** Error Code */
+            error_code?: string | null;
+            /** Job Id */
+            job_id: string | null;
+            /** Status */
+            status: string;
+            /** Step */
+            step: string;
+        };
         /** FeatureArtifactData */
         FeatureArtifactData: {
             /**
@@ -2089,6 +2184,37 @@ export interface components {
              * @default
              */
             note: string;
+        };
+        /** RevisionExportProjection */
+        RevisionExportProjection: {
+            bundle: components["schemas"]["ExportBundleSummary"] | null;
+            /** Error Code */
+            error_code?: string | null;
+            /** Files */
+            files: components["schemas"]["ExportFileSummary"][];
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+            /** Source Run Id */
+            source_run_id: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "partial" | "failed" | "ready";
+            /** Steps */
+            steps: components["schemas"]["ExportStepSummary"][];
+        };
+        /** RevisionExportResponse */
+        RevisionExportResponse: {
+            data: components["schemas"]["RevisionExportProjection"];
         };
         /** RevisionStudioData */
         RevisionStudioData: {
@@ -2921,6 +3047,36 @@ export interface operations {
             };
         };
     };
+    read_bundle_file_api_v1_export_bundles__bundle_id__files__filename__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bundle_id: string;
+                filename: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_feature_artifact_api_v1_feature_artifacts__artifact_id__get: {
         parameters: {
             query?: never;
@@ -3213,6 +3369,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_revision_export_api_v1_projects__project_id__revisions__revision_id__exports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                revision_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionExportResponse"];
                 };
             };
             /** @description Validation Error */

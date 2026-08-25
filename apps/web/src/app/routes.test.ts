@@ -19,6 +19,10 @@ describe("native application routes", () => {
         { name: "studio", projectId: PROJECT_ID, revisionId: REVISION_ID },
       ],
       [`/projects/${PROJECT_ID}/import`, { name: "import", projectId: PROJECT_ID }],
+      [
+        `/projects/${PROJECT_ID}/exports/${REVISION_ID}`,
+        { name: "export", projectId: PROJECT_ID, revisionId: REVISION_ID },
+      ],
     ] as const;
 
     for (const [path, route] of cases) {

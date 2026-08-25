@@ -270,3 +270,25 @@ footer { padding: 16px clamp(16px, 3vw, 40px); display: flex; justify-content: s
 .edit-preview-card { min-width: 0; padding: 1rem; border: 1px solid #593d72; border-radius: 14px; background: linear-gradient(135deg,rgba(190,103,255,.09),rgba(255,72,180,.04)); }.edit-preview-card audio { width: 100%; margin-block: .75rem; }.edit-preview-card dl { display: flex; flex-wrap: wrap; gap: .75rem; }.edit-preview-card dl div { padding: .55rem .7rem; border: 1px solid var(--line); border-radius: 8px; }.edit-preview-card dt { color: var(--muted); font-size: .75rem; }.edit-preview-card dd { margin: .2rem 0 0; }.edit-preview-card li { overflow-wrap: anywhere; }.edit-preview-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .8rem; }
 @media (max-width: 720px) { .edit-panel { grid-template-columns: 1fr; }.edit-panel-actions { grid-column: auto; } }
 @media (max-width: 560px) { .edit-panel label, .edit-panel-actions { display: none; }.edit-panel::after { content: "移动端为播放与审批模式；请在桌面端创建新的选区编辑。"; color: var(--muted); font-size: .82rem; } }
+.export-page { min-width: 0; display: grid; gap: 18px; }
+.export-hero { min-width: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.export-hero h1 { margin: 6px 0 10px; font-size: clamp(32px,5vw,54px); }
+.export-hero p:last-child { max-width: 700px; color: var(--muted); line-height: 1.6; }
+.export-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.export-panel { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: rgba(15,20,30,.82); }
+.export-step-scroll { overflow-x: auto; }
+.export-step-list { min-width: 850px; margin: 0; padding: 16px; display: grid; grid-template-columns: repeat(7,minmax(110px,1fr)); gap: 8px; list-style: none; }
+.export-step-list li { min-width: 0; padding: 11px; display: grid; gap: 6px; border: 1px solid var(--line); border-radius: 9px; }
+.export-step-list span { color: var(--muted); font-size: 11px; }
+.export-step-list strong { font-size: 12px; }
+.export-step-list code,.export-step-list small { overflow-wrap: anywhere; color: var(--muted); font-size: 9px; }
+.export-file-grid { padding: 16px; display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,240px),1fr)); gap: 12px; }
+.export-file-card { min-width: 0; padding: 14px; display: grid; align-content: start; gap: 12px; border: 1px solid var(--line); border-radius: 10px; background: #0f141e; }
+.export-file-card h3 { margin: 5px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+.export-file-card span,.export-file-card dt { color: var(--muted); font-size: 9px; text-transform: uppercase; }
+.export-file-card dl { margin: 0; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }
+.export-file-card dl div { min-width: 0; }
+.export-file-card dd { margin: 4px 0 0; font-size: 11px; overflow-wrap: anywhere; }
+.export-file-card code { color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+.export-file-card p { color: var(--muted); font-size: 11px; }
+@media (max-width: 560px) { .export-hero { display: grid; }.export-file-card dl { grid-template-columns: 1fr; }.export-file-card .primary-button { min-height: 44px; text-align: center; } }
