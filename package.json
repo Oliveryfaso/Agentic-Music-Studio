@@ -10,6 +10,7 @@
     "build:audio": "tsc -p tsconfig.json --noEmit && node scripts/build-render-worker.mjs",
     "build:web": "tsc -p apps/web/tsconfig.json --noEmit && vite build --config apps/web/vite.config.ts",
     "dev:web": "vite --config apps/web/vite.config.ts",
+    "eval:s7": ".venv/bin/python -m scripts.run_s7_eval_report",
     "generate:openapi": "python3 scripts/export_openapi.py && openapi-typescript /private/tmp/motif-forge-openapi.json -o apps/web/src/generated/api-schema.d.ts",
     "smoke:s3": "node scripts/run_s3_browser_smoke.mjs",
     "smoke:s4": ".venv/bin/python -m scripts.run_s4_deterministic_smoke",

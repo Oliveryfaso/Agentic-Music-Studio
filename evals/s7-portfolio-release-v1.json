@@ -1,0 +1,32 @@
+{
+  "schema_version": "s7-portfolio-eval.v1",
+  "cases": [
+    {"id":"s7-export-seven-step-order","category":"export","measurement":"deterministic","expected":"measured_pass","behavior":"ordered_steps"},
+    {"id":"s7-export-ready-requires-bundle","category":"export","measurement":"deterministic","expected":"measured_pass","behavior":"ready_bundle"},
+    {"id":"s7-export-partial-preserves-safe-files","category":"export","measurement":"deterministic","expected":"measured_pass","behavior":"partial_safe"},
+    {"id":"s7-export-cross-lineage","category":"export","measurement":"deterministic","expected":"expected_reject","behavior":"lineage_reject"},
+    {"id":"s7-export-traversal","category":"export","measurement":"deterministic","expected":"expected_reject","behavior":"filename_reject"},
+    {"id":"s7-export-manifest-integrity","category":"export","measurement":"deterministic","expected":"expected_reject","behavior":"integrity_reject"},
+    {"id":"s7-export-availability","category":"export","measurement":"deterministic","expected":"measured_pass","behavior":"availability"},
+    {"id":"s7-export-public-urls","category":"export","measurement":"deterministic","expected":"measured_pass","behavior":"public_urls"},
+
+    {"id":"s7-inspect-redact-assertion","category":"inspection","measurement":"deterministic","expected":"measured_pass","behavior":"redaction"},
+    {"id":"s7-inspect-redact-path","category":"inspection","measurement":"deterministic","expected":"measured_pass","behavior":"redaction"},
+    {"id":"s7-inspect-event-order","category":"inspection","measurement":"deterministic","expected":"measured_pass","behavior":"event_order"},
+    {"id":"s7-inspect-event-cap","category":"inspection","measurement":"deterministic","expected":"measured_pass","behavior":"event_cap"},
+    {"id":"s7-inspect-usage-budget","category":"inspection","measurement":"deterministic","expected":"measured_pass","behavior":"usage_budget"},
+    {"id":"s7-inspect-read-only","category":"inspection","measurement":"postgres","expected":"measured_pass","behavior":"read_only"},
+
+    {"id":"s7-recovery-resume","category":"recovery","measurement":"deterministic","expected":"measured_pass","behavior":"resume"},
+    {"id":"s7-recovery-replay","category":"recovery","measurement":"deterministic","expected":"measured_pass","behavior":"replay"},
+    {"id":"s7-recovery-retry-child","category":"recovery","measurement":"deterministic","expected":"measured_pass","behavior":"retry"},
+    {"id":"s7-recovery-cancel","category":"recovery","measurement":"deterministic","expected":"measured_pass","behavior":"cancel"},
+    {"id":"s7-budget-zero-provider","category":"recovery","measurement":"deterministic","expected":"measured_pass","behavior":"budget"},
+    {"id":"s7-hitl-no-bypass","category":"recovery","measurement":"deterministic","expected":"measured_pass","behavior":"approval"},
+
+    {"id":"s7-portfolio-about-route","category":"portfolio","measurement":"web","expected":"measured_pass","behavior":"navigation"},
+    {"id":"s7-portfolio-eval-route","category":"portfolio","measurement":"web","expected":"measured_pass","behavior":"navigation"},
+    {"id":"s7-portfolio-mobile-review","category":"portfolio","measurement":"runtime_only","expected":"not_measured","behavior":"mobile"},
+    {"id":"s7-portfolio-perceptual-audio","category":"portfolio","measurement":"runtime_only","expected":"not_measured","behavior":"perceptual_audio"}
+  ]
+}
