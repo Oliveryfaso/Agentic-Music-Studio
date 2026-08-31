@@ -33,6 +33,56 @@ def _lineage_constraint() -> str:
     """
 
 
+def _drop_historical_lineage_constraints() -> None:
+    # Some long-lived local databases were created before this check was
+    # consistently named, while current Alembic naming conventions prefix it.
+    # PostgreSQL's IF EXISTS keeps both upgrade histories recoverable.
+    op.execute(
+        "ALTER TABLE app.artifacts DROP CONSTRAINT IF EXISTS "
+        "ck_artifacts_artifacts_final_revision_lineage"
+    )
+    op.execute(
+        "ALTER TABLE app.artifacts DROP CONSTRAINT IF EXISTS "
+        "artifacts_final_revision_lineage"
+    )
+
+
+def _backfill_historical_final_lineage() -> None:
+    op.execute(
+        """
+        UPDATE app.artifacts AS artifact
+        SET revision_id = (job.input_payload->>'revision_id')::uuid,
+            arrangement_hash = job.input_payload->>'arrangement_hash',
+            render_scope = job.input_payload->>'render_scope',
+            render_track_ids = COALESCE(
+                job.input_payload->'render_track_ids', '[]'::jsonb
+            ),
+            schema_version = 'audio-artifact.v2'
+        FROM app.jobs AS job
+        WHERE artifact.source_job_id = job.id
+          AND artifact.revision_id IS NULL
+          AND artifact.quality_profile IN (
+              'canonical-master.v1', 'canonical-stem.v1'
+          )
+        """
+    )
+    op.execute(
+        """
+        UPDATE app.artifacts AS artifact
+        SET revision_id = (job.input_payload->>'revision_id')::uuid,
+            arrangement_hash = source.arrangement_hash,
+            render_scope = 'master',
+            render_track_ids = '[]'::jsonb,
+            schema_version = 'audio-artifact.v2'
+        FROM app.jobs AS job, app.artifacts AS source
+        WHERE artifact.source_job_id = job.id
+          AND artifact.revision_id IS NULL
+          AND artifact.quality_profile = 'delivery-mp3.v1'
+          AND source.id = (job.input_payload->>'source_artifact_id')::uuid
+        """
+    )
+
+
 def upgrade() -> None:
     op.add_column(
         "artifacts",
@@ -48,9 +98,8 @@ def upgrade() -> None:
         source_schema="app",
         referent_schema="app",
     )
-    op.drop_constraint(
-        "artifacts_final_revision_lineage", "artifacts", schema="app", type_="check"
-    )
+    _backfill_historical_final_lineage()
+    _drop_historical_lineage_constraints()
     op.create_check_constraint(
         "artifacts_final_revision_lineage",
         "artifacts",
@@ -71,9 +120,7 @@ def downgrade() -> None:
             raise RuntimeError(
                 "cannot downgrade 0018 while candidate preview Artifacts exist"
             )
-    op.drop_constraint(
-        "artifacts_final_revision_lineage", "artifacts", schema="app", type_="check"
-    )
+    _drop_historical_lineage_constraints()
     op.create_check_constraint(
         "artifacts_final_revision_lineage",
         "artifacts",

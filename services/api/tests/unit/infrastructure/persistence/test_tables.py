@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from io import StringIO
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import UUID
 
 import pytest
+from alembic import command
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 from motif_forge.domain import create_root_state
@@ -103,6 +105,43 @@ def test_alembic_has_single_reversible_head() -> None:
     assert edit_decision_migration is not None
     assert callable(edit_decision_migration.module.upgrade)
     assert callable(edit_decision_migration.module.downgrade)
+
+
+def test_candidate_lineage_upgrade_tolerates_historical_constraint_names() -> None:
+    root = Path(__file__).resolve().parents[6]
+    output = StringIO()
+    config = Config(root / "alembic.ini", output_buffer=output)
+
+    command.upgrade(config, "20260820_0017:20260820_0018", sql=True)
+
+    migration_sql = output.getvalue()
+    assert (
+        "ALTER TABLE app.artifacts DROP CONSTRAINT IF EXISTS "
+        "ck_artifacts_artifacts_final_revision_lineage"
+    ) in migration_sql
+    assert (
+        "ALTER TABLE app.artifacts DROP CONSTRAINT IF EXISTS "
+        "artifacts_final_revision_lineage"
+    ) in migration_sql
+    historical_backfill = migration_sql.index("UPDATE app.artifacts AS artifact")
+    lineage_constraint = migration_sql.index(
+        "ADD CONSTRAINT ck_artifacts_artifacts_final_revision_lineage"
+    )
+    assert historical_backfill < lineage_constraint
+    assert "schema_version = 'audio-artifact.v2'" in migration_sql
+
+    downgrade_output = StringIO()
+    downgrade_config = Config(root / "alembic.ini", output_buffer=downgrade_output)
+    command.downgrade(
+        downgrade_config,
+        "20260820_0018:20260820_0017",
+        sql=True,
+    )
+    downgrade_sql = downgrade_output.getvalue()
+    assert (
+        "ALTER TABLE app.artifacts DROP CONSTRAINT IF EXISTS "
+        "ck_artifacts_artifacts_final_revision_lineage"
+    ) in downgrade_sql
 
 
 def test_ai_event_sequence_is_bigint_and_usage_cost_can_be_unknown() -> None:
