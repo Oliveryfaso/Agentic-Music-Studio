@@ -328,6 +328,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/runs/{run_id}/graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Graph */
+        get: operations["read_graph_api_v1_runs__run_id__graph_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runs/{run_id}/inspect": {
         parameters: {
             query?: never;
@@ -1449,6 +1466,8 @@ export interface components {
              */
             track_id: string;
         };
+        /** @enum {string} */
+        EdgeStatus: "traversed" | "available" | "not_visited";
         /** EditPreviewDecisionBody */
         EditPreviewDecisionBody: {
             /**
@@ -1513,6 +1532,8 @@ export interface components {
              */
             mid_db: number;
         };
+        /** @enum {string} */
+        EvidenceStatus: "available" | "partial" | "unavailable";
         /** ExportBundleSummary */
         ExportBundleSummary: {
             availability: components["schemas"]["ArtifactAvailability"];
@@ -1609,6 +1630,74 @@ export interface components {
              */
             source_audio_artifact_id: string;
         };
+        /** GraphEdgeView */
+        GraphEdgeView: {
+            relation: components["schemas"]["GraphRelation"];
+            /** Source */
+            source: string;
+            status: components["schemas"]["EdgeStatus"];
+            /** Target */
+            target: string;
+        };
+        /** GraphEvidenceSummary */
+        GraphEvidenceSummary: {
+            /** Checkpoint Count */
+            checkpoint_count: number;
+            /** Event Count */
+            event_count: number;
+            /** Human Decision Count */
+            human_decision_count: number;
+            /** Job Count */
+            job_count: number;
+            /** Schema Compatible */
+            schema_compatible: boolean;
+            /** Task Count */
+            task_count: number;
+            /** Truncated */
+            truncated: boolean;
+            /** Unmapped Task Count */
+            unmapped_task_count: number;
+        };
+        /** @enum {string} */
+        GraphNodeKind: "deterministic" | "agent" | "human" | "worker";
+        /** GraphNodeView */
+        GraphNodeView: {
+            /** Default Visible */
+            default_visible: boolean;
+            evidence: components["schemas"]["NodeEvidence"];
+            /** Id */
+            id: string;
+            /** Iteration Count */
+            iteration_count: number;
+            kind: components["schemas"]["GraphNodeKind"];
+            /** Label */
+            label: string;
+            /** Occurred At */
+            occurred_at: string | null;
+            /** Phase Id */
+            phase_id: string;
+            status: components["schemas"]["ViewStatus"];
+            /** Technical Name */
+            technical_name: string;
+        };
+        /** GraphPhaseView */
+        GraphPhaseView: {
+            /** Collapsed By Default */
+            collapsed_by_default: boolean;
+            /** Id */
+            id: string;
+            /** Iteration Count */
+            iteration_count: number;
+            /** Label */
+            label: string;
+            /** Node Ids */
+            node_ids: string[];
+            status: components["schemas"]["ViewStatus"];
+            /** Summary */
+            summary: string;
+        };
+        /** @enum {string} */
+        GraphRelation: "sequence" | "parallel" | "join" | "loop" | "worker_boundary";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1838,6 +1927,8 @@ export interface components {
             run_type: string;
             /** Status */
             status: string;
+            /** Thread Id */
+            thread_id: string;
             /** Version */
             version: number;
         };
@@ -1999,6 +2090,8 @@ export interface components {
          * @enum {string}
          */
         MusicalMode: "major" | "minor" | "dorian" | "phrygian" | "lydian" | "mixolydian" | "locrian";
+        /** @enum {string} */
+        NodeEvidence: "checkpoint_confirmed" | "event_confirmed" | "grouped_parallel" | "none";
         /** NoteClip */
         NoteClip: {
             /**
@@ -2489,6 +2582,43 @@ export interface components {
             structural_diff: {
                 [key: string]: unknown;
             }[];
+        };
+        /** RunGraphReadModel */
+        RunGraphReadModel: {
+            /** Current Phase Id */
+            current_phase_id: string | null;
+            /** Edges */
+            edges: components["schemas"]["GraphEdgeView"][];
+            evidence_status: components["schemas"]["EvidenceStatus"];
+            evidence_summary: components["schemas"]["GraphEvidenceSummary"];
+            /**
+             * Graph Kind
+             * @default generate
+             * @constant
+             */
+            graph_kind: "generate";
+            /** Graph Version */
+            graph_version: string;
+            /** Nodes */
+            nodes: components["schemas"]["GraphNodeView"][];
+            /** Phases */
+            phases: components["schemas"]["GraphPhaseView"][];
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            run_status: components["schemas"]["AIRunStatus"];
+            /**
+             * Schema Version
+             * @default run-graph-view.v1
+             * @constant
+             */
+            schema_version: "run-graph-view.v1";
+        };
+        /** RunGraphResponse */
+        RunGraphResponse: {
+            data: components["schemas"]["RunGraphReadModel"];
         };
         /** RunInspectionFacts */
         RunInspectionFacts: {
@@ -3120,6 +3250,8 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /** @enum {string} */
+        ViewStatus: "completed" | "active" | "waiting" | "failed" | "skipped" | "not_visited";
     };
     responses: never;
     parameters: never;
@@ -3783,6 +3915,37 @@ export interface operations {
                 };
                 content: {
                     "text/event-stream": components["schemas"]["AIRunEvent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_graph_api_v1_runs__run_id__graph_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunGraphResponse"];
                 };
             };
             /** @description Validation Error */

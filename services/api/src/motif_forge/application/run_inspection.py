@@ -27,6 +27,7 @@ class InspectionModel(BaseModel):
 class InspectionRunSummary(InspectionModel):
     run_id: UUID
     project_id: UUID
+    thread_id: str
     run_type: str
     status: str
     version: int = Field(ge=0)

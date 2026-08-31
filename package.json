@@ -20,6 +20,7 @@
     "smoke:s6:browser": "node scripts/run_s6_browser_smoke.mjs",
     "smoke:s7": "PYTHONPATH=services/api/src .venv/bin/python -m scripts.run_s7_portfolio_smoke",
     "smoke:s7:browser": "node scripts/run_s7_browser_smoke.mjs",
+    "smoke:graph-ui": "node scripts/run_graph_ui_browser_smoke.mjs",
     "test:audio": "vitest run --exclude '**/._*' packages/audio-engine services/render-worker",
     "test:web": "vitest run --config apps/web/vitest.config.ts",
     "spike:audio": "node services/render-worker/dist/spike.js"

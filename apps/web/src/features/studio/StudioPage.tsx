@@ -19,7 +19,9 @@ import { PianoRoll } from "./PianoRoll";
 import { SampleLibrary } from "./SampleLibrary";
 import { commitCommandBatch, listSoundCatalog, undoCommittedRevision } from "./studioApi";
 import { StudioDock } from "./StudioDock";
+import { StudioInspector } from "./StudioInspector";
 import { StudioToolbar } from "./StudioToolbar";
+import { StudioWorkbar } from "./StudioWorkbar";
 import { TrackHeaders } from "./TrackHeaders";
 import { Transport } from "./Transport";
 import { projectTimeline } from "./timelineProjection";
@@ -134,62 +136,32 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
   };
   return (
     <section className="studio-page" aria-labelledby="studio-title">
-      <header className="studio-hero">
-        <div><p className="eyebrow">ARRANGEMENT / REVISION STUDIO</p><h1 id="studio-title">{project.data.name} / Revision</h1><p>在不可变 Base 上编辑本地 Draft，确认后保存为新的 Revision。</p></div>
-        <div className="studio-meta"><span>{studio.data.arrangement_ir.tracks.length} tracks</span><span>{projection.totalBars} bars</span><span>{studio.data.arrangement_ir.tempo_map?.[0]?.bpm ?? 120} BPM</span></div>
-      </header>
-      <div className="run-actions">
-        <a className="secondary-inline" href={`/projects/${encodeURIComponent(projectId)}/exports/${encodeURIComponent(revisionId)}`}>查看导出</a>
-        {studio.data.source_run_id && <a className="secondary-inline" href={`/runs/${encodeURIComponent(studio.data.source_run_id)}/inspect`}>检查 Run</a>}
-      </div>
-
+      <StudioWorkbar
+        projectName={project.data.name}
+        revisionId={revisionId}
+        trackCount={studio.data.arrangement_ir.tracks.length}
+        bars={projection.totalBars}
+        bpm={studio.data.arrangement_ir.tempo_map?.[0]?.bpm ?? 120}
+        actions={<><a className="secondary-inline" href={`/projects/${encodeURIComponent(projectId)}/exports/${encodeURIComponent(revisionId)}`}>查看导出</a>{studio.data.source_run_id && <a className="secondary-inline" href={`/runs/${encodeURIComponent(studio.data.source_run_id)}/inspect`}>检查 Run</a>}</>}
+        toolbar={<StudioToolbar state={editor} onUndo={() => dispatch({ type: "undo" })} onRedo={() => dispatch({ type: "redo" })} onSave={() => void saveDraft()} onUndoRevision={() => void undoRevision()} />}
+      />
       {studio.data.bundle_id === null && <StatusBanner tone="warning" message="部分成功 Revision" detail="安全 Revision 已保留，但完整 Bundle 尚未形成。" />}
       {!rootReady && <StatusBanner tone="danger" message="外置 Artifact Root 当前不可用" detail={`存储状态：${project.data.storage_root_status}。页面不会改用内部磁盘。`} />}
-      <StudioToolbar state={editor} onUndo={() => dispatch({ type: "undo" })} onRedo={() => dispatch({ type: "redo" })} onSave={() => void saveDraft()} onUndoRevision={() => void undoRevision()} />
-
-      <EditPanel
-        projectId={projectId}
-        branchId={editor.base.branchId}
-        baseRevisionId={editor.base.revisionId}
-        selection={editor.selection}
-        lockedRanges={[]}
-        rootReady={rootReady}
-        onRunCreated={handleRunCreated}
-      />
-      {editRun.mode !== "idle" && <section className="edit-run-status" aria-live="polite">
-        <strong>{editRunModeLabel(editRun.mode)}</strong>
-        {editRun.errorCode && <span>{editRun.errorCode}</span>}
-        {editRun.mode === "committed" && editRun.revisionId &&
-          <button className="primary-button" type="button" onClick={() => navigate({
-            name: "studio", projectId, revisionId: editRun.revisionId as string,
-          })}>打开新 Revision</button>}
-      </section>}
-      {editRun.preview && <EditPreviewCard preview={editRun.preview}
-        busy={editDecisionPending} rootReady={rootReady} onDecision={(action) => void decidePreview(action)} />}
-
-      <section className="studio-panel" aria-labelledby="transport-title">
-        <div className="panel-heading"><div><p className="eyebrow">DELIVERY MP3</p><h2 id="transport-title">作品试听</h2></div>{delivery && <span className={`status-pill ${delivery.availability}`}>{availabilityLabel(delivery.availability)}</span>}</div>
-        <DeliveryState
-          delivery={delivery}
-          rootReady={rootReady}
-          recoveryPending={recovery.isPending}
-          recoveryFeedback={recoveryFeedback}
-          recoveryError={recovery.isError ? errorMessage(recovery.error) : null}
-          onRecover={(artifactId) => recovery.mutate(artifactId)}
-          transport={transport}
-          duration={duration}
-        />
-      </section>
-
-      {projection.tracks.length === 0 ? (
-        <section className="empty-state studio-empty"><div className="empty-wave" aria-hidden="true">···</div><h2>这个 Revision 还没有可显示的轨道</h2><p>ArrangementIR 已读取，但 tracks 为空；页面不会伪造编排内容。</p></section>
-      ) : (
-        <section className="studio-panel arrangement-panel" aria-labelledby="arrangement-title">
-          <div className="panel-heading"><div><p className="eyebrow">ARRANGEMENT IR / PPQ {draft?.ppq}</p><h2 id="arrangement-title">可编辑时间线</h2></div><span className="status-pill available">{editor.saveState === "clean" ? "已持久化" : "Draft"}</span></div>
-          <div className="arrangement-workspace"><TrackHeaders tracks={projection.tracks} /><ArrangementTimeline projection={projection} currentTime={transport.currentTime} onMoveClip={moveClip} onSelectClip={(trackId, clipId, startTick, endTick) => dispatch({ type: "select", selection: { trackIds: [trackId], clipId, startTick, endTick } })} /></div>
-          <div className="section-ledger" aria-label="段落列表">{projection.sections.map((section) => <span key={section.sectionId}><strong>{section.label}</strong> · {Math.round(section.energy * 100)}%</span>)}</div>
-        </section>
-      )}
+      <div className="studio-main-workspace">
+        <main className="studio-arrangement-main" aria-label="Arrangement 主工作区">
+          {projection.tracks.length === 0 ? <section className="empty-state studio-empty"><div className="empty-wave" aria-hidden="true">···</div><h2>这个 Revision 还没有可显示的轨道</h2><p>ArrangementIR 已读取，但 tracks 为空；页面不会伪造编排内容。</p></section> : <section className="studio-panel arrangement-panel" aria-labelledby="arrangement-title">
+            <div className="panel-heading"><div><p className="eyebrow">ARRANGEMENT IR / PPQ {draft?.ppq}</p><h2 id="arrangement-title">可编辑时间线</h2></div><span className="status-pill available">{editor.saveState === "clean" ? "已持久化" : "Draft"}</span></div>
+            <div className="arrangement-workspace"><TrackHeaders tracks={projection.tracks} /><ArrangementTimeline projection={projection} currentTime={transport.currentTime} onMoveClip={moveClip} onSelectClip={(trackId, clipId, startTick, endTick) => dispatch({ type: "select", selection: { trackIds: [trackId], clipId, startTick, endTick } })} /></div>
+            <div className="section-ledger" aria-label="段落列表">{projection.sections.map((section) => <span key={section.sectionId}><strong>{section.label}</strong> · {Math.round(section.energy * 100)}%</span>)}</div>
+          </section>}
+        </main>
+        <StudioInspector>
+          <EditPanel projectId={projectId} branchId={editor.base.branchId} baseRevisionId={editor.base.revisionId} selection={editor.selection} lockedRanges={[]} rootReady={rootReady} onRunCreated={handleRunCreated} />
+          {editRun.mode !== "idle" && <section className="edit-run-status" aria-live="polite"><strong>{editRunModeLabel(editRun.mode)}</strong>{editRun.errorCode && <span>{editRun.errorCode}</span>}{editRun.mode === "committed" && editRun.revisionId && <button className="primary-button" type="button" onClick={() => navigate({ name: "studio", projectId, revisionId: editRun.revisionId as string })}>打开新 Revision</button>}</section>}
+          {editRun.preview && <EditPreviewCard preview={editRun.preview} busy={editDecisionPending} rootReady={rootReady} onDecision={(action) => void decidePreview(action)} />}
+          <section className="studio-panel" aria-labelledby="transport-title"><div className="panel-heading"><div><p className="eyebrow">DELIVERY MP3</p><h2 id="transport-title">作品试听</h2></div>{delivery && <span className={`status-pill ${delivery.availability}`}>{availabilityLabel(delivery.availability)}</span>}</div><DeliveryState delivery={delivery} rootReady={rootReady} recoveryPending={recovery.isPending} recoveryFeedback={recoveryFeedback} recoveryError={recovery.isError ? errorMessage(recovery.error) : null} onRecover={(artifactId) => recovery.mutate(artifactId)} transport={transport} duration={duration} /></section>
+        </StudioInspector>
+      </div>
       <StudioDock
         piano={selectedTrack && selectedClip?.clip_type === "note" ? <PianoRoll trackId={selectedTrack.track_id} clip={selectedClip} onCommand={appendCommand} /> : <p>选择一个音符片段打开钢琴卷帘。</p>}
         mixer={<MixerPanel tracks={(draft?.tracks ?? []).map((track) => ({ track_id: track.track_id, name: track.name, gain_db: track.gain_db, pan: track.pan, mute: track.mute, solo: track.solo }))} onCommand={appendCommand} />}

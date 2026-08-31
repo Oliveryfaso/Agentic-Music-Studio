@@ -135,7 +135,8 @@ class PostgresRunInspectionStore:
         event_names = tuple(item.event_type.lower() for item in timeline)
         return RunInspectionFacts(
             run=InspectionRunSummary(
-                run_id=run.id, project_id=run.project_id, run_type=run.run_type,
+                run_id=run.id, project_id=run.project_id, thread_id=run.thread_id,
+                run_type=run.run_type,
                 status=run.status, version=run.version, revision_id=revision_id,
                 bundle_id=bundle.id if bundle is not None else None, error_code=error_code,
             ),

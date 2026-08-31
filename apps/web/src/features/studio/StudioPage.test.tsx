@@ -16,6 +16,21 @@ afterEach(() => {
 });
 
 describe("Read-only Arrangement Studio", () => {
+  it("orders a compact workbar, arrangement main region, inspector, and dock", async () => {
+    stubReads(studio("available"), "ready");
+    renderStudio();
+
+    const workbar = await screen.findByLabelText("Studio 工作栏");
+    const arrangement = screen.getByRole("main", { name: "Arrangement 主工作区" });
+    const inspector = screen.getByRole("complementary", { name: "Studio Inspector" });
+    const dock = screen.getByLabelText("Studio Dock");
+    expect(workbar.compareDocumentPosition(arrangement)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(arrangement.compareDocumentPosition(inspector)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(inspector.compareDocumentPosition(dock)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(arrangement.compareDocumentPosition(screen.getByText("AI 选区编辑"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(arrangement.compareDocumentPosition(screen.getByText("作品试听"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
   it("keeps pointer edits local until Save Revision", async () => {
     let commits = 0;
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

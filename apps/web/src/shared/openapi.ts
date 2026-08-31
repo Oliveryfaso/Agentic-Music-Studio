@@ -28,3 +28,7 @@ export type EditPreviewDecisionInput = Schemas["EditPreviewDecisionBody"];
 export type RunEditPreview = Schemas["RunEditPreviewData"];
 export type RevisionExportProjection = Schemas["RevisionExportProjection"];
 export type RunInspectionFacts = Schemas["RunInspectionFacts"];
+export type RunGraphReadModel = Schemas["RunGraphReadModel"];
+export type GraphPhaseView = Schemas["GraphPhaseView"];
+export type GraphNodeView = Schemas["GraphNodeView"];
+export type GraphEdgeView = Schemas["GraphEdgeView"];
