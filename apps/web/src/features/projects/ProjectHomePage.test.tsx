@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectHomePage } from "./ProjectHomePage";
@@ -81,6 +81,31 @@ describe("Project Home", () => {
     expect(await screen.findByText("Project catalog unavailable")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "重试载入" }));
     expect(await screen.findByRole("heading", { name: /Orbital Glass/ })).toBeInTheDocument();
+  });
+
+  it("sorts recent projects, limits the default view, and composes search with status", async () => {
+    const values = Array.from({ length: 8 }, (_, index) => ({
+      ...projects()[0],
+      project_id: `00000000-0000-4000-8000-0000000000${String(index).padStart(2, "0")}`,
+      name: `Project ${index + 1}`,
+      status: index === 6 ? "archived" : "active",
+      updated_at: `2026-08-${String(index + 1).padStart(2, "0")}T08:00:00Z`,
+    }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ data: values })));
+    renderHome();
+
+    const list = await screen.findByLabelText("作品列表");
+    expect(within(list).getAllByRole("heading", { level: 2 })).toHaveLength(6);
+    expect(within(list).getAllByRole("heading", { level: 2 })[0]).toHaveTextContent("Project 8");
+    expect(screen.queryByRole("heading", { name: "Project 1" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "全部项目与测试历史" }));
+    expect(screen.getByRole("heading", { name: "Project 1" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("搜索作品"), { target: { value: "Project 7" } });
+    fireEvent.change(screen.getByLabelText("作品状态"), { target: { value: "active" } });
+    expect(screen.getByText("没有符合筛选条件的作品")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("作品状态"), { target: { value: "archived" } });
+    expect(screen.getByRole("heading", { name: "Project 7" })).toBeInTheDocument();
   });
 });
 

@@ -71,6 +71,37 @@ describe("New Composition Brief", () => {
     expect(createRequests).toBe(1);
     expect(window.location.pathname).toBe(`/runs/${RUN_ID}`);
   });
+
+  it("keeps core intent visible and preserves advanced values through disclosure and validation", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input) === `/api/v1/projects/${PROJECT_ID}`) return jsonResponse({ data: projectWorkspace() });
+      throw new Error(`unexpected request ${String(input)}`);
+    }));
+    renderPage();
+
+    expect(await screen.findByLabelText("作品标题")).toBeVisible();
+    expect(screen.getByLabelText("音乐策略")).toBeVisible();
+    expect(screen.getByLabelText("用途")).toBeVisible();
+    expect(screen.getByLabelText("情绪")).toBeVisible();
+    expect(screen.getByLabelText("目标时长（秒）")).toBeVisible();
+    const advanced = screen.getByText("高级编曲约束").closest("details")!;
+    expect(advanced).not.toHaveAttribute("open");
+
+    fireEvent.click(screen.getByText("高级编曲约束"));
+    fireEvent.change(screen.getByLabelText("目标 BPM"), { target: { value: "999" } });
+    fireEvent.click(screen.getByText("高级编曲约束"));
+    fireEvent.click(screen.getByText("高级编曲约束"));
+    expect(screen.getByLabelText("目标 BPM")).toHaveValue(999);
+    fireEvent.click(screen.getByText("高级编曲约束"));
+
+    fireEvent.change(screen.getByLabelText("作品标题"), { target: { value: "Orbital Glass" } });
+    fireEvent.change(screen.getByLabelText("用途"), { target: { value: "Instrumental score" } });
+    fireEvent.change(screen.getByLabelText("情绪"), { target: { value: "weightless" } });
+    fireEvent.click(screen.getByRole("button", { name: "提交 Brief 并规划" }));
+    expect(await screen.findByText("BPM 需在 40–220 之间。")).toBeInTheDocument();
+    expect(advanced).toHaveAttribute("open");
+    expect(screen.getByLabelText("目标 BPM")).toHaveFocus();
+  });
 });
 
 function renderPage() {

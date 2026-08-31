@@ -31,7 +31,8 @@ class FakeInspectionStore:
 def facts() -> RunInspectionFacts:
     return RunInspectionFacts(
         run=InspectionRunSummary(
-            run_id=uid(1), project_id=uid(2), run_type="generate", status="succeeded",
+            run_id=uid(1), project_id=uid(2), thread_id="thread-generate-1",
+            run_type="generate", status="succeeded",
             version=5, revision_id=uid(3), bundle_id=uid(4), error_code=None,
         ),
         versions=RunVersionSummary(
@@ -69,6 +70,7 @@ async def test_inspection_returns_persisted_facts_and_missing_run_is_stable() ->
     store.facts = facts()
 
     assert await ReadAIRunInspection(store)(uid(1)) == store.facts
+    assert store.facts.run.thread_id == "thread-generate-1"
     with pytest.raises(ApplicationError) as captured:
         await ReadAIRunInspection(store)(uid(99))
     assert captured.value.code == "AI_RUN_NOT_FOUND"

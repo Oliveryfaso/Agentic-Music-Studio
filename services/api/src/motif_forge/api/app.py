@@ -29,6 +29,7 @@ from motif_forge.agent.parent_graph import (
 from motif_forge.api.ai_runs import build_ai_run_router
 from motif_forge.api.exports import build_export_router
 from motif_forge.api.project_reads import build_project_read_router
+from motif_forge.api.run_graph import build_run_graph_router
 from motif_forge.api.run_inspection import build_run_inspection_router
 from motif_forge.api.sound_catalog import build_sound_catalog_router
 from motif_forge.application.audio_content import ResolveAudioContent
@@ -50,6 +51,8 @@ from motif_forge.application.ports import (
 from motif_forge.application.project_reads import ProjectReadStore
 from motif_forge.application.projects import CreateProject, CreateProjectRequest
 from motif_forge.application.revisions import CommitCommandBatch, CommitCommandBatchRequest
+from motif_forge.application.run_graph import ReadRunGraph
+from motif_forge.application.run_graph_history import RunGraphHistoryStore
 from motif_forge.application.run_inspection import RunInspectionStore
 from motif_forge.application.storage import (
     LocalArtifactCollector,
@@ -84,6 +87,7 @@ from motif_forge.infrastructure.persistence.database import (
 from motif_forge.infrastructure.persistence.export_reads import PostgresExportProjectionStore
 from motif_forge.infrastructure.persistence.media_jobs import PostgresMediaJobUnitOfWork
 from motif_forge.infrastructure.persistence.project_reads import PostgresProjectReadStore
+from motif_forge.infrastructure.persistence.run_graph_history import PostgresRunGraphHistoryStore
 from motif_forge.infrastructure.persistence.run_inspection import PostgresRunInspectionStore
 from motif_forge.infrastructure.persistence.storage import PostgresStorageUnitOfWork
 from motif_forge.infrastructure.persistence.uploads import PostgresUploadUnitOfWork
@@ -344,9 +348,14 @@ def _application_status(error: ApplicationError) -> int:
         "ARTIFACT_NOT_PLAYABLE",
         "PLAN_ADJUSTMENT_TOO_LARGE",
         "EXPORT_FILE_NAME_INVALID",
+        "RUN_GRAPH_UNSUPPORTED",
     }:
         return 422
-    if error.code in {"PERSISTENCE_NOT_CONFIGURED", "ARTIFACT_ROOT_UNAVAILABLE"}:
+    if error.code in {
+        "PERSISTENCE_NOT_CONFIGURED",
+        "ARTIFACT_ROOT_UNAVAILABLE",
+        "CHECKPOINT_HISTORY_READ_FAILED",
+    }:
         return 503
     if error.code == "STORAGE_QUOTA_EXCEEDED":
         return 507
@@ -364,6 +373,7 @@ def create_app(
     project_read_store: ProjectReadStore | None = None,
     export_read_store: ExportProjectionStore | None = None,
     run_inspection_store: RunInspectionStore | None = None,
+    run_graph_history_store: RunGraphHistoryStore | None = None,
     storage_root_inspector: Callable[[], StorageRootSnapshot] | None = None,
     readiness_probes: Mapping[str, Callable[[], Awaitable[bool]]] | None = None,
 ) -> FastAPI:
@@ -376,6 +386,7 @@ def create_app(
     runtime_project_reads = project_read_store
     runtime_export_reads = export_read_store
     runtime_run_inspection = run_inspection_store
+    runtime_run_graph_history = run_graph_history_store
     runtime_media_uow = None
     runtime_storage_gate = None
     if runtime_uow is None and runtime_settings.postgres_dsn is not None:
@@ -390,6 +401,7 @@ def create_app(
             session_factory, artifact_root=runtime_settings.artifact_root
         )
         runtime_run_inspection = PostgresRunInspectionStore(session_factory)
+        runtime_run_graph_history = PostgresRunGraphHistoryStore(session_factory)
         runtime_media_uow = PostgresMediaJobUnitOfWork(session_factory)
         storage_uow = PostgresStorageUnitOfWork(session_factory)
         runtime_storage_gate = RunStoragePressureGate(
@@ -488,6 +500,12 @@ def create_app(
         )
     if runtime_run_inspection is not None:
         app.include_router(build_run_inspection_router(runtime_run_inspection))
+    if runtime_run_inspection is not None and runtime_run_graph_history is not None:
+        app.include_router(
+            build_run_graph_router(
+                ReadRunGraph(runtime_run_inspection, runtime_run_graph_history)
+            )
+        )
 
     @app.middleware("http")
     async def add_request_identity(

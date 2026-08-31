@@ -4,11 +4,15 @@ import { FormEvent, useState } from "react";
 import { navigate } from "../../app/routes";
 import { ApiError } from "../../shared/api";
 import { createProject, listProjects } from "./projectApi";
-import { ProjectCard } from "./ProjectCard";
+import { ProjectFilters } from "./ProjectFilters";
+import { RecentProjectList } from "./RecentProjectList";
 
 export function ProjectHomePage() {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [expanded, setExpanded] = useState(false);
   const projects = useQuery({ queryKey: ["projects"], queryFn: () => listProjects() });
   const creation = useMutation({
     mutationFn: (projectName: string) => createProject(
@@ -84,9 +88,15 @@ export function ProjectHomePage() {
         </section>
       )}
       {projects.data && projects.data.length > 0 && (
-        <div className="project-grid" aria-label="作品列表">
-          {projects.data.map((project) => <ProjectCard key={project.project_id} project={project} />)}
-        </div>
+        <section className="project-catalog" aria-label="Project catalog">
+          <ProjectFilters search={search} status={status} onSearchChange={setSearch} onStatusChange={setStatus} />
+          <RecentProjectList
+            projects={projects.data.filter((project) => project.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()) && (status === "all" || project.status === status))}
+            expanded={expanded}
+            onExpandedChange={setExpanded}
+            filtered={search.trim() !== "" || status !== "all"}
+          />
+        </section>
       )}
     </section>
   );

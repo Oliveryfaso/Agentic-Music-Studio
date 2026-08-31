@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RunPage } from "./RunPage";
@@ -58,7 +59,7 @@ describe("Plan review and persistent Run progress", () => {
       throw new Error(`unexpected request ${path}`);
     }));
 
-    render(<RunPage runId={RUN_ID} />);
+    renderPage();
 
     expect(await screen.findByText("Fallback Plan · 仍需人工审批")).toBeInTheDocument();
     expect(screen.getByText("72 BPM")).toBeInTheDocument();
@@ -109,7 +110,7 @@ describe("Plan review and persistent Run progress", () => {
       throw new Error(`unexpected request ${path}`);
     }));
 
-    render(<RunPage runId={RUN_ID} />);
+    renderPage();
     expect(await screen.findByRole("heading", { name: "Opening" })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("调整后的 BPM"), { target: { value: "78" } });
     fireEvent.change(screen.getByLabelText("调整说明"), {
@@ -146,7 +147,7 @@ describe("Plan review and persistent Run progress", () => {
       throw new Error(`unexpected request ${path}`);
     }));
 
-    const first = render(<RunPage runId={RUN_ID} />);
+    const first = renderPage();
     await screen.findByRole("button", { name: "拒绝计划" });
     fireEvent.change(screen.getByLabelText("审批人"), { target: { value: "portfolio-owner" } });
     fireEvent.change(screen.getByLabelText("审批确认"), { target: { value: ASSERTION } });
@@ -155,20 +156,20 @@ describe("Plan review and persistent Run progress", () => {
 
     first.unmount();
     current = runData("waiting_worker", { version: 4 });
-    const second = render(<RunPage runId={RUN_ID} />);
+    const second = renderPage();
     fireEvent.click(await screen.findByRole("button", { name: "取消 Run" }));
     expect(await screen.findByText("Run 状态已由服务端更新")).toBeInTheDocument();
     expect(screen.getByText("已有安全 Revision，导出未完整完成")).toBeInTheDocument();
 
     second.unmount();
     current = runData("failed");
-    const third = render(<RunPage runId={RUN_ID} />);
+    const third = renderPage();
     fireEvent.click(await screen.findByRole("button", { name: "重试为新 Run" }));
     await waitFor(() => expect(window.location.pathname).toBe(`/runs/${CHILD_RUN_ID}`));
 
     third.unmount();
     current = runData("cancelled");
-    render(<RunPage runId={RUN_ID} />);
+    renderPage();
     expect(await screen.findByText("Run 已取消")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "重试为新 Run" })).toBeInTheDocument();
   });
@@ -198,7 +199,7 @@ describe("Plan review and persistent Run progress", () => {
       throw new Error(`unexpected request ${path}`);
     }));
 
-    render(<RunPage runId={RUN_ID} />);
+    renderPage();
     expect(await screen.findByText("Agent 建议：候选 B")).toBeVisible();
     fireEvent.change(screen.getByLabelText("选择确认"), {
       target: { value: CANDIDATE_ASSERTION },
@@ -207,7 +208,51 @@ describe("Plan review and persistent Run progress", () => {
     await waitFor(() => expect(selected).toBe(true));
     expect(screen.queryByRole("heading", { name: "比较候选 A / B" })).not.toBeInTheDocument();
   });
+
+  it("shows the persisted execution strip and refreshes it from the existing SSE stream", async () => {
+    let graphCalls = 0;
+    let streamController: ReadableStreamDefaultController<Uint8Array> | undefined;
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path === `/api/v1/runs/${RUN_ID}`) return jsonResponse({ data: runData("waiting_approval", { plan: true }) });
+      if (path === `/api/v1/runs/${RUN_ID}/graph`) {
+        graphCalls += 1;
+        return jsonResponse({ data: graphProjection() });
+      }
+      if (path === `/api/v1/runs/${RUN_ID}/events`) {
+        return new Response(new ReadableStream<Uint8Array>({ start(controller) { streamController = controller; } }), {
+          headers: { "Content-Type": "text/event-stream" },
+        });
+      }
+      throw new Error(`unexpected request ${path}`);
+    }));
+
+    renderPage();
+    expect(await screen.findByLabelText("Agent 执行路径")).toBeInTheDocument();
+    expect(screen.getByText("等待计划审批")).toBeInTheDocument();
+    expect(graphCalls).toBe(1);
+
+    streamController?.enqueue(new TextEncoder().encode(sseEvent(7, "waiting_approval")));
+    await waitFor(() => expect(graphCalls).toBe(2));
+  });
 });
+
+function renderPage() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={client}><RunPage runId={RUN_ID} /></QueryClientProvider>);
+}
+
+function graphProjection() {
+  return {
+    schema_version: "run-graph-view.v1", run_id: RUN_ID, graph_version: "motif-forge-parent.v2",
+    graph_kind: "generate", run_status: "waiting_approval", evidence_status: "available", current_phase_id: "approval",
+    phases: [
+      { id: "planning", label: "理解与规划", status: "completed", summary: "已确认 3 个节点", node_ids: [], collapsed_by_default: false, iteration_count: 1 },
+      { id: "approval", label: "等待计划审批", status: "waiting", summary: "需要人工审批", node_ids: [], collapsed_by_default: false, iteration_count: 1 },
+    ],
+    nodes: [], edges: [], evidence_summary: { checkpoint_count: 2, task_count: 2, event_count: 3, human_decision_count: 0, job_count: 0, unmapped_task_count: 0, truncated: false, schema_compatible: true },
+  };
+}
 
 function runData(
   status: "queued" | "waiting_approval" | "materializing" | "waiting_worker" | "succeeded" | "rejected" | "failed" | "cancelled",

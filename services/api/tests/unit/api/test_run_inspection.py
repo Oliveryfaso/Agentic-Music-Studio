@@ -30,7 +30,8 @@ class FakeInspectionStore:
 def facts() -> RunInspectionFacts:
     return RunInspectionFacts(
         run=InspectionRunSummary(
-            run_id=uid(1), project_id=uid(2), run_type="generate", status="succeeded",
+            run_id=uid(1), project_id=uid(2), thread_id="thread-generate-1",
+            run_type="generate", status="succeeded",
             version=5, revision_id=uid(3), bundle_id=uid(4), error_code=None,
         ),
         versions=RunVersionSummary(
@@ -64,6 +65,7 @@ def test_run_inspection_route_combines_authoritative_run_and_safe_facts() -> Non
 
     assert response.status_code == 200
     assert response.json()["data"]["run"]["status"] == "succeeded"
+    assert response.json()["data"]["run"]["thread_id"] == "thread-generate-1"
     assert response.json()["data"]["versions"]["graph_topology_version"] == "motif-forge-parent.v2"
     serialized = response.text
     for forbidden in ("approval_assertion", "storage_key", "/private/", '"prompt":'):

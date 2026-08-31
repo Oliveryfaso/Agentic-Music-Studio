@@ -108,6 +108,7 @@ async function journey(page) {
   await page.getByLabel("用途").fill("Instrumental background for a quiet orbital observatory");
   await page.getByLabel("情绪").fill("weightless, curious");
   await page.getByLabel("目标时长（秒）").fill("60");
+  await page.getByText("高级编曲约束", { exact: true }).click();
   await page.getByLabel("目标 BPM").fill("72");
   await page.getByLabel("目标调性").fill("D dorian");
   const runResponse = page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname.endsWith("/ai-runs"));
