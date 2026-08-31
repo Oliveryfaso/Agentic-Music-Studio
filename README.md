@@ -1,6 +1,52 @@
 # Motif Forge
 
-Motif Forge is a local-first, agent-assisted instrumental composition workbench. The browser can create a Project, submit a Brief, review or adjust the Agent's immutable Plan, approve a recoverable complete-song Run, follow persistent progress, and play the real delivery MP3 in a read-only Arrangement Studio. It also supports controlled multi-Stem import, BPM/key analysis with HITL, pitch-preserving alignment, Artifact recovery, and original/aligned preview. Full DAW editing, four Style Packs, dual candidates, and AI selection editing remain later stages.
+Motif Forge is a local-first, agent-assisted instrumental composition workbench. S1–S7 are complete at the personal-portfolio level: the browser supports four-style Briefs, Plan/HITL, two bounded candidates, Critic/Repair, A/B selection, a lightweight Studio with AI selection edits, complete export, Run inspection, Eval evidence, controlled multi-Stem import, and recoverable execution through one LangGraph Parent Graph.
+
+## One-command quick start
+
+From the repository root:
+
+```bash
+scripts/start_motif_forge.sh
+```
+
+The launcher initializes the existing external storage layout, starts Colima when Docker is not ready, starts the Compose API/database/queue/audio services, waits for readiness, starts Vite, and opens [http://127.0.0.1:5173](http://127.0.0.1:5173). The first launch may build missing images or install missing Web dependencies; later launches reuse them.
+
+Useful variants:
+
+```bash
+scripts/start_motif_forge.sh --check
+scripts/start_motif_forge.sh --no-open
+```
+
+When finished, stop the Web Studio, all Motif Forge Compose services, and the
+Colima VM with the matching command:
+
+```bash
+scripts/stop_motif_forge.sh
+```
+
+The stop command is idempotent and preserves PostgreSQL volumes, Docker images,
+imported media, generated works, and exports. It does not run `prune` or
+`docker compose down -v`. If you only press `Ctrl+C` in the startup terminal,
+Vite stops while the backend remains warm until the stop command is run.
+
+The standard Compose profile deliberately keeps the DeepSeek key out of runtime containers and uses the deterministic no-key fallback, so the one-command launcher cannot create an accidental paid model call.
+
+## 查看 Agent / LangGraph 执行路径
+
+正式 Generate 流程中，Run 页面会显示一条紧凑的“执行路径”，用于快速判断当前处于规划、人工审批、候选生成、Critic、提交还是导出阶段。点击“查看完整 Graph”进入只读 Run Inspector，可以查看 `motif-forge-parent.v2` 的完整阶段、候选 A/B 并行分支、Worker 边界与重复导出循环。
+
+Graph 只点亮已有持久证据的节点：`checkpoint_confirmed` 表示 LangGraph checkpoint task path 已确认，`event_confirmed` 表示安全应用事件已确认，`grouped_parallel` 表示两个匿名并行候选分支已按持久顺序归组。选择节点可查看受限证据和精确技术节点名，例如 `ValidateRequest`、`PlanApproval` 与 `CreateCandidateBranch`；页面不会读取或显示 checkpoint payload、Prompt、模型推理、审批断言、存储路径或密钥。
+
+无需 DeepSeek Key 也可以走完演示：创建 Project → 新建编曲 → 填写 Brief → 审批 Plan → 比较并选择候选 → 等待 Revision/导出完成 → 在 Run Inspector 查看 Graph → 打开 Studio。Graph 读取异常不会阻断审批、候选选择、取消、结果或 Studio 操作，原有持久事件时间线仍可展开检查。
+
+If Colima reports that it is already running but `--check` still says Docker is not ready, the existing Colima VM is stale. Recover it once without deleting its data, then launch normally:
+
+```bash
+colima stop
+scripts/start_motif_forge.sh
+```
 
 Read documentation in this order:
 
@@ -16,7 +62,9 @@ Read documentation in this order:
 - Docker Compose for PostgreSQL/Redis integration work
 - A DeepSeek API key only for explicit live-provider tests; unit tests never require one
 
-## Local setup
+## Manual setup and development
+
+The commands below are the expanded development setup and troubleshooting path. Normal portfolio use should start with `scripts/start_motif_forge.sh` above.
 
 This checkout is already on an external volume. Keep future audio artifacts and movable package/
 browser caches on that volume, while retaining only the Python virtual environment on an internal

@@ -369,3 +369,24 @@
 - S1–S7 版本化 inventory 合计 96 条内部案例，公开 measured 分母为 80，另有 13 条 expected reject 与 3 条 not measured。报告生成不调用模型，当前用量为 0/0；S2 的一次付费 DeepSeek acceptance 只作为历史证据列出。
 - 最终主机门为 Python unit 494、Eval 36、Web 67、真实 PostgreSQL 3；Ruff、Mypy 107 source、Vite build、OpenAPI 和 diff check 通过。Chromium 读取真实成功 Run 的 Inspector/Export，并验证 About/Eval 与 390px 无横向溢出。
 - 一次新 no-key runtime 尝试因当前 S7 host API 与仍运行的旧 S6 dispatcher 混用，outbox 被旧进程消费后停在 `materializing`。该运行未记为成功、未调用付费模型、未修改数据库以伪造恢复，诊断后通过公开 cancel API 进入 `cancelled`；S7 浏览器验收改用已有真实成功 Run 的只读事实。全套同版本容器重建仅在正式发布触发时再做。
+
+## 2026-08-26：一键本地启停入口
+
+- 新增 `scripts/start_motif_forge.sh`，把既有外置存储 bootstrap、Docker/Colima、Compose、API/Render readiness、Vite 和浏览器入口收敛为一个无参数命令。脚本不新增容器、不改变 Parent Graph/数据库/Artifact 合同，也不向 Compose 注入 DeepSeek Key。
+- 默认只在 Docker 不可用且本机安装 Colima 时执行 `colima start`，不自动重启共享运行时；Docker 探测和 Colima 后等待均有总 deadline。`--check` 只读验证依赖，`--no-open` 适合终端验收。配套 `scripts/stop_motif_forge.sh` 核验 launcher 记录的 Web PID/Project 后停止进程树，再执行 `docker compose down` 与 `colima stop`；重复执行成功，且不删除 Volume、镜像或作品数据。
+- TDD 先得到脚本、help 与 README 入口缺失的 `3 failed`，实现后 startup focused contract 为 `3 passed`。完整停止继续先得到 stopper/README 缺失的 `3 failed`，最终 launcher lifecycle contract 为 `5 passed`，覆盖 Web 进程终止、stale PID 防误杀、Compose/Colima 调用与数据保留边界。两个脚本的 `bash -n` 与 `--help` 均纳入最终门。真实启动进一步暴露原实现按 45 次、每次最多 5 秒探测会把等待放大到约 4.5 分钟；新增 RED 后改为单一 60 秒 deadline 并重新 GREEN。
+- 本次机器的 Colima profile 显示 `Running`，但 daemon socket 不响应且 `colima status` 返回 runtime 读取失败；启动脚本正确停止，没有执行 Compose build、迁移、写库、Artifact 生成或付费模型调用。因此当前只记录 host 启动编排已实现，不把同机 live startup 伪报为通过；README 给出一次非删除性的 `colima stop` 恢复路径。
+
+## 2026-08-31：首次同机完整启动兼容修复
+
+- 首次用户启动准确暴露两个历史环境问题。已移除工作树的 `s6-lightweight-daw-ai-edit` Render Worker 因 `unless-stopped` 自动复活并占用 `127.0.0.1:8090`；核验 Compose label、旧工作树路径、无状态服务和 bind mount 后只停止该精确容器，没有删除 Volume、Artifact 或镜像。
+- 长期数据库停在 migration `20260813_0016`，其中 32 条由旧阶段容器后来写入的 `audio-artifact.v1` 最终音频缺少 Revision/Arrangement lineage。`0018` 现兼容带 Alembic 前缀、历史名称或缺失的旧约束，并在创建新约束前只从每条 Artifact 的权威 source Job/源 Master 回填 Master、Stem 与 MP3 lineage；无法从权威事实恢复的行仍会阻止升级，不删除或伪造作品。
+- 迁移离线 SQL 合同先后捕获约束名称和回填顺序 RED，修复后通过；实际 PostgreSQL 升至唯一 head `20260824_0021`，历史最终 Artifact 的 invalid lineage 为 0。API、PostgreSQL、Redis、Dispatcher、Resume Dispatcher、Media Worker、Render Worker 与 Vite 全部启动，API/Render/Web readiness 通过；标准 Compose 仍显式清空 DeepSeek Key，本次没有付费调用。
+
+## 2026-08-31：Parent Graph 持久证据可视化与工作台可读性
+
+- 新增隔离的 LangGraph PostgreSQL 历史读取边界，只查询 `checkpoint_writes` 的 namespace/checkpoint/task/path 字符串与有界 checkpoint 数量；不读取 checkpoint blob、channel value、metadata、Prompt、消息或状态 payload。缺表/旧 schema 显式降级为部分证据，普通读取故障保持明确错误。
+- `motif-forge-parent.v2` 使用静态、版本化的展示注册表投影阶段、节点与边；它不包含可执行 Graph、Prompt 或状态，也不会在读取时运行 Graph。候选 A/B 以持久顺序归组，预览/导出循环用有界次数表达，因此没有新增第二或第三个生产 Graph。
+- Generate-only Graph Read Model 与现有 Run Inspector 安全事实合并；Run 页复用原有 SSE 作为 TanStack Query 失效信号，没有第二条事件流。Graph 请求失败不影响 PlanApproval、CandidateSelection、取消、Revision、导出或 Studio；Import/Edit 继续使用原持久事件时间线。
+- 前端采用语义 HTML、原生 disclosure、CSS grid/flex 与局部横向滚动，不引入 Graph/layout/design-system 依赖。Home 改为 recent-first，Brief 把编曲约束渐进披露，终态 Run 结果优先，Studio 以 Arrangement Timeline 为主区并把 AI/Delivery 放入 Inspector。
+- RED/GREEN 后的真实 PostgreSQL 边界、前端组合回归、OpenAPI、Ruff/Mypy/Vite 均纳入验收；no-key Playwright 流程实际完成 Plan → A/B → selected Revision/export → Run Graph → Studio，并验证 checkpoint 技术节点证据、390 px 无页面级横向溢出和 0 次模型请求。没有执行新的付费 DeepSeek 调用。

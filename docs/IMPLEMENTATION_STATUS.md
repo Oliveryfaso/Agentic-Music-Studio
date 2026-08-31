@@ -1,6 +1,6 @@
 # Motif Forge 当前实施状态
 
-> 状态日期：2026-08-25
+> 状态日期：2026-08-31
 > 性质：当前代码事实与验收证据，不替代产品合同
 > 更新规则：每个被验收的小纵切结束后更新；不要把目标设计写成已实现能力
 
@@ -63,7 +63,9 @@ S3 已把 S2 的 API 级闭环变成用户可操作的作品流，S4/S5 加入�
 | Web Studio（轻量编辑） | 可运行 | Timeline/Piano Roll/Mixer/Library 面板、Draft/save/Undo/Redo、AI Edit/Preview、MP3 Transport、390px review-only | 更丰富专业 DAW 工具不属于个人作品集首版 |
 | AI 选区编辑 | 可运行 | 有界上下文、EditPatchProposal/真实影响升级、锁定/非目标保持、L0/L1 自动提交、L2 Preview/HITL、重启恢复 | 付费 Edit planner 未验收；no-key fallback 只覆盖显式 gain/本地音色 |
 | Export / Run Inspector | 可运行 | 权威七步 Export 投影、安全下载、最多 200 条脱敏 Timeline、决策/预算/Job/Artifact/恢复事实；重复读取不写库 | 大规模历史 Trace 与外部对象存储不属于首版 |
+| Parent Graph 可视化 / 工作台可读性 | 可运行（作品集） | Generate-only `GET /runs/{run_id}/graph` 通过受限 `task_path` 读取器和静态展示注册表投影 `motif-forge-parent.v2`；Run 紧凑路径、Inspector 完整 Graph、并行候选/循环/Worker/人工节点与安全证据面板；Home recent-first、Brief 渐进披露、Run 结果优先、Studio 时间线优先 | 不是通用 Trace 平台；不读取 checkpoint payload/Prompt/推理；Import/Edit 保留事件时间线 |
 | Eval/可观测性 | 可运行（作品集） | S1–S7 共 96 条内部案例、80 条公开 measured 分母、持久 Event/Trace/Usage、About/Eval 页面、一条历史 Generate paid 样本 | 主观音质、长时负载和完整 OTel 看板明确未测 |
+| 一键本地启停 | 可运行 | `scripts/start_motif_forge.sh` 统一外置存储、Docker/Colima、Compose readiness、Vite 与浏览器入口；`scripts/stop_motif_forge.sh` 完整停止 Web、Compose 和 Colima，同时保留 Volume/镜像/作品；Shell/契约测试覆盖 PID 防误杀与幂等边界 | 2026-08-31 同机 live startup 已通过；旧阶段 Compose 容器仍需精确停止，不能自动清理未知端口占用者 |
 | CI/CD 与负载测试 | 后置可选 | 精确本地 S7 gate、确定性报告、PostgreSQL 与浏览器代表性验收 | CI workflow、soak、正式容量 P95 在公开托管/多人使用前再做 |
 
 ## 4. 当前验证基线
@@ -168,7 +170,7 @@ Checkpoint 前复验：Python `152 passed / 13 opt-in skipped`；真实 PostgreS
 
 后续每个可独立验收纵切都必须形成 Git checkpoint，不再跨多个阶段积累未提交业务代码。
 
-## 7. S1–S6 验收事实与当前开发断点：S7
+## 7. S1–S7 验收事实与当前开发断点：发布维护
 
 S1 已完成：固定作品为 24 bars、80 BPM、4/4、C major、四轨、72 秒；固定 seed 生成完整 ArrangementIR。L3 生成先创建 Candidate/Preview，再由调用者提供 16 字符以上审批断言，事务持久化 actor、审批 payload hash 和原始五条生成命令后物化 Revision。正式 Job 链输出 PCM24 Master（20,736,044 bytes）、四条 PCM24 Stem、经 FFprobe 验证时长/格式/码率/非静音的 256 kbps MP3、MIDI、Project JSON 与 credits/license/provenance/trace/export manifests。
 
@@ -204,6 +206,6 @@ S5 已完成两个稳定 Candidate family 的 fan-out/fan-in、真实候选 Prev
 
 S6 已完成轻量 Studio Draft、不可变 Undo/Redo、严格 EditRun/EditPatchProposal、同一 Parent Graph v2 的 EditSubgraph，以及 L0/L1 自动提交和 L2/L3 Preview/HITL。no-key Compose/Chromium 与真实 PostgreSQL 连续 interrupt 重启恢复均已通过，未执行新的付费模型调用。
 
-**当前断点：S6 已关闭，S7 为唯一活动门。** 保留单一 Parent Graph、PlanApproval/CandidateSelection/EditPreview、不可变 Revision、持久费用/恢复、四风格策略和完整导出合同；下一步先写正式 S7 计划，再做 Export/Inspector/Eval/作品集演示，不回头扩建无消费者的通用平台。
+**当前断点：S7 已关闭，个人作品集首版封板；Graph 可解释性与工作台可读性纵切已完成。** 当前没有默认功能阶段；保留单一 Parent Graph、PlanApproval/CandidateSelection/EditPreview、不可变 Revision、持久费用/恢复、四风格策略和完整导出合同。后续只做作品集可用性维护，或在公开托管、多人使用、长时运行和真实风险触发时启动对应硬化纵切。一键启停与 Graph/readability 都属于可用性维护，不改变产品架构。
 
 具体前后顺序、阶段门和优化规则见 `NEXT_DEVELOPMENT_ROADMAP.md`。
