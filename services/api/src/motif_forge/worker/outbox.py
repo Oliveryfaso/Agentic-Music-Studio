@@ -26,6 +26,7 @@ from motif_forge.agent.generate import (
     initial_generate_state,
 )
 from motif_forge.application.edit_decisions import EditPreviewDecision
+from motif_forge.application.errors import ApplicationError
 from motif_forge.domain.ai_runs import AIRun, AIRunStatus, AIRunType, EditRunRequest
 from motif_forge.domain.ir import ArrangementIR, DomainModel
 from motif_forge.domain.media_jobs import WorkerResumePayload
@@ -315,7 +316,7 @@ class ParentGraphResumePublisher:
                 await self._record_progress(values)
             return
         if values.get("terminal_status") is not None:
-            raise ValueError("Parent Graph checkpoint is terminal for a different resume event")
+            return
         result = await graph.ainvoke(
             Command(resume=payload.model_dump(mode="json")),
             config,
@@ -368,7 +369,12 @@ class ParentGraphActionPublisher:
             raise ValueError("Graph action payload is invalid") from exc
         if payload.action != expected_action:
             raise ValueError("Graph action topic does not match action")
-        run = await self._load_run(payload.run_id)
+        try:
+            run = await self._load_run(payload.run_id)
+        except ApplicationError as exc:
+            if exc.code == "AI_RUN_NOT_FOUND":
+                return
+            raise
         if run.thread_id != payload.thread_id or run.run_id != payload.run_id:
             raise ValueError("Graph action does not match authoritative AI Run")
         expected_run_type = (
@@ -470,6 +476,7 @@ class ParentGraphActionPublisher:
                 "waiting_plan_approval",
                 "waiting_candidate_selection",
                 "waiting_edit_approval",
+                "rendering_candidate_previews",
             }:
                 if values.get("phase") == "waiting_edit_approval":
                     if edit_graph is None or edit_task_config is None:

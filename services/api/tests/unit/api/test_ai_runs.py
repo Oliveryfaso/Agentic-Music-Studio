@@ -20,6 +20,15 @@ def test_stale_edit_base_revision_is_an_http_conflict() -> None:
     assert _application_status(error) == 409
 
 
+def test_stale_ai_run_actions_are_http_conflicts() -> None:
+    for code in (
+        "PLAN_HASH_MISMATCH",
+        "AI_RUN_ACTION_STATE_CONFLICT",
+        "AI_RUN_VERSION_CONFLICT",
+    ):
+        assert _application_status(ApplicationError(code, "stale action")) == 409
+
+
 class FakeAIRunTransaction:
     def __init__(self) -> None:
         self.run: AIRun | None = None
@@ -268,6 +277,13 @@ def test_resume_exact_replay_and_changed_request_conflict() -> None:
         replay = client.post(url, headers={"Idempotency-Key": "resume-http-key"}, json=body)
         assert first.status_code == replay.status_code == 200
         assert first.json()["data"] == replay.json()["data"]
+        stale = client.post(
+            url,
+            headers={"Idempotency-Key": "resume-http-stale-key"},
+            json=body,
+        )
+        assert stale.status_code == 409
+        assert stale.json()["error_code"] == "PLAN_HASH_MISMATCH"
         for field, value in (
             ("actor_id", "human-b"), ("approval_assertion", "I changed this assertion."),
             ("decision", "reject"), ("expected_plan_hash", "b" * 64),

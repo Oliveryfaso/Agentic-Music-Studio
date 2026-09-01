@@ -48,7 +48,18 @@ def inspection(
     phase: str = "planning",
     decisions: tuple[DecisionSummary, ...] = (),
     jobs: tuple[InspectionJob, ...] = (),
+    event_types: tuple[str, ...] = ("ai_run.updated",),
 ) -> RunInspectionFacts:
+    timeline = tuple(
+        InspectionEvent(
+            sequence=index,
+            event_type=event_type,
+            phase=phase,
+            created_at=datetime(2026, 8, 31, 12, index, tzinfo=UTC),
+            summary={"phase": phase},
+        )
+        for index, event_type in enumerate(event_types, start=1)
+    )
     return RunInspectionFacts(
         run=InspectionRunSummary(
             run_id=uid(1),
@@ -76,15 +87,7 @@ def inspection(
             cost_status="known",
             cost_amount_microusd=0,
         ),
-        timeline=(
-            InspectionEvent(
-                sequence=1,
-                event_type="ai_run.updated",
-                phase=phase,
-                created_at=datetime(2026, 8, 31, 12, tzinfo=UTC),
-                summary={"phase": phase},
-            ),
-        ),
+        timeline=timeline,
         timeline_truncated=False,
         decisions=decisions,
         jobs=jobs,
@@ -94,7 +97,9 @@ def inspection(
             replay_events=0,
             retry_events=0,
             cancel_events=0,
-            terminal_outcome=status if status in {"succeeded", "failed"} else None,
+            terminal_outcome=(
+                status if status in {"succeeded", "failed", "cancelled", "rejected"} else None
+            ),
         ),
     )
 
@@ -222,6 +227,74 @@ async def test_projection_is_honest_for_unavailable_partial_unknown_and_terminal
     unavailable = await ReadRunGraph(inspections, histories)(uid(1))
     assert unavailable.evidence_status == "unavailable"
     assert all(node.evidence == "none" for node in unavailable.nodes)
+
+
+@pytest.mark.asyncio
+async def test_real_push_rows_use_events_and_do_not_complete_interrupted_selection() -> None:
+    inspections = FakeInspectionStore()
+    inspections.facts = inspection(
+        status="materializing",
+        phase="repairing_candidate",
+        event_types=(
+            "composition.candidate-created",
+            "composition.candidate-created",
+            "candidate.critic.completed",
+            "candidate.repair.non_improving",
+        ),
+    )
+    histories = FakeHistoryStore()
+    histories.history = RunGraphHistory(
+        checkpoint_count=26,
+        task_paths=(
+            RunGraphTaskPath(
+                checkpoint_ns="",
+                checkpoint_id="0001",
+                task_id="push-a",
+                task_path="~__pregel_push, 0000000000, 0000000000",
+                technical_name=None,
+                path_kind="unknown",
+            ),
+            RunGraphTaskPath(
+                checkpoint_ns="",
+                checkpoint_id="0001",
+                task_id="push-b",
+                task_path="~__pregel_push, 0000000001, 0000000000",
+                technical_name=None,
+                path_kind="unknown",
+            ),
+            task("CandidateFanIn", 2),
+            task("CriticizeCandidates", 3),
+            task("ApplyCriticRepair", 4),
+            task("CreateCandidateSelectionPreviews", 5),
+            task("CandidateSelection", 6),
+        ),
+        truncated=False,
+        schema_compatible=True,
+    )
+
+    waiting = await ReadRunGraph(inspections, histories)(uid(1))
+    waiting_nodes = {node.id: node for node in waiting.nodes}
+
+    assert waiting_nodes["candidates:candidate-a"].status == "completed"
+    assert waiting_nodes["candidates:candidate-b"].status == "completed"
+    assert waiting_nodes["commit:selection"].status == "waiting"
+    assert waiting.current_phase_id == "commit"
+
+    inspections.facts = inspection(
+        status="cancelled",
+        phase="repairing_candidate",
+        event_types=(
+            "composition.candidate-created",
+            "composition.candidate-created",
+            "candidate.critic.completed",
+            "candidate.repair.non_improving",
+        ),
+    )
+    cancelled = await ReadRunGraph(inspections, histories)(uid(1))
+    cancelled_nodes = {node.id: node for node in cancelled.nodes}
+
+    assert cancelled_nodes["commit:selection"].status == "skipped"
+    assert cancelled.current_phase_id is None
 
 
 @pytest.mark.asyncio
