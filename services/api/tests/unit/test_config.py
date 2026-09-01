@@ -110,6 +110,18 @@ def test_langsmith_payload_hiding_cannot_be_disabled(field: str) -> None:
         Settings.for_test(**{field: False})
 
 
+def test_langsmith_payload_hiding_accepts_true_environment_strings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("LANGSMITH_HIDE_INPUTS", "true")
+    monkeypatch.setenv("LANGSMITH_HIDE_OUTPUTS", "true")
+
+    settings = Settings.for_test()
+
+    assert settings.langsmith_hide_inputs is True
+    assert settings.langsmith_hide_outputs is True
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [

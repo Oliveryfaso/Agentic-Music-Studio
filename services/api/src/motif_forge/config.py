@@ -99,11 +99,11 @@ class Settings(BaseSettings):
         max_length=240,
         validation_alias="LANGSMITH_ENDPOINT",
     )
-    langsmith_hide_inputs: Literal[True] = Field(
+    langsmith_hide_inputs: bool = Field(
         default=True,
         validation_alias="LANGSMITH_HIDE_INPUTS",
     )
-    langsmith_hide_outputs: Literal[True] = Field(
+    langsmith_hide_outputs: bool = Field(
         default=True,
         validation_alias="LANGSMITH_HIDE_OUTPUTS",
     )
@@ -141,6 +141,8 @@ class Settings(BaseSettings):
             raise ValueError("DEEPSEEK_BASE_URL must use HTTPS")
         if not self.langsmith_endpoint.startswith("https://"):
             raise ValueError("LANGSMITH_ENDPOINT must use HTTPS")
+        if not self.langsmith_hide_inputs or not self.langsmith_hide_outputs:
+            raise ValueError("LangSmith trace input/output hiding cannot be disabled")
         return self
 
 

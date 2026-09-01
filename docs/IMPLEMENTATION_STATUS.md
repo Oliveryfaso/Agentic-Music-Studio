@@ -72,7 +72,7 @@ S3 已把 S2 的 API 级闭环变成用户可操作的作品流，S4/S5 加入�
 
 2026-09-01 可选 LangSmith 开发可观测性纵切：
 
-- Graph/Provider/API/配置/Compose/launcher 聚焦门为 `80 passed`；排除外置盘 AppleDouble `._*` 的临时代码副本完整 unit 为 `520 passed`；Ruff 通过，Mypy strict `112 source files` 通过，Compose `--no-env-resolution` 配置验证与启动/停止脚本语法通过。
+- Graph/Provider/API/配置/Compose/launcher 聚焦门为 `81 passed`；排除外置盘 AppleDouble `._*` 的临时代码副本完整 unit 为 `521 passed`；Ruff 通过，Mypy strict `112 source files` 通过，Compose `--no-env-resolution` 配置验证与启动/停止脚本语法通过。
 - API、Dispatcher、Resume Dispatcher 可在同时设置 `LANGSMITH_TRACING=true` 与 Key 后启用；Migrate/Media/Render/Storage 不接收真实 Key。SDK Client 和 Compose 双边强制隐藏 inputs/outputs，trace 只接收 allowlist 关联 ID、操作、时序、脱敏错误、finish reason 与 token 计数。
 - PostgreSQL checkpoint、Run events、Usage ledger 和内置 Graph Inspector 继续是权威事实；LangSmith 故障不会让 Graph/Provider 操作失败、重试或重复。本纵切没有数据库/API/Graph 拓扑变化，没有 DeepSeek 或 LangSmith 网络/付费调用；Celery/FFmpeg/Chromium 分布式 trace 保持后置。
 
