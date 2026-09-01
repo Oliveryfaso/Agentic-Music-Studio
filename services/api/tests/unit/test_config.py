@@ -79,6 +79,37 @@ def test_deepseek_defaults_are_exact_and_secret_safe() -> None:
     assert secret not in str(settings)
 
 
+def test_langsmith_defaults_are_opt_in_and_secret_safe() -> None:
+    secret = "lsv2_pt_config-secret"
+    settings = Settings.for_test(langsmith_api_key=secret)
+
+    assert settings.langsmith_tracing is False
+    assert settings.langsmith_configured is False
+    assert settings.langsmith_project == "motif-forge-local"
+    assert settings.langsmith_endpoint == "https://api.smith.langchain.com"
+    assert settings.langsmith_hide_inputs is True
+    assert settings.langsmith_hide_outputs is True
+    assert secret not in repr(settings)
+    assert secret not in str(settings)
+
+
+def test_langsmith_requires_both_opt_in_and_api_key() -> None:
+    assert Settings.for_test(langsmith_tracing=True).langsmith_configured is False
+    assert (
+        Settings.for_test(
+            langsmith_tracing=True,
+            langsmith_api_key="lsv2_pt_configured",
+        ).langsmith_configured
+        is True
+    )
+
+
+@pytest.mark.parametrize("field", ["langsmith_hide_inputs", "langsmith_hide_outputs"])
+def test_langsmith_payload_hiding_cannot_be_disabled(field: str) -> None:
+    with pytest.raises(ValidationError):
+        Settings.for_test(**{field: False})
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [

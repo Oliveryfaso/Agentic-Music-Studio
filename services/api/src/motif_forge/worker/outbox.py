@@ -31,6 +31,7 @@ from motif_forge.domain.ir import ArrangementIR, DomainModel
 from motif_forge.domain.media_jobs import WorkerResumePayload
 from motif_forge.infrastructure.persistence.database import SessionFactory
 from motif_forge.infrastructure.persistence.tables import OutboxEventRow
+from motif_forge.observability import graph_trace_config
 
 MEDIA_DISPATCH_TOPICS = frozenset({"media.job.dispatch.requested", "media.job.retry.requested"})
 GRAPH_RESUME_TOPICS = frozenset({"graph.resume.requested"})
@@ -297,7 +298,13 @@ class ParentGraphResumePublisher:
             graph = self._graph_for_resume(payload)
             while inspect.isawaitable(graph):
                 graph = await graph
-        config = {"configurable": {"thread_id": payload.thread_id}}
+        config = graph_trace_config(
+            thread_id=payload.thread_id,
+            operation="worker.resume",
+            service="resume-dispatcher",
+            run_id=payload.run_id,
+            run_type=payload.run_type,
+        )
         snapshot = await graph.aget_state(config)
         values = snapshot.values
         if (
@@ -369,7 +376,14 @@ class ParentGraphActionPublisher:
         )
         if payload.run_type != expected_run_type:
             raise ValueError("Graph action run type does not match authoritative AI Run")
-        config = {"configurable": {"thread_id": run.thread_id}}
+        config = graph_trace_config(
+            thread_id=run.thread_id,
+            operation=f"{run.run_type.value}.{payload.action}",
+            service="resume-dispatcher",
+            run_id=run.run_id,
+            project_id=run.project_id,
+            run_type=run.run_type.value,
+        )
         graph = await self._graph_for(run)
         snapshot = (
             await graph.aget_state(config, subgraphs=True)

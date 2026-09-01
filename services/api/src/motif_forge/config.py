@@ -79,6 +79,42 @@ class Settings(BaseSettings):
     deepseek_max_attempts: int = Field(default=3, ge=1, le=3)
     deepseek_max_output_tokens: int = Field(default=4096, ge=256, le=8192)
     deepseek_max_total_tokens: int = Field(default=12_000, ge=256, le=12_000)
+    langsmith_tracing: bool = Field(
+        default=False,
+        validation_alias="LANGSMITH_TRACING",
+    )
+    langsmith_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias="LANGSMITH_API_KEY",
+    )
+    langsmith_project: str = Field(
+        default="motif-forge-local",
+        min_length=1,
+        max_length=120,
+        validation_alias="LANGSMITH_PROJECT",
+    )
+    langsmith_endpoint: str = Field(
+        default="https://api.smith.langchain.com",
+        min_length=8,
+        max_length=240,
+        validation_alias="LANGSMITH_ENDPOINT",
+    )
+    langsmith_hide_inputs: Literal[True] = Field(
+        default=True,
+        validation_alias="LANGSMITH_HIDE_INPUTS",
+    )
+    langsmith_hide_outputs: Literal[True] = Field(
+        default=True,
+        validation_alias="LANGSMITH_HIDE_OUTPUTS",
+    )
+
+    @property
+    def langsmith_configured(self) -> bool:
+        """Return whether remote tracing was explicitly enabled with a key."""
+
+        return self.langsmith_tracing and self.langsmith_api_key is not None and bool(
+            self.langsmith_api_key.get_secret_value().strip()
+        )
 
     @model_validator(mode="after")
     def validate_storage_configuration(self) -> Self:
@@ -103,6 +139,8 @@ class Settings(BaseSettings):
             raise ValueError("S2 requires DEEPSEEK_MODEL=deepseek-v4-flash")
         if not self.deepseek_base_url.startswith("https://"):
             raise ValueError("DEEPSEEK_BASE_URL must use HTTPS")
+        if not self.langsmith_endpoint.startswith("https://"):
+            raise ValueError("LANGSMITH_ENDPOINT must use HTTPS")
         return self
 
 

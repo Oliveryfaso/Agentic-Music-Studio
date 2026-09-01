@@ -91,6 +91,7 @@ from motif_forge.infrastructure.persistence.run_graph_history import PostgresRun
 from motif_forge.infrastructure.persistence.run_inspection import PostgresRunInspectionStore
 from motif_forge.infrastructure.persistence.storage import PostgresStorageUnitOfWork
 from motif_forge.infrastructure.persistence.uploads import PostgresUploadUnitOfWork
+from motif_forge.observability import configure_langsmith, graph_trace_config
 
 LOCAL_ACTOR_ID = "local-user"
 IdempotencyKey = Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=160)]
@@ -378,6 +379,7 @@ def create_app(
     readiness_probes: Mapping[str, Callable[[], Awaitable[bool]]] | None = None,
 ) -> FastAPI:
     runtime_settings = settings or get_settings()
+    configure_langsmith(runtime_settings, service="api")
     engine = None
     redis_client: Redis | None = None
     runtime_uow = uow_factory
@@ -814,7 +816,11 @@ def create_app(
             artifact_id=artifact_id,
             idempotency_key=idempotency_key,
         )
-        config = {"configurable": {"thread_id": thread_id}}
+        config = graph_trace_config(
+            thread_id=thread_id,
+            operation="artifact.rehydrate",
+            service="api",
+        )
         snapshot = await graph.aget_state(config)
         existing = snapshot.values
         replayed = bool(existing)
@@ -925,7 +931,12 @@ def create_app(
             source_artifact_id=body.source_artifact_id,
             idempotency_key=idempotency_key,
         )
-        config = {"configurable": {"thread_id": thread_id}}
+        config = graph_trace_config(
+            thread_id=thread_id,
+            operation="import.start",
+            service="api",
+            project_id=project_id,
+        )
         snapshot = await graph.aget_state(config)
         existing = snapshot.values
         replayed = bool(existing)
@@ -1009,7 +1020,11 @@ def create_app(
                 "import confirmation requires PostgreSQL-backed Parent Graph checkpoints",
             )
         _validate_import_thread_id(thread_id)
-        config = {"configurable": {"thread_id": thread_id}}
+        config = graph_trace_config(
+            thread_id=thread_id,
+            operation="import.confirm",
+            service="api",
+        )
         snapshot = await graph.aget_state(config)
         if snapshot.values.get("phase") != "analysis_confirmation_required":
             raise ApplicationError(

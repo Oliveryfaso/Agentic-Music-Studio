@@ -1,11 +1,15 @@
 import json
 import traceback
+from contextlib import AbstractContextManager, contextmanager
+from types import TracebackType
+from typing import Any
 from urllib.parse import urlsplit
 from uuid import UUID, uuid4
 
 import httpx
 import pytest
 from agent.sample_data import valid_brief_payload, valid_plan_payload
+from langchain_core.messages import HumanMessage
 from motif_forge.agent.planner import (
     ModelBudgetSnapshot,
     PersistentProviderBudgetLedger,
@@ -86,6 +90,161 @@ class RecordingProviderBudgetLedger(ProviderBudgetLedger):
         if total_tokens is not None and total_tokens > self.max_total_tokens:
             raise ProviderBudgetExceeded.tokens(snapshot)
         return snapshot
+
+
+class RecordingTraceRun:
+    def __init__(self) -> None:
+        self.outputs: dict[str, Any] | None = None
+
+    def add_outputs(self, outputs: dict[str, Any]) -> None:
+        self.outputs = outputs
+
+
+@pytest.mark.asyncio
+async def test_provider_trace_contains_only_safe_transport_facts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    traces: list[dict[str, Any]] = []
+    runs: list[RecordingTraceRun] = []
+
+    @contextmanager
+    def record_trace(**kwargs: Any):  # type: ignore[no-untyped-def]
+        traces.append(kwargs)
+        run = RecordingTraceRun()
+        runs.append(run)
+        yield run
+
+    monkeypatch.setattr("motif_forge.providers.deepseek.safe_trace", record_trace)
+    private_reasoning = "private-reasoning-must-not-enter-trace"
+    private_prompt = "private-prompt-must-not-enter-trace"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert private_prompt in request.content.decode()
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {
+                            "reasoning_content": private_reasoning,
+                            "content": json.dumps(valid_plan_payload()),
+                        },
+                    }
+                ],
+                "usage": {
+                    "prompt_tokens": 101,
+                    "completion_tokens": 80,
+                    "total_tokens": 181,
+                    "prompt_cache_hit_tokens": 50,
+                    "prompt_cache_miss_tokens": 51,
+                    "completion_tokens_details": {"reasoning_tokens": 25},
+                },
+            },
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
+        client = DeepSeekJsonClient(
+            api_key="private-api-key",
+            http_client=http_client,
+            max_attempts=1,
+        )
+        result = await client.complete_json(
+            messages=[HumanMessage(content=private_prompt)],
+            output_model=CompositionPlan,
+            thinking="enabled",
+            max_tokens=512,
+        )
+
+    assert result.usage.total_tokens == 181
+    assert traces == [
+        {
+            "name": "DeepSeekV4Flash",
+            "run_type": "llm",
+            "inputs": {
+                "model": "deepseek-v4-flash",
+                "request_kind": "initial",
+                "attempt": 1,
+                "thinking_mode": "enabled",
+                "max_tokens": 512,
+            },
+            "tags": ["provider:deepseek", "request-kind:initial"],
+            "metadata": {"provider": "deepseek", "model": "deepseek-v4-flash"},
+        }
+    ]
+    assert runs[0].outputs == {
+        "finish_reason": "stop",
+        "prompt_tokens": 101,
+        "completion_tokens": 80,
+        "total_tokens": 181,
+        "prompt_cache_hit_tokens": 50,
+        "prompt_cache_miss_tokens": 51,
+        "reasoning_tokens": 25,
+    }
+    rendered_trace = repr((traces, runs[0].outputs))
+    for forbidden in (private_prompt, private_reasoning, "private-api-key", "Authorization"):
+        assert forbidden not in rendered_trace
+
+
+class FailingTraceContext(AbstractContextManager[RecordingTraceRun]):
+    def __init__(self, failure_point: str) -> None:
+        self.failure_point = failure_point
+
+    def __enter__(self) -> RecordingTraceRun:
+        if self.failure_point == "enter":
+            raise RuntimeError("trace setup unavailable")
+        return RecordingTraceRun()
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> bool | None:
+        if self.failure_point == "exit":
+            raise RuntimeError("trace finalization unavailable")
+        return None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure_point", ["enter", "exit"])
+async def test_provider_result_survives_langsmith_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    failure_point: str,
+) -> None:
+    monkeypatch.setattr(
+        "motif_forge.observability.langsmith.trace",
+        lambda **_kwargs: FailingTraceContext(failure_point),
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {"content": json.dumps(valid_plan_payload())},
+                    }
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
+            },
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
+        result = await DeepSeekJsonClient(
+            api_key="test-key",
+            http_client=http_client,
+            max_attempts=1,
+        ).complete_json(
+            messages=[],
+            output_model=CompositionPlan,
+            thinking="enabled",
+            max_tokens=512,
+        )
+
+    assert result.usage.total_tokens == 15
 
 
 def test_missing_api_key_is_a_safe_configuration_error() -> None:

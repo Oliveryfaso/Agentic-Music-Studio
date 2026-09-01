@@ -4,6 +4,21 @@ from motif_forge.api.app import create_app
 from motif_forge.config import Settings
 
 
+def test_api_configures_optional_langsmith_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[Settings, str]] = []
+    monkeypatch.setattr(
+        "motif_forge.api.app.configure_langsmith",
+        lambda settings, *, service: calls.append((settings, service)) or False,
+    )
+    settings = Settings.for_test()
+
+    create_app(settings)
+
+    assert calls == [(settings, "api")]
+
+
 @pytest.mark.asyncio
 async def test_live_health() -> None:
     transport = ASGITransport(app=create_app(Settings.for_test()))

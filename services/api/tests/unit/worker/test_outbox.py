@@ -145,7 +145,22 @@ async def test_parent_graph_publisher_resumes_the_payload_thread() -> None:
     assert len(graph.calls) == 1
     command, config = graph.calls[0]
     assert isinstance(command, Command)
-    assert config == {"configurable": {"thread_id": thread_id}}
+    assert config == {
+        "configurable": {"thread_id": thread_id},
+        "tags": [
+            "motif-forge",
+            "graph:motif-forge-parent.v2",
+            "operation:worker.resume",
+            "service:resume-dispatcher",
+        ],
+        "metadata": {
+            "thread_id": thread_id,
+            "operation": "worker.resume",
+            "graph_version": "motif-forge-parent.v2",
+            "run_id": message.payload["run_id"],
+            "run_type": PARENT_TIME_STRETCH_RUN_TYPE,
+        },
+    }
 
 
 @pytest.mark.asyncio
@@ -399,7 +414,7 @@ async def test_graph_start_redelivery_continues_partial_checkpoint() -> None:
 
     await publisher.publish(message)
 
-    assert graph.calls == [(None, {"configurable": {"thread_id": run.thread_id}})]
+    assert graph.calls == [(None, _expected_action_config(run, action="start"))]
 
 
 @pytest.mark.asyncio
@@ -446,7 +461,7 @@ async def test_graph_action_redelivery_continues_post_approval_checkpoint() -> N
     await publisher.publish(message)
 
     assert graph.calls == [
-        (None, {"configurable": {"thread_id": run.thread_id}}),
+        (None, _expected_action_config(run, action="resume")),
     ]
 
 
@@ -541,4 +556,25 @@ async def test_edit_approval_resumes_nested_checkpoint_then_parent() -> None:
     assert isinstance(nested_command, Command)
     assert nested_command.resume == decision.model_dump(mode="json")
     assert config == nested_config
-    assert graph.calls == [(None, {"configurable": {"thread_id": run.thread_id}})]
+    assert graph.calls == [(None, _expected_action_config(run, action="resume"))]
+
+
+def _expected_action_config(run: AIRun, *, action: str) -> dict[str, object]:
+    operation = f"{run.run_type.value}.{action}"
+    return {
+        "configurable": {"thread_id": run.thread_id},
+        "tags": [
+            "motif-forge",
+            "graph:motif-forge-parent.v2",
+            f"operation:{operation}",
+            "service:resume-dispatcher",
+        ],
+        "metadata": {
+            "thread_id": run.thread_id,
+            "operation": operation,
+            "graph_version": "motif-forge-parent.v2",
+            "run_id": str(run.run_id),
+            "project_id": str(run.project_id),
+            "run_type": run.run_type.value,
+        },
+    }

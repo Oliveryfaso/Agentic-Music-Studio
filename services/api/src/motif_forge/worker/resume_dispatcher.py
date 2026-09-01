@@ -86,6 +86,7 @@ from motif_forge.infrastructure.persistence.generation import (
 )
 from motif_forge.infrastructure.persistence.media_jobs import PostgresMediaJobUnitOfWork
 from motif_forge.infrastructure.persistence.storage import PostgresStorageUnitOfWork
+from motif_forge.observability import configure_langsmith
 from motif_forge.providers.deepseek import DeepSeekJsonClient, build_synth_ambient_planner
 from motif_forge.worker.outbox import (
     GRAPH_ACTION_TOPICS,
@@ -156,6 +157,7 @@ def build_generate_critic(settings: Settings, run: AIRun, ai_uow: object) -> Evi
 
 async def run_resume_dispatcher() -> None:
     settings = get_settings()
+    configure_langsmith(settings, service="resume-dispatcher")
     if settings.postgres_dsn is None:
         raise RuntimeError("resume dispatcher requires PostgreSQL configuration")
     dsn = settings.postgres_dsn.get_secret_value()

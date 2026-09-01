@@ -28,6 +28,7 @@ from motif_forge.agent.planner import (
 )
 from motif_forge.agent.schemas import CompositionBrief, CompositionPlan
 from motif_forge.domain.ai_runs import ModelRequestKind, ModelRequestReservation, ModelUsageStatus
+from motif_forge.observability import safe_trace
 
 if TYPE_CHECKING:
     from motif_forge.config import Settings
@@ -441,58 +442,95 @@ class DeepSeekJsonClient:
         initial_kind: ModelRequestKind,
     ) -> tuple[_ChatCompletion, str]:
         for attempt in range(1, self._max_attempts + 1):
-            reservation = await self._reserve_request(
+            request_kind = (
                 initial_kind if attempt == 1 else ModelRequestKind.TRANSPORT_RETRY
             )
-            try:
-                response = await self._client.post(
-                    f"{self._base_url}/chat/completions",
-                    headers=headers,
-                    json=dict(payload),
+            reservation = await self._reserve_request(request_kind)
+            thinking = payload.get("thinking")
+            thinking_mode = (
+                thinking.get("type") if isinstance(thinking, Mapping) else None
+            )
+            with safe_trace(
+                name="DeepSeekV4Flash",
+                run_type="llm",
+                inputs={
+                    "model": self._model,
+                    "request_kind": request_kind.value,
+                    "attempt": attempt,
+                    "thinking_mode": thinking_mode,
+                    "max_tokens": payload.get("max_tokens"),
+                },
+                tags=["provider:deepseek", f"request-kind:{request_kind.value}"],
+                metadata={"provider": "deepseek", "model": self._model},
+            ) as trace_run:
+                try:
+                    response = await self._client.post(
+                        f"{self._base_url}/chat/completions",
+                        headers=headers,
+                        json=dict(payload),
+                    )
+                except httpx.TimeoutException:
+                    trace_run.add_outputs({"error_code": "DEEPSEEK_TIMEOUT"})
+                    if attempt < self._max_attempts:
+                        await self._sleep(self._retry_delay(attempt))
+                        continue
+                    raise DeepSeekProviderError(
+                        "DEEPSEEK_TIMEOUT",
+                        "DeepSeek did not respond within the configured timeout.",
+                        retryable=True,
+                        suggested_route="retry",
+                    ) from None
+                except httpx.NetworkError:
+                    trace_run.add_outputs({"error_code": "DEEPSEEK_NETWORK_ERROR"})
+                    if attempt < self._max_attempts:
+                        await self._sleep(self._retry_delay(attempt))
+                        continue
+                    raise DeepSeekProviderError(
+                        "DEEPSEEK_NETWORK_ERROR",
+                        "DeepSeek could not be reached.",
+                        retryable=True,
+                        suggested_route="retry",
+                    ) from None
+                if response.status_code >= 400:
+                    error = self._map_http_error(response.status_code)
+                    trace_run.add_outputs({"error_code": error.code})
+                    if error.retryable and attempt < self._max_attempts:
+                        await self._sleep(self._retry_delay(attempt))
+                        continue
+                    raise error
+                try:
+                    completion = _ChatCompletion.model_validate_json(
+                        response.text, strict=True
+                    )
+                except (ValueError, ValidationError):
+                    trace_run.add_outputs({"error_code": "DEEPSEEK_PROTOCOL_INVALID"})
+                    raise DeepSeekProviderError(
+                        "DEEPSEEK_PROTOCOL_INVALID",
+                        "DeepSeek returned an invalid chat completion envelope.",
+                        retryable=False,
+                        suggested_route="repair",
+                    ) from None
+                usage = self._planner_usage(completion.usage)
+                await self._record_usage(reservation, usage)
+                choice = completion.choices[0]
+                trace_run.add_outputs(
+                    {
+                        "finish_reason": choice.finish_reason,
+                        "prompt_tokens": usage.prompt_tokens,
+                        "completion_tokens": usage.completion_tokens,
+                        "total_tokens": usage.total_tokens,
+                        "prompt_cache_hit_tokens": usage.prompt_cache_hit_tokens,
+                        "prompt_cache_miss_tokens": usage.prompt_cache_miss_tokens,
+                        "reasoning_tokens": usage.reasoning_tokens,
+                    }
                 )
-            except httpx.TimeoutException:
-                if attempt < self._max_attempts:
+                if (
+                    choice.finish_reason == "insufficient_system_resource"
+                    and attempt < self._max_attempts
+                ):
                     await self._sleep(self._retry_delay(attempt))
                     continue
-                raise DeepSeekProviderError(
-                    "DEEPSEEK_TIMEOUT",
-                    "DeepSeek did not respond within the configured timeout.",
-                    retryable=True,
-                    suggested_route="retry",
-                ) from None
-            except httpx.NetworkError:
-                if attempt < self._max_attempts:
-                    await self._sleep(self._retry_delay(attempt))
-                    continue
-                raise DeepSeekProviderError(
-                    "DEEPSEEK_NETWORK_ERROR",
-                    "DeepSeek could not be reached.",
-                    retryable=True,
-                    suggested_route="retry",
-                ) from None
-            if response.status_code >= 400:
-                error = self._map_http_error(response.status_code)
-                if error.retryable and attempt < self._max_attempts:
-                    await self._sleep(self._retry_delay(attempt))
-                    continue
-                raise error
-            try:
-                completion = _ChatCompletion.model_validate_json(response.text, strict=True)
-            except (ValueError, ValidationError):
-                raise DeepSeekProviderError(
-                    "DEEPSEEK_PROTOCOL_INVALID",
-                    "DeepSeek returned an invalid chat completion envelope.",
-                    retryable=False,
-                    suggested_route="repair",
-                ) from None
-            await self._record_usage(reservation, self._planner_usage(completion.usage))
-            if (
-                completion.choices[0].finish_reason == "insufficient_system_resource"
-                and attempt < self._max_attempts
-            ):
-                await self._sleep(self._retry_delay(attempt))
-                continue
-            return completion, response.text
+                return completion, response.text
         raise AssertionError("bounded DeepSeek request loop exited unexpectedly")
 
     async def complete_json(

@@ -9,6 +9,13 @@ services:
       - .env
     environment:
       DEEPSEEK_API_KEY: ""
+      LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-motif-forge-local}
+      LANGSMITH_ENDPOINT: ${LANGSMITH_ENDPOINT:-https://api.smith.langchain.com}
+      LANGSMITH_HIDE_INPUTS: "true"
+      LANGSMITH_HIDE_OUTPUTS: "true"
+      LANGCHAIN_CALLBACKS_BACKGROUND: "true"
       MOTIF_FORGE_STORAGE_PROFILE: lean
       MOTIF_FORGE_ARTIFACT_ROOT: /artifacts
       MOTIF_FORGE_TEMP_ROOT: /temp
@@ -36,6 +43,8 @@ services:
       - .env
     environment:
       DEEPSEEK_API_KEY: ""
+      LANGSMITH_TRACING: "false"
+      LANGSMITH_API_KEY: ""
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,6 +72,13 @@ services:
       - .env
     environment:
       DEEPSEEK_API_KEY: ""
+      LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-motif-forge-local}
+      LANGSMITH_ENDPOINT: ${LANGSMITH_ENDPOINT:-https://api.smith.langchain.com}
+      LANGSMITH_HIDE_INPUTS: "true"
+      LANGSMITH_HIDE_OUTPUTS: "true"
+      LANGCHAIN_CALLBACKS_BACKGROUND: "true"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -77,6 +93,13 @@ services:
       - .env
     environment:
       DEEPSEEK_API_KEY: ""
+      LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-motif-forge-local}
+      LANGSMITH_ENDPOINT: ${LANGSMITH_ENDPOINT:-https://api.smith.langchain.com}
+      LANGSMITH_HIDE_INPUTS: "true"
+      LANGSMITH_HIDE_OUTPUTS: "true"
+      LANGCHAIN_CALLBACKS_BACKGROUND: "true"
       MOTIF_FORGE_STORAGE_PROFILE: lean
       MOTIF_FORGE_ARTIFACT_ROOT: /artifacts
       MOTIF_FORGE_TEMP_ROOT: /temp
@@ -111,6 +134,8 @@ services:
       - .env
     environment:
       DEEPSEEK_API_KEY: ""
+      LANGSMITH_TRACING: "false"
+      LANGSMITH_API_KEY: ""
       MOTIF_FORGE_STORAGE_PROFILE: lean
       MOTIF_FORGE_ARTIFACT_ROOT: /artifacts
       MOTIF_FORGE_TEMP_ROOT: /temp

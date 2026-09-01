@@ -12,6 +12,7 @@ dependencies = [
   "langchain-core>=1.2,<2.0",
   "langgraph>=1.0,<2.0",
   "langgraph-checkpoint-postgres>=3.0,<4.0",
+  "langsmith>=0.10,<1.0",
   "psycopg[binary,pool]>=3.2,<4.0",
   "pydantic>=2.11,<3.0",
   "pydantic-settings>=2.10,<3.0",

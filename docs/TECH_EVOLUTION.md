@@ -390,3 +390,11 @@
 - Generate-only Graph Read Model 与现有 Run Inspector 安全事实合并；Run 页复用原有 SSE 作为 TanStack Query 失效信号，没有第二条事件流。Graph 请求失败不影响 PlanApproval、CandidateSelection、取消、Revision、导出或 Studio；Import/Edit 继续使用原持久事件时间线。
 - 前端采用语义 HTML、原生 disclosure、CSS grid/flex 与局部横向滚动，不引入 Graph/layout/design-system 依赖。Home 改为 recent-first，Brief 把编曲约束渐进披露，终态 Run 结果优先，Studio 以 Arrangement Timeline 为主区并把 AI/Delivery 放入 Inspector。
 - RED/GREEN 后的真实 PostgreSQL 边界、前端组合回归、OpenAPI、Ruff/Mypy/Vite 均纳入验收；no-key Playwright 流程实际完成 Plan → A/B → selected Revision/export → Run Graph → Studio，并验证 checkpoint 技术节点证据、390 px 无页面级横向溢出和 0 次模型请求。没有执行新的付费 DeepSeek 调用。
+
+## 2026-09-01：可选 LangSmith 第一层可观测性
+
+- 在不改变唯一 `motif-forge-parent.v2`、PostgreSQL checkpoint 或内置 Graph Inspector 的前提下，加入可选 LangSmith developer telemetry。只有 `LANGSMITH_TRACING=true` 且提供 Key 时启用；缺 Key、SDK 初始化失败或 trace 收尾失败都自动关闭/忽略，不改变 Graph 与 Provider 的业务结果。
+- Generate/Edit 的 start/resume/cancel、Worker resume，以及 Import/Rehydrate 的 API Graph 调用继续使用原 `configurable.thread_id`，同时附加 allowlist 的 Graph version、operation、run/project/thread ID 与 service tag，便于在 LangSmith 关联同一持久 Run。没有读取或上传 checkpoint payload、Prompt、审批断言、路径或媒体内容。
+- 原生 httpx DeepSeek 适配器的每个 transport attempt 使用独立 `llm` span；只记录 model、request kind、attempt、thinking mode、token ceiling、finish reason、token/cache counters 与脱敏 error code，不上传 messages、reasoning、response body、Authorization header 或 API key。模型预算与费用事实仍由 PostgreSQL ledger 权威记录。
+- Compose 只把可选 LangSmith Key 交给 API、Dispatcher 和 Resume Dispatcher，并对 trace inputs/outputs 双重强制隐藏；Migrate/Media/Render/Storage 保持禁用/无 Key。README 记录普通启停命令、关闭方式、Base retention 与 spend limit 边界；Celery/FFmpeg/Chromium 的完整分布式 trace 没有纳入本层。
+- TDD 聚焦门为 `80 passed`，排除外置盘 AppleDouble `._*` 的临时代码副本完整 unit 为 `520 passed`；Ruff、Mypy strict 112 source、Compose 配置与 launcher shell 语法通过。测试只使用 fake Key、MockTransport 与本地 trace fake，没有 DeepSeek 或 LangSmith 网络/付费调用。

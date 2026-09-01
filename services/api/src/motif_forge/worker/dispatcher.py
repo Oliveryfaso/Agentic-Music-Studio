@@ -11,12 +11,14 @@ from motif_forge.infrastructure.persistence.database import (
     create_postgres_engine,
     create_session_factory,
 )
+from motif_forge.observability import configure_langsmith
 from motif_forge.worker.celery_app import celery_app
 from motif_forge.worker.outbox import CeleryMediaJobPublisher, PostgresOutboxStore, dispatch_once
 
 
 async def run_dispatcher() -> None:
     settings = get_settings()
+    configure_langsmith(settings, service="dispatcher")
     if settings.postgres_dsn is None or settings.redis_url is None:
         raise RuntimeError("dispatcher requires PostgreSQL and Redis configuration")
     engine = create_postgres_engine(settings.postgres_dsn.get_secret_value())

@@ -41,6 +41,44 @@ Graph 只点亮已有持久证据的节点：`checkpoint_confirmed` 表示 LangG
 
 无需 DeepSeek Key 也可以走完演示：创建 Project → 新建编曲 → 填写 Brief → 审批 Plan → 比较并选择候选 → 等待 Revision/导出完成 → 在 Run Inspector 查看 Graph → 打开 Studio。Graph 读取异常不会阻断审批、候选选择、取消、结果或 Studio 操作，原有持久事件时间线仍可展开检查。
 
+## Optional LangSmith tracing
+
+LangSmith is an optional developer view over the same Parent Graph; PostgreSQL remains authoritative
+for checkpoints, Run events, usage ledgers, Revision facts, recovery, and the built-in Graph view.
+Tracing is disabled by default and a LangSmith outage cannot fail or retry a Motif Forge operation.
+
+To opt in, create a LangSmith API key and add these values to the untracked `.env` file, then restart
+the stack with the normal stop/start commands:
+
+```bash
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=lsv2_pt_replace_with_your_key
+LANGSMITH_PROJECT=motif-forge-local
+
+scripts/build_compose_images.sh api
+scripts/stop_motif_forge.sh
+scripts/start_motif_forge.sh
+```
+
+The image rebuild is needed once after adding this integration; later tracing on/off changes only need the
+matching stop/start commands.
+
+Compose passes the key only to the API, Dispatcher, and Resume Dispatcher. Trace inputs and outputs are hidden
+at the SDK client and Compose boundaries; only allowlisted operation names, stable Run/Project/Thread IDs,
+timing, sanitized errors, finish reasons, and token counters are admitted. Prompts, model reasoning,
+approval assertions, checkpoint state, local paths, media bytes, authorization headers, and response
+bodies are excluded.
+
+To stop sending traces, set `LANGSMITH_TRACING=false` (or remove the key) and restart with the same
+stop/start commands. The built-in Inspector continues to work because it reads persisted local evidence.
+This lightweight integration does not claim a distributed trace through Celery, FFmpeg, or Chromium.
+
+LangSmith and DeepSeek are separate services: enabling tracing does not create an extra DeepSeek call.
+LangSmith's Developer plan currently includes a no-cost monthly base-trace allowance, while extended
+retention and usage above plan allowances can be billed. Check the official
+[pricing and retention documentation](https://docs.langchain.com/langsmith/pricing-plans), configure a
+workspace spend limit, and keep base retention unless longer-lived trace storage is intentionally needed.
+
 If Colima reports that it is already running but `--check` still says Docker is not ready, the existing Colima VM is stale. Recover it once without deleting its data, then launch normally:
 
 ```bash

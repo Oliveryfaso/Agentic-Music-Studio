@@ -1,6 +1,6 @@
 # Motif Forge 当前实施状态
 
-> 状态日期：2026-08-31
+> 状态日期：2026-09-01
 > 性质：当前代码事实与验收证据，不替代产品合同
 > 更新规则：每个被验收的小纵切结束后更新；不要把目标设计写成已实现能力
 
@@ -64,11 +64,17 @@ S3 已把 S2 的 API 级闭环变成用户可操作的作品流，S4/S5 加入�
 | AI 选区编辑 | 可运行 | 有界上下文、EditPatchProposal/真实影响升级、锁定/非目标保持、L0/L1 自动提交、L2 Preview/HITL、重启恢复 | 付费 Edit planner 未验收；no-key fallback 只覆盖显式 gain/本地音色 |
 | Export / Run Inspector | 可运行 | 权威七步 Export 投影、安全下载、最多 200 条脱敏 Timeline、决策/预算/Job/Artifact/恢复事实；重复读取不写库 | 大规模历史 Trace 与外部对象存储不属于首版 |
 | Parent Graph 可视化 / 工作台可读性 | 可运行（作品集） | Generate-only `GET /runs/{run_id}/graph` 通过受限 `task_path` 读取器和静态展示注册表投影 `motif-forge-parent.v2`；Run 紧凑路径、Inspector 完整 Graph、并行候选/循环/Worker/人工节点与安全证据面板；Home recent-first、Brief 渐进披露、Run 结果优先、Studio 时间线优先 | 不是通用 Trace 平台；不读取 checkpoint payload/Prompt/推理；Import/Edit 保留事件时间线 |
-| Eval/可观测性 | 可运行（作品集） | S1–S7 共 96 条内部案例、80 条公开 measured 分母、持久 Event/Trace/Usage、About/Eval 页面、一条历史 Generate paid 样本 | 主观音质、长时负载和完整 OTel 看板明确未测 |
+| Eval/可观测性 | 可运行（作品集） | S1–S7 共 96 条内部案例、80 条公开 measured 分母、持久 Event/Trace/Usage、About/Eval 页面、一条历史 Generate paid 样本；可选 LangSmith 投影现关联 Parent Graph 与 DeepSeek transport，并默认关闭、输入/输出隐藏、失败开放 | 主观音质、长时负载和 Celery/FFmpeg/Chromium 完整分布式 Trace 明确未测 |
 | 一键本地启停 | 可运行 | `scripts/start_motif_forge.sh` 统一外置存储、Docker/Colima、Compose readiness、Vite 与浏览器入口；`scripts/stop_motif_forge.sh` 完整停止 Web、Compose 和 Colima，同时保留 Volume/镜像/作品；Shell/契约测试覆盖 PID 防误杀与幂等边界 | 2026-08-31 同机 live startup 已通过；旧阶段 Compose 容器仍需精确停止，不能自动清理未知端口占用者 |
 | CI/CD 与负载测试 | 后置可选 | 精确本地 S7 gate、确定性报告、PostgreSQL 与浏览器代表性验收 | CI workflow、soak、正式容量 P95 在公开托管/多人使用前再做 |
 
 ## 4. 当前验证基线
+
+2026-09-01 可选 LangSmith 开发可观测性纵切：
+
+- Graph/Provider/API/配置/Compose/launcher 聚焦门为 `80 passed`；排除外置盘 AppleDouble `._*` 的临时代码副本完整 unit 为 `520 passed`；Ruff 通过，Mypy strict `112 source files` 通过，Compose `--no-env-resolution` 配置验证与启动/停止脚本语法通过。
+- API、Dispatcher、Resume Dispatcher 可在同时设置 `LANGSMITH_TRACING=true` 与 Key 后启用；Migrate/Media/Render/Storage 不接收真实 Key。SDK Client 和 Compose 双边强制隐藏 inputs/outputs，trace 只接收 allowlist 关联 ID、操作、时序、脱敏错误、finish reason 与 token 计数。
+- PostgreSQL checkpoint、Run events、Usage ledger 和内置 Graph Inspector 继续是权威事实；LangSmith 故障不会让 Graph/Provider 操作失败、重试或重复。本纵切没有数据库/API/Graph 拓扑变化，没有 DeepSeek 或 LangSmith 网络/付费调用；Celery/FFmpeg/Chromium 分布式 trace 保持后置。
 
 S7 阶段门的最新证据：
 
