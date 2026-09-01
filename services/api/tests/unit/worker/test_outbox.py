@@ -9,6 +9,7 @@ from langgraph.types import Command
 from motif_forge.agent.generate import CandidateSelectionDecision, PlanApprovalDecision
 from motif_forge.agent.parent_graph import PARENT_TIME_STRETCH_RUN_TYPE
 from motif_forge.application.edit_decisions import EditPreviewDecision
+from motif_forge.application.errors import ApplicationError
 from motif_forge.domain.ai_runs import AIRun, AIRunStatus, AIRunType, EditRunRequest
 from motif_forge.domain.commands import Selection
 from motif_forge.domain.media_jobs import WorkerResumePayload
@@ -161,6 +162,34 @@ async def test_parent_graph_publisher_resumes_the_payload_thread() -> None:
             "run_type": PARENT_TIME_STRETCH_RUN_TYPE,
         },
     }
+
+
+@pytest.mark.asyncio
+async def test_parent_graph_publisher_acknowledges_late_resume_after_terminal() -> None:
+    graph = FakeResumableGraph()
+    graph.values = {"phase": "cancelled", "terminal_status": "cancelled"}
+    publisher = ParentGraphResumePublisher(graph)
+    message = OutboxMessage(
+        event_id=uuid4(),
+        topic="graph.resume.requested",
+        dedupe_key=f"resume:{uuid4()}",
+        payload={
+            "schema_version": "worker-resume.v1",
+            "run_id": str(uuid4()),
+            "thread_id": f"cancelled-{uuid4().hex}",
+            "run_type": "parent.candidate_preview.v1",
+            "resume_event_id": "late-preview-completion",
+            "job_id": str(uuid4()),
+            "status": "succeeded",
+            "artifact_id": str(uuid4()),
+            "error_code": None,
+        },
+        attempts=1,
+    )
+
+    await publisher.publish(message)
+
+    assert graph.calls == []
 
 
 @pytest.mark.asyncio
@@ -378,6 +407,36 @@ async def test_graph_action_publisher_rejects_topic_action_mismatch() -> None:
 
 
 @pytest.mark.asyncio
+async def test_graph_action_publisher_acknowledges_deleted_run() -> None:
+    graph = FakeResumableGraph()
+    run_id = uuid4()
+
+    async def load_run(candidate_run_id: UUID) -> AIRun:
+        assert candidate_run_id == run_id
+        raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
+
+    publisher = ParentGraphActionPublisher(graph, load_run=load_run)
+    await publisher.publish(
+        OutboxMessage(
+            event_id=uuid4(),
+            topic="graph.cancel.requested",
+            dedupe_key=f"cancel:{run_id}",
+            payload={
+                "schema_version": "graph-action.v1",
+                "action": "cancel",
+                "run_id": str(run_id),
+                "thread_id": "deleted-run-thread",
+                "run_type": "parent.generate.v1",
+                "decision": None,
+            },
+            attempts=3,
+        )
+    )
+
+    assert graph.calls == []
+
+
+@pytest.mark.asyncio
 async def test_graph_start_redelivery_continues_partial_checkpoint() -> None:
     graph = FakeResumableGraph()
     graph.values = {"phase": "preview_created"}
@@ -463,6 +522,50 @@ async def test_graph_action_redelivery_continues_post_approval_checkpoint() -> N
     assert graph.calls == [
         (None, _expected_action_config(run, action="resume")),
     ]
+
+
+@pytest.mark.asyncio
+async def test_cancel_resumes_candidate_preview_interrupt() -> None:
+    graph = FakeResumableGraph()
+    graph.values = {"phase": "rendering_candidate_previews"}
+    run = AIRun(
+        run_id=uuid4(),
+        project_id=uuid4(),
+        branch_id=uuid4(),
+        base_revision_id=uuid4(),
+        thread_id="generate-cancel-preview-wait",
+        status=AIRunStatus.CANCELLED,
+        version=3,
+        terminal_at=datetime.now(UTC),
+    )
+
+    async def load_run(run_id: UUID) -> AIRun:
+        assert run_id == run.run_id
+        return run
+
+    publisher = ParentGraphActionPublisher(graph, load_run=load_run)
+    await publisher.publish(
+        OutboxMessage(
+            event_id=uuid4(),
+            topic="graph.cancel.requested",
+            dedupe_key=f"cancel:{run.run_id}",
+            payload={
+                "schema_version": "graph-action.v1",
+                "action": "cancel",
+                "run_id": str(run.run_id),
+                "thread_id": run.thread_id,
+                "run_type": "parent.generate.v1",
+                "decision": None,
+            },
+            attempts=1,
+        )
+    )
+
+    assert len(graph.calls) == 1
+    command, config = graph.calls[0]
+    assert isinstance(command, Command)
+    assert command.resume == {"action": "cancel"}
+    assert config == _expected_action_config(run, action="cancel")
 
 
 @pytest.mark.asyncio

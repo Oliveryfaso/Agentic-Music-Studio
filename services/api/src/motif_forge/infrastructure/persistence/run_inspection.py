@@ -27,6 +27,7 @@ from motif_forge.infrastructure.persistence.tables import (
     AudioArtifactRow,
     ExportBundleArtifactRow,
     MediaJobRow,
+    MediaRunRow,
 )
 
 TERMINAL_STATUSES = {"succeeded", "failed", "cancelled", "rejected"}
@@ -64,8 +65,20 @@ class PostgresRunInspectionStore:
                 )
             ).scalar_one_or_none()
             revision_id = run.materialized_revision_id
-            jobs: tuple[MediaJobRow, ...] = ()
-            artifacts: tuple[AudioArtifactRow, ...] = ()
+            thread_jobs = tuple(
+                (
+                    await session.execute(
+                        select(MediaJobRow)
+                        .join(MediaRunRow, MediaRunRow.id == MediaJobRow.run_id)
+                        .where(
+                            MediaRunRow.project_id == run.project_id,
+                            MediaRunRow.thread_id == run.thread_id,
+                        )
+                    )
+                ).scalars()
+            )
+            jobs_by_id = {item.id: item for item in thread_jobs}
+            artifacts_by_id: dict[UUID, AudioArtifactRow] = {}
             bundle = None
             if revision_id is not None:
                 project_jobs = tuple(
@@ -77,23 +90,22 @@ class PostgresRunInspectionStore:
                         )
                     ).scalars()
                 )
-                jobs = tuple(
-                    item
+                jobs_by_id.update(
+                    (item.id, item)
                     for item in project_jobs
                     if item.input_payload.get("revision_id") == str(revision_id)
                 )
-                artifacts = tuple(
+                revision_artifacts = tuple(
                     (
                         await session.execute(
-                            select(AudioArtifactRow)
-                            .where(
+                            select(AudioArtifactRow).where(
                                 AudioArtifactRow.project_id == run.project_id,
                                 AudioArtifactRow.revision_id == revision_id,
                             )
-                            .order_by(AudioArtifactRow.created_at, AudioArtifactRow.id)
                         )
                     ).scalars()
                 )
+                artifacts_by_id.update((item.id, item) for item in revision_artifacts)
                 bundle = (
                     await session.execute(
                         select(ExportBundleArtifactRow).where(
@@ -102,6 +114,22 @@ class PostgresRunInspectionStore:
                         )
                     )
                 ).scalar_one_or_none()
+            if jobs_by_id:
+                job_artifacts = tuple(
+                    (
+                        await session.execute(
+                            select(AudioArtifactRow).where(
+                                AudioArtifactRow.project_id == run.project_id,
+                                AudioArtifactRow.source_job_id.in_(tuple(jobs_by_id)),
+                            )
+                        )
+                    ).scalars()
+                )
+                artifacts_by_id.update((item.id, item) for item in job_artifacts)
+            jobs = tuple(sorted(jobs_by_id.values(), key=lambda item: (item.created_at, item.id)))
+            artifacts = tuple(
+                sorted(artifacts_by_id.values(), key=lambda item: (item.created_at, item.id))
+            )
 
         events = tuple(reversed(raw_events[:200]))
         timeline = tuple(

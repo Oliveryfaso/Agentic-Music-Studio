@@ -889,9 +889,15 @@ def build_parent_graph(
                 lambda state: (
                     "next"
                     if state.get("phase") == "candidate_preview_collected"
+                    else "end"
+                    if state.get("terminal_status") == "cancelled"
                     else "error"
                 ),
-                {"next": "EnqueueCandidatePreview", "error": "RouteError"},
+                {
+                    "next": "EnqueueCandidatePreview",
+                    "end": END,
+                    "error": "RouteError",
+                },
             )
             graph.add_edge("CriticizeCandidates", "ApplyCriticRepair")
             graph.add_conditional_edges(

@@ -187,6 +187,13 @@ async def test_postgres_dispatcher_deduplicates_start_resume_and_wakes_cancel(
     finally:
         async with engine.begin() as connection:
             await connection.execute(
+                text(
+                    "DELETE FROM app.outbox_events WHERE aggregate_id IN "
+                    "(SELECT id FROM app.ai_runs WHERE project_id=:project_id)"
+                ),
+                {"project_id": project.project_id},
+            )
+            await connection.execute(
                 text("DELETE FROM app.audit_events WHERE project_id=:project_id"),
                 {"project_id": project.project_id},
             )

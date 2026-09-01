@@ -166,31 +166,47 @@ class ReadRunGraph:
                 counts[item.technical_name] += 1
 
         event_times: dict[str, datetime] = {}
+        event_counts: Counter[str] = Counter()
         for event in facts.timeline:
+            event_counts[event.event_type] += 1
             node_id = _EVENT_NODE_MAP.get(event.event_type)
             if node_id is not None:
                 event_times[node_id] = event.created_at
 
+        persisted_candidate_count = event_counts["composition.candidate-created"]
         candidate_counts = {
-            "candidates:candidate-a": 1 if len(candidate_paths) >= 1 else 0,
-            "candidates:candidate-b": 1 if len(candidate_paths) >= 2 else 0,
+            "candidates:candidate-a": (
+                1 if len(candidate_paths) >= 1 or persisted_candidate_count >= 1 else 0
+            ),
+            "candidates:candidate-b": (
+                1 if len(candidate_paths) >= 2 or persisted_candidate_count >= 2 else 0
+            ),
         }
         terminal = facts.run.status in _TERMINAL
+        selection_interrupted = (
+            counts["CandidateSelection"] > 0
+            and "commit:selection" not in event_times
+        )
+        if selection_interrupted and not terminal:
+            current_phase = "commit"
         nodes: list[GraphNodeView] = []
         for definition in self._registry.nodes:
             count = candidate_counts.get(definition.id, counts.get(definition.technical_name, 0))
             evidence: NodeEvidence = "none"
             status: ViewStatus = "not_visited"
             if count:
-                evidence = (
-                    "grouped_parallel"
-                    if definition.technical_name == "CreateCandidateBranch"
-                    else "checkpoint_confirmed"
-                )
+                if definition.technical_name == "CreateCandidateBranch":
+                    evidence = "grouped_parallel" if candidate_paths else "event_confirmed"
+                else:
+                    evidence = "checkpoint_confirmed"
                 status = "completed"
             elif definition.id in event_times:
                 evidence = "event_confirmed"
                 status = "completed"
+
+            if definition.id == "commit:selection" and selection_interrupted:
+                status = "skipped" if terminal else "waiting"
+                evidence = "checkpoint_confirmed"
 
             is_human_wait = (
                 facts.run.status == "waiting_approval" and definition.id == "approval:plan"
@@ -199,7 +215,7 @@ class ReadRunGraph:
                 and facts.timeline[-1].phase == "waiting_candidate_selection"
                 and definition.id == "commit:selection"
             )
-            if is_human_wait:
+            if is_human_wait and not terminal:
                 status = "waiting"
                 evidence = "event_confirmed" if evidence == "none" else evidence
             elif current_phase == definition.phase_id and status == "not_visited":

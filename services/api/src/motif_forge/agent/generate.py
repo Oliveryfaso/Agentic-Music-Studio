@@ -466,6 +466,8 @@ class GenerateNodes:
                 "job_id": state["pending_job_id"],
             }
         )
+        if isinstance(resumed, Mapping) and resumed.get("action") == "cancel":
+            return {"phase": "cancelled", "terminal_status": "cancelled"}
         try:
             payload = WorkerResumePayload.model_validate_json(
                 json.dumps(resumed, default=str), strict=True

@@ -329,6 +329,9 @@ def _application_status(error: ApplicationError) -> int:
         "ARTIFACT_EVICTED",
         "AI_RUN_BASE_REVISION_CONFLICT",
         "AI_RUN_REPLAN_STATE_CONFLICT",
+        "AI_RUN_ACTION_STATE_CONFLICT",
+        "AI_RUN_VERSION_CONFLICT",
+        "PLAN_HASH_MISMATCH",
     }:
         return 409
     if error.code in {

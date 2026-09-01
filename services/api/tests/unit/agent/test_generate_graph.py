@@ -611,3 +611,27 @@ async def test_s5_candidate_reject_and_cancel_never_materialize(
     assert result["terminal_status"] == terminal
     assert selection.materialize_calls == legacy_materialize.calls == 0
     assert export.enqueue_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_s5_cancel_during_candidate_preview_wait_is_terminal() -> None:
+    graph, _, previews, selection, legacy_materialize, export = _s5_services()
+    thread_id = "generate-s5-cancel-during-preview"
+    waiting_plan = await graph.ainvoke(
+        initial_generate_state(thread_id=thread_id, request=_request()),
+        _config(thread_id),
+    )
+    waiting_preview = await graph.ainvoke(
+        Command(resume=_approval_resume(waiting_plan)), _config(thread_id)
+    )
+
+    result = await graph.ainvoke(
+        Command(resume={"action": "cancel"}), _config(thread_id)
+    )
+
+    assert waiting_preview["phase"] == "rendering_candidate_previews"
+    assert result["phase"] == "cancelled"
+    assert result["terminal_status"] == "cancelled"
+    assert previews.collect_calls == 0
+    assert selection.preview_calls == selection.materialize_calls == 0
+    assert legacy_materialize.calls == export.enqueue_calls == 0
