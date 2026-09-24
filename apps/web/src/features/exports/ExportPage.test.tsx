@@ -20,7 +20,7 @@ it("renders the seven authoritative steps and delivery links", async () => {
   expect(screen.getByRole("link", { name: /Master WAV/ })).toHaveAttribute(
     "href", `/api/v1/audio-artifacts/${MASTER_ID}/content`,
   );
-  expect(screen.getByRole("link", { name: "检查 Run" })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: "查看执行记录" })).toHaveAttribute(
     "href", `/runs/${RUN_ID}/inspect`,
   );
 });

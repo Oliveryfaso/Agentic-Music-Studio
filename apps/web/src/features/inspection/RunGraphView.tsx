@@ -23,8 +23,8 @@ export function RunGraphView({ graph }: { graph: RunGraphReadModel }) {
     <header className="run-graph-toolbar">
       <div>
         <span className="path-kicker">{graph.graph_version}</span>
-        <h2>Signal Path Graph</h2>
-        <p>形状表示责任，颜色表示执行类型；只有持久证据会点亮节点。</p>
+        <h2>Agent 执行路径</h2>
+        <p>从规划到交付，按阶段查看真实执行记录。点击节点，可查看来源和执行次数。</p>
       </div>
       <button className="secondary-inline" type="button" onClick={() => setShowTechnical((value) => !value)}>
         {showTechnical ? "隐藏技术节点" : "显示技术节点"}

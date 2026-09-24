@@ -97,7 +97,7 @@ async function journey(page) {
   await page.getByRole("region", { name: "节点证据" }).getByText("ValidateRequest", { exact: true }).waitFor();
 
   await page.getByRole("link", { name: "打开 Studio" }).click();
-  const arrangement = page.getByRole("main", { name: "Arrangement 主工作区" });
+  const arrangement = page.getByLabel("Arrangement 主工作区");
   const inspector = page.getByRole("complementary", { name: "Studio Inspector" });
   await arrangement.waitFor();
   invariant(await arrangement.evaluate((node, other) => Boolean(node.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING), await inspector.elementHandle()), "Studio Inspector precedes Arrangement in DOM order");

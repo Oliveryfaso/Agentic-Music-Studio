@@ -30,7 +30,7 @@ export function EditPreviewCard({ preview, busy, rootReady, onDecision }: {
       <button className="primary-button" type="button" disabled={!ready || busy}
         onClick={() => onDecision("approve")}>批准 Preview</button>
       <button type="button" disabled={busy} onClick={() => onDecision("reject")}>拒绝</button>
-      <button type="button" disabled={busy} onClick={() => onDecision("cancel")}>取消 Run</button>
+      <button type="button" disabled={busy} onClick={() => onDecision("cancel")}>取消任务</button>
     </div>
   </article>;
 }

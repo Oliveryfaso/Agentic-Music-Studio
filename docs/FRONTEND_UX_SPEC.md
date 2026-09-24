@@ -1,6 +1,6 @@
 # Motif Forge Web Studio 与视觉规范
 
-> 状态：首版 UX/UI 合同
+> 状态：首版 UX/UI 合同；2026-09-24 按用户授权升级为浅色工作台（ADR-018）
 > 制作端：桌面浏览器
 > 移动端：试听、查看与审批
 
@@ -10,7 +10,7 @@
 2. 用户始终知道当前 Branch、Draft、Committed Revision 或 PreviewCandidate；Preview 不是已提交版本。
 3. 播放、拖动、选择等本地操作即时响应；服务器生成与渲染显示真实持久进度。
 4. 简单 AI 修改自动落地但可 Undo；创意性变化先展示范围、差异和试听。
-5. 科幻感用于解释声音与 Agent 状态，不牺牲密集工作区的可读性。
+5. 明亮的音乐工作台以作品和下一步操作为中心，技术证据渐进展示，不牺牲可读性或真实性。
 6. 空、加载、部分成功、失败、冲突、取消和恢复都是正式页面状态。
 7. 精简存储不伪装成内容丢失：用户能区分可用、已回收、重建中、缺失和外置盘断开，并知道下一步。
 
@@ -21,7 +21,7 @@
 - [Arturia Pigments](https://www.arturia.com/products/software-instruments/pigments/overview)：采用颜色编码、音频响应动画、拖拽关系与清晰调制反馈。
 - [Vital](https://vital.audio/)：采用波形、频谱、包络、LFO 的实时可视化以及提交前预览思想。
 
-Motif Forge 不复制这些产品的控件外观；它将专业 DAW 的稳定结构与轻度“光谱实验室”语言结合。
+Motif Forge 不复制这些产品的控件外观；它保留 DAW 的稳定结构，以雾白画布、墨色文字、深青绿主操作和柔和音轨色构成明亮的音乐工作台。中文为主，保留 Studio、BPM、MIDI、Graph 等必要术语。
 
 ## 3. 视觉系统
 
@@ -29,49 +29,49 @@ Motif Forge 不复制这些产品的控件外观；它将专业 DAW 的稳定结
 
 | Token | 值 | 使用规则 |
 |---|---:|---|
-| `surface.canvas` | `#0B0E14` | 全局背景 |
-| `surface.panel` | `#121722` | Header、Inspector、Track header |
-| `surface.raised` | `#182130` | Modal、Popover、选中面板 |
-| `surface.hover` | `#202A3A` | hover/active row |
-| `border.subtle` | `#202838` | 次级网格 |
-| `border.default` | `#293346` | 面板边界 |
-| `text.primary` | `#E8EEF7` | 主文字 |
-| `text.secondary` | `#93A1B3` | 描述/时间 |
-| `text.muted` | `#647286` | 禁用/低优先级 |
-| `accent.primary` | `#62E6FF` | Playhead、主按钮、链接 |
-| `accent.agent` | `#9B7CFF` | AI、Graph、生成状态 |
-| `accent.creative` | `#FF65C3` | Preview、创意差异、选区 |
-| `semantic.success` | `#55DDA4` | 成功/已就绪 |
-| `semantic.warning` | `#FFB45E` | 低置信度/质量警告 |
-| `semantic.danger` | `#FF6B7A` | 失败/高风险 |
+| `surface.canvas` | `#F5F7F5` | 全局背景 |
+| `surface.panel` | `#FFFFFF` | Header、Inspector、Track header |
+| `surface.raised` | `#FFFFFF` | 浮层、选中面板，靠边界区分 |
+| `surface.hover` | `#EDF2EE` | hover/active row、解释区域 |
+| `border.subtle` | `#DCE5DE` | 网格与面板边界 |
+| `border.default` | `#B9CBBF` | 表单、焦点附近的清晰边界 |
+| `text.primary` | `#243A32` | 主文字 |
+| `text.secondary` | `#607269` | 描述/时间/辅助说明 |
+| `accent.primary` | `#176B55` | Playhead、主按钮、链接 |
+| `accent.agent` | `#705C97` | AI、Graph、候选区分 |
+| `accent.creative` | `#A96440` | 配色辅助与轨道类别 |
+| `semantic.success` | `#237353` | 成功/已就绪 |
+| `semantic.warning` | `#976519` | 低置信度/质量警告 |
+| `semantic.danger` | `#B33E49` | 失败/高风险 |
 
 轨道颜色使用独立的可区分类别色板，不能复用 success/warning/danger 表示乐器，否则状态与身份混淆。
 
-### 3.2 科幻效果边界
+### 3.2 轻量视觉与动效边界
 
 允许：
 
-- 播放头的窄幅柔光。
-- AI 选区的紫—洋红细线渐变。
-- 生成/分析时的低频率光谱动画。
-- Run Graph 的细线连接和脉冲状态。
-- Modal/Inspector 的轻微背景噪声与深度阴影。
+- 清晰的播放头、浅色音轨块与稳定网格。
+- 选区的线框、标签与轻量底色。
+- 生成/分析时不暗示百分比的等待反馈。
+- Run Graph 的细线连接、形状与文字状态。
+- 首页面向音乐的谱面插图；明确为装饰，不伪装成实时作品。
 
 禁止：
 
 - 大面积持续闪烁、强 Bloom、不可关闭的动态星空。
 - 在 Clip 文本和网格后放高对比渐变。
-- 仅用霓虹颜色表达审批、危险和错误。
+- 仅用颜色表达审批、危险和错误；虚假在线灯与伪造运行进度。
 - 长时动画影响播放、拖拽或 Canvas 帧率。
 
 尊重 `prefers-reduced-motion`；音频可视化可暂停但播放不能因此停止。
 
 ### 3.3 字体与密度
 
-- UI 使用清晰的无衬线字体；数字、BPM、bars:beats、dB 使用 tabular numerals。
-- 正文最小 13px，关键按钮/表单不小于 14px。
-- 默认 dense 布局，但可点击目标至少 28×28px；移动审批目标至少 44×44px。
-- 采用 4px 基础间距，面板主要间距 8/12/16px。
+- UI 使用系统无衬线字体与 CJK 字体栈，不加载外部字体；数值采用 tabular numerals。
+- 主要正文 14–16px，辅助说明 12–13px；英文眉题与技术标识可更小，但不得承担唯一的操作说明。
+- 工作区保持必要密度；关键表单 14px、按钮 13–14px，移动导航与主要操作目标至少 44px。
+- 采用 4px 基础间距，面板内以 16/20/24px 为主；不同任务组明确分隔，不以大面积空白替代信息层级。
+- 当前导航具有 aria-current，提供跳至正文与可见键盘焦点；Studio 面板使用可键盘切换的 tablist。
 
 ## 4. 信息架构
 
@@ -296,7 +296,7 @@ Compare 页面始终基于完整 Candidate Snapshot/IR；A/B 音频使用完整�
 - peaks、IR 解析和大型 diff 可移入 Web Worker。
 - 不为未展开轨道创建昂贵 WaveSurfer/频谱实例。
 - 音频调度使用 Tone/Web Audio 时间，不使用 UI animation timer 作为音乐时钟。
-- 科幻动画在播放或拖拽压力下可自动降级。
+- 非必要动效在播放或拖拽压力下可自动降级。
 
 ## 17. UX 验收清单
 

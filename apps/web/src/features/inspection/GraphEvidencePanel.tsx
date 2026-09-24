@@ -15,6 +15,6 @@ export function GraphEvidencePanel({ node }: { node: GraphNodeView | null }) {
         <div><dt>重复</dt><dd>执行 {node.iteration_count} 次</dd></div>
         <div><dt>应用事件时间</dt><dd>{node.occurred_at ? new Date(node.occurred_at).toLocaleString("zh-CN", { hour12: false }) : "checkpoint 未保存时间戳"}</dd></div>
       </dl>
-    </> : <div className="graph-evidence-empty"><span className="path-kicker">NODE EVIDENCE</span><p>选择一个节点查看受限证据。不会显示 Prompt、模型推理或 checkpoint payload。</p></div>}
+    </> : <div className="graph-evidence-empty"><span className="path-kicker">NODE EVIDENCE</span><p>点击左侧节点，查看它的状态、执行次数和证据来源。这里不会展示提示词、模型推理或密钥。</p></div>}
   </section>;
 }

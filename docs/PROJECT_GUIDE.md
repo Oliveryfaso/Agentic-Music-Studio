@@ -909,7 +909,7 @@ Timeline、Clip、降采样波形、Automation 和 Piano Roll 主画布使用 Ca
 
 ### 10.5 视觉语言
 
-采用克制的科幻工作台：深石墨背景与高密度 DAW 布局保证可读性，电光青用于播放与主操作，紫色用于 Agent/Graph，洋红用于创意 Preview；光谱、能量曲线、AI 选区和运行轨迹可以有轻度发光与动画。禁止大面积霓虹、持续闪烁或只靠颜色表达状态。完整 Token 和交互规范见 [FRONTEND_UX_SPEC.md](./FRONTEND_UX_SPEC.md)。
+采用明亮、清晰的音乐工作台（ADR-018）：雾白画布与白色面板承载必要的 DAW 信息密度，墨色正文与深青绿主操作保持可读性，柔和的紫、青、赭色区分轨道和候选。中文操作文案解释用户结果，技术标识和来源证据渐进展示；主导航、键盘焦点、状态与下一步操作清晰可见。禁止大面积霓虹、持续闪烁、虚假在线/进度或只靠颜色表达状态。移动端保留查看、试听与审批，精细编辑面向桌面。完整 Token 和交互规范见 [FRONTEND_UX_SPEC.md](./FRONTEND_UX_SPEC.md)。
 
 ---
 
@@ -1421,7 +1421,7 @@ Upload、Candidate fan-out 试听、Render、Time-stretch 和 Export 之前运�
 17. **队列**：Celery + Redis 投递，PostgreSQL Job/Event/Outbox 是事实源。
 18. **标准渲染**：浏览器与 Chromium Worker 共用 TypeScript AudioGraphCompiler/Tone 语义；FFmpeg 负责 time-stretch/转码，不静默切换听感不同的 Renderer。
 19. **音色搜索**：本地审核 Catalog 优先，外部搜索必须由用户显式启用并经许可确认导入。
-20. **前端实现**：Canvas 时间线/Piano Roll + DOM 控件；视觉为克制的科幻深色工作台。
+20. **前端实现**：Canvas 时间线/Piano Roll + DOM 控件；视觉为明亮浅色音乐工作台，保持清晰状态、必要密度和渐进展示的技术证据。
 21. **函数边界**：Agent 只调用 `simulate_edit_patch` 等纯函数/只读工具；`commit_revision`、`request_preview_render` 和外部下载只属于 Graph/Application。
 22. **Revision/Branch/Preview**：Revision 永远不可变；PreviewCandidate 不是 Revision；Branch head 是唯一当前指针，批准候选会创建新的 Revision。
 23. **框架引入时点**：LangChain Core、LangGraph 与 checkpointer 从初始脚手架进入；首个非 AI 领域切片不依赖 Graph，首条生产 AI 链路直接使用最小 MotifForgeGraph，并保留原生 DeepSeek Loop 作为契约 Baseline。

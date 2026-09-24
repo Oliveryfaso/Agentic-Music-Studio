@@ -61,7 +61,7 @@ describe("Plan review and persistent Run progress", () => {
 
     renderPage();
 
-    expect(await screen.findByText("Fallback Plan · 仍需人工审批")).toBeInTheDocument();
+    expect(await screen.findByText(/当前使用规则生成的备用计划/)).toBeInTheDocument();
     expect(screen.getByText("72 BPM")).toBeInTheDocument();
     expect(screen.getByText("D dorian")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Opening" })).toBeInTheDocument();
@@ -80,11 +80,11 @@ describe("Plan review and persistent Run progress", () => {
     expect(screen.getByRole("button", { name: "拒绝计划" })).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "批准并生成" }));
 
-    expect(await screen.findByText("作品已生成并写入 Revision")).toBeInTheDocument();
+    expect(await screen.findByText("作品已生成，正式版本已保存")).toBeInTheDocument();
     expect(sessionStorage.length).toBe(1);
     expect(sessionStorage.getItem(`motif-forge:run:${RUN_ID}:last-sequence`)).toBe("13");
     expect(JSON.stringify(sessionStorage)).not.toContain(ASSERTION);
-    fireEvent.click(await screen.findByRole("button", { name: "打开只读 Studio" }));
+    fireEvent.click(await screen.findByRole("button", { name: "打开 Studio" }));
     expect(window.location.pathname).toBe(`/projects/${PROJECT_ID}/studio/${REVISION_ID}`);
   });
 
@@ -116,7 +116,7 @@ describe("Plan review and persistent Run progress", () => {
     fireEvent.change(screen.getByLabelText("调整说明"), {
       target: { value: "Increase forward motion without changing the opening." },
     });
-    fireEvent.click(screen.getByRole("button", { name: "创建调整后的 Plan" }));
+    fireEvent.click(screen.getByRole("button", { name: "重新规划" }));
 
     await waitFor(() => expect(window.location.pathname).toBe(`/runs/${CHILD_RUN_ID}`));
     expect(screen.getByRole("heading", { name: "Opening" })).toBeInTheDocument();
@@ -157,21 +157,21 @@ describe("Plan review and persistent Run progress", () => {
     first.unmount();
     current = runData("waiting_worker", { version: 4 });
     const second = renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "取消 Run" }));
-    expect(await screen.findByText("Run 状态已由服务端更新")).toBeInTheDocument();
-    expect(screen.getByText("已有安全 Revision，导出未完整完成")).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "取消任务" }));
+    expect(await screen.findByText("进度已更新，请按当前状态继续")).toBeInTheDocument();
+    expect(screen.getByText("作品已保存，部分导出尚未完成")).toBeInTheDocument();
 
     second.unmount();
     current = runData("failed");
     const third = renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "重试为新 Run" }));
+    fireEvent.click(await screen.findByRole("button", { name: "重新尝试" }));
     await waitFor(() => expect(window.location.pathname).toBe(`/runs/${CHILD_RUN_ID}`));
 
     third.unmount();
     current = runData("cancelled");
     renderPage();
-    expect(await screen.findByText("Run 已取消")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "重试为新 Run" })).toBeInTheDocument();
+    expect(await screen.findByText("创作任务已取消")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "重新尝试" })).toBeInTheDocument();
   });
 
   it("recovers candidate comparison and submits the exact selected Preview", async () => {

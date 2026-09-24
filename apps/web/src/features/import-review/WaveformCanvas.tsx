@@ -58,9 +58,9 @@ function drawWaveform(canvas: HTMLCanvasElement, waveform: WaveformPayload): voi
   context.clearRect(0, 0, width, height);
 
   const gradient = context.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, "#62e6ff");
-  gradient.addColorStop(0.58, "#9b7cff");
-  gradient.addColorStop(1, "#ff65c3");
+  gradient.addColorStop(0, "#176b55");
+  gradient.addColorStop(0.58, "#705c97");
+  gradient.addColorStop(1, "#a96440");
   context.strokeStyle = gradient;
   context.lineWidth = Math.max(1, 1.1 * ratio);
   context.globalAlpha = 0.92;
@@ -79,7 +79,7 @@ function drawWaveform(canvas: HTMLCanvasElement, waveform: WaveformPayload): voi
   context.stroke();
 
   context.globalAlpha = 0.35;
-  context.strokeStyle = "#93a1b3";
+  context.strokeStyle = "#607269";
   context.lineWidth = 1;
   context.beginPath();
   context.moveTo(0, center + 0.5);

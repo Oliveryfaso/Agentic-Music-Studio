@@ -22,7 +22,7 @@ async function main() {
     await page.goto(`${WEB_URL}/evaluation`);
     await page.getByText("80 / 80").waitFor();
     await page.goto(`${WEB_URL}/runs/${RUN_ID}/inspect`);
-    await page.getByRole("heading", { name: "Run Inspector" }).waitFor();
+    await page.getByRole("heading", { name: "运行检查 · Inspector" }).waitFor();
     await page.goto(`${WEB_URL}/projects/${PROJECT_ID}/exports/${REVISION_ID}`);
     await page.getByText("完整可交付").waitFor();
     invariant(await page.locator('[data-testid="export-step"]').count() === 7,

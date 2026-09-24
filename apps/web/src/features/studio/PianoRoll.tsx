@@ -10,10 +10,10 @@ export function PianoRoll({ trackId, clip, onCommand }: { trackId: string; clip:
   useEffect(() => {
     const context = canvas.current?.getContext("2d");
     if (!context) return;
-    context.fillStyle = "#111827"; context.fillRect(0, 0, 560, 160);
-    context.strokeStyle = "#273246";
+    context.fillStyle = "#f5f7f5"; context.fillRect(0, 0, 560, 160);
+    context.strokeStyle = "#dce5de";
     for (let row = 0; row < 12; row += 1) { context.beginPath(); context.moveTo(0, row * 13); context.lineTo(560, row * 13); context.stroke(); }
-    context.fillStyle = "#62e6ff";
+    context.fillStyle = "#176b55";
     clip.notes.forEach((item) => context.fillRect(item.start_tick / 4, (72 - item.pitch) * 6, Math.max(8, item.duration_tick / 4), 5));
   }, [clip.notes]);
   if (!note) return <section className="dock-empty"><h3>钢琴卷帘</h3><p>所选片段没有音符。</p></section>;

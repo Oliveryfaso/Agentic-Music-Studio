@@ -135,7 +135,7 @@ function SingleImportFlowPanel({ onReviewArtifact }: Pick<ImportFlowPanelProps, 
             <input id="audio-file" type="file" accept=".wav,.mp3,.flac,audio/wav,audio/mpeg,audio/flac" onChange={chooseFile} />
             <span className="file-drop-icon" aria-hidden="true">↥</span>
             <strong>{file ? file.name : "选择 WAV、MP3 或 FLAC"}</strong>
-            <small>{file ? formatBytes(file.size) : "最大 256 MiB；浏览器先计算 SHA-256，再按分块受控上传"}</small>
+            <small>{file ? formatBytes(file.size) : "最大 256 MiB；原始文件保留，上传前会校验完整性"}</small>
           </label>
           <div className="form-grid">
             <label>项目名称<input value={projectName} onChange={(event) => setProjectName(event.target.value)} maxLength={120} /></label>
@@ -279,9 +279,9 @@ function ExistingProjectImportQueue({ project, onRefreshProject, onReviewArtifac
   const completed = queue.filter((item) => item.status === "completed").length;
   return (
     <section className="import-flow multi-import-flow" aria-labelledby="import-flow-title">
-      <div className="flow-heading"><div><p className="eyebrow">SEQUENTIAL STEM IMPORT</p><h2 id="import-flow-title">导入到 {project.name}</h2></div><span className="status-pill available">同一 Project</span></div>
+      <div className="flow-heading"><div><p className="eyebrow">SEQUENTIAL STEM IMPORT</p><h2 id="import-flow-title">导入到 {project.name}</h2></div><span className="status-pill available">同一作品</span></div>
       <div className="multi-import-body">
-        <label className="file-drop" htmlFor="stem-files"><input id="stem-files" aria-label="选择多个 Stem" type="file" multiple accept=".wav,.mp3,.flac,audio/wav,audio/mpeg,audio/flac" onChange={chooseFiles} /><span className="file-drop-icon" aria-hidden="true">↥</span><strong>{queue.length ? `${queue.length} 个 Stem` : "选择多个 Stem"}</strong><small>严格顺序处理；每个成功 Revision 后刷新 Branch head。</small></label>
+        <label className="file-drop" htmlFor="stem-files"><input id="stem-files" aria-label="选择多个 Stem" type="file" multiple accept=".wav,.mp3,.flac,audio/wav,audio/mpeg,audio/flac" onChange={chooseFiles} /><span className="file-drop-icon" aria-hidden="true">↥</span><strong>{queue.length ? `${queue.length} 个 Stem` : "选择多个 Stem"}</strong><small>按文件顺序逐个分析并加入作品，每次成功都会保存新版本。</small></label>
         {queue.length > 0 && <div className="stem-queue" aria-label="Stem 导入队列">{queue.map((item) => <article className={`stem-queue-item ${item.status}`} key={item.itemId}><div><strong>{item.file.name}</strong><span>{queueStatus(item.status)}</span></div><label><span>权利声明</span><select aria-label={`${item.file.name} 权利声明`} value={item.rights} disabled={item.status !== "queued"} onChange={(event) => updateItem(item.itemId, { rights: event.target.value as RightsDeclaration })}>{RIGHTS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="check-row"><input aria-label={`确认 ${item.file.name} 的权利`} type="checkbox" checked={item.rightsConfirmed} disabled={item.status !== "queued"} onChange={(event) => updateItem(item.itemId, { rightsConfirmed: event.target.checked })} /><span>独立确认</span></label>{item.progress && <UploadProgressView progress={item.progress} />}{item.errorCode && <p className="field-error">{item.errorCode}</p>}{item.status === "failed" && <div className="action-row"><button className="secondary-inline" type="button" onClick={() => void retryItem(item.itemId)}>重试此文件</button><button className="text-button" type="button" onClick={() => void skipItem(item.itemId)}>跳过此文件</button><button className="danger-button" type="button" onClick={() => setQueueMessage("队列已停止")}>停止队列</button></div>}</article>)}</div>}
         {queue.length > 0 && <div className="queue-summary"><strong>{completed}/{queue.length} Stem 已导入</strong><button className="primary-button" type="button" disabled={running || queue.every((item) => item.status !== "queued")} onClick={() => void processQueue(queueRef.current, project)}>开始顺序导入</button>{running && <button className="secondary-inline" type="button" onClick={() => abortRef.current?.abort()}>取消当前上传</button>}</div>}
         {queueMessage && <p className="field-error" role="alert">{queueMessage}</p>}
@@ -292,7 +292,7 @@ function ExistingProjectImportQueue({ project, onRefreshProject, onReviewArtifac
 }
 
 function queueStatus(status: ImportQueueItem["status"]): string {
-  return ({ queued: "等待", uploading: "上传中", analyzing: "分析/HITL", completed: "已写入 Revision", failed: "失败", skipped: "已跳过" })[status];
+  return ({ queued: "等待", uploading: "上传中", analyzing: "分析与确认", completed: "已保存到作品", failed: "失败", skipped: "已跳过" })[status];
 }
 
 function ImportRunView({ run, confirming, confirmationError, onConfirm }: { run: ImportRunData; confirming: boolean; confirmationError: Error | null; onConfirm: (request: ConfirmImportAnalysisRequest) => void }) {
@@ -308,7 +308,7 @@ function ImportRunView({ run, confirming, confirmationError, onConfirm }: { run:
         <AnalysisConfirmation analysis={run.analysis} disabled={confirming} onConfirm={onConfirm} />
       )}
       {confirmationError && <p className="field-error" role="alert">{errorMessage(confirmationError)}</p>}
-      {run.phase === "failed" && <div className="notice danger-notice"><span className="notice-icon">×</span><div><strong>导入已停止</strong><p>{run.error_code ?? "IMPORT_FAILED"}。失败状态已保存在同一 Graph thread，不会假装完成。</p></div></div>}
+      {run.phase === "failed" && <div className="notice danger-notice"><span className="notice-icon">×</span><div><strong>导入已停止</strong><p>{run.error_code ?? "IMPORT_FAILED"}。已保留任务记录与原始文件。请查看错误信息后重试，或开始新的导入。</p></div></div>}
       {run.phase !== "waiting_worker" && (run.source_artifact_id || run.artifact_id) && <AudioComparison run={run} />}
     </div>
   );
@@ -327,7 +327,7 @@ function AnalysisConfirmation({ analysis, disabled, onConfirm }: { analysis: Non
         <Metric label="检测调性" value={analysis.key_tonic && analysis.key_mode ? `${analysis.key_tonic} ${analysis.key_mode === "major" ? "大调" : "小调"}` : "未知"} confidence={analysis.key_confidence} />
         <Metric label="项目 BPM" value={analysis.project_bpm?.toFixed(2) ?? "未知"} confidence={null} />
       </div>
-      <div className="notice warning-notice"><span className="notice-icon">!</span><div><strong>分析需要你的确认</strong><p>保持音高的 time-stretch 会在确认后进入独立 Worker；不会通过 playbackRate 改变音高。</p></div></div>
+      <div className="notice warning-notice"><span className="notice-icon">!</span><div><strong>分析需要你的确认</strong><p>请核对速度和调性。确认后会调整音频长度以匹配项目速度，同时保持音高；也可以修正结果或跳过对齐。</p></div></div>
       <div className="override-grid">
         <label>源 BPM<input type="number" min="30" max="300" step="0.01" value={bpm} onChange={(event) => setBpm(event.target.value)} /></label>
         <label>主音<select value={tonic} onChange={(event) => setTonic(event.target.value)}>{["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"].map((note) => <option key={note}>{note}</option>)}</select></label>
@@ -368,11 +368,11 @@ function Metric({ label, value, confidence }: { label: string; value: string; co
 }
 
 function RunLoading({ compact = false }: { compact?: boolean }) {
-  return <div className={compact ? "run-loading compact" : "run-loading"} role="status"><span /><div><strong>Worker 正在处理音频</strong><p>刷新页面也会从 PostgreSQL checkpoint 恢复，不会重跑已完成节点。</p></div></div>;
+  return <div className={compact ? "run-loading compact" : "run-loading"} role="status"><span /><div><strong>正在处理音频</strong><p>可以刷新页面继续查看；已完成的步骤和待确认的结果会保留。</p></div></div>;
 }
 
 function RunError({ error, retry }: { error: Error; retry: () => void }) {
-  return <div className="notice danger-notice" role="alert"><span className="notice-icon">!</span><div><strong>无法读取 Import Run</strong><p>{errorMessage(error)}</p><button className="secondary-inline" type="button" onClick={retry}>重试读取</button></div></div>;
+  return <div className="notice danger-notice" role="alert"><span className="notice-icon">!</span><div><strong>无法读取导入进度</strong><p>{errorMessage(error)}</p><button className="secondary-inline" type="button" onClick={retry}>重试读取</button></div></div>;
 }
 
 function setRunInUrl(threadId: string) {

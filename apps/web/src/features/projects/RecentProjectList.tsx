@@ -22,7 +22,7 @@ export function RecentProjectList({
       {visible.map((project) => <ProjectCard key={project.project_id} project={project} />)}
     </div>
     {!filtered && ordered.length > RECENT_LIMIT && <button className="secondary-inline project-history-toggle" type="button" onClick={() => onExpandedChange(!expanded)}>
-      {expanded ? "收起测试历史" : "全部项目与测试历史"}
+      {expanded ? "只看最近作品" : `查看全部作品（${ordered.length}）`}
     </button>}
   </>;
 }

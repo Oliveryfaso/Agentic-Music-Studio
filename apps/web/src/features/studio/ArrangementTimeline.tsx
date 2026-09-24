@@ -58,28 +58,28 @@ function drawTimeline(canvas: HTMLCanvasElement, projection: TimelineProjection,
   const context = canvas.getContext("2d");
   if (!context) return;
   context.clearRect(0, 0, projection.widthPixels, height);
-  context.fillStyle = "#0f141e";
+  context.fillStyle = "#ffffff";
   context.fillRect(0, 0, projection.widthPixels, height);
-  context.font = "10px ui-monospace";
+  context.font = "12px ui-monospace";
   for (let bar = 0; bar <= projection.totalBars; bar += 1) {
     const x = projection.tickToPixels(bar * projection.ticksPerBar);
-    context.strokeStyle = bar % 4 === 0 ? "#3b4960" : "#273246";
+    context.strokeStyle = bar % 4 === 0 ? "#b9cbbf" : "#e6ede7";
     context.beginPath(); context.moveTo(x + .5, 0); context.lineTo(x + .5, height); context.stroke();
-    if (bar < projection.totalBars) { context.fillStyle = "#718097"; context.fillText(String(bar + 1), x + 7, 20); }
+    if (bar < projection.totalBars) { context.fillStyle = "#607269"; context.fillText(String(bar + 1), x + 7, 20); }
   }
   projection.sections.forEach((section, index) => {
-    context.fillStyle = index % 2 === 0 ? "rgba(98,230,255,.08)" : "rgba(155,124,255,.08)";
+    context.fillStyle = index % 2 === 0 ? "rgba(23,107,85,.025)" : "rgba(112,92,151,.035)";
     context.fillRect(section.startPixels, RULER_HEIGHT, section.widthPixels, height - RULER_HEIGHT);
   });
   projection.tracks.forEach((track, trackIndex) => {
     const y = RULER_HEIGHT + trackIndex * TRACK_HEIGHT;
-    context.strokeStyle = "#273246"; context.strokeRect(0, y, projection.widthPixels, TRACK_HEIGHT);
+    context.strokeStyle = "#dce5de"; context.strokeRect(0, y, projection.widthPixels, TRACK_HEIGHT);
     track.clips.forEach((clip) => {
-      context.fillStyle = clip.kind === "audio" ? "rgba(255,101,195,.62)" : "rgba(98,230,255,.62)";
+      context.fillStyle = clip.kind === "audio" ? "#d8b797" : ["#a8cec0", "#c7bedb", "#e1c5a2", "#a9c4d4"][trackIndex % 4]!;
       context.fillRect(clip.startPixels + 2, y + 12, Math.max(2, clip.widthPixels - 4), TRACK_HEIGHT - 24);
     });
   });
   const playhead = Math.min(projection.widthPixels, projection.secondsToPixels(currentTime));
-  context.strokeStyle = "#ffb45e"; context.lineWidth = 2;
+  context.strokeStyle = "#176b55"; context.lineWidth = 2;
   context.beginPath(); context.moveTo(playhead, 0); context.lineTo(playhead, height); context.stroke();
 }

@@ -1,351 +1,169 @@
 # Motif Forge
 
-Motif Forge is a local-first, agent-assisted instrumental composition workbench. S1–S7 are complete at the personal-portfolio level: the browser supports four-style Briefs, Plan/HITL, two bounded candidates, Critic/Repair, A/B selection, a lightweight Studio with AI selection edits, complete export, Run inspection, Eval evidence, controlled multi-Stem import, and recoverable execution through one LangGraph Parent Graph.
+### 从一个音乐想法，到一首可以继续编辑的作品。
 
-## One-command quick start
+一个本地优先的 Agentic 音乐工作台。写下创作意图，审核编曲计划，试听两个方向，再把选中的版本带进 Studio：调整音符、修改局部、导出音频，也能回看 Agent 实际走过的执行路径。
 
-From the repository root:
+**LangGraph 编排 · 人在回路 · 确定性音乐编译 · 可恢复执行**
+
+[快速开始](#快速开始) · [走完一次创作](#走完一次创作) · [Agent 如何工作](#agent-如何工作) · [能力与边界](#能力与边界) · [开发文档](#开发文档)
+
+![Motif Forge 浅色作品工作台](docs/images/workbench.png)
+
+> 本页截图由实际前端渲染，使用隔离的示例数据展示界面，不是本轮真实模型生成或音质验收结果。复现方式见[界面验证](docs/DEVELOPMENT.md#界面验证与截图)。
+
+## 不止是“输入一句话，等待一段音频”
+
+Motif Forge 把创作过程保留下来：计划、候选、人工决定、编排结构和导出结果都有明确的位置。你可以改变方向，也可以看清系统做了什么、在哪里等待、为什么失败。
+
+- **先讨论编曲，再生成作品。** Brief 支持用途、情绪、时长与四个 Style Pack；Plan 展示结构和轨道安排，可以调整后再批准。
+- **两个方向，由你选。** A/B 候选带有试听、规则评估与有界修复结果；只有明确选中的候选会成为正式版本。
+- **把生成结果变成可编辑工程。** 轻量 Timeline、Piano Roll、Mixer 与音色面板支持草稿和版本保存；AI 修改限定在选区内，高影响改动先试听再审批。
+- **带入自己的声音。** 导入 WAV、MP3、FLAC 或多个 Stem，确认素材权利，核对 BPM/调性，再选择是否保持音高地对齐。
+- **带走完整交付。** 下载 Master WAV、试听 MP3、分轨、MIDI 和工程文件；导出部分失败时，已完成文件仍可查看和下载。
+- **看得见的 Agent。** 内置 Graph Inspector 展示持久证据、决策、任务和模型用量；可选 LangSmith 用于开发追踪，不替代本地事实。
+
+### 审核方向，而不只看一个进度条
+
+![候选比较与人工选择](docs/images/candidates.png)
+
+### 留在作品里继续编辑
+
+![浅色 Studio 时间线、混音台与创作助手](docs/images/studio.png)
+
+Studio 的试听器播放**已渲染的保存版本**，不是未保存草稿的实时合成监听。移动端侧重查看、试听和审批，精细编辑请使用桌面浏览器。
+
+## 快速开始
+
+当前 **S1–S7** 已完成个人作品集级的核心闭环。默认演示不需要模型 Key；这不是多租户在线服务，也不是专业 DAW 的替代品。
+
+首次获取：
 
 ```bash
+git clone https://github.com/Oliveryfaso/Agentic-Music-Studio.git
+cd Agentic-Music-Studio
 scripts/start_motif_forge.sh
 ```
 
-The launcher initializes the existing external storage layout, starts Colima when Docker is not ready, starts the Compose API/database/queue/audio services, waits for readiness, starts Vite, and opens [http://127.0.0.1:5173](http://127.0.0.1:5173). The first launch may build missing images or install missing Web dependencies; later launches reuse them.
+已有仓库时，在仓库根目录直接运行 `scripts/start_motif_forge.sh` 即可。
 
-Useful variants:
+启动器会准备本地配置和外置存储目录，在需要时启动 Colima，拉起数据库、队列和音频服务，等待就绪后启动前端并打开 **http://127.0.0.1:5173**。首次启动可能安装前端依赖或构建镜像，后续启动会复用已有内容。
 
-```bash
-scripts/start_motif_forge.sh --check
-scripts/start_motif_forge.sh --no-open
-```
-
-When finished, stop the Web Studio, all Motif Forge Compose services, and the
-Colima VM with the matching command:
+结束使用：
 
 ```bash
 scripts/stop_motif_forge.sh
 ```
 
-The stop command is idempotent and preserves PostgreSQL volumes, Docker images,
-imported media, generated works, and exports. It does not run `prune` or
-`docker compose down -v`. If you only press `Ctrl+C` in the startup terminal,
-Vite stops while the backend remains warm until the stop command is run.
+停止脚本会关闭本项目前端、Compose 服务以及默认 Colima 虚拟机，**保留数据库卷、镜像、导入素材、作品和导出文件**。如果其他项目共用该 Colima 实例，它们也会随虚拟机暂停；只按启动终端的 `Ctrl+C` 则仅停止前端，后台服务仍在运行。
 
-The standard Compose profile deliberately keeps the DeepSeek key out of runtime containers and uses the deterministic no-key fallback, so the one-command launcher cannot create an accidental paid model call.
-
-## 查看 Agent / LangGraph 执行路径
-
-正式 Generate 流程中，Run 页面会显示一条紧凑的“执行路径”，用于快速判断当前处于规划、人工审批、候选生成、Critic、提交还是导出阶段。点击“查看完整 Graph”进入只读 Run Inspector，可以查看 `motif-forge-parent.v2` 的完整阶段、候选 A/B 并行分支、Worker 边界与重复导出循环。
-
-Graph 只点亮已有持久证据的节点：`checkpoint_confirmed` 表示 LangGraph checkpoint task path 已确认，`event_confirmed` 表示安全应用事件已确认，`grouped_parallel` 表示两个匿名并行候选分支已按持久顺序归组。选择节点可查看受限证据和精确技术节点名，例如 `ValidateRequest`、`PlanApproval` 与 `CreateCandidateBranch`；页面不会读取或显示 checkpoint payload、Prompt、模型推理、审批断言、存储路径或密钥。
-
-无需 DeepSeek Key 也可以走完演示：创建 Project → 新建编曲 → 填写 Brief → 审批 Plan → 比较并选择候选 → 等待 Revision/导出完成 → 在 Run Inspector 查看 Graph → 打开 Studio。Graph 读取异常不会阻断审批、候选选择、取消、结果或 Studio 操作，原有持久事件时间线仍可展开检查。
-
-## Optional LangSmith tracing
-
-LangSmith is an optional developer view over the same Parent Graph; PostgreSQL remains authoritative
-for checkpoints, Run events, usage ledgers, Revision facts, recovery, and the built-in Graph view.
-Tracing is disabled by default and a LangSmith outage cannot fail or retry a Motif Forge operation.
-
-To opt in, create a LangSmith API key and add these values to the untracked `.env` file, then restart
-the stack with the normal stop/start commands:
+可选命令：
 
 ```bash
-LANGSMITH_TRACING=true
-LANGSMITH_API_KEY=lsv2_pt_replace_with_your_key
-LANGSMITH_PROJECT=motif-forge-local
-
-scripts/build_compose_images.sh api
-scripts/stop_motif_forge.sh
-scripts/start_motif_forge.sh
+scripts/start_motif_forge.sh --check    # 只检查启动条件，不启动服务
+scripts/start_motif_forge.sh --no-open # 启动，但不自动打开浏览器
 ```
 
-The image rebuild is needed once after adding this integration; later tracing on/off changes only need the
-matching stop/start commands.
+> **默认不会调用付费模型。** 标准 Compose 配置显式清空 DeepSeek Key，使用确定性回退规划，也可以走完审批、候选、渲染和导出。页面会标明回退来源，不将其包装成模型结果。付费 Provider 验证属于单独、显式启用的开发流程，仅往 `.env` 填 Key 不会改变这一默认边界。
 
-Compose passes the key only to the API, Dispatcher, and Resume Dispatcher. Trace inputs and outputs are hidden
-at the SDK client and Compose boundaries; only allowlisted operation names, stable Run/Project/Thread IDs,
-timing, sanitized errors, finish reasons, and token counters are admitted. Prompts, model reasoning,
-approval assertions, checkpoint state, local paths, media bytes, authorization headers, and response
-bodies are excluded.
+## Prerequisites · 运行前准备
 
-To stop sending traces, set `LANGSMITH_TRACING=false` (or remove the key) and restart with the same
-stop/start commands. The built-in Inspector continues to work because it reads persisted local evidence.
-This lightweight integration does not claim a distributed trace through Celery, FFmpeg, or Chromium.
+当前一键路径在 **macOS / Apple Silicon + Colima** 上验证；其他系统的 Docker 路径需自行验证。
 
-LangSmith and DeepSeek are separate services: enabling tracing does not create an extra DeepSeek call.
-LangSmith's Developer plan currently includes a no-cost monthly base-trace allowance, while extended
-retention and usage above plan allowances can be billed. Check the official
-[pricing and retention documentation](https://docs.langchain.com/langsmith/pricing-plans), configure a
-workspace spend limit, and keep base retention unless longer-lived trace storage is intentionally needed.
+| 用途 | 准备 |
+| --- | --- |
+| 前端 | Node.js 22.12+ 与 npm |
+| 后台服务 | Docker CLI、Compose、Buildx；可用 Docker Desktop，或安装 Colima |
+| 本地数据 | 可写的存储目录与足够的镜像、音频空间；启动器默认使用仓库旁的 `.motif-forge-data` |
+| 仅后端开发 | Python 3.12 与 uv；正常容器运行不要求宿主机安装 Python |
+| 可选服务 | DeepSeek 用于显式付费模型验证；LangSmith 用于可选开发追踪 |
 
-If Colima reports that it is already running but `--check` still says Docker is not ready, the existing Colima VM is stale. Recover it once without deleting its data, then launch normally:
+配置保存在未跟踪的 `.env` 中，不要提交 Key，也不要放进前端 `VITE_*` 变量。默认入口面向本机使用，未配置公共托管所需的认证与隔离。
 
-```bash
-colima stop
-scripts/start_motif_forge.sh
+启动失败、端口占用、外置盘或代理问题，请看[开发与排障指南](docs/DEVELOPMENT.md)。
+
+## 走完一次创作
+
+1. **建立作品。** 首页输入名称，创建后点击「开始创作」；已有作品也可以继续编曲、打开 Studio 或导入素材。
+2. **写下 Brief。** 选择风格，描述用途、情绪和时长。需要指定速度、调性或结构时，再展开高级约束。
+3. **审核 Plan。** 看清段落与配器；不满意就重新规划。填写审批身份和明确的确认说明，再「批准并生成」。
+4. **比较 A/B。** 分别试听，查看结构和规则评估。填写选择确认后选定候选；规则分不是对音乐审美的客观评级。
+5. **进入 Studio。** 等正式版本和导出就绪后打开 Studio。手工修改先形成草稿，再保存新版本；AI 修改先选中目标，高影响修改仍需预览确认。
+6. **导出或检查执行。** 到导出页下载文件；到运行检查页查看 Graph、人工决策、后台任务和用量。刷新页面后可以继续查看同一次任务。
+
+也可以从「导入音频」开始。逐个确认素材使用权；对低置信度分析，可确认、修正、跳过对齐或取消，不会强迫接受自动判断。
+
+## Agent 如何工作
+
+这里的 Agent 不是直接写音频文件的聊天包装器。**模型负责提出受限计划，确定性代码负责把计划变成音乐和可靠的工程事实。**
+
+```mermaid
+flowchart LR
+    UI["Web 工作台"] --> G["唯一 LangGraph Parent Graph"]
+    G --> P["规划子图\n结构化 Plan / 回退"]
+    P --> H["人工审核计划"]
+    H --> C["两个候选\n确定性编译 + Critic / 有界 Repair"]
+    C --> A["人工选择"]
+    A --> R["不可变 Revision"]
+    R --> W["持久任务 → 音频 Worker"]
+    W --> E["Master / MP3 / Stem / MIDI / 工程"]
+    G <--> DB[("PostgreSQL\n检查点、决策、事件与用量")]
+    G --> I["内置 Inspector / 可选 LangSmith"]
 ```
 
-Read documentation in this order:
+这是主创作路径的示意，不是额外的生产 Graph。导入、AI 选区修改与恢复也挂在同一 Parent Graph 中；Redis/Celery 分发音频任务，Chromium/Tone.js 渲染，FFmpeg 处理媒体。
 
-1. [docs/DECISION_LOG.md](docs/DECISION_LOG.md) for approved invariants.
-2. [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md) for final product and architecture contracts.
-3. [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) for current code facts.
-4. [docs/NEXT_DEVELOPMENT_ROADMAP.md](docs/NEXT_DEVELOPMENT_ROADMAP.md) for the active development route.
+| 设计点 | 为什么这样做 |
+| --- | --- |
+| 一个 Parent Graph，受限子图 | 统一路由、暂停、恢复和取消，避免几套编排互相漂移 |
+| 结构化模型输出 + 确定性编译 | 模型不直接写 Revision；音乐时序、理论规则、事务和预算由代码把关 |
+| 真实 HITL | 计划、候选与高影响编辑有明确人工决策，不用前端按钮假装审批 |
+| 不可变 Revision | 草稿、试听候选和正式版本分开；撤销也保留历史 |
+| 持久 Outbox / Inbox / checkpoint | 已完成的任务与人工决定可重放，限制重复副作用和重复模型花费 |
+| 安全可观测性 | 用持久证据解释执行，不暴露 Prompt、审批断言、密钥或媒体内容 |
 
-## Prerequisites
+![Graph Inspector 与节点证据](docs/images/graph.png)
 
-- Python 3.12
-- [uv](https://docs.astral.sh/uv/)
-- Docker Compose for PostgreSQL/Redis integration work
-- A DeepSeek API key only for explicit live-provider tests; unit tests never require one
+内置 Graph 不是动画模拟器：节点状态来自受限的 checkpoint 路径和应用事件。无法确认的节点保留未确认状态；Import/Edit 保留其事件时间线。需要模型调用的开发追踪时，参阅 [LangSmith 配置](docs/LANGSMITH.md)。
 
-## Manual setup and development
+## 能力与边界
 
-The commands below are the expanded development setup and troubleshooting path. Normal portfolio use should start with `scripts/start_motif_forge.sh` above.
+### 四个音乐方向
 
-This checkout is already on an external volume. Keep future audio artifacts and movable package/
-browser caches on that volume, while retaining only the Python virtual environment on an internal
-APFS temporary directory. On exFAT, an installed Python environment containing directory metadata
-can acquire AppleDouble `._*` entries and fail wheel `RECORD` validation; uv's download cache has
-been verified on the external root and remains movable. The first command
-derives a sibling storage root from the current checkout, so the repository does not hardcode a
-machine-specific volume name.
+| Style Pack | 编曲倾向 |
+| --- | --- |
+| Synth Ambient | 合成器铺底、缓慢演变、空间氛围 |
+| Minimal Electronic | 重复动机、低频脉冲与节奏推进 |
+| Classical Chamber | 声部组织、动机与和声推进 |
+| Jazz Harmony & Improvisation | 和声色彩、律动与伴奏关系 |
 
-```bash
-export MOTIF_FORGE_DEV_STORAGE_ROOT="$(cd .. && pwd -P)/.motif-forge-data"
-scripts/bootstrap_external_storage.sh "$MOTIF_FORGE_DEV_STORAGE_ROOT"
-export MOTIF_FORGE_STORAGE_PROFILE=lean
-export PLAYWRIGHT_BROWSERS_PATH="$MOTIF_FORGE_DEV_STORAGE_ROOT/cache/playwright"
-export npm_config_cache="$MOTIF_FORGE_DEV_STORAGE_ROOT/cache/npm"
-export MOTIF_FORGE_ARTIFACT_ROOT="$MOTIF_FORGE_DEV_STORAGE_ROOT/artifacts"
-export MOTIF_FORGE_TEMP_ROOT="$MOTIF_FORGE_DEV_STORAGE_ROOT/tmp"
-export UV_PROJECT_ENVIRONMENT=/private/tmp/motif-forge-venv
-export UV_CACHE_DIR="$MOTIF_FORGE_DEV_STORAGE_ROOT/cache/uv"
-export UV_LINK_MODE=copy
-uv sync --dev
-uv run pytest
-uv run ruff check .
-uv run mypy
-uv run uvicorn motif_forge.api.app:create_app --factory --reload
-```
+当前使用轻量内置音色：12 个语义音色别名映射到 3 个合成核心与 click sample。风格侧重编曲策略，**不代表真实钢琴、弦乐或爵士管乐采样库**。
 
-For the containerized PostgreSQL/Redis services, create a local environment file first:
+### 有证据，也保留未验证项
 
-```bash
-cp .env.example .env
-scripts/build_compose_images.sh api
-scripts/build_compose_images.sh media-worker
-docker compose up -d
-```
+- S7 版本化内部 Eval inventory 为 **96 条**：**80 条实测通过、13 条预期拒绝、3 条未测**；不能写成 96/96 全部生成成功。
+- 真实 DeepSeek Generate 历史验收包含 **1 次调用、4,911 tokens**；它是历史样本，不代表每次生成的成本或本轮调用。
+- 付费 AI Edit planner 尚未完成真实验收；无 Key 编辑回退只支持明确的 gain / 本地音色意图。
+- 完整专业 DAW、自动人声/分轨分离、多人协作、公开托管、生产 P95 与规模化主观音质评估不在当前完成声明中。
+- 长时作品、轨道上限和其他最终目标，以[实施状态](docs/IMPLEMENTATION_STATUS.md)中的证据与缺口为准，不把设计目标当作已验证指标。
 
-On an Apple Silicon Mac without Docker Desktop, the validated low-storage runtime is Docker CLI +
-Compose + Buildx on Colima. The VM profile used for this project is 4 CPU, 4 GiB RAM, a 15 GiB
-sparse Docker data disk and an 8 GiB sparse root disk. These values are upper bounds, not immediate
-allocations. Verify that both plugins are visible with `docker compose version` and
-`docker buildx version`; Colima does not need Kubernetes, Rosetta or QEMU for this arm64 stack.
+查看 [Eval 报告](docs/evals/S7_EVAL_REPORT.md)、[最终产品合同](docs/PROJECT_GUIDE.md)和[当前实施状态](docs/IMPLEMENTATION_STATUS.md)。
 
-```bash
-colima start --cpus 4 --memory 4 --disk 15 --root-disk 8 \
-  --vm-type vz --mount-type virtiofs --runtime docker \
-  --binfmt=false --ssh-config=false
-colima ssh -- sudo sysctl -w vm.overcommit_memory=1
-scripts/build_compose_images.sh api
-scripts/build_compose_images.sh media-worker
-docker compose up -d
-scripts/check_compose_runtime.sh
-```
+## 开发文档
 
-If the host uses a localhost HTTP proxy, configure the Docker daemon proxy as described in the
-[Docker daemon proxy documentation](https://docs.docker.com/engine/daemon/proxy/). A host shell
-proxy alone does not configure the daemon inside Colima. Do not commit proxy addresses or
-credentials to this repository.
+| 文档 | 适合什么时候看 |
+| --- | --- |
+| [开发与排障](docs/DEVELOPMENT.md) | 安装开发环境、跑测试、复现截图、处理启动问题 |
+| [可选 LangSmith](docs/LANGSMITH.md) | 接入追踪，理解记录范围与费用边界 |
+| [项目总指南](docs/PROJECT_GUIDE.md) | 理解最终产品和架构合同 |
+| [决策记录](docs/DECISION_LOG.md) | 理解为什么采用单 Graph、HITL 和不可变版本 |
+| [前端体验规范](docs/FRONTEND_UX_SPEC.md) | 页面状态、桌面/移动边界和浅色视觉系统 |
+| [实施状态](docs/IMPLEMENTATION_STATUS.md) | 区分已实现、部分完成与尚未验证 |
+| [技术演进](docs/TECH_EVOLUTION.md) | 查阅阶段证据、历史问题与修复 |
+| [后续路线](docs/NEXT_DEVELOPMENT_ROADMAP.md) | 风险触发后的开发顺序，而非无止境硬化 |
 
-The default local bootstrap keeps `MOTIF_FORGE_ARTIFACT_ROOT` and `MOTIF_FORGE_TEMP_ROOT` under one
-external storage root for simpler capacity accounting. S1 Render and MP3 promotion is also safe
-when the two roots become distinct container mounts: the Worker streams into a unique partial file
-inside the final Artifact directory, verifies size/checksum, then atomically renames on that final
-filesystem. The bootstrap script creates only the requested directories, verifies write access and
-a same-volume rename, removes its empty probe directory, and never edits `.env` or deletes existing
-content. The API now includes a deterministic root/quota
-gate, exact-ID safe eviction, pinned time-stretch Audio Artifact rehydration, and independent
-waveform/analysis Feature Artifacts with same-ID deterministic rehydration. It does not yet claim
-generic render/transcode rehydration or a complete temporary-file ledger.
+主要目录：`apps/web`（React 工作台）、`services/api`（API / Agent / 持久化）、`packages`（共享音频与类型）、`scripts`（启动与验收）、`docs`（合同与证据）。
 
-The default Lean Storage limits are 10 GiB globally, 2 GiB per project and 2 GiB for temporary
-work. Candidate previews expire after 24 hours; rebuildable derived cache and terminal checkpoints
-default to seven days. Imported originals, current-Revision dependencies and selected final Masters
-are not cleanup targets. These limits are active inputs to Upload and Parent Graph storage gates;
-cleanup is bounded to one database-selected pass and only evicts unprotected rebuildable Artifacts
-with complete recipes.
+---
 
-At each accepted small-stage boundary, follow the project Skill's stage-end storage hygiene gate:
-inventory first, preserve current tagged images/database volumes/final Artifacts, remove only exact
-obsolete project outputs and unused build caches, then recheck disk usage and `/health/ready`.
-Never use a broad volume prune or delete another project's named cache/image as routine cleanup.
-During active development, explicitly warm only the targets that the next slice will use (selected
-from API, Media Worker and Chromium Render Worker), then keep BuildKit near a 1.5 GiB target with a 2 GiB hard
-ceiling. The tagged runnable images are the keep set; old source snapshots, failed builds and
-superseded dependency/application layers are not. Run the guarded cleanup only after inspecting the
-shared builder and opting in:
-
-```bash
-MOTIF_FORGE_ALLOW_SHARED_BUILDER_PRUNE=1 scripts/prune_development_build_cache.sh
-```
-
-When the project is feature-complete or a release is sealed, do not retain gigabytes of speculative
-build cache. Keep lockfiles, current tagged/released images and reproducible build instructions; clear
-all project-owned BuildKit cache. A shared builder must first have project ownership proven or be
-replaced by a working project-owned builder, so release cleanup cannot erase another project's cache.
-Build only the target changed in the current slice. The Media Worker keeps FFmpeg in a stable base
-stage and copies the changing Python environment afterwards, so application-source changes do not
-recreate the large FFmpeg installation layer. A dedicated Buildx builder is optional rather than a
-project invariant: use one only after its proxy/network path and persistent overhead work on the
-current host; otherwise keep the shared builder and stop before an ownership-ambiguous prune.
-
-Use the host-first loop for Web Studio, TypeScript/audio packages, pure Python domain/application
-changes and unit tests. Source changes alone do not trigger a Docker build. Rebuild only the affected
-target for Dockerfile/system dependency changes, container-relevant lockfile changes, migrations or
-runtime wiring, or an explicit cross-service/stage acceptance gate.
-
-The current frontend workspace follows the existing npm lockfile. Keep npm's cache on the external
-development volume per command instead of repairing or expanding the internal user cache:
-
-```bash
-npm_config_cache="$MOTIF_FORGE_DEV_STORAGE_ROOT/cache/npm" npm install
-npm run dev:web
-npm run test:web
-npm run build:web
-```
-
-Playwright browsers may also use the external path above. If Chromium cannot execute from the exFAT
-volume on a particular macOS release, move only `PLAYWRIGHT_BROWSERS_PATH` back to an internal cache;
-the canonical Render Worker image, Docker engine data, PostgreSQL volume and Docker BuildKit cache
-remain inside the Docker VM. Do not bind-mount PostgreSQL onto exFAT.
-
-## Canonical Chromium Render Worker
-
-The pinned Render Worker image uses Playwright Chromium and the shared TypeScript audio engine to
-render canonical Master or isolated Stem Jobs. S1 validates a 72-second four-track composition at
-48 kHz stereo PCM24. WAV bytes go through a one-time loopback
-sink directly to the explicit Artifact root; they never pass through Redis, Graph state, base64, or
-the repository. Build and run it with:
-
-```bash
-scripts/build_compose_images.sh render-worker
-export MOTIF_FORGE_ARTIFACT_ROOT="$MOTIF_FORGE_DEV_STORAGE_ROOT/artifacts"
-scripts/run_audio_spike.sh
-```
-
-The low-cost regression remains constrained to 2 CPU, 1 GiB RAM, 256 processes and no external
-network. It validates
-48 kHz stereo duration, non-silence, Stem isolation and repeat stability. Chromium floating DSP to
-PCM16 can differ at the one-LSB quantization boundary, so the report exposes both SHA-256 values and
-the bounded sample-difference metric instead of falsely claiming byte-identical output.
-The Worker uses a pinned Node slim base plus Playwright's Chromium headless shell rather than the
-full multi-browser Playwright image; the accepted local image is 1.48 GB instead of 4.04 GB. FFmpeg
-time-stretch/transcode belongs to the controlled Python media-task boundary and is not duplicated in
-this Chromium-only image.
-
-With Compose running and migration head applied, the complete internal S1 acceptance path is:
-
-```bash
-export MOTIF_FORGE_POSTGRES_DSN='postgresql://motif_forge:motif_forge@127.0.0.1:5432/motif_forge'
-export MOTIF_FORGE_ARTIFACT_ROOT="$MOTIF_FORGE_DEV_STORAGE_ROOT/artifacts"
-export MOTIF_FORGE_RENDER_SERVICE_URL='http://127.0.0.1:8090'
-export MOTIF_FORGE_S1_APPROVAL_ACTOR='local-user:your-name'
-export MOTIF_FORGE_S1_APPROVAL_ASSERTION='I reviewed the generated composition and approve this export.'
-scripts/check_s1.sh
-```
-
-It creates an L3 Preview, records the caller-supplied human approval assertion, materializes an
-immutable Revision, and queues Master, four Stem, MP3 and Export Bundle Jobs. The Bundle is logical:
-it stores MIDI, Project/manifests and immutable references to the six Audio Artifacts instead of
-copying their bytes. The smoke verifies every checksum and Revision lineage. No DeepSeek key is
-required.
-
-Compose runs Alembic in a one-shot `migrate` service before starting the API. To execute the real
-PostgreSQL checkpoint and transaction tests from the host:
-
-```bash
-export MOTIF_FORGE_TEST_POSTGRES_DSN='postgresql://motif_forge:motif_forge@localhost:5432/motif_forge'
-scripts/check_postgres_integration.sh
-```
-
-On macOS external volumes that create `._*` AppleDouble files, keep the installed Python environment
-off the volume; the uv download cache may stay under the external development storage root. The repository ignores these sidecars, but BuildKit may reject them
-before ignore rules are applied. `scripts/build_compose_images.sh` copies only the required build
-inputs without xattrs into a unique `/private/tmp` context, loads the image, then validates and
-removes that temporary context. It does not delete sidecars or source files from the checkout.
-The audio-test command also excludes `**/._*`, so metadata sidecars cannot be collected as test
-modules.
-
-```bash
-export UV_PROJECT_ENVIRONMENT=/private/tmp/motif-forge-venv
-export UV_CACHE_DIR="$MOTIF_FORGE_DEV_STORAGE_ROOT/cache/uv"
-export UV_LINK_MODE=copy
-uv sync --dev --frozen
-```
-
-The health endpoints are:
-
-- `GET /health/live`
-- `GET /health/ready`
-
-The first write endpoints are:
-
-- `POST /api/v1/projects`
-- `POST /api/v1/projects/{project_id}/command-batches`
-
-Both require an `Idempotency-Key` header. The command endpoint is restricted to human editor
-commands. AI L2/L3 changes use the implemented internal Candidate Snapshot/Preview/Approval
-transaction path; its public endpoints stay closed until the audio Worker can attach a real
-listenable Preview and resume the originating Graph safely.
-
-`/health/ready` performs bounded PostgreSQL `SELECT 1` and Redis `PING` probes. It returns `200`
-only when both configured dependencies are connected; otherwise it fails closed with `503` and
-does not expose DSNs or secrets.
-
-## Current implementation boundaries
-
-- The shared Tone.js/Chromium audio engine, three built-in synth presets, deterministic four-track
-  composer and canonical PCM24 Master/Stem render service are implemented.
-  PostgreSQL Run/Job/Outbox/Inbox/Artifact metadata and the deterministic Graph Worker-event gate
-  are implemented. The PostgreSQL Outbox dispatcher, Redis/Celery media task and non-root FFmpeg
-  Worker execute persisted import, pitch-preserving time-stretch, canonical render, MP3 transcode
-  and Export Bundle Jobs end to end.
-- Candidate Preview/Approval persistence is implemented but intentionally has no public HTTP route
-  before preview rendering and Graph resume exist.
-- No API key is stored in source control or emitted through health responses.
-- Agent tests use deterministic fake planners.
-- The planning Graph v3 adds a deterministic Error Router, bounded schema repair, approval-required
-  fallback, DeepSeek thinking tool-call continuation, and idempotent PostgreSQL Trace/Span/Usage
-  writes keyed by provider operation ID.
-- The pitch-preserving FFmpeg `atempo` operator is implemented and quality-tested against duration,
-  pitch, silence and transient bounds. Its persisted Job is now dispatched through Redis/Celery and
-  writes an idempotent Artifact completion transaction. The first `motif-forge-parent.v1`
-  Import/Arrangement branch now mounts `WaitForJobEvent`; a dedicated Resume Dispatcher restores the
-  same PostgreSQL checkpoint and deduplicates repeated `resume_event_id` deliveries. Upload/API and
-  controlled Upload, import validation, independent waveform/analysis Feature Artifacts and
-  deterministic recovery are implemented.
-- Web Import Review implements local upload, rights confirmation, Import Run URL recovery,
-  low-confidence confirmation/override/skip/cancel, original/aligned Range playback, Canvas
-  waveform/analysis review, Artifact rehydration, and narrow-screen review.
-- S2 Tasks 1–12 mount Generate in the single `motif-forge-parent.v2` Graph, dispatch durable
-  start/resume/cancel actions, expose replayable REST/SSE Run APIs, atomically materialize an
-  approved Synth Ambient Plan, and reuse the seven-step complete export chain. Representative
-  restart/cancel/idempotency integration and the 16-case Generate Eval are checkpointed.
-- Complete-song Pattern compilation and full export are implemented for the fixed S1 baseline and
-  the API-level DeepSeek Generate path. The accepted live run used one provider request and 4,911
-  tokens, produced no fallback, and completed one immutable Revision, seven Jobs, six audio
-  Artifacts and one Bundle under one `complete_song_export.v1` Media Run. Four Style Packs,
-  Brief/Plan UI, DAW editing, A/B candidates, AI selection editing, and the final 96-case Eval remain.
-- S2 Tasks 6–12 follow Portfolio Engineering Mode: the single Parent Graph, structured DeepSeek plus
-  deterministic fallback, real HITL, immutable Revision, restart-safe export and one paid acceptance
-  remain mandatory. Exhaustive fault/concurrency matrices, all historical populated downgrades,
-  load/P95 and multi-tenant hardening are tracked for the later release-hardening gate instead of
-  blocking every intermediate Task.
-- LangGraph owns workflow state; project truth remains in immutable revisions.
-- DeepSeek V4 Flash live calls remain opt-in; the default test suite uses HTTP fakes and incurs no cost.
-- Real PostgreSQL tests are explicitly skipped unless `MOTIF_FORGE_TEST_POSTGRES_DSN` is supplied;
-  SQLite is not used as a substitute.
+这是一个以 **Agent / LangGraph 工程实践**为核心的个人作品集。重点是让创作闭环真正可运行、可理解、可恢复，同时诚实呈现音乐能力和验证范围。

@@ -38,6 +38,7 @@ export function CandidateCompare({
         <div>
           <p className="eyebrow">HUMAN-IN-THE-LOOP</p>
           <h2 id="candidate-compare-title">比较候选 A / B</h2>
+          <p className="form-note">先试听，再填写选择确认。Agent 的建议仅供参考，最终选择由你决定。</p>
         </div>
         {recommendation && (
           <div className="critic-recommendation">
@@ -69,10 +70,10 @@ export function CandidateCompare({
                 </span>
               </div>
               <dl className="candidate-facts">
-                <div><dt>Critic 分数</dt><dd>{assessment?.score ?? "—"}</dd></div>
-                <div><dt>风格</dt><dd>{run.plan?.plan.genre ?? "已编译"}</dd></div>
+                <div><dt>规则评估分</dt><dd>{assessment?.score ?? "—"}</dd></div>
+                <div><dt>风格</dt><dd>{run.plan ? ({ synth_ambient: "氛围合成", minimal_electronic: "极简电子", classical_chamber: "古典室内乐", jazz_harmony_improvisation: "爵士和声" })[run.plan.plan.genre] : "已编译"}</dd></div>
                 <div><dt>结构</dt><dd>{run.plan?.plan.sections.length ?? "—"} 段</dd></div>
-                <div><dt>Theory 阻断</dt><dd>{theoryErrors}</dd></div>
+                <div><dt>乐理阻断项</dt><dd>{theoryErrors}</dd></div>
               </dl>
               {active ? (
                 <audio
@@ -115,7 +116,7 @@ export function CandidateCompare({
           <textarea
             value={assertion}
             onChange={(event) => setAssertion(event.target.value)}
-            placeholder="说明你已比较两个权威 Preview（至少 16 个字符）"
+            placeholder="说明你已试听比较，以及偏好的方向（至少 16 个字符）"
           />
         </label>
         <label>备注（可选）
@@ -136,7 +137,7 @@ export function CandidateCompare({
 
 function repairLabel(value: AIRun["candidates"][number]["repair_status"]): string {
   return ({
-    not_requested: "未修复",
+    not_requested: "初始候选",
     improved: "已改善",
     non_improving: "修复未采用",
   })[value];

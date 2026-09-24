@@ -78,7 +78,7 @@ export function RunPage({ runId }: { runId: string }) {
     } catch (cause) {
       if (cause instanceof RunActionConflict) {
         acceptAuthoritative(cause.authoritativeRun);
-        setFeedback("Run 状态已由服务端更新");
+        setFeedback("进度已更新，请按当前状态继续");
       } else setError(message(cause));
     } finally { setBusy(false); }
   }
@@ -120,36 +120,37 @@ export function RunPage({ runId }: { runId: string }) {
 
   if (!run) {
     return error
-      ? <section className="error-state" role="alert"><span>!</span><div><h2>无法恢复 Run</h2><p>{error}</p></div></section>
-      : <section className="loading-state"><div className="spectral-loader" aria-hidden="true"><i /><i /><i /><i /><i /></div><h2>恢复 Agent Run</h2><p>先读取 PostgreSQL 权威状态，再从已保存序号接续事件。</p></section>;
+      ? <section className="error-state" role="alert"><span>!</span><div><h2>暂时无法读取创作进度</h2><p>{error}</p></div></section>
+      : <section className="loading-state"><div className="spectral-loader" aria-hidden="true"><i /><i /><i /><i /><i /></div><h2>读取创作进度</h2><p>正在恢复已保存的进度；不会重复提交创作请求。</p></section>;
   }
 
   const canRetry = run.status === "failed" || run.status === "cancelled";
   const canCancel = !["succeeded", "rejected", "failed", "cancelled"].includes(run.status) && run.status !== "waiting_approval";
   const terminal = ["succeeded", "rejected", "failed", "cancelled"].includes(run.status);
   const actions = <div className="run-actions">
-    <a className="secondary-inline" href={`/runs/${encodeURIComponent(run.run_id)}/inspect`}>检查 Run</a>
+    <a className="secondary-inline" href={`/runs/${encodeURIComponent(run.run_id)}/inspect`}>查看执行记录</a>
     {run.revision_id && <a className="secondary-inline" href={`/projects/${encodeURIComponent(run.project_id)}/exports/${encodeURIComponent(run.revision_id)}`}>查看导出</a>}
-    {canCancel && <button className="danger-button" type="button" disabled={busy} onClick={() => void action(() => cancelRun(run.run_id, run.version, actionKey("cancel")))}>取消 Run</button>}
-    {canRetry && <button className="secondary-inline" type="button" disabled={busy} onClick={() => void action(() => retryRun(run.run_id, run.version, actionKey("retry")), (child) => navigate({ name: "run", runId: child.run_id }))}>重试为新 Run</button>}
-    {run.revision_id && studioReady && <button className="primary-button" type="button" onClick={() => navigate({ name: "studio", projectId: run.project_id, revisionId: run.revision_id as string })}>打开只读 Studio</button>}
+    {canCancel && <button className="danger-button" type="button" disabled={busy} onClick={() => void action(() => cancelRun(run.run_id, run.version, actionKey("cancel")))}>取消任务</button>}
+    {canRetry && <button className="secondary-inline" type="button" disabled={busy} onClick={() => void action(() => retryRun(run.run_id, run.version, actionKey("retry")), (child) => navigate({ name: "run", runId: child.run_id }))}>重新尝试</button>}
+    {run.revision_id && studioReady && <button className="primary-button" type="button" onClick={() => navigate({ name: "studio", projectId: run.project_id, revisionId: run.revision_id as string })}>打开 Studio</button>}
   </div>;
   return (
     <section className="generate-page run-page">
+      <a className="back-link" href="/">← 返回作品</a>
       <RunProgress run={run} state={state} />
       {graphQuery.data && <ExecutionPathStrip graph={graphQuery.data} inspectorHref={`/runs/${encodeURIComponent(run.run_id)}/inspect`} />}
       {graphQuery.isError && <StatusBanner tone="warning" message="执行路径暂时不可用" detail="审批、候选选择、取消与结果操作不受影响。" />}
-      {feedback && <StatusBanner tone="warning" message={feedback} detail="页面已重新读取权威 Run；请按当前状态继续。" />}
+      {feedback && <StatusBanner tone="warning" message={feedback} detail="另一项操作已更新了任务。你的作品没有被覆盖。" />}
       {error && <StatusBanner tone="danger" message="操作未完成" detail={error} />}
-      {terminal && run.revision_id && <section className="run-result-panel"><p className="eyebrow">AUTHORITATIVE RESULT</p><h2>Revision 已就绪</h2><p>生成结果已物化，可以进入 Studio 或检查导出。</p>{actions}</section>}
-      {run.plan && (terminal
+      {terminal && run.revision_id && <section className="run-result-panel"><p className="eyebrow">READY FOR YOUR NEXT IDEA</p><h2>作品版本已保存</h2><p>可以进入 Studio 编辑，或下载已经完成的音频和工程文件。</p>{actions}</section>}
+      {run.plan && (run.pending_action !== "approve_plan"
         ? <details className="run-plan-details"><summary>查看生成计划</summary><PlanReview plan={run.plan} busy={busy} onDecision={decide} reviewable={false} /></details>
         : <PlanReview plan={run.plan} busy={busy} onDecision={decide} reviewable={run.pending_action === "approve_plan"} />)}
       {run.status === "waiting_approval" && run.plan && <PlanAdjustmentForm busy={busy} onSubmit={replan} />}
       {run.pending_action === "select_candidate" && (
         run.candidates.length === 2 && run.critique
           ? <CandidateCompare run={run} busy={busy} onSelect={decideCandidate} />
-          : <StatusBanner tone="warning" message="候选证据正在恢复" detail="页面会继续读取 PostgreSQL 权威 Preview 和 Critic 结果。" />
+          : <StatusBanner tone="warning" message="候选证据正在恢复" detail="正在读取试听文件与评估结果，请稍候。" />
       )}
       {(!terminal || !run.revision_id) && actions}
     </section>

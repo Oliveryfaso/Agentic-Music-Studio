@@ -1,27 +1,30 @@
 import type { ReactNode } from "react";
 
-import { navigate } from "./routes";
+import { parseRoute } from "./routes";
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const route = parseRoute();
+  const section = route.name === "about" || route.name === "evaluation" ? route.name : "home";
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">跳至正文</a>
       <header className="topbar">
-        <button className="brand-button" type="button" onClick={() => navigate({ name: "home" })}>
-          <span className="brand-mark" aria-hidden="true"><span /></span>
+        <a className="brand-button" href="/" aria-label="Motif Forge 首页">
+          <span className="brand-mark" aria-hidden="true"><i /><i /><i /></span>
           <span className="brand-lockup-copy">
-            <strong>MOTIF FORGE</strong>
-            <small>INSTRUMENTAL AGENT STUDIO</small>
+            <strong>Motif Forge<span> / </span></strong>
+            <small>音乐，从一个想法开始</small>
           </span>
-        </button>
+        </a>
         <nav className="shell-nav" aria-label="主导航">
-          <button type="button" onClick={() => navigate({ name: "home" })}>作品</button>
-          <button type="button" onClick={() => navigate({ name: "about" })}>关于</button>
-          <button type="button" onClick={() => navigate({ name: "evaluation" })}>Eval</button>
+          <a href="/" aria-current={section === "home" ? "page" : undefined}>作品</a>
+          <a href="/about" aria-current={section === "about" ? "page" : undefined}>关于</a>
+          <a href="/evaluation" aria-current={section === "evaluation" ? "page" : undefined}>评估</a>
         </nav>
-        <div className="runtime-badge"><i /> LOCAL WORKSPACE</div>
+        <div className="runtime-badge">本地创作空间 <span>LOCAL STUDIO</span></div>
       </header>
-      <main>{children}</main>
-      <footer><span>Motif Forge / local-first</span><span>PostgreSQL authoritative</span></footer>
+      <main id="main-content" tabIndex={-1}>{children}</main>
+      <footer><span>Motif Forge · 与 Agent 一起创作</span><span>本地保存 · 由你决定</span></footer>
     </div>
   );
 }

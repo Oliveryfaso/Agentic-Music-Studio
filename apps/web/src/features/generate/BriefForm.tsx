@@ -74,18 +74,21 @@ export function BriefForm({ disabled, onSubmit }: { disabled: boolean; onSubmit:
 
   return (
     <form className="brief-form" onSubmit={submit} noValidate>
+      <div className="form-section-heading"><span className="step-number">01</span><div><h2>从音乐的方向开始</h2><p>不需要专业术语。场景、情绪和一个大致的时长，就足够开始。</p></div></div>
       <div className="brief-grid">
-        <Field label="作品标题"><input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} /></Field>
+        <Field label="作品标题"><input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} placeholder="给这次编曲起一个名字" /></Field>
         <Field label="音乐策略"><select value={style} onChange={(event) => setStyle(event.target.value as StyleId)}>
           <option value="synth_ambient">Synth Ambient</option>
           <option value="minimal_electronic">Minimal Electronic</option>
           <option value="classical_chamber">Classical Chamber</option>
           <option value="jazz_harmony_improvisation">Jazz Harmony &amp; Improvisation</option>
         </select></Field>
-        <Field label="用途"><textarea value={purpose} onChange={(event) => setPurpose(event.target.value)} rows={3} /></Field>
-        <Field label="情绪"><input value={moods} onChange={(event) => setMoods(event.target.value)} placeholder="weightless, curious" /></Field>
+        <Field label="用途"><textarea value={purpose} onChange={(event) => setPurpose(event.target.value)} rows={4} placeholder="例如：一段雨后城市漫步的短片配乐。开头安静，随后渐渐明亮，结尾留一点余韵。" /></Field>
+        <Field label="情绪"><input value={moods} onChange={(event) => setMoods(event.target.value)} placeholder="温暖，轻盈，带一点好奇" aria-describedby="moods-hint" /></Field>
         <Field label="目标时长（秒）"><input type="number" min="60" max="300" value={duration} onChange={(event) => setDuration(event.target.value)} /></Field>
       </div>
+      <p className="form-note" id="moods-hint">情绪可填 1–6 个，用逗号分开。时长支持 60–300 秒；目前仅支持纯器乐。</p>
+      <p className="style-description"><strong>{({ synth_ambient: "氛围合成", minimal_electronic: "极简电子", classical_chamber: "古典室内乐", jazz_harmony_improvisation: "爵士和声" })[style]}</strong>{({ synth_ambient: "舒展的音色与空间层次，适合影像、沉思与缓慢展开的场景。", minimal_electronic: "围绕脉冲、低频与重复动机，建立简洁而有推进感的律动。", classical_chamber: "关注曲式、声部与音域；使用轻量合成音色呈现，不模拟真实乐团。", jazz_harmony_improvisation: "围绕和弦色彩、声部配置与摇摆乐句，探索即兴感的器乐表达。" })[style]}</p>
       <AdvancedBriefFields
         values={{ meter, bpm, key, instruments, hardConstraints, softPreferences, negativeConstraints }}
         onChange={setAdvanced}
@@ -95,7 +98,7 @@ export function BriefForm({ disabled, onSubmit }: { disabled: boolean; onSubmit:
       {error && <p className="field-error" role="alert">{error}</p>}
       <div className="action-row">
         <button className="primary-button" type="submit" disabled={disabled}>{disabled ? "提交中…" : "提交 Brief 并规划"}</button>
-        <span className="form-note">Agent 只生成 Plan；你批准后才会写入 Revision。</span>
+        <span className="form-note">先看计划，再试听 A/B。只有你选定的候选才会成为正式版本。</span>
       </div>
     </form>
   );
@@ -106,5 +109,5 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function splitList(value: string): string[] {
-  return value.split(",").map((item) => item.trim()).filter(Boolean);
+  return value.split(/[,，、]/).map((item) => item.trim()).filter(Boolean);
 }
