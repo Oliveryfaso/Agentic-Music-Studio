@@ -1,4 +1,5 @@
 import { navigate } from "../../app/routes";
+import { MotifScore } from "../../app/MotifScore";
 
 const pillars = [
   ["01", "LangGraph Parent Graph", "一个可恢复 Parent Graph 统一生成、审批、物化、渲染与导出，不让模型直接写 Revision。"],
@@ -13,17 +14,15 @@ export function PortfolioPage() {
     <section className="portfolio-page" aria-labelledby="portfolio-title">
       <header className="portfolio-hero">
         <div>
-          <p className="eyebrow">MOTIF FORGE / PORTFOLIO RELEASE</p>
-          <h1 id="portfolio-title">从 Brief 到可编辑作品，一条可观察、可审批、可恢复的 Agent 闭环。</h1>
-          <p>这不是一次性生成器，而是把 Agent 决策、人类控制、确定性音乐编译与 DAW 工作区接在一起的工程作品。</p>
+          <p className="eyebrow">MEET MOTIF FORGE</p>
+          <h1 id="portfolio-title">与 Agent 合作，<br />把音乐做完整。</h1>
+          <p>从一句创作想法到多轨作品，让规划、试听、选择和修改连在一起。你能看见 Agent 做了什么，也能在关键时刻决定下一步。</p>
           <div className="portfolio-actions">
             <button className="primary-button" type="button" onClick={() => navigate({ name: "home" })}>进入工作台</button>
             <button className="secondary-inline" type="button" onClick={() => navigate({ name: "evaluation" })}>查看 Eval 证据</button>
           </div>
         </div>
-        <div className="loop-orbit" aria-label="Brief、Plan、Approval、Revision、Export 闭环">
-          <strong>AGENT</strong><span>Brief</span><span>Plan</span><span>Approve</span><span>Export</span>
-        </div>
+        <MotifScore />
       </header>
 
       <div className="portfolio-pillars">

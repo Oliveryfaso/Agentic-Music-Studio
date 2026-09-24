@@ -277,7 +277,7 @@ async function runJourney(page) {
   await page.getByLabel("审批确认").fill(ASSERTION);
   await page.getByLabel("审批备注（可选）").fill("S3 deterministic browser approval");
   await page.getByRole("button", { name: "批准并生成" }).click();
-  await page.getByRole("heading", { name: "作品已生成并写入 Revision" }).waitFor({ timeout: JOURNEY_TIMEOUT });
+  await page.getByRole("heading", { name: "作品已生成，正式版本已保存" }).waitFor({ timeout: JOURNEY_TIMEOUT });
   const terminal = await publicRun(page, child_run_id);
   invariant(terminal.status === "succeeded" && UUID.test(terminal.revision_id), `approved Run did not succeed: ${terminal.error_code ?? terminal.status}`);
   invariant(terminal.submitted_model_requests === 0 && terminal.total_tokens === 0, "deterministic Run recorded model usage");
@@ -291,9 +291,9 @@ async function runJourney(page) {
   invariant(facts.source_lineage_count === 7 && facts.source_lineage_distinct_count === 7, "export outputs are not bound one-to-one to the seven Jobs");
   invariant(facts.reservation_count === 0, "deterministic Runs contain a provider reservation");
 
-  await page.getByRole("button", { name: "打开只读 Studio" }).click();
+  await page.getByRole("button", { name: "打开 Studio" }).click();
   await page.getByRole("heading", { name: "作品试听" }).waitFor();
-  await page.getByRole("heading", { name: "只读时间线" }).waitFor();
+  await page.getByRole("heading", { name: "可编辑时间线" }).waitFor();
   const track_count = await page.getByLabel("轨道列表").locator(".track-header").count();
   invariant(track_count === 4, "Studio does not expose the four authoritative Arrangement tracks");
   const audioSource = await page.locator("audio").getAttribute("src");
@@ -316,7 +316,7 @@ async function runJourney(page) {
   await page.getByRole("heading", { name: "作品试听" }).waitFor();
   const studioOverflow = await assertNoPageOverflow(page, "Studio");
   await page.goto(`${WEB_URL}/runs/${child_run_id}`, { waitUntil: "domcontentloaded" });
-  await page.getByRole("heading", { name: "作品已生成并写入 Revision" }).waitFor();
+  await page.getByRole("heading", { name: "作品已生成，正式版本已保存" }).waitFor();
   const runOverflow = await assertNoPageOverflow(page, "Run recovery");
   await page.locator(".brand-button").click();
   const reopenedCard = page.locator(".project-card").filter({ hasText: projectName });

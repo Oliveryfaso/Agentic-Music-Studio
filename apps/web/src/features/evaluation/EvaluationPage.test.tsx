@@ -31,7 +31,7 @@ describe("EvaluationPage", () => {
 
     expect(await screen.findByText("96")).toBeInTheDocument();
     expect(screen.getByText("80 / 80")).toBeInTheDocument();
-    expect(screen.getByText("Expected reject")).toBeInTheDocument();
+    expect(screen.getByText("预期拒绝")).toBeInTheDocument();
     expect(screen.getByText("perceptual audio quality")).toBeInTheDocument();
     expect(screen.getByText(/它不计入本轮 0\/0 用量/)).toBeInTheDocument();
   });

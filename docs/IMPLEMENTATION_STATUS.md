@@ -1,6 +1,6 @@
 # Motif Forge 当前实施状态
 
-> 状态日期：2026-09-01
+> 状态日期：2026-09-24
 > 性质：当前代码事实与验收证据，不替代产品合同
 > 更新规则：每个被验收的小纵切结束后更新；不要把目标设计写成已实现能力
 
@@ -33,6 +33,14 @@ Project Home → Brief → Parent Graph Planning → Plan Review/Adjustment
 ```
 
 S3 已把 S2 的 API 级闭环变成用户可操作的作品流，S4/S5 加入四个 Style Pack、Theory 证据、双候选、Critic/Repair 和 A/B 人工选择，S6 加入轻量手工编辑与有界 AI 选区编辑，S7 再补齐正式 Export、Run Inspector、About/Eval 证据面和 96 条内部 Eval。当前已经达到个人作品集首版；负载、多租户和发布运维属于按需后置硬化，不再是默认活动阶段。
+
+### 2.1 浅色工作台与产品表达升级（2026-09-24）
+
+S7 后呈现层切片，覆盖 MF-P01/P02/P03/P07/P11/P13/P15/P20 的用户可见部分。首页、Brief、计划审批、候选、Studio、导出、运行检查、导入、About 与 Eval 采用统一浅色系统与中文操作说明。主导航保留移动入口、当前页与跳至正文；Studio Dock 支持键盘切换并紧邻时间线，技术详情按需展开，试听明确区分保存版本和草稿。中文逗号/顿号可用于 Brief 列表输入；审批身份、确认说明及原有版本/恢复门未放宽。
+
+README 已按产品、截图、启动、创作流程、Agent 架构、证据和边界重写，开发和 LangSmith 配置分别迁入 `DEVELOPMENT.md` / `LANGSMITH.md`；原深色视觉合同由 ADR-018 替代，不改变最终功能目标。
+
+本轮验证：Web `82 passed`、TypeScript/Vite build、README 一键启停合同 `1 passed`；隔离示例数据浏览器检查通过桌面 1440px / 手机 390px 的 28 个页面与状态，覆盖空/载入/失败/部分可用、长标题、主导航、候选确认门与无页面横向溢出。README 四张截图明确标注示例数据。未修改 API、Graph、数据库、音频引擎、Worker 或依赖；未启动 Docker / Colima，未运行新的真实音乐生成或付费模型验收。
 
 ## 3. 能力矩阵
 

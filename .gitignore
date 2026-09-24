@@ -18,3 +18,4 @@ dist/
 build/
 artifacts/
 tmp/
+output/playwright/

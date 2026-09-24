@@ -47,7 +47,7 @@ export function App() {
           {route.name === "inspect" && <RunInspectorPage runId={route.runId} />}
           {route.name === "not_found" && (
             <section className="route-missing">
-              <StatusBanner tone="warning" message="找不到这个工作台页面" detail="URL 不属于当前冻结的 S3 路由。" />
+              <StatusBanner tone="warning" message="找不到这个工作台页面" detail="链接可能不完整。返回作品列表，重新打开你的作品即可。" />
               <button className="primary-button" type="button" onClick={() => navigate({ name: "home" })}>返回作品</button>
             </section>
           )}

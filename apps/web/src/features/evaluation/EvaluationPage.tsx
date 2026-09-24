@@ -18,18 +18,18 @@ export function EvaluationPage() {
     <section className="evidence-page" aria-labelledby="evaluation-title">
       <header className="portfolio-hero">
         <div>
-          <p className="eyebrow">S7 / EVALUATION</p>
-          <h1 id="evaluation-title">可审计的 Agent 证据，不包装成虚假的满分。</h1>
-          <p>内部案例、公开 measured 分母、预期拒绝和未测声明分别统计。</p>
+          <p className="eyebrow">EVALUATION / 透明的能力边界</p>
+          <h1 id="evaluation-title">哪些能力经过验证，哪些还需要探索。</h1>
+          <p>这里公开已测结果、预期拒绝与尚未测量的边界。规则测试不等于主观音质评价。</p>
         </div>
         <span className="evidence-version">{report.schema_version}</span>
       </header>
 
       <div className="evidence-metrics">
-        <Metric label="Internal cases" value={String(report.internal_case_count)} />
-        <Metric label="Measured pass" value={`${report.summary.measured.passed} / ${report.summary.measured.denominator}`} />
-        <Metric label="Expected reject" value={String(report.summary.expected_reject)} />
-        <Metric label="Not measured" value={String(report.summary.not_measured)} />
+        <Metric label="内部案例" value={String(report.internal_case_count)} />
+        <Metric label="实测通过" value={`${report.summary.measured.passed} / ${report.summary.measured.denominator}`} />
+        <Metric label="预期拒绝" value={String(report.summary.expected_reject)} />
+        <Metric label="尚未测量" value={String(report.summary.not_measured)} />
       </div>
 
       <div className="evidence-grid">

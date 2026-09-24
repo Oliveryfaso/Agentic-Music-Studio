@@ -59,11 +59,11 @@ export function EditPanel({
   };
   return <section className="edit-panel" aria-labelledby="edit-panel-title">
     <div>
-      <p className="eyebrow">PARENT GRAPH / BOUNDED EDIT</p>
+      <p className="eyebrow">MAKE A LOCAL CHANGE</p>
       <h2 id="edit-panel-title">AI 选区编辑</h2>
       <p>{selection
         ? `${selection.trackIds.length} 条轨道 · Tick ${selection.startTick}–${selection.endTick}`
-        : "先在时间线选择一个 Clip 或范围。"}</p>
+        : "先点击时间线中的片段，再描述你希望怎样修改。"}</p>
     </div>
     <label>AI 编辑要求
       <textarea value={intent} onChange={(event) => setIntent(event.target.value)}
@@ -72,7 +72,7 @@ export function EditPanel({
     <div className="edit-panel-actions">
       <button className="primary-button" type="button" disabled={!valid || pending}
         onClick={() => void submit()}>{pending ? "提交中…" : "运行选区编辑"}</button>
-      <span>{rootReady ? "L0/L1 自动提交；L2/L3 先渲染 Preview" : "外置 Root 离线：仅安全参数编辑可继续"}</span>
+      <span>{rootReady ? "小幅参数调整直接保存；较大改动先试听，由你确认。" : "存储位置离线：仅不需要新音频的安全参数编辑可继续"}</span>
     </div>
     {error && <p className="field-error" role="alert">{error}</p>}
   </section>;

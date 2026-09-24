@@ -1,5 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useCallback, useState } from "react";
+import { AppShell } from "../../app/AppShell";
 
 import {
   ApiError,
@@ -61,36 +62,17 @@ export function ImportReviewPage({ projectId }: { projectId?: string }) {
   }
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div className="brand-lockup">
-          <div className="brand-mark" aria-hidden="true"><span /></div>
-          <div>
-            <p>MOTIF FORGE</p>
-            <span>INSTRUMENTAL AGENT STUDIO</span>
-          </div>
-        </div>
-        <nav aria-label="当前工作区">
-          <span className="nav-step complete">01 导入</span>
-          <span className="nav-connector" />
-          <span className="nav-step active">02 审阅</span>
-          <span className="nav-connector" />
-          <span className="nav-step">03 编排</span>
-        </nav>
-        <div className="runtime-badge"><i /> LOCAL RUNTIME</div>
-      </header>
-
-      <main>
+    <AppShell>
+        <a className="back-link" href="/">← 返回作品</a>
         <section className="hero">
           <div>
-            <p className="eyebrow">IMPORT REVIEW / FEATURE ARTIFACTS</p>
-            <h1>检查声音，再进入编排。</h1>
-            <p>读取 Worker 已持久化的波形、BPM 与调性证据。页面不会把猜测写回作品，也不会用改变音高的播放速率冒充 time-stretch。</p>
+            <p className="eyebrow">BRING YOUR OWN SOUND</p>
+            <h1>让已有的声音，成为新的起点。</h1>
+            <p>导入音频或分轨，查看波形、速度与调性。确认分析结果后，再把素材加入编排；原始文件会保留。</p>
           </div>
-          <div className="orbital-glyph" aria-hidden="true"><i /><i /><i /></div>
         </section>
 
-        {projectId && targetProject.isPending && <InlineLoading label="正在读取目标 Project 与最新 Revision…" />}
+        {projectId && targetProject.isPending && <InlineLoading label="正在读取作品和最新版本…" />}
         {projectId && targetProject.isError && <ErrorState error={targetProject.error} retry={() => void targetProject.refetch()} />}
         {!projectId && <ImportFlowPanel onReviewArtifact={reviewArtifact} />}
         {projectId && targetProject.data && (
@@ -129,9 +111,7 @@ export function ImportReviewPage({ projectId }: { projectId?: string }) {
         {featureSet.data && featureSet.data.features.length > 0 && (
           <FeatureWorkspace sourceArtifactId={sourceArtifactId} features={featureSet.data.features} />
         )}
-      </main>
-      <footer><span>Motif Forge / local-first</span><span>Feature schema contracts v1</span></footer>
-    </div>
+    </AppShell>
   );
 }
 
@@ -165,11 +145,11 @@ function FeatureWorkspace({ sourceArtifactId, features }: { sourceArtifactId: st
   return (
     <div className="workspace-grid">
       <div className="workspace-main">
-        {anyLoading && <InlineLoading label="正在校验并读取 Feature payload…" />}
+        {anyLoading && <InlineLoading label="正在读取波形与分析结果…" />}
         {failed.length > 0 && (
           <div className="notice danger-notice" role="alert">
             <span className="notice-icon">×</span>
-            <div><strong>部分 Feature 读取失败</strong><p>已保留其余可用结果；请检查 Artifact Root 后重试。</p></div>
+            <div><strong>部分分析结果读取失败</strong><p>其余结果仍可查看。请确认作品存储盘已连接，再刷新重试。</p></div>
           </div>
         )}
         {waveform && <WaveformCanvas waveform={waveform} />}
@@ -219,15 +199,15 @@ function ArtifactRow({ feature, recovering, onRecover }: { feature: FeatureArtif
 }
 
 function EmptyState() {
-  return <section className="empty-state"><div className="empty-wave" aria-hidden="true">∿</div><h2>等待一个真实导入结果</h2><p>先通过受控 Upload / Import 流程生成源 Artifact，再在这里检查独立 FeatureArtifact。</p></section>;
+  return <section className="empty-state"><div className="empty-wave" aria-hidden="true">∿</div><h2>从一段声音开始</h2><p>选择上方的音频文件并确认使用权利。分析完成后，可以在这里查看波形、速度和调性。</p></section>;
 }
 
 function NoFeaturesState() {
-  return <section className="empty-state"><div className="empty-wave" aria-hidden="true">···</div><h2>这个音频尚无分析产物</h2><p>源 Artifact 存在，但 Worker 尚未登记 waveform 或 analysis Feature。</p></section>;
+  return <section className="empty-state"><div className="empty-wave" aria-hidden="true">···</div><h2>波形与分析结果尚未就绪</h2><p>原始音频已保存。请查看上方的导入进度，处理完成后刷新此页。</p></section>;
 }
 
 function LoadingState() {
-  return <section className="loading-state" aria-live="polite"><div className="spectral-loader"><i /><i /><i /><i /><i /></div><h2>读取 Feature 索引</h2><p>正在向本地 API 核对状态，不伪造进度百分比。</p></section>;
+  return <section className="loading-state" aria-live="polite"><div className="spectral-loader"><i /><i /><i /><i /><i /></div><h2>正在读取音频分析</h2><p>正在核对已保存的波形和分析结果，请稍候。</p></section>;
 }
 
 function InlineLoading({ label }: { label: string }) {

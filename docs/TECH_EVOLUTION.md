@@ -398,3 +398,11 @@
 - 原生 httpx DeepSeek 适配器的每个 transport attempt 使用独立 `llm` span；只记录 model、request kind、attempt、thinking mode、token ceiling、finish reason、token/cache counters 与脱敏 error code，不上传 messages、reasoning、response body、Authorization header 或 API key。模型预算与费用事实仍由 PostgreSQL ledger 权威记录。
 - Compose 只把可选 LangSmith Key 交给 API、Dispatcher 和 Resume Dispatcher，并对 trace inputs/outputs 双重强制隐藏；Migrate/Media/Render/Storage 保持禁用/无 Key。README 记录普通启停命令、关闭方式、Base retention 与 spend limit 边界；Celery/FFmpeg/Chromium 的完整分布式 trace 没有纳入本层。
 - TDD 聚焦门为 `81 passed`，排除外置盘 AppleDouble `._*` 的临时代码副本完整 unit 为 `521 passed`；Ruff、Mypy strict 112 source、Compose 配置与 launcher shell 语法通过。测试只使用 fake Key、MockTransport 与本地 trace fake，没有 DeepSeek 或 LangSmith 网络/付费调用。
+
+## 2026-09-24：浅色音乐工作台与产品化 README
+
+- S7 后呈现层升级，覆盖 MF-P01/P02/P03/P07/P11/P13/P15/P20。通过 find-skills 检索并采用现有 frontend-design / redesign-existing-projects，沿用原组件、API 与依赖，改为雾白、墨色、深青绿的统一视觉系统。首页聚焦作品入口，Brief 解释策略和流程，Run 区分阶段与操作，Studio 将编辑面板收回时间线下方，导出先展示文件，Inspector 保留可展开技术证据。
+- 新交互先验证 RED：当前位置/跳至正文、中文列表分隔符、Studio 面板键盘导航与工作区归属。保留两次人工确认、审批断言、版本冲突、部分失败、存储恢复和移动 review-only；模型与 UI 不直接写 Revision。
+- README 参考 OpenMAIC 的产品介绍顺序重新原创组织，附四张真实前端渲染的示例截图；开发与排障、LangSmith 配置独立归档。历史 Eval 80 measured / 13 expected reject / 3 not measured、一次付费 Generate 与未测付费 Edit 分别说明，不将截图或规则得分冒充音质验收。
+- 本轮为 Web `82 passed`、TypeScript/Vite build 和 README 启停合同 `1 passed`。新隔离 Playwright 脚本通过桌面/390px 手机共 28 个页面与状态，包括长标题、空/加载/错误/部分可用、候选确认门、移动编辑入口隐藏、一个 main landmark 与无页面横向溢出。样例音频仅为媒体元素提供静音 fixture，未接触真实 API 或模型。
+- 无生产 Graph/API/Schema/迁移/Worker/音频算法/依赖修改，无 Docker/Colima 启动、无付费调用。浏览器与 Vite 在 finally 关闭；生成截图位于忽略的 `output/playwright/light-studio/`，README 精选四图在 `docs/images/`。源码及文档只用 Git diff 和相关测试核对，不计算内容哈希；业务数据库、媒体与共享 Docker 缓存未触碰。

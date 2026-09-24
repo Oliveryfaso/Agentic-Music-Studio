@@ -20,7 +20,7 @@ afterEach(() => {
 describe("ImportReviewPage", () => {
   it("shows the empty entry state without inventing a project", () => {
     renderPage();
-    expect(screen.getByText("等待一个真实导入结果")).toBeInTheDocument();
+    expect(screen.getByText("从一段声音开始")).toBeInTheDocument();
   });
 
   it("validates source Artifact IDs before calling the API", () => {

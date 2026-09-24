@@ -41,21 +41,22 @@ export function PlanReview({ plan, busy, onDecision, reviewable = true }: { plan
   return (
     <article className="plan-review" aria-labelledby="plan-title">
       <header className="panel-heading">
-        <div><p className="eyebrow">AGENT PLAN / HUMAN GATE</p><h2 id="plan-title">{plan.fallback_reason ? "Fallback Plan · 仍需人工审批" : "Composition Plan · 等待人工审批"}</h2></div>
+        <div><p className="eyebrow">COMPOSITION PLAN</p><h2 id="plan-title">{reviewable ? "先确认音乐的方向" : "这次创作的编曲计划"}</h2></div>
         <div className="plan-tempo"><strong>{composition.bpm} BPM</strong><span>{composition.key.tonic} {composition.key.mode}</span><span>{composition.meter}</span></div>
       </header>
+      {plan.fallback_reason && <p className="plan-fallback" role="status">当前使用规则生成的备用计划（Fallback），不是模型生成结果。{reviewable ? "请确认它是否符合你的想法。" : "备用计划同样遵循人工审批规则。"}</p>}
       <div className="plan-language-grid">
         <PlanFact label="和声" value={composition.harmonic_language} />
         <PlanFact label="节奏" value={composition.rhythmic_language} />
         <PlanFact label="织体" value={composition.texture} />
       </div>
-      <section className="strategy-evidence" aria-label="风格策略依据">
+      <details className="plan-source-details"><summary>风格策略与来源依据</summary><section className="strategy-evidence" aria-label="风格策略依据">
         <div><span>STYLE PACK</span><strong>{styleEvidence.pack}</strong></div>
         <div><span>策略路径</span><strong>{styleEvidence.strategy}</strong></div>
         <div><span>策展来源</span><strong>{styleEvidence.source}</strong></div>
         <div><span>许可</span><strong>Project-authored · 已审核 · 允许作品集使用</strong></div>
         <p>来源文本只解释策略；音符合法性由确定性 Theory Engine 判断。</p>
-      </section>
+      </section></details>
       <section className="plan-sections" aria-label="乐曲结构">
         {composition.sections.map((section) => (
           <article key={section.section_id}>
@@ -74,16 +75,17 @@ export function PlanReview({ plan, busy, onDecision, reviewable = true }: { plan
         <section className="plan-references"><h3>规划依据</h3>{composition.knowledge_references.map((reference) => <p key={reference.reference_id}>{reference.summary}</p>)}</section>
       )}
       {reviewable && <form className="approval-form" onSubmit={(event) => decide(event, "approve")}>
+        <div className="approval-intro"><h3>方向合适，就开始生成</h3><p>确认后会生成两份可试听的候选；选定之前，不会替换作品的正式版本。</p></div>
         <div className="approval-grid">
-          <label><span>审批人</span><input value={actorId} onChange={(event) => setActorId(event.target.value)} autoComplete="off" /></label>
-          <label><span>审批确认</span><input value={assertion} onChange={(event) => setAssertion(event.target.value)} autoComplete="off" /></label>
-          <label><span>审批备注（可选）</span><input value={note} onChange={(event) => setNote(event.target.value)} /></label>
+          <label><span>审批人</span><input value={actorId} onChange={(event) => setActorId(event.target.value)} autoComplete="off" placeholder="你的名字或昵称" /></label>
+          <label><span>审批确认</span><input value={assertion} onChange={(event) => setAssertion(event.target.value)} autoComplete="off" placeholder="描述你对这份计划的确认（至少 16 字符）" aria-describedby="approval-hint" /></label>
+          <label><span>审批备注（可选）</span><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="补充你的判断" /></label>
         </div>
         {error && <p className="field-error" role="alert">{error}</p>}
         <div className="decision-row">
           <button className="primary-button" type="submit" disabled={busy}>批准并生成</button>
           <button className="danger-button" type="button" disabled={busy} onClick={() => submitDecision("reject")}>拒绝计划</button>
-          <small>操作绑定当前 Plan 版本与内容标识；页面不保存审批确认文本。</small>
+          <small id="approval-hint">确认当前计划后才会开始生成。你也可以拒绝，或在下方调整计划。</small>
         </div>
       </form>}
     </article>

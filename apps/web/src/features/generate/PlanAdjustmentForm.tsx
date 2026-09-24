@@ -21,14 +21,14 @@ export function PlanAdjustmentForm({ busy, onSubmit }: { busy: boolean; onSubmit
 
   return (
     <form className="adjustment-form" onSubmit={submit}>
-      <header><p className="eyebrow">REPLAN / IMMUTABLE CHILD RUN</p><h2>调整 Plan</h2></header>
+      <header><p className="eyebrow">TRY ANOTHER DIRECTION</p><h2>想换一个方向？</h2></header>
       <div className="adjustment-grid">
         <label><span>调整后的 BPM</span><input type="number" min="40" max="220" value={bpm} onChange={(event) => setBpm(event.target.value)} /></label>
         <label><span>调整后的调性</span><input value={key} onChange={(event) => setKey(event.target.value)} /></label>
         <label><span>调整说明</span><textarea rows={3} value={note} onChange={(event) => setNote(event.target.value)} /></label>
       </div>
       {error && <p className="field-error" role="alert">{error}</p>}
-      <button className="secondary-inline" type="submit" disabled={busy}>创建调整后的 Plan</button>
+      <button className="secondary-inline" type="submit" disabled={busy}>重新规划</button>
     </form>
   );
 }

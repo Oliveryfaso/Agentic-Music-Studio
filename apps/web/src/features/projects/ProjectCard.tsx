@@ -31,7 +31,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
     <article className="project-card">
       <div className="project-card-heading">
         <div>
-          <p className="eyebrow">PROJECT</p>
+          <p className="eyebrow">{project.has_playable_revision ? "COMPOSITION" : "NEW IDEA"}</p>
           <h2>{project.name}</h2>
         </div>
         <span className={`project-run-status ${run?.status ?? "idle"}`}>
@@ -61,7 +61,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
             aria-label={`恢复${runLabel}`}
             onClick={() => navigate({ name: "run", runId: run.run_id })}
           >
-            恢复 Agent Run
+            {run.status === "waiting_approval" ? "查看并确认计划" : "继续查看进度"}
           </button>
         )}
         <button

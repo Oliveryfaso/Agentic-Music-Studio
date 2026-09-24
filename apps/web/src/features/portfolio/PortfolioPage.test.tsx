@@ -7,7 +7,7 @@ describe("PortfolioPage", () => {
   it("explains the agentic product loop and links to evidence", () => {
     render(<PortfolioPage />);
 
-    expect(screen.getByRole("heading", { name: /Brief 到可编辑作品/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /把音乐做完整/ })).toBeInTheDocument();
     expect(screen.getByText("LangGraph Parent Graph")).toBeInTheDocument();
     expect(screen.getByText("Human approval gate")).toBeInTheDocument();
     expect(screen.getByText("Critic & bounded Repair")).toBeInTheDocument();

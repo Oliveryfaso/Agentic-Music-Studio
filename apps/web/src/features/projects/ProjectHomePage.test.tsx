@@ -66,6 +66,9 @@ describe("Project Home", () => {
     expect(screen.getByText("正在规划")).toBeInTheDocument();
     expect(screen.getByText(/A Very Long Portfolio Composition Name/)).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole("button", { name: "开始创作 →" }));
+    expect(window.location.pathname).toBe(`/projects/${PROJECT_ID}/new-composition`);
+
     fireEvent.click(screen.getByRole("button", { name: "打开 Orbital Glass 最新版本" }));
     expect(window.location.pathname).toBe(
       `/projects/${PROJECT_ID}/studio/${REVISION_ID}`,
@@ -99,7 +102,7 @@ describe("Project Home", () => {
     expect(within(list).getAllByRole("heading", { level: 2 })[0]).toHaveTextContent("Project 8");
     expect(screen.queryByRole("heading", { name: "Project 1" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "全部项目与测试历史" }));
+    fireEvent.click(screen.getByRole("button", { name: "查看全部作品（8）" }));
     expect(screen.getByRole("heading", { name: "Project 1" })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("搜索作品"), { target: { value: "Project 7" } });
     fireEvent.change(screen.getByLabelText("作品状态"), { target: { value: "active" } });

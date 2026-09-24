@@ -137,7 +137,7 @@ async function journey(page) {
   invariant(terminal.status === "succeeded" && UUID.test(terminal.revision_id), `S5 failed: ${terminal.error_code ?? terminal.status}`);
   invariant(terminal.submitted_model_requests === 0 && terminal.total_tokens === 0, "S5 browser smoke recorded model usage");
   await page.reload({ waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "打开只读 Studio" }).click();
+  await page.getByRole("button", { name: "打开 Studio" }).click();
   await page.getByRole("heading", { name: "作品试听" }).waitFor();
   invariant((await page.locator("audio").getAttribute("src"))?.includes("/audio-artifacts/"), "Studio has no authoritative audio");
   await noOverflow(page, "Selected Studio");

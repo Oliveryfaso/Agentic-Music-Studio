@@ -142,32 +142,34 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
         trackCount={studio.data.arrangement_ir.tracks.length}
         bars={projection.totalBars}
         bpm={studio.data.arrangement_ir.tempo_map?.[0]?.bpm ?? 120}
-        actions={<><a className="secondary-inline" href={`/projects/${encodeURIComponent(projectId)}/exports/${encodeURIComponent(revisionId)}`}>查看导出</a>{studio.data.source_run_id && <a className="secondary-inline" href={`/runs/${encodeURIComponent(studio.data.source_run_id)}/inspect`}>检查 Run</a>}</>}
+        actions={<><a className="secondary-inline" href={`/projects/${encodeURIComponent(projectId)}/exports/${encodeURIComponent(revisionId)}`}>查看导出</a>{studio.data.source_run_id && <a className="secondary-inline" href={`/runs/${encodeURIComponent(studio.data.source_run_id)}/inspect`}>查看执行记录</a>}</>}
         toolbar={<StudioToolbar state={editor} onUndo={() => dispatch({ type: "undo" })} onRedo={() => dispatch({ type: "redo" })} onSave={() => void saveDraft()} onUndoRevision={() => void undoRevision()} />}
       />
-      {studio.data.bundle_id === null && <StatusBanner tone="warning" message="部分成功 Revision" detail="安全 Revision 已保留，但完整 Bundle 尚未形成。" />}
-      {!rootReady && <StatusBanner tone="danger" message="外置 Artifact Root 当前不可用" detail={`存储状态：${project.data.storage_root_status}。页面不会改用内部磁盘。`} />}
+      <p className="mobile-review-note">手机上可以试听和查看作品；精细编辑请使用桌面浏览器。</p>
+      {studio.data.bundle_id === null && <StatusBanner tone="warning" message="作品已保存，导出尚未完整完成" detail="编排内容已保留。可以继续编辑，或前往导出页查看已完成的文件。" />}
+      {!rootReady && <StatusBanner tone="danger" message="作品存储位置暂不可用" detail={`存储状态：${project.data.storage_root_status}。请检查外置磁盘连接；现有作品记录仍然保留。`} />}
       <div className="studio-main-workspace">
-        <main className="studio-arrangement-main" aria-label="Arrangement 主工作区">
-          {projection.tracks.length === 0 ? <section className="empty-state studio-empty"><div className="empty-wave" aria-hidden="true">···</div><h2>这个 Revision 还没有可显示的轨道</h2><p>ArrangementIR 已读取，但 tracks 为空；页面不会伪造编排内容。</p></section> : <section className="studio-panel arrangement-panel" aria-labelledby="arrangement-title">
-            <div className="panel-heading"><div><p className="eyebrow">ARRANGEMENT IR / PPQ {draft?.ppq}</p><h2 id="arrangement-title">可编辑时间线</h2></div><span className="status-pill available">{editor.saveState === "clean" ? "已持久化" : "Draft"}</span></div>
+        <div className="studio-arrangement-main" aria-label="Arrangement 主工作区">
+          {projection.tracks.length === 0 ? <section className="empty-state studio-empty"><div className="empty-wave" aria-hidden="true">···</div><h2>这个版本还没有音轨</h2><p>可以返回作品列表新建编曲，或导入已有音频作为起点。</p></section> : <section className="studio-panel arrangement-panel" aria-labelledby="arrangement-title">
+            <div className="panel-heading"><div><p className="eyebrow">ARRANGEMENT / PPQ {draft?.ppq}</p><h2 id="arrangement-title">可编辑时间线</h2></div><span className="status-pill available">{editor.saveState === "clean" ? "已保存" : "有未保存修改"}</span></div>
             <div className="arrangement-workspace"><TrackHeaders tracks={projection.tracks} /><ArrangementTimeline projection={projection} currentTime={transport.currentTime} onMoveClip={moveClip} onSelectClip={(trackId, clipId, startTick, endTick) => dispatch({ type: "select", selection: { trackIds: [trackId], clipId, startTick, endTick } })} /></div>
             <div className="section-ledger" aria-label="段落列表">{projection.sections.map((section) => <span key={section.sectionId}><strong>{section.label}</strong> · {Math.round(section.energy * 100)}%</span>)}</div>
           </section>}
-        </main>
-        <StudioInspector>
-          <EditPanel projectId={projectId} branchId={editor.base.branchId} baseRevisionId={editor.base.revisionId} selection={editor.selection} lockedRanges={[]} rootReady={rootReady} onRunCreated={handleRunCreated} />
-          {editRun.mode !== "idle" && <section className="edit-run-status" aria-live="polite"><strong>{editRunModeLabel(editRun.mode)}</strong>{editRun.errorCode && <span>{editRun.errorCode}</span>}{editRun.mode === "committed" && editRun.revisionId && <button className="primary-button" type="button" onClick={() => navigate({ name: "studio", projectId, revisionId: editRun.revisionId as string })}>打开新 Revision</button>}</section>}
-          {editRun.preview && <EditPreviewCard preview={editRun.preview} busy={editDecisionPending} rootReady={rootReady} onDecision={(action) => void decidePreview(action)} />}
-          <section className="studio-panel" aria-labelledby="transport-title"><div className="panel-heading"><div><p className="eyebrow">DELIVERY MP3</p><h2 id="transport-title">作品试听</h2></div>{delivery && <span className={`status-pill ${delivery.availability}`}>{availabilityLabel(delivery.availability)}</span>}</div><DeliveryState delivery={delivery} rootReady={rootReady} recoveryPending={recovery.isPending} recoveryFeedback={recoveryFeedback} recoveryError={recovery.isError ? errorMessage(recovery.error) : null} onRecover={(artifactId) => recovery.mutate(artifactId)} transport={transport} duration={duration} /></section>
-        </StudioInspector>
-      </div>
       <StudioDock
         piano={selectedTrack && selectedClip?.clip_type === "note" ? <PianoRoll trackId={selectedTrack.track_id} clip={selectedClip} onCommand={appendCommand} /> : <p>选择一个音符片段打开钢琴卷帘。</p>}
         mixer={<MixerPanel tracks={(draft?.tracks ?? []).map((track) => ({ track_id: track.track_id, name: track.name, gain_db: track.gain_db, pan: track.pan, mute: track.mute, solo: track.solo }))} onCommand={appendCommand} />}
         inspector={<ClipInspector trackId={selectedTrack?.track_id ?? ""} clip={selectedClip} onCommand={appendCommand} />}
         library={<SampleLibrary entries={catalog.data ?? []} onChoose={selectedTrack ? (entry) => appendCommand({ command_id: crypto.randomUUID(), command_type: "set_track_param", schema_version: "editor-command.v1", actor_kind: "human", client_sequence: 0, selection: { track_ids: [selectedTrack.track_id] }, payload: { track_id: selectedTrack.track_id, parameter: "instrument_ref", value: entry.preset_id } }) : undefined} />}
       />
+        </div>
+        <StudioInspector>
+          <EditPanel projectId={projectId} branchId={editor.base.branchId} baseRevisionId={editor.base.revisionId} selection={editor.selection} lockedRanges={[]} rootReady={rootReady} onRunCreated={handleRunCreated} />
+          {editRun.mode !== "idle" && <section className="edit-run-status" aria-live="polite"><strong>{editRunModeLabel(editRun.mode)}</strong>{editRun.errorCode && <span>{editRun.errorCode}</span>}{editRun.mode === "committed" && editRun.revisionId && <button className="primary-button" type="button" onClick={() => navigate({ name: "studio", projectId, revisionId: editRun.revisionId as string })}>打开修改后的版本</button>}</section>}
+          {editRun.preview && <EditPreviewCard preview={editRun.preview} busy={editDecisionPending} rootReady={rootReady} onDecision={(action) => void decidePreview(action)} />}
+          <section className="studio-panel" aria-labelledby="transport-title"><div className="panel-heading"><div><p className="eyebrow">SAVED VERSION / MP3</p><h2 id="transport-title">作品试听</h2></div>{delivery && <span className={`status-pill ${delivery.availability}`}>{availabilityLabel(delivery.availability)}</span>}</div><p className="saved-audio-note">试听的是当前打开版本的导出音频，草稿修改不会实时反映在此处。</p><DeliveryState delivery={delivery} rootReady={rootReady} recoveryPending={recovery.isPending} recoveryFeedback={recoveryFeedback} recoveryError={recovery.isError ? errorMessage(recovery.error) : null} onRecover={(artifactId) => recovery.mutate(artifactId)} transport={transport} duration={duration} /></section>
+        </StudioInspector>
+      </div>
+
     </section>
   );
 }
@@ -184,14 +186,14 @@ function DeliveryState({ delivery, rootReady, recoveryPending, recoveryFeedback,
   transport: AudioTransport;
   duration: number;
 }) {
-  if (!delivery) return <p className="delivery-guidance">这个 Revision 尚未登记 delivery MP3。</p>;
-  if (!rootReady) return <p className="delivery-guidance">恢复与播放将在外置 Root 恢复后可用。</p>;
+  if (!delivery) return <p className="delivery-guidance">这个版本还没有可试听的 MP3。请在导出页查看处理进度。</p>;
+  if (!rootReady) return <p className="delivery-guidance">重新连接作品存储位置后，即可恢复文件和播放。</p>;
   if (delivery.availability === "available") return <Transport audioRef={transport.audioRef} src={audioContentUrl(delivery.artifact_id)} duration={duration} currentTime={transport.currentTime} isPlaying={transport.isPlaying} mediaError={transport.mediaError} onPlay={transport.play} onPause={transport.pause} onStop={transport.stop} onSeek={transport.seek} mediaProps={transport.mediaProps} />;
-  if (delivery.availability === "rehydrating") return <p className="delivery-guidance">MP3 正在由持久 Worker 重建</p>;
-  if (delivery.availability === "missing") return <p className="delivery-guidance is-danger">MP3 的重建依赖缺失</p>;
+  if (delivery.availability === "rehydrating") return <p className="delivery-guidance">正在重新生成 MP3，完成后刷新即可播放</p>;
+  if (delivery.availability === "missing") return <p className="delivery-guidance is-danger">恢复 MP3 所需的源文件缺失，请检查原始素材</p>;
   return (
     <div className="delivery-recovery">
-      <p>MP3 已被回收，ArrangementIR 与 Artifact 记录仍然保留。</p>
+      <p>为节省空间，MP3 缓存已回收。编排仍然保留，可以重新生成试听文件。</p>
       <button className="secondary-inline" type="button" disabled={recoveryPending} onClick={() => onRecover(delivery.artifact_id)}>{recoveryPending ? "提交中…" : "恢复 MP3"}</button>
       {recoveryFeedback && <span role="status">{recoveryFeedback}</span>}
       {recoveryError && <span className="field-error" role="alert">{recoveryError}</span>}
@@ -199,7 +201,7 @@ function DeliveryState({ delivery, rootReady, recoveryPending, recoveryFeedback,
   );
 }
 
-function StudioLoading() { return <section className="loading-state"><div className="spectral-loader" aria-hidden="true"><i /><i /><i /><i /><i /></div><h2>读取 Revision Studio</h2><p>正在读取 ArrangementIR、Delivery Artifact 与外置 Root 状态。</p></section>; }
+function StudioLoading() { return <section className="loading-state"><div className="spectral-loader" aria-hidden="true"><i /><i /><i /><i /><i /></div><h2>正在打开 Studio</h2><p>正在加载音轨、编排与当前版本的试听文件。</p></section>; }
 function StudioError({ error, retry }: { error: Error; retry: () => void }) { return <section className="error-state" role="alert"><span>!</span><div><h2>无法打开 Studio</h2><p>{errorMessage(error)}</p><button type="button" onClick={retry}>重试</button></div></section>; }
 function errorMessage(error: Error): string { return error instanceof ApiError ? `${error.message}（${error.code}）` : error.message || "客户端发生未知错误"; }
 function availabilityLabel(value: "available" | "evicted" | "rehydrating" | "missing"): string { return ({ available: "可播放", evicted: "已回收", rehydrating: "重建中", missing: "缺失" })[value]; }

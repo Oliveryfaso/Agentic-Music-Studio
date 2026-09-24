@@ -21,12 +21,12 @@ describe("Read-only Arrangement Studio", () => {
     renderStudio();
 
     const workbar = await screen.findByLabelText("Studio 工作栏");
-    const arrangement = screen.getByRole("main", { name: "Arrangement 主工作区" });
+    const arrangement = screen.getByLabelText("Arrangement 主工作区");
     const inspector = screen.getByRole("complementary", { name: "Studio Inspector" });
     const dock = screen.getByLabelText("Studio Dock");
     expect(workbar.compareDocumentPosition(arrangement)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(arrangement.compareDocumentPosition(inspector)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(inspector.compareDocumentPosition(dock)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(arrangement.contains(dock)).toBe(true);
     expect(arrangement.compareDocumentPosition(screen.getByText("AI 选区编辑"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(arrangement.compareDocumentPosition(screen.getByText("作品试听"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
@@ -50,7 +50,7 @@ describe("Read-only Arrangement Studio", () => {
     fireEvent.pointerUp(canvas, { clientX: 212, pointerId: 1 });
     expect(screen.getByText("1 个未保存修改")).toBeInTheDocument();
     expect(commits).toBe(0);
-    fireEvent.click(screen.getByRole("button", { name: "保存 Revision" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存新版本" }));
     await waitFor(() => expect(commits).toBe(1));
   });
 
@@ -64,7 +64,7 @@ describe("Read-only Arrangement Studio", () => {
     const cancelRaf = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
 
     const view = renderStudio();
-    expect(await screen.findByRole("heading", { name: "Orbital Glass / Revision" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Orbital Glass" })).toBeInTheDocument();
     expect(screen.getByText("A very long atmospheric pad track name that must not widen the page")).toBeInTheDocument();
     expect(screen.getByText("Canvas 不可用时：Opening，Warm Pad 轨道，2 个片段。")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /只读 Arrangement 时间线/ })).toBeInTheDocument();
@@ -113,20 +113,20 @@ describe("Read-only Arrangement Studio", () => {
 
     availability = "rehydrating";
     const second = renderStudio();
-    expect(await screen.findByText("MP3 正在由持久 Worker 重建")).toBeInTheDocument();
+    expect(await screen.findByText("正在重新生成 MP3，完成后刷新即可播放")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "恢复 MP3" })).not.toBeInTheDocument();
     second.unmount();
 
     availability = "missing";
     const third = renderStudio();
-    expect(await screen.findByText("MP3 的重建依赖缺失")).toBeInTheDocument();
+    expect(await screen.findByText("恢复 MP3 所需的源文件缺失，请检查原始素材")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "恢复 MP3" })).not.toBeInTheDocument();
     third.unmount();
 
     availability = "evicted";
     root = "disconnected";
     renderStudio();
-    expect(await screen.findByText("外置 Artifact Root 当前不可用")).toBeInTheDocument();
+    expect(await screen.findByText("作品存储位置暂不可用")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "恢复 MP3" })).not.toBeInTheDocument();
   });
 
@@ -138,8 +138,8 @@ describe("Read-only Arrangement Studio", () => {
     stubReads(projection, "ready");
 
     renderStudio();
-    expect(await screen.findByText("部分成功 Revision")).toBeInTheDocument();
-    expect(screen.getByText("这个 Revision 还没有可显示的轨道")).toBeInTheDocument();
+    expect(await screen.findByText("作品已保存，导出尚未完整完成")).toBeInTheDocument();
+    expect(screen.getByText("这个版本还没有音轨")).toBeInTheDocument();
     fireEvent.error(document.querySelector("audio") as HTMLAudioElement);
     expect(await screen.findByText("MP3 无法播放")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /静音|独奏|删除|移动/ })).not.toBeInTheDocument();
