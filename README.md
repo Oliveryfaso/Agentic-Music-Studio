@@ -20,6 +20,7 @@
 [![Eval inventory](https://img.shields.io/badge/eval_inventory-96_cases-2E7D32)](docs/evals/S7_EVAL_REPORT.md)
 [![Measured pass](https://img.shields.io/badge/measured_pass-80%2F80-2E7D32)](docs/evals/S7_EVAL_REPORT.md)
 [![Status](https://img.shields.io/badge/status-active_development-6B7280)](docs/IMPLEMENTATION_STATUS.md)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 [快速开始](#快速开始) · [走完一次创作](#走完一次创作) · [Agent 如何工作](#agent-如何工作) · [能力与边界](#能力与边界) · [技术栈](#技术栈) · [测试与验收](#测试与验收) · [开发文档](#开发文档)
 
@@ -230,3 +231,19 @@ uv run mypy services/api/src
 ---
 
 这是一个以 **Agent / LangGraph 工程实践**为核心的个人作品集。重点是让创作闭环真正可运行、可理解、可恢复，同时诚实呈现音乐能力和验证范围。
+
+## 许可证
+
+本项目采用 [Apache License 2.0](LICENSE) 授权，允许商用、修改与再分发，并附带专利授权条款。
+
+```
+Copyright 2026 Oliver
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+```
+
+再分发时请保留 [LICENSE](LICENSE) 文件；如修改了源文件，需按第 4 条标注改动。
