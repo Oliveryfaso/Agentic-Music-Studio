@@ -6,7 +6,22 @@
 
 **LangGraph 编排 · 人在回路 · 确定性音乐编译 · 可恢复执行**
 
-[快速开始](#快速开始) · [走完一次创作](#走完一次创作) · [Agent 如何工作](#agent-如何工作) · [能力与边界](#能力与边界) · [开发文档](#开发文档)
+[![Python 3.12–3.13](https://img.shields.io/badge/Python-3.12%E2%80%933.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI 0.116+](https://img.shields.io/badge/FastAPI-0.116%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![LangGraph 1.x](https://img.shields.io/badge/LangGraph-1.x-1C3C3C)](https://langchain-ai.github.io/langgraph/)
+[![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Redis 7.4](https://img.shields.io/badge/Redis-7.4-DC382D?logo=redis&logoColor=white)](https://redis.io/)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript 5.9](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tone.js 15](https://img.shields.io/badge/Tone.js-15-000000)](https://tonejs.github.io/)
+[![Docker Compose](https://img.shields.io/badge/Docker_Compose-ready-2496ED?logo=docker&logoColor=white)](compose.yaml)
+
+[![Local-first](https://img.shields.io/badge/local--first-no_cloud_required-4B5563)](#能力与边界)
+[![Eval inventory](https://img.shields.io/badge/eval_inventory-96_cases-2E7D32)](docs/evals/S7_EVAL_REPORT.md)
+[![Measured pass](https://img.shields.io/badge/measured_pass-80%2F80-2E7D32)](docs/evals/S7_EVAL_REPORT.md)
+[![Status](https://img.shields.io/badge/status-active_development-6B7280)](docs/IMPLEMENTATION_STATUS.md)
+
+[快速开始](#快速开始) · [走完一次创作](#走完一次创作) · [Agent 如何工作](#agent-如何工作) · [能力与边界](#能力与边界) · [技术栈](#技术栈) · [测试与验收](#测试与验收) · [开发文档](#开发文档)
 
 ![Motif Forge 浅色作品工作台](docs/images/workbench.png)
 
@@ -149,6 +164,56 @@ flowchart LR
 
 查看 [Eval 报告](docs/evals/S7_EVAL_REPORT.md)、[最终产品合同](docs/PROJECT_GUIDE.md)和[当前实施状态](docs/IMPLEMENTATION_STATUS.md)。
 
+## 技术栈
+
+| 层 | 选型 |
+| --- | --- |
+| Agent 编排 | LangGraph 1.x 单一 Parent Graph + `langgraph-checkpoint-postgres` 持久检查点 |
+| 后端 | Python 3.12–3.13 · FastAPI · Pydantic v2 · SQLAlchemy 2（async）· Alembic 迁移 |
+| 队列与任务 | Celery 5.6 + Redis 7.4；持久 Outbox / Inbox 负责派发与恢复 |
+| 数据 | PostgreSQL 17，存放创作事实、人工决策、事件与模型用量 |
+| 前端 | React 19 · TypeScript 5.9 · Vite 8 · TanStack Query |
+| 音频渲染 | Node 24 + Playwright Chromium 驱动 Tone.js 15；FFmpeg 负责媒体与转码 |
+| 测试 | pytest（676 条用例）· Vitest（50 个前端测试文件）· Playwright 浏览器冒烟 |
+| 运行 | Docker Compose 编排 9 个服务；Colima 或 Docker Desktop |
+| 可观测性 | 内置 Graph Inspector；可选 LangSmith 开发追踪 |
+| 模型 | 默认确定性回退规划；可选 DeepSeek，属显式启用的付费验证 |
+
+## 主要目录
+
+| 路径 | 内容 |
+| --- | --- |
+| `apps/web` | React 工作台：页面、状态管理、浅色视觉系统 |
+| `services/api` | FastAPI 应用、Agent 图、持久化、迁移与后端测试 |
+| `services/render-worker` | 确定性音乐渲染 Worker（Chromium + Tone.js） |
+| `packages/audio-engine` | 共享音频引擎与类型 |
+| `scripts` | 启动器、分阶段验收、Eval 报告与浏览器冒烟 |
+| `docs` | 产品合同、架构规范、决策记录、实施状态与证据 |
+| `tests` | 契约测试与 Eval 用例 |
+
+## 测试与验收
+
+前端与音频：
+
+```bash
+npm run test:web            # 工作台组件与状态
+npm run test:audio          # 音频引擎与渲染 Worker
+npm run eval:s7             # 生成 S7 Eval 报告
+npm run smoke:s7            # S7 作品集确定性验收
+npm run smoke:s7:browser    # S7 浏览器冒烟
+npm run smoke:graph-ui      # Graph Inspector 浏览器冒烟
+```
+
+后端：
+
+```bash
+uv run pytest               # services/api/tests + tests
+uv run ruff check .         # lint
+uv run mypy services/api/src
+```
+
+验收结论以 [S7 Eval 报告](docs/evals/S7_EVAL_REPORT.md) 与[实施状态](docs/IMPLEMENTATION_STATUS.md) 为准：96 条内部 inventory 中 80 条实测通过、13 条预期拒绝、3 条未测。本 README 不重复声明尚未验证的指标。
+
 ## 开发文档
 
 | 文档 | 适合什么时候看 |
@@ -161,8 +226,6 @@ flowchart LR
 | [实施状态](docs/IMPLEMENTATION_STATUS.md) | 区分已实现、部分完成与尚未验证 |
 | [技术演进](docs/TECH_EVOLUTION.md) | 查阅阶段证据、历史问题与修复 |
 | [后续路线](docs/NEXT_DEVELOPMENT_ROADMAP.md) | 风险触发后的开发顺序，而非无止境硬化 |
-
-主要目录：`apps/web`（React 工作台）、`services/api`（API / Agent / 持久化）、`packages`（共享音频与类型）、`scripts`（启动与验收）、`docs`（合同与证据）。
 
 ---
 
