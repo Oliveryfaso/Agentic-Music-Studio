@@ -1,6 +1,6 @@
 # P1 最小钢琴纵切：明确版本、真实声音、可逆表达
 
-日期：2026-10-19（Asia/Shanghai）。状态：可执行方案，**本轮未实施 P1 功能**。Stage：P1；覆盖 MF-P01/P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20/P21；MF-P09 的古典/爵士新建入口调整在本阶段明确单独交付，不删除 legacy 风格。
+日期：2026-10-19（Asia/Shanghai）。状态：原始P1方案；A1容量与独立包合同准备子门已有证据，**真实钢琴产品功能尚未完成**。Stage：P1；覆盖 MF-P01/P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20/P21；MF-P09 的古典/爵士新建入口调整在本阶段明确单独交付，不删除 legacy 风格。
 
 执行模型：按用户指定 GPT-6.1 Sol / xhigh。采用 ADR-016 的有界纵切节奏；一次 Task、一份证据、一个本地 checkpoint。P0 报告中的未测项不得因本计划存在而转为完成。
 
@@ -37,11 +37,11 @@
 
 现有数据库 Revision JSONB 可以存新快照，但旧客户端不能读 v2。必须提供前向部署顺序和 downgrade guard：先上双读 Worker/API，再允许创建 v2；有 v2 rows/checkpoints/recipes 时禁止退到只读 v1 的版本。若需要 capability marker/DB constraint，使用新的 Alembic migration（当前 head 应重新查询，不能猜 revision ID）；没有 SQL 列变化也要记录 JSON 兼容迁移与回退策略。不能把“JSONB 无需加列”解释成“无需迁移方案”。
 
-## 具体小型音源候选（只选型，尚未下载/接受归档文件）
+## 具体小型音源候选（已隔离小包，尚未准入）
 
 FreePats Upright Piano KW **small SFZ WAV**：官方页面标 CC0、4.3 MiB 下载 / 10 MiB 展开。精确链接：`https://freepats.zenvoid.org/Piano/UprightPianoKW/UprightPianoKW-small-SFZ-20190703.7z`。页面上层显示 2022-02-21，但 small 文件名为 20190703，必须分别记录，不能伪称是完整 2022 两力度层包。
 
-来源：[FreePats 官方条目](https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html)，本轮核实 2026-10-19。采样录制人员/许可以归档中的具体文本为准；只确认网页 CC0，归档许可、文件清单、root/loop/力度层和 hash 仍待检查。**小包的力度层数量尚未核实**；若单层，只能先证明力度包络/演奏变化，不能宣传多层真实钢琴或真实半踏。
+来源：[FreePats 官方条目](https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html)，本轮核实 2026-10-19。采样录制人员/许可以归档中的具体文本为准；目前确认网页CC0、4,551,289-byte归档SHA256/目录（26WAV），包内许可与root/loop/力度层仍待检查，见2026-10-19包合同证据。系统bsdtar可列目录但不能解其过滤器；未安装新工具，不放行真实manifest。**小包的力度层数量尚未核实**；若单层，只能先证明力度包络/演奏变化，不能宣传多层真实钢琴或真实半踏。
 
 Task A/B 可在没有样本时完成。Task C 下载前如平台需要许可证接受/权限确认，应一次说明具体文件、4.3 MiB 上限、CC0 用途和外置目标；不扩大到 69 MiB/1 GiB 包，不安装 7z 软件。先检测本机已有解压能力；无能力时停止资产 Task，其他任务可继续。
 
@@ -52,7 +52,7 @@ Task A/B 可在没有样本时完成。Task C 下载前如平台需要许可证�
 Files：`application/rendering.py`、`domain/media_jobs.py`、`audio/chromium_render.py` 及相关测试；`scripts/stop_motif_forge.sh` 与 `tests/test_local_launcher_contract.py`。若为减少范围，可先只做容量，默认 Colima 继续不使用现有 stopper。
 
 1. RED：新测试 `test_five_minute_pcm24_payload_capacity`、`test_preview_intermediate_capacity` 断言精确 bytes 与 bounded allowance；验证峰值 temp 空间估计纳入 StoragePressureGate。Expected：64 MiB 现状失败。
-2. GREEN：用纯函数按 ceil(frames)×channels×bytesPerSample+header 计算，含明确尾音策略与硬上限，不按猜测添加无限余量。当前 maximum_output_bytes schema 512 MiB 上限保留。Preview 中间件也是 PCM24，不能按 MP3 大小估算。
+2. GREEN：用纯函数按 ceil(frames)×channels×bytesPerSample+header 计算，含明确尾音策略与硬上限，不按猜测添加无限余量。Canonical 2GiB/Candidate 512MiB的旧序列化字段范围保留；A1已实现执行前按render-capacity.v1推导并clamp，不能混淆两个schema上限。Preview 中间件也是 PCM24，不能按 MP3 大小估算。
 3. RED/GREEN：默认 stopper 只停止项目 Web/Compose，Colima 只能显式 opt-in，且明确共享 VM 影响；替换旧“必须停 Colima”的 mock 断言。测试全部用 fake binaries，真实 Colima 不启停。
 4. 窄测试：`pytest -p no:cacheprovider services/api/tests/unit/application/test_rendering.py services/api/tests/unit/audio/test_chromium_render.py tests/test_local_launcher_contract.py -q`。Expected：新边界与旧用例通过。新测试文件名应在实际写入后加入精确命令，不能只跑旧测试。
 5. 真实边界：一份五分钟 canonical WAV 成功、超出配额有结构化失败、取消清理；只在接受的 render profile 和必要 Worker 下跑，不启动 UI/模型。
@@ -113,4 +113,7 @@ Eval 至少一条成功 `PIANO_EXPRESSION_AUDIBLE` 和一条失败 `INSTRUMENT_P
 
 ## 下一 session 的最小入口
 
-先做 **Task A 的容量修复**（独立 RED/GREEN，不改声音），再依次执行 A2 的单琴导出合同与 Task B 的 v1/v2 表达合同。音源 Task C 要在确切归档许可/解压能力确认后执行；若需要新软件或许可证接受，明确说明再确认。P0 的旧用户工程 DB/UI 与 pinned 容器验证仍是未测项，应在专用资源窗口补一次，不与其他项目争用默认 VM。
+Task A1容量已验收；本次已独立验证包合同/适配准备，真实包仍隔离。生产链路继续按A2单琴导出合同与Task B的v1/v2表达合同推进。音源 Task C 要在确切归档许可/解压能力确认后执行；若需要新软件或许可证接受，明确说明再确认。P0 的旧用户工程 DB/UI 与 pinned 容器验证仍是未测项，应在专用资源窗口补一次，不与其他项目争用默认 VM。
+
+
+资源补充：A1五分钟3轨/880事件进程树RSS采样最高约2.15GiB；320MiB只约束声明的裸媒体缓冲，不能当作RSS封顶。真实钢琴解码、缓存与最大编制仍需独立测量。

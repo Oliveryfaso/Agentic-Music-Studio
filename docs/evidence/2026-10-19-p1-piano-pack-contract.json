@@ -1,0 +1,75 @@
+{
+  "archiveBytes": 4551289,
+  "archiveSha256": "ffb547fceb91eeb93d78cf8d220d1d5f726dcac891afc15e517805ac48abb39d",
+  "fileCount": 30,
+  "wavCount": 26,
+  "totalDeclaredUnpackedBytes": 10509268,
+  "declaredWavBytes": 9452994,
+  "insideLicenseVerified": false,
+  "insideSfzMappingVerified": false,
+  "extractionError": "bsdtar 3.5.3: Unsupported filter 3 for 40202",
+  "optionalExtractor": {
+    "url": "https://github.com/ip7z/7zip/releases/download/26.04/7z2604-mac.tar.xz",
+    "headContentLength": 1861928,
+    "downloaded": false,
+    "installed": false
+  },
+  "officialPage": "https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html",
+  "archiveUrl": "https://freepats.zenvoid.org/Piano/UprightPianoKW/UprightPianoKW-small-SFZ-20190703.7z",
+  "sourceFileNameDate": "20190703",
+  "officialPageHeadingDate": "2022-02-21",
+  "headLastModified": "2022-02-26T13:02:55Z",
+  "sourceStatus": "quarantined; metadata/listing only; no decoded real piano or admitted manifest",
+  "licenseTextDeclaredBytes": 7048,
+  "sfzDeclaredBytes": 2641,
+  "readmeDeclaredBytes": 896,
+  "archiveExecution": false,
+  "fixtureProbe": {
+    "schemaVersion": "piano-adapter-probe.v1",
+    "date": "2026-10-18T17:55:41.920Z",
+    "chromiumVersion": "151.0.7922.34",
+    "providerRequests": 0,
+    "providerTokens": 0,
+    "realPianoQualityMeasured": false,
+    "result": {
+      "fixture": "self-authored builtin click, not piano",
+      "baseHz": 1751.8248175182482,
+      "octaveHz": 3553.701772679875,
+      "energyRatio": 4,
+      "releasedAfterStop": 0,
+      "newVoiceSurvivesOldRelease": 0.016463031887240697,
+      "allVoicesStopped": 0
+    }
+  },
+  "validation": {
+    "audioTsPassed": 48,
+    "newTests": 18,
+    "tsc": "passed",
+    "hostBuild": "passed",
+    "independentReview": "one review + one bounded RED/GREEN repair; original current-code blockers closed",
+    "dbUiVmMeasured": false,
+    "productionV2Wired": false,
+    "actualPianoQualityMeasured": false
+  },
+  "storage": {
+    "keep": [
+      "artifacts/piano-contract/2026-10-19-accepted",
+      "P0/P1-A1 accepted outputs",
+      "task workspace quarantined 4,551,289-byte source archive and audit metadata",
+      "all existing user projects/inputs/artifacts/dependencies"
+    ],
+    "beforeBytes": {
+      "2026-10-19-red": 731026,
+      "2026-10-19-green": 737884,
+      "2026-10-19-verified": 738017,
+      "2026-10-19-final": 734052,
+      "2026-10-19-accepted": 738792
+    },
+    "removedOwnSupersededProbeBytes": 2940979,
+    "keptProbeBytes": 738792,
+    "sharedVmTouched": false,
+    "toolInstalled": false,
+    "quarantinedArchiveInstalled": false,
+    "afterFreeBytes": 127676055552
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "keep": [
+    "artifacts/piano-contract/2026-10-19-accepted",
+    "P0/P1-A1 accepted outputs",
+    "task workspace quarantined 4,551,289-byte source archive and audit metadata",
+    "all existing user projects/inputs/artifacts/dependencies"
+  ],
+  "beforeBytes": {
+    "2026-10-19-red": 731026,
+    "2026-10-19-green": 737884,
+    "2026-10-19-verified": 738017,
+    "2026-10-19-final": 734052,
+    "2026-10-19-accepted": 738792
+  },
+  "removedOwnSupersededProbeBytes": 2940979,
+  "keptProbeBytes": 738792,
+  "sharedVmTouched": false,
+  "toolInstalled": false,
+  "quarantinedArchiveInstalled": false,
+  "afterFreeBytes": 127676055552
+}

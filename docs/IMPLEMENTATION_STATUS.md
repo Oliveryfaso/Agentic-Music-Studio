@@ -50,6 +50,14 @@ MF-P02/P15/P16/P17/P18/P21。producer、Worker配额估算、HTTP服务及Python
 
 本轮未验DB/UI或pinned Docker，未测试12轨/20k事件最坏负载，也未完成五分钟完整导出Bundle。P1-A2动态导出/v1-v2合同、钢琴音源、表达与音质仍待实施；未下载样本、未改旧作品/声音、未停止共享VM。
 
+### 2.0.2 P1 钢琴包合同与适配准备（2026-10-19）
+
+MF-P02/P05/P10/P15/P16/P17/P18/P21。新增instrument-pack.v1语法/资源/样本hash+PCM格式校验、rootMidi与velocityzone选择、独立BufferSource释放适配；规划和调度均有复音/release硬界。踏板/release-trigger明确拒绝。仅测试和准备probe消费，v1 compiler、版本、aliases和用户作品不改，没有生产新音色入口。
+
+自制builtin click的短OfflineAudioContext实测确认升八度约2.03频率比、力度翻倍能量比4、独立重击和末尾释放；它不是钢琴录音或音质证据。音频TS48条、tsc/宿主构建通过；一次独立审查暴露的非零起点最短gate浮点问题及探针NaN/描述字段问题已RED→GREEN关闭。provider=0/0，无DB/UI/VM。
+
+FreePats KW small WAV具体归档4,551,289 bytes，已hash/列目录并隔离保留；26个WAV，包内CC0和SFZ尚未读取，bsdtar3.5.3不支持其过滤器。未放行真实音源、未安装7z。官方可选macOS7-Zip26.04归档1,861,928 bytes，只查元数据、未下载运行；需要单独允许新工具后才继续包内核查。见[证据与条件](evidence/2026-10-19-p1-piano-pack-contract.md)。A2完整导出/B持久v2/生产审核catalog/真实钢琴A-B仍待实施。
+
 ### 2.1 浅色工作台与产品表达升级（2026-09-24）
 
 S7 后呈现层切片，覆盖 MF-P01/P02/P03/P07/P11/P13/P15/P20 的用户可见部分。首页、Brief、计划审批、候选、Studio、导出、运行检查、导入、About 与 Eval 采用统一浅色系统与中文操作说明。主导航保留移动入口、当前页与跳至正文；Studio Dock 支持键盘切换并紧邻时间线，技术详情按需展开，试听明确区分保存版本和草稿。中文逗号/顿号可用于 Brief 列表输入；审批身份、确认说明及原有版本/恢复门未放宽。

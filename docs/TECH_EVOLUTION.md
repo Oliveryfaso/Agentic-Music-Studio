@@ -431,3 +431,11 @@ Stage P1-A1；MF-P02/P15/P16/P17/P18/P21。固定64MiB使五分钟48k stereo PCM
 RED→GREEN除容量/磁盘/receipt/超限/cleanup外，真实验收与独立审查暴露并修复重叠body双执行、timeout标签竞态、建页期间取消丢失。最终生产HTTP→Chromium→Python校验提升300秒/3轨/880事件，86,400,044 bytes，40.776秒；本任务进程树RSS200ms采样最大2,306,146,304 bytes（共享页可重复计数，非物理峰值）。低预算400、timeout504、cancel释放槽位/临时音频0。API unit552、音频TS30、tsc、严格Mypy、Ruff通过；一次审查加一次修复复审关闭阻塞。provider=0/0，无DB/UI/pinned Docker复验、无共享VM操作/下载/公开push。[报告](evidence/2026-10-19-p1a-render-capacity.md)、[JSON](evidence/2026-10-19-p1a-render-capacity.json)、[审查](evidence/2026-10-19-p1a-review.md)。
 
 本轮证据证明五分钟WAV路径；完整Bundle、最大密度/12轨、生产RSS封顶和钢琴音质仍是后续边界。小型CC0钢琴候选未下载，包内许可/样本映射/层数/工具/预算待接音源前核查。P1-A2动态导出与v1/v2合同仍在音源之前。
+
+## 2026-10-19 P1 钢琴包合同与播放适配准备
+
+Stage P1包合同子门；MF-P02/P05/P10/P15/P16/P17/P18/P21。新增instrument-pack.v1校验、样本hash/PCM元数据绑定、velocityzone/rootMidi选择、独立Web Audio BufferSource播放适配；按manifest及voices再次限制编码/解码/复音/gate/release。踏板和release-trigger明确拒绝；真实catalog/packHTTP/v2IR/Recipe/完整Bundle仍未接。
+
+先以现有自制click记录缺API/缺scheduler与资源/释放/错误标签RED，再GREEN。独立审查暴露5ms浮点边界与probe NaN误判；一次修复中又纠正描述字段误拒，并有对应回归。最终音频TS48、tsc、宿主构建和独立Chromium短OfflineAudioContext通过；根音/升八度频率比约2.03、力度能量比4、重击独立/末尾归零。不是钢琴音质，不做实际琴声结论。
+
+官方KW small WAV归档4,551,289 bytes，SHA256 ffb547fceb91eeb93d78cf8d220d1d5f726dcac891afc15e517805ac48abb39d；26WAV目录声明9,452,994 bytes。系统bsdtar3.5.3可列目录，解文本报Unsupported filter 3 for 40202；包内许可/SFZ/root/层数/loop仍未核实，真实包隔离、不生成准入manifest。官方7-Zip26.04 macOS工具归档1,861,928 bytes只查HEAD元数据，未下载/安装/执行，需另行明确允许新工具后继续。无付费请求、DB/UI/共享VM操作，不改变v1 compiler/版本/aliases或用户作品。2.15GiB是前轮A1进程树RSS采样，320MiB仅裸媒体预算；本轮短probe未测RSS。[详细证据](evidence/2026-10-19-p1-piano-pack-contract.md)、[结构化证据](evidence/2026-10-19-p1-piano-pack-contract.json)、[存储账本](evidence/2026-10-19-p1-piano-pack-storage.json)。
