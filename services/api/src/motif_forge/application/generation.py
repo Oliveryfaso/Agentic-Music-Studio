@@ -54,6 +54,7 @@ from motif_forge.domain.composition import (
     CompositionBuild,
     SynthAmbientCompilationError,
 )
+from motif_forge.domain.export_plan import CompleteExportCursorV2
 from motif_forge.domain.ir import DomainModel, TrackRole
 from motif_forge.domain.media_jobs import (
     ArtifactAvailability,
@@ -141,6 +142,19 @@ class CompleteExportCursor(DomainModel):
     @property
     def pending_steps(self) -> tuple[str, ...]:
         return EXPORT_STEPS[len(self.completed_steps) :]
+
+
+def read_complete_export_cursor(raw: str) -> CompleteExportCursor | CompleteExportCursorV2:
+    """Explicit dual reader prepared for a later, PostgreSQL-verified Graph rollout."""
+    value = json.loads(raw)
+    if not isinstance(value, dict):
+        raise ValueError("EXPORT_CURSOR_VERSION_UNSUPPORTED")
+    version = value.get("schema_version", "complete-export-cursor.v1")
+    if version == "complete-export-cursor.v1":
+        return CompleteExportCursor.model_validate_json(raw, strict=True)
+    if version == "complete-export-cursor.v2":
+        return CompleteExportCursorV2.model_validate_json(raw, strict=True)
+    raise ValueError("EXPORT_CURSOR_VERSION_UNSUPPORTED")
 
 
 def _export_key(cursor: CompleteExportCursor, step: str) -> str:

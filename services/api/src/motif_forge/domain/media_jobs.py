@@ -11,6 +11,7 @@ from uuid import UUID
 
 from pydantic import Field, model_validator
 
+from motif_forge.domain.export_plan import ExportPlanV2
 from motif_forge.domain.ir import DomainModel
 
 
@@ -738,4 +739,27 @@ class WorkerResumePayload(DomainModel):
                 raise ValueError("successful resume requires artifact_id and forbids error_code")
         elif self.artifact_id is not None or self.error_code is None:
             raise ValueError("failed resume requires error_code and forbids artifact_id")
+        return self
+
+
+class ExportBundleJobPayloadV2(DomainModel):
+    """Internal preparation contract; the production Worker still admits v1 only."""
+
+    schema_version: Literal["export-bundle-job.v2"] = "export-bundle-job.v2"
+    plan: ExportPlanV2
+    plan_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    audio_inputs: tuple[BundleAudioInput, ...] = Field(min_length=1, max_length=14)
+    trace_refs: tuple[str, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_inputs(self) -> Self:
+        if self.plan_hash != self.plan.content_hash:
+            raise ValueError("EXPORT_PLAN_HASH_MISMATCH")
+        actual = {item.filename: item.quality_profile for item in self.audio_inputs}
+        if (
+            actual != dict(self.plan.audio_files)
+            or len(actual) != len(self.audio_inputs)
+            or len({item.artifact_id for item in self.audio_inputs}) != len(self.audio_inputs)
+        ):
+            raise ValueError("EXPORT_AUDIO_SET_INVALID")
         return self

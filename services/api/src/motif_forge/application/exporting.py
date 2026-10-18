@@ -12,7 +12,11 @@ from typing import TypedDict
 
 from motif_forge.audio.midi import arrangement_to_midi
 from motif_forge.domain.canonical import canonical_json_bytes
-from motif_forge.domain.exporting import ExportBundleRequest, ExportBundleResult
+from motif_forge.domain.exporting import (
+    ExportBundleRequest,
+    ExportBundleRequestV2,
+    ExportBundleResult,
+)
 
 
 class _ManifestEntry(TypedDict, total=False):
@@ -35,10 +39,15 @@ def _json_bytes(value: object) -> bytes:
 def write_export_bundle(
     *,
     artifact_root: Path,
-    request: ExportBundleRequest,
+    request: ExportBundleRequest | ExportBundleRequestV2,
     cancel_event: threading.Event | None = None,
 ) -> ExportBundleResult:
     root = artifact_root.resolve()
+    audio_exports = (
+        tuple(sorted(request.audio_exports, key=lambda item: item.filename))
+        if isinstance(request, ExportBundleRequestV2)
+        else request.audio_exports
+    )
     identity = hashlib.sha256(
         _json_bytes(
             {
@@ -47,11 +56,15 @@ def write_export_bundle(
                 "revision_id": str(request.revision_id),
                 "arrangement_hash": request.arrangement_hash,
                 "audio": tuple(
-                    (str(item.artifact_id), item.sha256, item.filename)
-                    for item in request.audio_exports
+                    (str(item.artifact_id), item.sha256, item.filename) for item in audio_exports
                 ),
                 "engine_version": request.engine_version,
                 "seed": request.seed,
+                **(
+                    {"export_plan_hash": request.plan_hash, "trace_refs": request.trace_refs}
+                    if isinstance(request, ExportBundleRequestV2)
+                    else {}
+                ),
             }
         )
     ).hexdigest()
@@ -133,7 +146,14 @@ def write_export_bundle(
     entries.sort(key=_entry_filename)
     manifest = _json_bytes(
         {
-            "schema_version": "export-manifest.v1",
+            "schema_version": "export-manifest.v2"
+            if isinstance(request, ExportBundleRequestV2)
+            else "export-manifest.v1",
+            **(
+                {"export_plan_hash": request.plan_hash}
+                if isinstance(request, ExportBundleRequestV2)
+                else {}
+            ),
             "project_id": str(request.project_id),
             "revision_id": str(request.revision_id),
             "files": entries,

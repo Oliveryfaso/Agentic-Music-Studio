@@ -1,0 +1,182 @@
+{
+  "schemaVersion": "p1-a2-contract-evidence.v1",
+  "date": "2026-10-19",
+  "stage": "P1-A2.1",
+  "requirements": [
+    "MF-P02",
+    "MF-P05",
+    "MF-P06",
+    "MF-P08",
+    "MF-P10",
+    "MF-P11",
+    "MF-P15",
+    "MF-P16",
+    "MF-P17",
+    "MF-P18",
+    "MF-P21"
+  ],
+  "baseCommit": "2d6d588167a01630d571d5fe2a6fa5b2cccf7b70",
+  "scope": "internal contracts and filesystem packaging only",
+  "productionV2Activated": false,
+  "databaseMeasured": false,
+  "persistentMusicV2Implemented": false,
+  "realPianoAdmitted": false,
+  "sevenZipDownloadedOrRun": false,
+  "migrationSourceHead": "20260824_0021",
+  "migrationEnvExecuted": false,
+  "providerRequests": 0,
+  "providerTokens": 0,
+  "checks": {
+    "apiUnitPassed": 561,
+    "apiUnitSeconds": 6.86,
+    "apiUnitWarning": "existing Starlette TestClient/httpx deprecation",
+    "strictMypySourceFiles": 5,
+    "ruffFiles": 7,
+    "postgresIntegrationSkipped": 2,
+    "postgresSkipReason": "MOTIF_FORGE_TEST_POSTGRES_DSN not configured; no SQLite or implicit credentials",
+    "postCleanupFocusedPassed": 17,
+    "postCleanupFocusedSeconds": 0.4
+  },
+  "review": {
+    "independent": true,
+    "newCriticalImportant": 0,
+    "focusedTestsPassed": 15,
+    "validCursorStates": 88,
+    "invalidCursorStatesRejected": 82,
+    "legacyV1PhysicalFilesByteEqual": 7,
+    "legacyV1LogicalFileCount": 13,
+    "temporaryProbeScriptArchived": false,
+    "evidenceOrigin": "independent reviewer tool output; temporary probe script not retained"
+  },
+  "filesystem": {
+    "schemaVersion": "a2-filesystem-boundary.v1",
+    "scope": "internal-contract-and-filesystem-only",
+    "fixture": "self-authored sine PCM + real FFmpeg MP3; not piano/canonical DSP proof",
+    "providerRequests": 0,
+    "providerTokens": 0,
+    "databaseMeasured": false,
+    "productionV2Activated": false,
+    "realPianoAdmitted": false,
+    "remainingPartials": 0,
+    "legacyCursorByteRoundtrip": true,
+    "ffprobe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "pcm_s24le",
+          "sample_rate": "48000",
+          "channels": 2,
+          "bits_per_raw_sample": "24"
+        }
+      ],
+      "format": {
+        "duration": "2.000000",
+        "size": "576044"
+      }
+    },
+    "runs": [
+      {
+        "includeMp3": false,
+        "requestedStems": [],
+        "planHash": "1ea26119aa6ec0315a8f4284929b9e10cb2d5d48bda3f0ba27d40b419e40dba0",
+        "steps": [
+          "master",
+          "bundle"
+        ],
+        "manifestFiles": 8,
+        "bundlePrefix": "protected/exports/00000000-0000-0000-0000-000000000c1d/daee1211-f8fd-41b6-9c8b-a634263a8800/bundles/717dc3dc8d4643c1007d17c3d3b1c024eb90e759307b9693135e7607023cd88b",
+        "manifestHash": "1df03903a56b1242dcd6c46ebda4289d9db91b8a2fc525d46deebebf89d0abf0",
+        "allReferencedChecksumsVerified": true,
+        "repeatReused": true,
+        "cancelPreservedExisting": true,
+        "latencySeconds": 0.03348604217171669
+      },
+      {
+        "includeMp3": true,
+        "requestedStems": [],
+        "planHash": "76f294907bbe6e7dba6fe8d46752daea9ad87bdb4d97661cc464446257dcb938",
+        "steps": [
+          "master",
+          "mp3",
+          "bundle"
+        ],
+        "manifestFiles": 9,
+        "bundlePrefix": "protected/exports/00000000-0000-0000-0000-000000000c1d/daee1211-f8fd-41b6-9c8b-a634263a8800/bundles/0315d04ba9d52d392a1f570825902f2a392f2ceb59d3be5ca984dead9bfe9329",
+        "manifestHash": "32ad61ad8b4a07e68e4931bff7040bd12bc8767873d1c65323c11cfe9b423fed",
+        "allReferencedChecksumsVerified": true,
+        "repeatReused": true,
+        "cancelPreservedExisting": true,
+        "latencySeconds": 0.013848291942849755
+      },
+      {
+        "includeMp3": true,
+        "requestedStems": [
+          "00000000-0000-0000-0000-000000000c1f"
+        ],
+        "planHash": "ce7d0505348237aa28ae26f7ba6a6a9839effd12aa9404ee6b0c6c31a04a733d",
+        "steps": [
+          "master",
+          "stem:00000000-0000-0000-0000-000000000c1f",
+          "mp3",
+          "bundle"
+        ],
+        "manifestFiles": 10,
+        "bundlePrefix": "protected/exports/00000000-0000-0000-0000-000000000c1d/daee1211-f8fd-41b6-9c8b-a634263a8800/bundles/018ba4ad4f0efa0c02a0a09dc23470ac807acd9a252ba697476586d414f4c98f",
+        "manifestHash": "24fcf8177a5fa7a303382aef98d6d1c0981b477a460e31320c1db93d084935e7",
+        "allReferencedChecksumsVerified": true,
+        "repeatReused": true,
+        "cancelPreservedExisting": true,
+        "latencySeconds": 0.013634958071634173
+      }
+    ]
+  },
+  "storage": {
+    "schemaVersion": "a2-storage-hygiene.v1",
+    "before": {
+      "cacheLogicalBytes": 6189280,
+      "externalFreeBytes": 127647088640,
+      "workspaceFreeBytes": 50725789696
+    },
+    "after": {
+      "cacheLogicalBytes": 0,
+      "externalFreeBytes": 127647088640,
+      "workspaceFreeBytes": 50732154880
+    },
+    "removedExactPaths": [
+      "/tmp/motif-a2-mypy"
+    ],
+    "reclaimedLogicalBytes": 6189280,
+    "keepSet": [
+      {
+        "path": "/Volumes/KINGSTON/idea/agentic-music-workbench/artifacts/p0/2026-10-19-accepted",
+        "exists": true,
+        "logicalBytes": 89219829
+      },
+      {
+        "path": "/Volumes/KINGSTON/idea/agentic-music-workbench/artifacts/p1a/2026-10-19-verified",
+        "exists": true,
+        "logicalBytes": 86534909
+      },
+      {
+        "path": "/Volumes/KINGSTON/idea/agentic-music-workbench/artifacts/piano-contract/2026-10-19-accepted",
+        "exists": true,
+        "logicalBytes": 738792
+      },
+      {
+        "path": "/Volumes/KINGSTON/idea/agentic-music-workbench/artifacts/a2/2026-10-19-accepted",
+        "exists": true,
+        "logicalBytes": 1348945
+      },
+      {
+        "path": "/Users/oliver/Documents/Codex/2026-10-18/task-2/research/piano-source-audit/UprightPianoKW-small-SFZ-20190703.7z",
+        "exists": true,
+        "logicalBytes": 4551289
+      }
+    ],
+    "acceptedManifestAndReferencedChecksAfterCleanup": 27,
+    "remainingPartials": 0,
+    "sharedDockerVmImagesVolumesTouched": false,
+    "userArtifactsRemoved": false
+  }
+}

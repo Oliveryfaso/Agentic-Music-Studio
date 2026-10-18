@@ -58,6 +58,12 @@ MF-P02/P05/P10/P15/P16/P17/P18/P21。新增instrument-pack.v1语法/资源/样�
 
 FreePats KW small WAV具体归档4,551,289 bytes，已hash/列目录并隔离保留；26个WAV，包内CC0和SFZ尚未读取，bsdtar3.5.3不支持其过滤器。未放行真实音源、未安装7z。官方可选macOS7-Zip26.04归档1,861,928 bytes，只查元数据、未下载运行；需要单独允许新工具后才继续包内核查。见[证据与条件](evidence/2026-10-19-p1-piano-pack-contract.md)。A2完整导出/B持久v2/生产审核catalog/真实钢琴A-B仍待实施。
 
+### 2.0.3 P1-A2.1 动态导出内部合同（2026-10-19）
+
+MF-P02/P05/P06/P08/P10/P11/P15/P16/P17/P18/P21。新增export-plan.v2、cursor/job/request v2与显式双读helper，按真实轨道请求stem及可选MP3；writer内部v2按plan hash/规范输入集合绑定幂等。仅支持现有builtin NoteClip，拒绝未审核外部音源，未激活Graph/Worker/Outbox/API/UI，音乐IR/Revision仍为v1。
+
+自制PCM+已有FFmpeg真实文件边界为8/9/10逻辑文件，bytes/hash/重复复用/预设取消保留旧包通过；不是钢琴或canonical DSP验收。API unit561、Mypy5源、Ruff7文件通过，一次独立审查无新增Critical/Important；88合法/82错误cursor状态及v1七实体文件bytes对照通过。隔离PG未配置，真实集成2 skipped；迁移源码head=20260824_0021，未连接数据库。A2.2真实持久接线、B音乐v2双读/Undo/迁移与真实钢琴仍待验，7-Zip未批准未运行。见[证据](evidence/2026-10-19-p1-a2-contract.md)。
+
 ### 2.1 浅色工作台与产品表达升级（2026-09-24）
 
 S7 后呈现层切片，覆盖 MF-P01/P02/P03/P07/P11/P13/P15/P20 的用户可见部分。首页、Brief、计划审批、候选、Studio、导出、运行检查、导入、About 与 Eval 采用统一浅色系统与中文操作说明。主导航保留移动入口、当前页与跳至正文；Studio Dock 支持键盘切换并紧邻时间线，技术详情按需展开，试听明确区分保存版本和草稿。中文逗号/顿号可用于 Brief 列表输入；审批身份、确认说明及原有版本/恢复门未放宽。
@@ -89,7 +95,7 @@ README 已按产品、截图、启动、创作流程、Agent 架构、证据和�
 | Artifact 生命周期与 StoragePressureGate | 可运行 | 四态、配额、驱逐/重建、外置 Root | 暂不扩建通用缓存平台，按新 Artifact 类型增量接入 |
 | Tone.js AudioGraphCompiler | 可运行 | ArrangementIR 编译/渲染、12 个语义 Preset alias、Web 只读 Timeline/Track projection、真实 MP3 Transport | Lite 音色仍投影到 3 个合成核心与 click sample；HQ 音色不属于 S4 |
 | PatternSpec 与确定性 Composer | 可运行 | 四风格 Plan 策略、稳定双 seed Candidate、局部 Repair Snapshot、版本化 Plan hash、Parent Graph、共享 Export cursor 与有界 Edit Patch | 古典/爵士生成质量随 P1/P3 可听基线校准，主观质量未测 |
-| 完整成曲与导出 | 可运行 | 四风格 Web Brief→审批→Revision→7 Jobs→Studio；Master/MP3/四 Stem/MIDI/Project/逻辑 Bundle | 仍写死四 stem；五分钟 PCM24 超出 64 MiB；1–5 分钟/12 轨未实测 |
+| 完整成曲与导出 | 可运行 | 四风格 Web Brief→审批→Revision→7 Jobs→Studio；Master/MP3/四 Stem/MIDI/Project/逻辑 Bundle | 用户路径仍固定四stem；A1已验5分钟WAV，A2.1动态合同仅内部；12轨/完整长曲Bundle未实测 |
 | 四个 Style Pack 与 Theory Engine | 可运行 | 四个严格 `StylePack v1`、reviewed source/license snapshot、symbolic exemplar、Preset Palette、稳定 Theory rule/evidence、Web 解释与四风格 no-key 完整导出 | 当前为 Project-authored Lite 知识/音色；更丰富检索与 HQ Pack 非 S4 门槛 |
 | Web Import Review | 可运行 | 上传、分析确认、试听、恢复、同 Project 多 Stem 与窄屏回归 | 更复杂的多轨编辑不属于 Import Review |
 | Web Studio（轻量编辑） | 可运行 | Timeline/Piano Roll/Mixer/Library 面板、Draft/save/Undo/Redo、AI Edit/Preview、MP3 Transport、390px review-only | 更丰富专业 DAW 工具不属于个人作品集首版 |
