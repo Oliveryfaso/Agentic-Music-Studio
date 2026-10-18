@@ -74,6 +74,7 @@ from motif_forge.domain.media_jobs import (
     TimeStretchJobPayload,
     WorkerEvent,
 )
+from motif_forge.domain.render_capacity import estimate_render_capacity
 from motif_forge.domain.revisions import CandidateSnapshot
 from motif_forge.domain.storage import StorageRoute
 from motif_forge.infrastructure.persistence.database import (
@@ -1250,6 +1251,7 @@ async def _execute_canonical_render(
         artifact_root=settings.artifact_root,
         temp_root=settings.temp_root,
         service_url=settings.render_service_url,
+        minimum_free_bytes=settings.storage_min_free_bytes,
     ).render(job_id=job.job_id, payload=payload)
 
 
@@ -1275,6 +1277,7 @@ async def _execute_candidate_preview(
         artifact_root=settings.artifact_root,
         temp_root=settings.temp_root,
         service_url=settings.render_service_url,
+        minimum_free_bytes=settings.storage_min_free_bytes,
     ).render(job_id=job.job_id, payload=payload)
     try:
         mp3 = await asyncio.to_thread(
@@ -1337,12 +1340,20 @@ async def _run_artifact_storage_gate(
     dependency_ids: tuple[UUID, ...] = ()
     if job.job_type is MediaJobType.RENDER_PREVIEW:
         payload_preview = _parse_candidate_preview_payload(job)
-        artifact_bytes = payload_preview.maximum_output_bytes
-        temp_bytes = payload_preview.maximum_output_bytes
+        try:
+            artifact_bytes = estimate_render_capacity(
+                payload_preview.audio_graph
+            ).output_limit_bytes
+        except ValueError as exc:
+            return str(exc)
+        temp_bytes = artifact_bytes
     elif job.job_type is MediaJobType.RENDER_CANONICAL:
         payload = _parse_canonical_render_payload(job)
-        artifact_bytes = payload.maximum_output_bytes
-        temp_bytes = payload.maximum_output_bytes
+        try:
+            artifact_bytes = estimate_render_capacity(payload.audio_graph).output_limit_bytes
+        except ValueError as exc:
+            return str(exc)
+        temp_bytes = artifact_bytes
     elif job.job_type is MediaJobType.TRANSCODE_EXPORT:
         payload_mp3 = _parse_export_mp3_payload(job)
         dependency_ids = (payload_mp3.source_artifact_id,)

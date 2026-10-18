@@ -17,7 +17,7 @@ Record the Git revision and working-tree state of `docs/PROJECT_GUIDE.md` at tas
 
 ## Active gate
 
-`G0` and `S1`–`S7` are historical completed portfolio gates. The current user-authorized work is `P0` product baseline and `P1` minimal-piano preparation (ADR-019, 2026-10-19). P1 music/runtime implementation is not complete. Use `docs/superpowers/plans/2026-10-19-p0-product-baseline.md`, `2026-10-19-p1-minimal-piano.md`, and the current evidence report. Classical/jazz are the new product focus; preserve legacy electronic StylePack IDs, projects, Revisions, sounds, and exports. No paid API, large packs, installation, shared-VM shutdown, public push, or release is authorized by this preparation task.
+`G0` and `S1`–`S7` are historical completed portfolio gates. The current user-authorized slice is `P1-A1` bounded render capacity, following `P0` product baseline and `P1` minimal-piano preparation (ADR-019, 2026-10-19). P1-A1 has host HTTP/executor/Python evidence; v2 piano, dynamic export, and the rest of P1 music/runtime implementation are not complete. Use `docs/superpowers/plans/2026-10-19-p0-product-baseline.md`, `2026-10-19-p1-minimal-piano.md`, `2026-10-19-p1a-render-capacity.md`, and the current evidence reports. Classical/jazz are the new product focus; preserve legacy electronic StylePack IDs, projects, Revisions, sounds, and exports. No paid API, large packs, installation, shared-VM shutdown, public push, or release is authorized by this preparation task.
 
 ## Scope and traceability
 

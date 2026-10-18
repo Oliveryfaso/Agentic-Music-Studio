@@ -286,3 +286,123 @@ async def test_client_does_not_use_host_proxy_for_internal_render_service(
 
     assert result.sha256 == checksum
     assert seen_extensions
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", ["timeout", "cancel", "invalid_receipt"])
+async def test_client_cleans_job_files_when_request_never_yields_a_valid_receipt(tmp_path, kind):
+    import asyncio
+    import json
+
+    (tmp_path / "temp").mkdir()
+
+    async def handler(request):
+        body = json.loads(request.content)
+        output = tmp_path / "temp" / body["outputStorageKey"]
+        output.parent.mkdir(parents=True)
+        output.write_bytes(_pcm24_wav())
+        output.with_name(output.name + ".partial").write_bytes(b"incomplete")
+        if kind == "timeout":
+            raise httpx.ReadTimeout("timed out", request=request)
+        if kind == "cancel":
+            raise asyncio.CancelledError
+        return httpx.Response(200, json={"invalid": "receipt"})
+
+    expected = asyncio.CancelledError if kind == "cancel" else ChromiumRenderError
+    with pytest.raises(expected):
+        await ChromiumRenderClient(
+            artifact_root=tmp_path,
+            temp_root=tmp_path / "temp",
+            service_url="http://render-worker:8090",
+            transport=httpx.MockTransport(handler),
+        ).render(job_id=JOB_ID, payload=_payload())
+    assert not list((tmp_path / "temp").rglob("*.wav*"))
+    assert not (tmp_path / "protected").exists()
+
+
+@pytest.mark.asyncio
+async def test_client_refuses_an_underfunded_pcm_budget_before_http(tmp_path):
+    import json
+
+    p = _payload()
+    graph = {**p.audio_graph, "durationSeconds": 300}
+    p = p.model_copy(
+        update={
+            "audio_graph": graph,
+            "audio_graph_hash": hashlib.sha256(
+                json.dumps(graph, separators=(",", ":"), sort_keys=True).encode()
+            ).hexdigest(),
+        }
+    )
+    (tmp_path / "temp").mkdir()
+
+    async def forbidden(_):
+        raise AssertionError("an underfunded render must not start")
+
+    with pytest.raises(ChromiumRenderError, match="RENDER_OUTPUT_BUDGET_EXCEEDED"):
+        await ChromiumRenderClient(
+            artifact_root=tmp_path,
+            temp_root=tmp_path / "temp",
+            service_url="http://render-worker:8090",
+            transport=httpx.MockTransport(forbidden),
+        ).render(job_id=JOB_ID, payload=p)
+
+
+@pytest.mark.asyncio
+async def test_client_refuses_insufficient_disk_before_http(tmp_path, monkeypatch):
+    import shutil
+    from collections import namedtuple
+
+    usage = namedtuple("usage", "total used free")
+    monkeypatch.setattr(shutil, "disk_usage", lambda _: usage(100, 100, 0))
+    (tmp_path / "temp").mkdir()
+
+    async def forbidden(_):
+        raise AssertionError("a full disk must not start a render")
+
+    with pytest.raises(ChromiumRenderError, match="STORAGE_QUOTA_EXCEEDED"):
+        await ChromiumRenderClient(
+            artifact_root=tmp_path,
+            temp_root=tmp_path / "temp",
+            service_url="http://render-worker:8090",
+            transport=httpx.MockTransport(forbidden),
+        ).render(job_id=JOB_ID, payload=_payload())
+
+
+@pytest.mark.asyncio
+async def test_client_rejects_oversized_temp_before_checksum_and_cleans_it(tmp_path):
+    import json
+
+    (tmp_path / "temp").mkdir()
+
+    async def handler(request):
+        body = json.loads(request.content)
+        output = tmp_path / "temp" / body["outputStorageKey"]
+        output.parent.mkdir(parents=True)
+        with output.open("wb") as stream:
+            stream.write(_pcm24_wav())
+            stream.truncate(1_048_577)
+        return httpx.Response(
+            200,
+            json={
+                "receiptVersion": "render-service-receipt.v1",
+                "requestId": str(JOB_ID),
+                "storageKey": body["outputStorageKey"],
+                "sha256": "0" * 64,
+                "bytes": 1_048_577,
+                "durationSeconds": 0.1,
+                "sampleRate": 48000,
+                "channels": 2,
+                "bitDepth": 24,
+                "peak": 0.1,
+            },
+        )
+
+    with pytest.raises(ChromiumRenderError, match="RENDER_OUTPUT_SIZE_EXCEEDED"):
+        await ChromiumRenderClient(
+            artifact_root=tmp_path,
+            temp_root=tmp_path / "temp",
+            service_url="http://render-worker:8090",
+            transport=httpx.MockTransport(handler),
+        ).render(job_id=JOB_ID, payload=_payload())
+    assert not list((tmp_path / "temp").rglob("*.wav*"))

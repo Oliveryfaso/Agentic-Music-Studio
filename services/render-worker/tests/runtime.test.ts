@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -77,4 +77,46 @@ describe("render worker runtime", () => {
       await rm(root, { recursive: true });
     }
   });
+});
+
+
+describe("bounded output cleanup", () => {
+  it("removes an oversized upload and consumes its token", async () => {
+    const root = await mkdtemp(join(tmpdir(), "motif-capacity-overflow-"));
+    const output = join(root, "render.wav");
+    const server = new LoopbackRenderServer("/unused.js", createBuiltinClickWav());
+    await server.start();
+    try {
+      const token = "c".repeat(32);
+      server.registerSink(token, output, 1024);
+      await fetch(`${server.origin}/outputs/${token}`, {
+        method: "POST", body: new Uint8Array(2048),
+      }).catch(() => undefined);
+      await vi.waitFor(async () => {
+        await expect(access(`${output}.partial`)).rejects.toThrow();
+        await expect(access(output)).rejects.toThrow();
+      });
+      const replay = await fetch(`${server.origin}/outputs/${token}`, {
+        method: "POST", body: new Uint8Array(100),
+      });
+      expect(replay.status).toBe(404);
+    } finally {
+      await server.close();
+      await rm(root, { recursive: true });
+    }
+  });
+});
+
+
+it("preserves the timeout label when page teardown rejects the render operation", async () => {
+  vi.useFakeTimers();
+  let rejectRender: (error: Error) => void = () => undefined;
+  const operation = new Promise<never>((_, reject) => { rejectRender = reject; });
+  const result = withTimeout(operation, 25, async () => {
+    rejectRender(new Error("PAGE_TARGET_CLOSED"));
+  });
+  const rejection = expect(result).rejects.toThrow("RENDER_TIMEOUT");
+  await vi.advanceTimersByTimeAsync(25);
+  await rejection;
+  vi.useRealTimers();
 });

@@ -1,3 +1,5 @@
+import { buildThirtySecondSpikeGraph } from "../../../packages/audio-engine/src/spike-fixture.js";
+import { request as httpRequest } from "node:http";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,6 +10,7 @@ import {
   createRenderServiceServer,
   resolveRenderOutputPath,
   type RenderExecutor,
+  type RenderServiceRequest,
 } from "../src/server.js";
 
 describe("controlled render service", () => {
@@ -70,7 +73,7 @@ describe("controlled render service", () => {
             requestId: "render-1",
             outputToken: "0".repeat(32),
             outputBitDepth: 24,
-            graph: {},
+            graph: buildThirtySecondSpikeGraph(),
           },
         }),
       });
@@ -117,7 +120,7 @@ describe("controlled render service", () => {
         requestId: "render-1",
         outputToken: "0".repeat(32),
         outputBitDepth: 24,
-        graph: {},
+        graph: buildThirtySecondSpikeGraph(),
       },
     };
     try {
@@ -152,7 +155,7 @@ describe("controlled render service", () => {
         requestId: "render-failure",
         outputToken: "0".repeat(32),
         outputBitDepth: 24,
-        graph: {},
+        graph: buildThirtySecondSpikeGraph(),
       },
     };
     for (const [code, expectedStatus] of [
@@ -215,7 +218,7 @@ describe("controlled render service", () => {
           requestId: "disconnect",
           outputToken: "0".repeat(32),
           outputBitDepth: 24,
-          graph: {},
+          graph: buildThirtySecondSpikeGraph(),
         },
       }),
     });
@@ -228,4 +231,80 @@ describe("controlled render service", () => {
       await server.close();
     }
   });
+});
+
+describe("derived render capacity", () => {
+  function request(graph = buildThirtySecondSpikeGraph(), maximumBytes = 2 * 1024**3) {
+    return { requestVersion: "render-service-request.v1", requestId: "capacity",
+      outputStorageKey: "jobs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/render.wav",
+      maximumBytes, timeoutMs: 120000, bridgeRequest: {
+        requestVersion: "render-bridge-request.v1", requestId: "capacity",
+        outputToken: "0".repeat(32), outputBitDepth: 24, graph } };
+  }
+  it("clamps legacy oversized allowances to the actual PCM envelope", async () => {
+    const server = createRenderServiceServer({render: async (r) => ({
+      receiptVersion:"render-service-receipt.v1",requestId:r.requestId,
+      storageKey:r.outputStorageKey,sha256:"a".repeat(64),bytes:r.maximumBytes,
+      durationSeconds:30,sampleRate:48000,channels:2,bitDepth:24,peak:0.1})});
+    await server.start();
+    try {
+      const response=await fetch(`${server.origin}/v1/render`,{method:"POST",body:JSON.stringify(request())});
+      expect(response.status).toBe(200);
+      expect((await response.json()).bytes).toBe(8_640_044);
+    } finally { await server.close(); }
+  });
+  it.each([
+    ["duration", "RENDER_CAPACITY_INVALID"],
+    ["budget", "RENDER_OUTPUT_BUDGET_EXCEEDED"],
+    ["events", "RENDER_RESOURCE_LIMIT_EXCEEDED"],
+  ])("rejects %s limits before allocating audio", async (kind, code) => {
+    const graph=buildThirtySecondSpikeGraph();
+    const changed=kind==="duration"? {...graph,durationSeconds:301}:kind==="events"?
+      {...graph,tracks:[{...graph.tracks[0],notes:Array.from({length:20001},()=>({midi:60,startSeconds:0,durationSeconds:1,velocity:.5}))}]}:graph;
+    const server=createRenderServiceServer({render: async ()=>{throw new Error("must not render");}});
+    await server.start();
+    try {
+      const response=await fetch(`${server.origin}/v1/render`,{method:"POST",body:JSON.stringify(request(changed as typeof graph,kind==="budget"?1024:100_000_000))});
+      expect(response.status).toBe(400);
+      expect((await response.json()).errorCode).toBe(code);
+    } finally {await server.close();}
+  });
+});
+
+
+it("reserves the single slot before two overlapping request bodies finish", async () => {
+  let release: () => void = () => undefined;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  const render = vi.fn(async (request: RenderServiceRequest) => {
+    await pending;
+    return {receiptVersion:"render-service-receipt.v1",requestId:request.requestId,
+      storageKey:request.outputStorageKey,sha256:"a".repeat(64),bytes:4096,
+      durationSeconds:30,sampleRate:48000,channels:2,bitDepth:24,peak:0.5} as const;
+  });
+  const server=createRenderServiceServer({render});
+  await server.start();
+  function partial(id:string) {
+    const body=JSON.stringify({requestVersion:"render-service-request.v1",requestId:id,
+      outputStorageKey:"jobs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/master.wav",maximumBytes:100000000,
+      timeoutMs:120000,bridgeRequest:{requestVersion:"render-bridge-request.v1",requestId:id,
+        outputToken:"0".repeat(32),outputBitDepth:24,graph:buildThirtySecondSpikeGraph()}});
+    let finish:()=>void=()=>undefined;
+    const response=new Promise<number>((resolve,reject)=>{
+      const req=httpRequest(`${server.origin}/v1/render`,{method:"POST",headers:{"Content-Type":"application/json"}},res=>{
+        res.resume();res.on("end",()=>resolve(res.statusCode??0));
+      });
+      req.on("error",reject);req.write(body.slice(0,20));finish=()=>req.end(body.slice(20));
+    });
+    return {response,finish};
+  }
+  try {
+    const first=partial("overlap-1");
+    const second=partial("overlap-2");
+    await new Promise(resolve=>setTimeout(resolve,30));
+    first.finish();second.finish();
+    await vi.waitFor(()=>expect(render).toHaveBeenCalled());
+    release();
+    expect((await Promise.all([first.response,second.response])).sort()).toEqual([200,429]);
+    expect(render).toHaveBeenCalledTimes(1);
+  } finally {release();await server.close();}
 });

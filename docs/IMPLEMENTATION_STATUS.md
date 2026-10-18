@@ -42,6 +42,14 @@ Project Home → Brief → Parent Graph Planning → Plan Review/Adjustment
 
 S3 已把 S2 的 API 级闭环变成用户可操作的作品流，S4/S5 加入四个 Style Pack、Theory 证据、双候选、Critic/Repair 和 A/B 人工选择，S6 加入轻量手工编辑与有界 AI 选区编辑，S7 再补齐正式 Export、Run Inspector、About/Eval 证据面和 96 条内部 Eval。当前已经达到个人作品集首版；负载、多租户和发布运维属于按需后置硬化，不再是默认活动阶段。
 
+### 2.0.1 P1-A1 有界渲染容量（2026-10-19）
+
+MF-P02/P15/P16/P17/P18/P21。producer、Worker配额估算、HTTP服务及Python adapter已按时长/采样率/声道/位深推导PCM上界，保留v1零额外tail与旧Job字段范围；显式拒绝超300秒、12轨、20k事件、96MiB输出或320MiB裸媒体预算。流式hash减少整WAV副本，补齐超时/取消/无效回执清理及重叠body单槽限制。
+
+生产HTTP服务与Python校验提升的宿主headless实测：300秒、3轨/880事件、86,400,044 bytes，40.776秒；200ms采样本任务进程树RSS最大约2.15GiB（非物理峰值/生产RSS上限）。低预算400、实际超时504、建页取消/槽位释放/临时音频归零通过。API unit 552、音频TS 30、tsc/Mypy/Ruff通过，独立审查与一次修复复审关闭阻塞；provider=0/0。见[完整证据](evidence/2026-10-19-p1a-render-capacity.md)。
+
+本轮未验DB/UI或pinned Docker，未测试12轨/20k事件最坏负载，也未完成五分钟完整导出Bundle。P1-A2动态导出/v1-v2合同、钢琴音源、表达与音质仍待实施；未下载样本、未改旧作品/声音、未停止共享VM。
+
 ### 2.1 浅色工作台与产品表达升级（2026-09-24）
 
 S7 后呈现层切片，覆盖 MF-P01/P02/P03/P07/P11/P13/P15/P20 的用户可见部分。首页、Brief、计划审批、候选、Studio、导出、运行检查、导入、About 与 Eval 采用统一浅色系统与中文操作说明。主导航保留移动入口、当前页与跳至正文；Studio Dock 支持键盘切换并紧邻时间线，技术详情按需展开，试听明确区分保存版本和草稿。中文逗号/顿号可用于 Brief 列表输入；审批身份、确认说明及原有版本/恢复门未放宽。

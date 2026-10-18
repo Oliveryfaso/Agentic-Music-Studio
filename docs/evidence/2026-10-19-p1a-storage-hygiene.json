@@ -1,0 +1,27 @@
+{
+  "keep": [
+    "artifacts/p0/2026-10-19-accepted",
+    "artifacts/p1a/2026-10-19-verified",
+    "external historical export/input artifacts (untouched)",
+    "current source/lockfiles/dependencies/current render dist"
+  ],
+  "beforeBytes": {
+    "2026-10-19-first": 86494007,
+    "2026-10-19-accepted": 86525219,
+    "2026-10-19-verified": 86534909
+  },
+  "removedFailedOutputBytes": 173019226,
+  "removedTaskMypyCacheBytes": 27812064,
+  "afterBytes": {
+    "2026-10-19-verified": 86534909
+  },
+  "probeServicePidsNoLongerPresent": [
+    64218,
+    65287,
+    66332
+  ],
+  "remainingTemporaryMedia": 0,
+  "dockerImagesBuildkitVolumesTouched": false,
+  "sharedVmStopped": false,
+  "freeBytesAfter": 127697289216
+}

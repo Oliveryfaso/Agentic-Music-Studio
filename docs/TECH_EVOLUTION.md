@@ -422,3 +422,12 @@
 - P0 独立审查一次：无交付阻塞；P1 单琴导出 Important 已通过补 Task A2 解决计划依赖，产品修复待 P1；历史差异计算 CLI 整合 Minor 延后。
 
 - Scoped storage hygiene：仅移除本任务 initial 空目录与 superseded baseline，回收 68,427,995 logical bytes；保留 accepted 的 89,219,829 logical bytes。外置盘自动移除 AppleDouble 伴随文件使首次遍历遇到 FileNotFound，随后仅忽略已消失的元数据项完成清理。未触碰用户原Artifact、数据库、镜像、共享缓存或VM。
+
+
+## 2026-10-19 P1-A1 输出容量与真实错误边界
+
+Stage P1-A1；MF-P02/P15/P16/P17/P18/P21。固定64MiB使五分钟48k stereo PCM24必然超限，改为render-capacity.v1精确推导，保留v1声音、窗口和Job schema；旧overprovisioned预算只在执行时clamp。300s/12轨/20k事件/96MiB输出/320MiB裸媒体、权威配额与磁盘minimum-free共同预检。Node/Python流式hash，失败时清理本Job临时文件。
+
+RED→GREEN除容量/磁盘/receipt/超限/cleanup外，真实验收与独立审查暴露并修复重叠body双执行、timeout标签竞态、建页期间取消丢失。最终生产HTTP→Chromium→Python校验提升300秒/3轨/880事件，86,400,044 bytes，40.776秒；本任务进程树RSS200ms采样最大2,306,146,304 bytes（共享页可重复计数，非物理峰值）。低预算400、timeout504、cancel释放槽位/临时音频0。API unit552、音频TS30、tsc、严格Mypy、Ruff通过；一次审查加一次修复复审关闭阻塞。provider=0/0，无DB/UI/pinned Docker复验、无共享VM操作/下载/公开push。[报告](evidence/2026-10-19-p1a-render-capacity.md)、[JSON](evidence/2026-10-19-p1a-render-capacity.json)、[审查](evidence/2026-10-19-p1a-review.md)。
+
+本轮证据证明五分钟WAV路径；完整Bundle、最大密度/12轨、生产RSS封顶和钢琴音质仍是后续边界。小型CC0钢琴候选未下载，包内许可/样本映射/层数/工具/预算待接音源前核查。P1-A2动态导出与v1/v2合同仍在音源之前。

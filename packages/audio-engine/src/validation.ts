@@ -1,3 +1,4 @@
+import { estimateRenderCapacity } from "./capacity.js";
 import {
   AUDIO_ENGINE_VERSION,
   AUDIO_GRAPH_SCHEMA_VERSION,
@@ -12,6 +13,7 @@ function bounded(value: number, minimum: number, maximum: number, field: string)
 }
 
 export function validateAudioGraphSpec(spec: AudioGraphSpec): AudioGraphSpec {
+  estimateRenderCapacity(spec);
   if (spec.schemaVersion !== AUDIO_GRAPH_SCHEMA_VERSION) {
     throw new Error("AUDIO_GRAPH_SCHEMA_UNSUPPORTED");
   }

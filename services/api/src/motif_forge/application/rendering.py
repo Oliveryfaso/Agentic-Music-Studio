@@ -16,6 +16,7 @@ from motif_forge.domain.media_jobs import (
     MediaQualityProfile,
     RenderScope,
 )
+from motif_forge.domain.render_capacity import estimate_render_capacity
 from motif_forge.domain.revisions import CandidateSnapshot, Revision
 from motif_forge.domain.timebase import ticks_to_seconds
 
@@ -183,7 +184,7 @@ def build_canonical_render_payload(
         audio_engine_version=AUDIO_ENGINE_VERSION,
         seed=seed,
         timeout_seconds=240,
-        maximum_output_bytes=64 * 1024 * 1024,
+        maximum_output_bytes=estimate_render_capacity(projection.graph).output_limit_bytes,
     )
 
 
@@ -204,5 +205,5 @@ def build_candidate_preview_payload(
         audio_engine_version=AUDIO_ENGINE_VERSION,
         seed=seed,
         timeout_seconds=240,
-        maximum_output_bytes=64 * 1024 * 1024,
+        maximum_output_bytes=estimate_render_capacity(projection.graph).output_limit_bytes,
     )

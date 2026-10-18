@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import shutil
 import struct
 from contextlib import suppress
 from dataclasses import dataclass
@@ -14,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from motif_forge.audio.atomic_promote import AtomicPromoteError, promote_verified_file
 from motif_forge.domain.media_jobs import CandidatePreviewJobPayload, CanonicalRenderJobPayload
+from motif_forge.domain.render_capacity import estimate_render_capacity
 
 
 class ChromiumRenderError(RuntimeError):
@@ -61,7 +63,9 @@ def _safe_path(root: Path, storage_key: str) -> Path:
     return output
 
 
-def _inspect_pcm24_wav(bytes_: bytes) -> tuple[int, int, int, float]:
+def _inspect_pcm24_wav(
+    bytes_: bytes, *, file_size: int | None = None
+) -> tuple[int, int, int, float]:
     if len(bytes_) < 44 or bytes_[0:4] != b"RIFF" or bytes_[8:12] != b"WAVE":
         raise ChromiumRenderError("RENDER_WAV_INVALID")
     channels, sample_rate = struct.unpack_from("<HI", bytes_, 22)
@@ -69,7 +73,7 @@ def _inspect_pcm24_wav(bytes_: bytes) -> tuple[int, int, int, float]:
     data_bytes = struct.unpack_from("<I", bytes_, 40)[0]
     if channels != 2 or sample_rate != 48_000 or bit_depth != 24:
         raise ChromiumRenderError("RENDER_MEDIA_PROFILE_INVALID")
-    if data_bytes != len(bytes_) - 44 or data_bytes % 6:
+    if data_bytes != (file_size if file_size is not None else len(bytes_)) - 44 or data_bytes % 6:
         raise ChromiumRenderError("RENDER_WAV_INVALID")
     return channels, sample_rate, bit_depth, data_bytes / 6 / sample_rate
 
@@ -82,13 +86,55 @@ class ChromiumRenderClient:
         temp_root: Path,
         service_url: str,
         transport: httpx.AsyncBaseTransport | None = None,
+        minimum_free_bytes: int = 512 * 1024**2,
     ) -> None:
         self._root = artifact_root.resolve()
         self._temp_root = temp_root.resolve()
         self._service_url = service_url.rstrip("/")
         self._transport = transport
+        if type(minimum_free_bytes) is not int or minimum_free_bytes < 0:
+            raise ValueError("minimum_free_bytes must be nonnegative")
+        self._minimum_free_bytes = minimum_free_bytes
 
     async def render(
+        self,
+        *,
+        job_id: UUID,
+        payload: CanonicalRenderJobPayload | CandidatePreviewJobPayload,
+    ) -> CanonicalRenderResult:
+        if not self._root.is_dir():
+            raise ChromiumRenderError("ARTIFACT_ROOT_UNAVAILABLE", retryable=True)
+        if not self._temp_root.is_dir():
+            raise ChromiumRenderError("TEMP_ROOT_UNAVAILABLE", retryable=True)
+        try:
+            capacity = estimate_render_capacity(payload.audio_graph)
+        except ValueError as exc:
+            raise ChromiumRenderError(str(exc)) from exc
+        if payload.maximum_output_bytes < capacity.wav_bytes:
+            raise ChromiumRenderError("RENDER_OUTPUT_BUDGET_EXCEEDED")
+        bound = min(payload.maximum_output_bytes, capacity.output_limit_bytes)
+        # Promotion may temporarily hold the source and final partial together.
+        same_device = self._root.stat().st_dev == self._temp_root.stat().st_dev
+        root_required = bound * (2 if same_device else 1) + self._minimum_free_bytes
+        if (
+            shutil.disk_usage(self._root).free < root_required
+            or shutil.disk_usage(self._temp_root).free < root_required
+        ):
+            raise ChromiumRenderError("STORAGE_QUOTA_EXCEEDED")
+        temporary = _safe_path(self._temp_root, f"jobs/{job_id}/render.wav")
+        try:
+            # Keep legacy payload serialization/recipes; only this execution's
+            # effective sink is clamped to the calculated bounded allocation.
+            return await self._render_to_file(
+                job_id=job_id, payload=payload.model_copy(update={"maximum_output_bytes": bound})
+            )
+        finally:
+            temporary.unlink(missing_ok=True)
+            temporary.with_name(temporary.name + ".partial").unlink(missing_ok=True)
+            with suppress(OSError):
+                temporary.parent.rmdir()
+
+    async def _render_to_file(
         self,
         *,
         job_id: UUID,
@@ -135,9 +181,7 @@ class ChromiumRenderClient:
             retryable = exc.response.status_code in {408, 425, 429} or (
                 exc.response.status_code >= 500
             )
-            raise ChromiumRenderError(
-                "RENDER_SERVICE_FAILED", retryable=retryable
-            ) from exc
+            raise ChromiumRenderError("RENDER_SERVICE_FAILED", retryable=retryable) from exc
         except (httpx.HTTPError, ValueError) as exc:
             raise ChromiumRenderError("RENDER_SERVICE_FAILED") from exc
         if receipt.receiptVersion != "render-service-receipt.v1":
@@ -146,11 +190,21 @@ class ChromiumRenderClient:
             raise ChromiumRenderError("RENDER_LINEAGE_MISMATCH")
         temporary = _safe_path(self._temp_root, temporary_key)
         try:
-            bytes_ = temporary.read_bytes()
-            checksum = hashlib.sha256(bytes_).hexdigest()
-            if checksum != receipt.sha256 or len(bytes_) != receipt.bytes:
+            file_size = temporary.stat().st_size
+            if (
+                file_size > payload.maximum_output_bytes
+                or receipt.bytes > payload.maximum_output_bytes
+            ):
+                raise ChromiumRenderError("RENDER_OUTPUT_SIZE_EXCEEDED")
+            with temporary.open("rb") as stream:
+                header = stream.read(44)
+                stream.seek(0)
+                checksum = hashlib.file_digest(stream, "sha256").hexdigest()
+            if checksum != receipt.sha256 or file_size != receipt.bytes:
                 raise ChromiumRenderError("RENDER_CHECKSUM_MISMATCH")
-            channels, sample_rate, bit_depth, duration = _inspect_pcm24_wav(bytes_)
+            channels, sample_rate, bit_depth, duration = _inspect_pcm24_wav(
+                header, file_size=file_size
+            )
             tolerance = 1 / sample_rate
             if (
                 abs(duration - receipt.durationSeconds) > tolerance

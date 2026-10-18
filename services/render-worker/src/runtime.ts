@@ -16,13 +16,16 @@ export async function withTimeout<T>(
 ): Promise<T> {
   let timeout: NodeJS.Timeout | undefined;
   const timer = new Promise<never>((_, reject) => {
-    timeout = setTimeout(async () => {
-      await onTimeout();
-      reject(new Error("RENDER_TIMEOUT"));
-    }, timeoutMs);
+    timeout = setTimeout(() => reject(new Error("RENDER_TIMEOUT")), timeoutMs);
   });
   try {
     return await Promise.race([operation, timer]);
+  } catch (error) {
+    if (error instanceof Error && error.message === "RENDER_TIMEOUT") {
+      // Settle the race before closing the page can reject the render promise.
+      await onTimeout();
+    }
+    throw error;
   } finally {
     if (timeout !== undefined) {
       clearTimeout(timeout);

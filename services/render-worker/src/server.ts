@@ -1,6 +1,8 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
+import { estimateRenderCapacity } from "../../../packages/audio-engine/src/capacity.js";
+import { validateAudioGraphSpec } from "../../../packages/audio-engine/src/validation.js";
 import type {
   RenderBridgeReceipt,
   RenderBridgeRequest,
@@ -93,7 +95,11 @@ function parseRequest(value: unknown): RenderServiceRequest {
   ) {
     throw new Error("RENDER_SERVICE_REQUEST_INVALID");
   }
-  return input as unknown as RenderServiceRequest;
+  const parsed = input as unknown as RenderServiceRequest;
+  const capacity = estimateRenderCapacity(parsed.bridgeRequest.graph, parsed.bridgeRequest.outputBitDepth);
+  validateAudioGraphSpec(parsed.bridgeRequest.graph);
+  if (parsed.maximumBytes < capacity.wavBytes) throw new Error("RENDER_OUTPUT_BUDGET_EXCEEDED");
+  return { ...parsed, maximumBytes: Math.min(parsed.maximumBytes, capacity.outputLimitBytes) };
 }
 
 export function createRenderServiceServer(executor: RenderExecutor) {
@@ -113,26 +119,26 @@ export function createRenderServiceServer(executor: RenderExecutor) {
         writeJson(response, 429, { errorCode: "RENDER_CAPACITY_EXHAUSTED" });
         return;
       }
+      // Reserve before awaiting the body: overlapping uploads share one slot too.
+      busy = true;
       try {
         const parsed = parseRequest(await readJson(request));
-        busy = true;
         const cancellation = new AbortController();
         const cancel = (): void => cancellation.abort("RENDER_CLIENT_DISCONNECTED");
         request.once("aborted", cancel);
         response.once("close", () => {
           if (!response.writableEnded) cancel();
         });
-        try {
-          writeJson(response, 200, await executor.render(parsed, cancellation.signal));
-        } finally {
-          busy = false;
-        }
+        writeJson(response, 200, await executor.render(parsed, cancellation.signal));
       } catch (error) {
         const code = error instanceof Error ? error.message : "RENDER_SERVICE_REQUEST_INVALID";
         const requestErrors = new Set([
           "RENDER_REQUEST_TOO_LARGE",
           "RENDER_SERVICE_REQUEST_INVALID",
           "RENDER_OUTPUT_KEY_INVALID",
+          "RENDER_CAPACITY_INVALID",
+          "RENDER_RESOURCE_LIMIT_EXCEEDED",
+          "RENDER_OUTPUT_BUDGET_EXCEEDED",
         ]);
         const status =
           code === "RENDER_TIMEOUT"
@@ -141,12 +147,14 @@ export function createRenderServiceServer(executor: RenderExecutor) {
               ? 499
             : code === "RENDER_SERVICE_NOT_READY"
               ? 503
-              : requestErrors.has(code)
+              : requestErrors.has(code) || code.startsWith("AUDIO_GRAPH_") || code.startsWith("AUDIO_ENGINE_")
                 ? 400
                 : 500;
         writeJson(response, status, {
           errorCode: status === 500 ? "RENDER_EXECUTION_FAILED" : code,
         });
+      } finally {
+        busy = false;
       }
     })();
   });

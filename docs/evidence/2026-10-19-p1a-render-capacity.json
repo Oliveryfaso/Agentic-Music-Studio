@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "p1a-render-capacity-evidence.v1",
+  "date": "2026-10-19",
+  "graphTracks": 3,
+  "graphEvents": 880,
+  "fiveMinuteLatencySeconds": 40.77596600004472,
+  "fiveMinuteResult": {
+    "storage_key": "protected/exports/00000000-0000-0000-0000-00000000076d/5ab09b5e-63fa-4a4b-adc7-7c2e115db7ed/audio/f30c49623a8857fbce4f2c5b8ac16eea0fe600192b0ff41120fc2b8e447f12cf-master.wav",
+    "sha256": "f30c49623a8857fbce4f2c5b8ac16eea0fe600192b0ff41120fc2b8e447f12cf",
+    "byte_size": 86400044,
+    "duration_seconds": 300,
+    "sample_rate_hz": 48000,
+    "channels": 2,
+    "bit_depth": 24,
+    "peak": 0.07167027145624161,
+    "created_new": true
+  },
+  "ffprobe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "pcm_s24le",
+        "sample_rate": "48000",
+        "channels": 2,
+        "bits_per_raw_sample": "24"
+      }
+    ],
+    "format": {
+      "duration": "300.000000",
+      "size": "86400044"
+    }
+  },
+  "failures": [
+    {
+      "case": "legacy-64MiB-five-minutes",
+      "http": 400,
+      "errorCode": "RENDER_OUTPUT_BUDGET_EXCEEDED"
+    },
+    {
+      "case": "actual-executor-timeout",
+      "http": 504,
+      "errorCode": "RENDER_TIMEOUT"
+    },
+    {
+      "case": "actual-client-cancel",
+      "cancelledErrorPreserved": true,
+      "slotReleased": true,
+      "temporaryFiles": 0
+    }
+  ],
+  "remainingTemporaryMedia": 0,
+  "dbUiReopenMeasured": false,
+  "pinnedDockerWorkerMeasured": false,
+  "subjectiveAudioQualityMeasured": false,
+  "resource": {
+    "method": "200ms ps aggregate RSS of probe parent and descendants (shared pages may double count; sampled, not physical peak/P95)",
+    "rssGuardBytes": 3221225472,
+    "guardTripped": false,
+    "sampleCount": 214,
+    "sampledMaximumProcessTreeRssBytes": 2306146304,
+    "byPhase": {
+      "startup": 587792384,
+      "five-minute": 2306146304,
+      "timeout": 1425620992,
+      "cancel": 1212694528,
+      "complete": 1113423872
+    }
+  },
+  "sourceHead": "e3d943844b77c177b93437abfe530c989989feee",
+  "sourceWorkingTreeDirty": true,
+  "nodeVersion": "v26.0.0",
+  "mode": "host-production-http-executor-python-adapter-no-DB-no-Docker-no-UI",
+  "providerRequests": 0,
+  "providerTokens": 0
+}
