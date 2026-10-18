@@ -4,7 +4,7 @@ Load the checklist matching the current task. Do not apply every checklist mecha
 
 ## Vertical slice
 
-- Record and recheck the source-of-truth guide revision/hash.
+- Record the source-of-truth guide Git revision/state and recheck its diff; hash only when a specific integrity protocol requires it.
 - Name the current roadmap gate and every covered `MF-Pxx`; do not change unlisted product requirements.
 - If doc-only, confirm explicit authorization before scaffolding product code.
 - Define user action and visible result.

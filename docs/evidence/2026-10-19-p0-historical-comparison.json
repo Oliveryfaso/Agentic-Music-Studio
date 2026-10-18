@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "p0-historical-audio-comparison.v1",
+  "comparedSamples": 6912000,
+  "maximumAbsoluteDeltaPcm24Lsb": 8794,
+  "changedSamples": 6242138,
+  "normalizedRmsError": 2.4133882298546097e-05,
+  "originalUnmodified": true,
+  "scope": "historical-pinned-output-vs-current-host-render-not-human-listening"
+}

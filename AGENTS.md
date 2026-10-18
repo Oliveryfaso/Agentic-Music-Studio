@@ -17,14 +17,14 @@ Record the Git revision and working-tree state of `docs/PROJECT_GUIDE.md` at tas
 
 ## Active gate
 
-`G0` and `S1`–`S6` are complete. The browser now owns Project → four-style Brief → Plan Review/Approval → two bounded candidates → evidence Critic/at most one Repair → explicit A/B selection → complete export → Studio/MP3, plus same-Project multi-Stem import, lightweight Timeline/Piano Roll/Mixer drafts, immutable Undo/Redo, and bounded AI selection edits with L0/L1 auto-commit or L2/L3 rendered Preview/HITL. `S7` is the only active gate: productize export, finish portfolio evidence and observability, and add only risk-driven release hardening without weakening the single Parent Graph v2 contracts.
+`G0` and `S1`–`S7` are historical completed portfolio gates. The current user-authorized work is `P0` product baseline and `P1` minimal-piano preparation (ADR-019, 2026-10-19). P1 music/runtime implementation is not complete. Use `docs/superpowers/plans/2026-10-19-p0-product-baseline.md`, `2026-10-19-p1-minimal-piano.md`, and the current evidence report. Classical/jazz are the new product focus; preserve legacy electronic StylePack IDs, projects, Revisions, sounds, and exports. No paid API, large packs, installation, shared-VM shutdown, public push, or release is authorized by this preparation task.
 
 ## Scope and traceability
 
 - Every implementation plan and completion report must name the current stage and all covered `MF-Pxx` requirements.
 - Do not change an unlisted product requirement as incidental cleanup.
 - A target written in `PROJECT_GUIDE.md` is not an implemented feature. Only runtime evidence can move a capability in `IMPLEMENTATION_STATUS.md`.
-- Preserve the final contracts for complete-song output, four Style Packs, DeepSeek, one Parent Graph, HITL, complete export, DAW editing, the approved visual language, security/copyright, Eval and recovery even when an internal walking skeleton is smaller.
+- Preserve the final contracts for complete-song output, legacy four-Style-Pack compatibility and the approved classical/jazz focus, DeepSeek, one Parent Graph, HITL, complete export, DAW editing, the approved visual language, security/copyright, Eval and recovery even when an internal walking skeleton is smaller.
 - Use “short pre-development closure + optimization within vertical slices.” Do not start a repository-wide refactor or add infrastructure without a current user-value consumer.
 
 ## Implementation discipline

@@ -1,0 +1,239 @@
+{
+  "schemaVersion": "p0-render-baseline.v1",
+  "date": "2026-10-18T17:00:29.830Z",
+  "sourceHead": "bebef9f1fa84daab56b6577055c379e4c94a029d",
+  "canonicalWorkerIntegration": false,
+  "mode": "host-headless-shared-compiler-not-docker-not-UI",
+  "nodeVersion": "v26.0.0",
+  "chromiumVersion": "151.0.7922.34",
+  "startupMs": 976.272458,
+  "browserReused": true,
+  "providerRequests": 0,
+  "providerTokens": 0,
+  "memoryMethod": "200ms ps aggregate RSS of this Node process and descendants; shared pages may be counted twice; sampled, not physical peak/P95",
+  "memorySamplingAvailable": true,
+  "sampledMaximumProcessTreeRssBytes": 1653899264,
+  "repeat": {
+    "byteExact": false,
+    "maximumAbsoluteDeltaPcm24Lsb": 1,
+    "changedSamples": 15203,
+    "comparedSamples": 2880000,
+    "normalizedRmsError": 8.661208702761027e-09
+  },
+  "canonicalReopenComparison": {
+    "byteExact": false,
+    "maximumAbsoluteDeltaPcm24Lsb": 1,
+    "changedSamples": 247610,
+    "comparedSamples": 6912000,
+    "normalizedRmsError": 2.2562765259646627e-08
+  },
+  "canonicalReopenByteExact": false,
+  "runs": [
+    {
+      "name": "thirty-cold",
+      "latencyMs": 2216.6794170000003,
+      "renderRealtimeFactor": 0.0738893139,
+      "bytes": 8640044,
+      "sha256": "f0f781f270c880f8a03a71c9be6553a353374e279628fd932be8cec602cf07c4",
+      "receipt": {
+        "receiptVersion": "render-bridge-receipt.v1",
+        "requestId": "thirty-cold",
+        "bytes": 8640044,
+        "durationSeconds": 30,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitDepth": 24,
+        "peak": 0.07167027145624161
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "pcm_s24le",
+            "sample_rate": "48000",
+            "channels": 2,
+            "bits_per_raw_sample": "24"
+          }
+        ],
+        "format": {
+          "duration": "30.000000",
+          "size": "8640044"
+        }
+      },
+      "sampledMaximumProcessTreeRssBytes": 779403264
+    },
+    {
+      "name": "thirty-warm",
+      "latencyMs": 2139.270083,
+      "renderRealtimeFactor": 0.07130900276666666,
+      "bytes": 8640044,
+      "sha256": "7a1a02ac5b612cd0fc6c779d068c6b5405380b730a01e3601ff32e25bf61cbfd",
+      "receipt": {
+        "receiptVersion": "render-bridge-receipt.v1",
+        "requestId": "thirty-warm",
+        "bytes": 8640044,
+        "durationSeconds": 30,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitDepth": 24,
+        "peak": 0.07167026400566101
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "pcm_s24le",
+            "sample_rate": "48000",
+            "channels": 2,
+            "bits_per_raw_sample": "24"
+          }
+        ],
+        "format": {
+          "duration": "30.000000",
+          "size": "8640044"
+        }
+      },
+      "sampledMaximumProcessTreeRssBytes": 982237184
+    },
+    {
+      "name": "thirty-pluck-stem",
+      "latencyMs": 1541.7599580000006,
+      "renderRealtimeFactor": 0.051391998600000016,
+      "bytes": 8640044,
+      "sha256": "54c8edc00bf1022fc48dd0ecc65bd57173777ad3170b74e29b48f61f84cb4be2",
+      "receipt": {
+        "receiptVersion": "render-bridge-receipt.v1",
+        "requestId": "thirty-pluck-stem",
+        "bytes": 8640044,
+        "durationSeconds": 30,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitDepth": 24,
+        "peak": 0.042408399283885956
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "pcm_s24le",
+            "sample_rate": "48000",
+            "channels": 2,
+            "bits_per_raw_sample": "24"
+          }
+        ],
+        "format": {
+          "duration": "30.000000",
+          "size": "8640044"
+        }
+      },
+      "sampledMaximumProcessTreeRssBytes": 1173127168
+    },
+    {
+      "name": "legacy-seventy-two",
+      "latencyMs": 7875.556875000001,
+      "renderRealtimeFactor": 0.10938273437500001,
+      "bytes": 20736044,
+      "sha256": "08d825e603e2a0655cf8924142b166e15c9df606102a5ba5ac46aa4bec6283a0",
+      "receipt": {
+        "receiptVersion": "render-bridge-receipt.v1",
+        "requestId": "legacy-seventy-two",
+        "bytes": 20736044,
+        "durationSeconds": 72,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitDepth": 24,
+        "peak": 0.33875536918640137
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "pcm_s24le",
+            "sample_rate": "48000",
+            "channels": 2,
+            "bits_per_raw_sample": "24"
+          }
+        ],
+        "format": {
+          "duration": "72.000000",
+          "size": "20736044"
+        }
+      },
+      "sampledMaximumProcessTreeRssBytes": 1365934080
+    },
+    {
+      "name": "legacy-canonical-reopened",
+      "latencyMs": 7759.203291,
+      "renderRealtimeFactor": 0.107766712375,
+      "bytes": 20736044,
+      "sha256": "5a1bc0ef5dee1fdc5eef95a43529b543adc3a5fe61e148104c0984791bc510bc",
+      "receipt": {
+        "receiptVersion": "render-bridge-receipt.v1",
+        "requestId": "legacy-canonical-reopened",
+        "bytes": 20736044,
+        "durationSeconds": 72,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitDepth": 24,
+        "peak": 0.33875539898872375
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "pcm_s24le",
+            "sample_rate": "48000",
+            "channels": 2,
+            "bits_per_raw_sample": "24"
+          }
+        ],
+        "format": {
+          "duration": "72.000000",
+          "size": "20736044"
+        }
+      },
+      "sampledMaximumProcessTreeRssBytes": 1653899264
+    },
+    {
+      "name": "historical-export-reopened",
+      "latencyMs": 7751.218208999999,
+      "renderRealtimeFactor": 0.10765580845833332,
+      "bytes": 20736044,
+      "sha256": "fbac80a1d07aa871da66610900dafe5e4433ccbde24f2688ebecaac0f9e13506",
+      "receipt": {
+        "receiptVersion": "render-bridge-receipt.v1",
+        "requestId": "historical-export-reopened",
+        "bytes": 20736044,
+        "durationSeconds": 72,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitDepth": 24,
+        "peak": 0.33875539898872375
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "pcm_s24le",
+            "sample_rate": "48000",
+            "channels": 2,
+            "bits_per_raw_sample": "24"
+          }
+        ],
+        "format": {
+          "duration": "72.000000",
+          "size": "20736044"
+        }
+      },
+      "sampledMaximumProcessTreeRssBytes": 1531985920
+    }
+  ],
+  "historicalExportIncluded": true,
+  "scopeMetadataCorrection": "Removed stale not-user-project label after historical export probe was added; audio measurements unchanged."
+}

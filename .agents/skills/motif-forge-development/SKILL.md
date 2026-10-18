@@ -16,7 +16,7 @@ Before planning or editing, read these files in order:
 3. `../../../docs/IMPLEMENTATION_STATUS.md` for current code facts and the active development breakpoint.
 4. `../../../docs/NEXT_DEVELOPMENT_ROADMAP.md` for dependency order and stage gates.
 
-Record the `PROJECT_GUIDE.md` git blob ID or SHA-256 at task start and verify it again before handoff when work spans multiple edits or agents. If code, status, roadmap, and the guide disagree or the guide changes mid-task, report the mismatch and re-evaluate the plan; do not silently rewrite either side. `TECH_EVOLUTION.md` is historical evidence, not the current task queue.
+Record the Git revision and working-tree state of `PROJECT_GUIDE.md` at task start and recheck its diff before handoff. As required by the root AGENTS.md, do not compute a content hash unless an explicit integrity protocol needs it. If code, status, roadmap, and the guide disagree or the guide changes mid-task, report the mismatch and re-evaluate the plan; do not silently rewrite either side. `TECH_EVOLUTION.md` is historical evidence, not the current task queue.
 
 Read only the reference needed for the task:
 

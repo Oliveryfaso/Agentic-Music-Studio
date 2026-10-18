@@ -1,0 +1,119 @@
+{
+  "schema_version": "p0-symbolic-baseline.v1",
+  "fixture_kind": "synthetic-S1-legacy-v1-not-user-project",
+  "provider_requests": 0,
+  "provider_tokens": 0,
+  "legacy_roundtrip_identical": true,
+  "canonical_roundtrip_event_multisets_identical": true,
+  "canonical_roundtrip_graph_identical": false,
+  "legacy_arrangement_hash": "2aa8c307c0cde0171608752eb0d4c811bd2269143d04cd051ecd687540c48f33",
+  "legacy_graph_hash": "fcebd6a8094f3313c87d4046efe9243b648532e4831b0e7c3177d3bc0682b0b5",
+  "canonical_reopened_graph_hash": "1ad9c908c8fd106a17c827ad2c824b4cae3dbfbc66d6e9e6b5fcc8ee4575352e",
+  "duration_seconds": 72.0,
+  "track_count": 4,
+  "known_defects_not_acceptance": {
+    "articulation_and_cents_change_leaves_graph_identical": true,
+    "instrument_mappings": {
+      "builtin:jazz-piano": {
+        "kind": "synth",
+        "presetId": "warm_pad"
+      },
+      "builtin:violin": {
+        "kind": "synth",
+        "presetId": "glass_pluck"
+      },
+      "builtin:pizz-cello": {
+        "kind": "sampler",
+        "sampleId": "builtin:click"
+      },
+      "builtin:brush-kit": {
+        "kind": "sampler",
+        "sampleId": "builtin:click"
+      }
+    },
+    "canonical_maximum_output_bytes": 67108864,
+    "five_minute_pcm24_bytes_with_header": 86400044,
+    "five_minute_fits_current_limit": false,
+    "export_cursor_steps": [
+      "master",
+      "stem:pad",
+      "stem:melody",
+      "stem:bass",
+      "stem:rhythm",
+      "mp3",
+      "bundle"
+    ]
+  },
+  "historical_export": {
+    "project_id": "af988445-9123-40f6-81bf-7a6bcc037099",
+    "revision_id": "f49b820e-0e56-4038-9108-a72cdc3affa5",
+    "schema_version": "arrangement-ir.v1",
+    "source_project_sha256": "b6d11e88c5affb7eadab6a6180b60b9004b568dd047b7317c674b0a571b295d9",
+    "source_project_unchanged": true,
+    "duration_seconds": 72.0,
+    "graph_hash": "4b957ff3a0387f57c4b1ad374cadf1f28dd30ffe0c91920623f4590f71927a98",
+    "files_verified": [
+      {
+        "filename": "composition.mid",
+        "bytes": 2895,
+        "sha256": "80136eb9b90c16cbecc2ba8e11ef913e693536335aef6c089a2d5e5bff5bf970"
+      },
+      {
+        "filename": "credits.json",
+        "bytes": 44,
+        "sha256": "d470aef31635a5f4187e9b2df5a54890683ffe7d45db5cdd826ac891c3938988"
+      },
+      {
+        "filename": "license.json",
+        "bytes": 76,
+        "sha256": "499f0c4252c7ebd984b7c6eefc9e66e1ba9cd95a2cd208ae54b65ffb64fbbfcb"
+      },
+      {
+        "filename": "master.mp3",
+        "bytes": 2305580,
+        "sha256": "de4c9222e139015d664e2e007464cb6599b81d07305b375c84da104be29ed099"
+      },
+      {
+        "filename": "master.wav",
+        "bytes": 20736044,
+        "sha256": "529d4d02ef1ded6f2846da691f202b1f4a07160c156898461a16135a8e60c5a1"
+      },
+      {
+        "filename": "project.json",
+        "bytes": 52196,
+        "sha256": "b6d11e88c5affb7eadab6a6180b60b9004b568dd047b7317c674b0a571b295d9"
+      },
+      {
+        "filename": "provenance.json",
+        "bytes": 297,
+        "sha256": "0612829b8eb4d405cfcc3aa1e4797c8a637737df50bae1a1d57b4cf35bcc424a"
+      },
+      {
+        "filename": "stem-21c6dbc7-b063-5162-aea3-70b0e354bd40.wav",
+        "bytes": 20736044,
+        "sha256": "6e2446afb9db9b31c6209abcff4e008553086c3ba69245056e9a0b781dc23ac8"
+      },
+      {
+        "filename": "stem-26690f22-cf49-57e2-9d7b-1be1ffc60cf3.wav",
+        "bytes": 20736044,
+        "sha256": "b438bfe518ae40a3ecdffd55018f7d4a3a1d38efa63fb2fca477cc0487a1a535"
+      },
+      {
+        "filename": "stem-4e99e08e-a60d-5dd1-8254-327db54d1bb1.wav",
+        "bytes": 20736044,
+        "sha256": "c1690c160e0b5e35d521a910f06b59e6b77a7c34770bbbb84681ea7058158dd3"
+      },
+      {
+        "filename": "stem-6dececb8-dc29-5bbb-a737-b12d07ab155e.wav",
+        "bytes": 20736044,
+        "sha256": "d1f7627b2e7a0dcb60eb9e1a20c85fbfccf1696850ae7792c2aa93dbd53d6c6a"
+      },
+      {
+        "filename": "trace.json",
+        "bytes": 354,
+        "sha256": "880c8516a0364036456091e80d9c60e6a98123df34cce0abe8ea13a33936e62f"
+      }
+    ],
+    "database_and_ui_reopened": false
+  }
+}

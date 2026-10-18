@@ -406,3 +406,19 @@
 - README 参考 OpenMAIC 的产品介绍顺序重新原创组织，附四张真实前端渲染的示例截图；开发与排障、LangSmith 配置独立归档。历史 Eval 80 measured / 13 expected reject / 3 not measured、一次付费 Generate 与未测付费 Edit 分别说明，不将截图或规则得分冒充音质验收。
 - 本轮为 Web `82 passed`、TypeScript/Vite build 和 README 启停合同 `1 passed`。新隔离 Playwright 脚本通过桌面/390px 手机共 28 个页面与状态，包括长标题、空/加载/错误/部分可用、候选确认门、移动编辑入口隐藏、一个 main landmark 与无页面横向溢出。样例音频仅为媒体元素提供静音 fixture，未接触真实 API 或模型。
 - 无生产 Graph/API/Schema/迁移/Worker/音频算法/依赖修改，无 Docker/Colima 启动、无付费调用。浏览器与 Vite 在 finally 关闭；生成截图位于忽略的 `output/playwright/light-studio/`，README 精选四图在 `docs/images/`。源码及文档只用 Git diff 和相关测试核对，不计算内容哈希；业务数据库、媒体与共享 Docker 缓存未触碰。
+
+
+## 2026-10-19：P0 产品方针、真实旧导出基线与 P1 钢琴准备
+
+- Stage P0；覆盖 MF-P01/P02/P05/P06/P08/P09/P10/P11/P13/P15/P16/P17/P18/P20/P21。从 clean `bebef9f1` 建立本地 `codex/motif-p0-piano-preparation`，用户已授权古典/爵士主线与 legacy 保留（ADR-019）。当前四入口和 v1 音色未改；P1 为详细计划，未实施音乐功能。
+- 新增无模型 P0 Python/Node probe。真实历史验收工程 `af988445-9123-40f6-81bf-7a6bcc037099` / Revision `f49b820e-0e56-4038-9108-a72cdc3affa5` 的旧导出包 12 文件 bytes/hash 全通过，原文件未变；另有 synthetic seed=42 的 v1 roundtrip 与表达/音色/容量探针。
+- 已有聚焦回归 25 passed/0.45s；现有 host Chromium 151.0.7922.34 实际串行渲染六份 48k stereo PCM24：30秒主 2.217s、warm 2.139s、stem 1.542s、72秒固定谱 7.876s、canonical重开 7.759s、真实旧工程 7.751s。独立 headless/profile 与临时 loopback，未启动用户浏览器、VM、数据库、Vite 或模型；0 request/0 token。
+- 本任务进程树 RSS 200ms 采样最高约 1.54 GiB；共享页可能重复计数，不是全栈物理峰值/P95/长期稳定性证明。重复主音频最大 1 PCM24 LSB；canonical 重排使 graph/hash 改变，本谱音频最大 1 LSB。旧历史音频与当前 host 重渲染 RMS 差约 -92.35dBFS、max 8794 LSB，未归因/未盲听，不宣称跨平台声音逐字节一致。
+- 静态/执行事实确认四 stem 游标、64MiB vs 5min PCM24=86,400,044bytes、articulation/cents丢失、乐器占位映射、v1 DB reader/commands和Job engine Literal 接线。P1 先做容量，再双读/显式升级、新小型CC0钢琴、表达/A-B/Undo。
+- P1候选 FreePats KW small SFZ WAV 4.3MiB/展开10MiB；小包文件20190703与页面2022日期分开，层数/归档许可尚待核查；本轮未下载/安装/付费。完整计划与机器证据在 docs/superpowers/plans 和 docs/evidence/2026-10-19-p0-*。
+- 统一 AGENTS/Guide/Status/Roadmap 当前断点，保留历史 S1–S7；按 root AGENTS 修正 skill 的无条件文档 hash 要求。没有生产代码、Schema/API、数据库迁移、前端组件或依赖变更。
+- 数据库/UI重开、pinned Docker canonical 集成、5分钟12轨与人耳音质仍未测；本轮只报告P0离线子门。资源清理只针对本轮自建旧probe目录；不操作共享BuildKit/镜像/Volume/Colima/原用户Artifact。
+
+- P0 独立审查一次：无交付阻塞；P1 单琴导出 Important 已通过补 Task A2 解决计划依赖，产品修复待 P1；历史差异计算 CLI 整合 Minor 延后。
+
+- Scoped storage hygiene：仅移除本任务 initial 空目录与 superseded baseline，回收 68,427,995 logical bytes；保留 accepted 的 89,219,829 logical bytes。外置盘自动移除 AppleDouble 伴随文件使首次遍历遇到 FileNotFound，随后仅忽略已消失的元数据项完成清理。未触碰用户原Artifact、数据库、镜像、共享缓存或VM。

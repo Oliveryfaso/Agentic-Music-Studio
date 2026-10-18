@@ -1,6 +1,6 @@
 # Motif Forge 当前实施状态
 
-> 状态日期：2026-09-24
+> 状态日期：2026-10-19（历史验证按原日期保留）
 > 性质：当前代码事实与验收证据，不替代产品合同
 > 更新规则：每个被验收的小纵切结束后更新；不要把目标设计写成已实现能力
 
@@ -17,6 +17,14 @@
 若本文件与测试、迁移或运行时证据冲突，以代码和最新可复现证据为准，并在继续开发前修正文档。历史过程只写入 `TECH_EVOLUTION.md`。
 
 ## 2. 当前产品形态
+
+### 2.0 产品改造 P0 与 P1 准备（2026-10-19）
+
+用户已授权古典/爵士主线和 legacy 兼容（ADR-019）。本轮新增可复现基线工具与计划，未改变音乐、Schema、API、数据库、四个风格入口或旧作品声音。真实历史验收导出包只读完整性检查、v1 JSON/投影与 headless 重新渲染结果见 [P0 实测报告](evidence/2026-10-19-p0-baseline.md)；本轮 provider requests/tokens=0/0。
+
+25 条旧版边界回归通过。独立宿主 Chromium 已生成 30 秒 cold/warm/stem 与旧谱音频并记录 RSS；该证据不等于 pinned Docker Worker/数据库/UI 端到端复验，也没有证明主观钢琴音质、五分钟负载或资源节省。v1 占位音色、表达字段丢失、四 stem 游标、64 MiB 容量冲突与 canonical 事件顺序/hash 漂移已记录。P1 新音源/表达方案仍为待实施；下一最小 Task 是输出容量边界修复，随后 v1/v2 合同。
+
+下文为已发布 v1 的当前能力与历史验收，不把历史四风格设计重新设置成新增主线。
 
 当前可由用户实际操作的主路径是：
 
@@ -54,18 +62,18 @@ README 已按产品、截图、启动、创作流程、Agent 架构、证据和�
 | 能力 | 状态 | 当前证据 | 主要缺口 |
 |---|---|---|---|
 | ArrangementIR、EditorCommand、Revision、Branch | 可运行 | 严格 Schema、事务写入、乐观锁、Studio draft/save 和不可变 Undo/Redo | 仍是轻量命令集，不冒充专业 DAW |
-| CandidateSnapshot、PreviewCandidate、L2/L3 审批事务 | 可运行 | Generate A/B 与 Edit Preview Artifact、Critic/Repair lineage、原子 Revision 和 PostgreSQL 回放 | 广泛并发/故障矩阵留到 S7 |
+| CandidateSnapshot、PreviewCandidate、L2/L3 审批事务 | 可运行 | Generate A/B 与 Edit Preview Artifact、Critic/Repair lineage、原子 Revision 和 PostgreSQL 回放 | 广泛并发/故障矩阵按真实风险触发 |
 | DeepSeek Provider | 可运行（API） | 生产 Dispatcher、四风格结构化 Plan、持久请求/token 预算、真实 known usage、严格 JSON envelope、官方 endpoint、MockTransport/重启测试与一次受控 live acceptance | 模型调用继续 opt-in；S4 no-key 路径使用同合同 Fallback |
 | CompositionPlan Graph | 可运行 | Parent Graph v2、四风格 Fallback/Strategy、PlanApproval/Replan、双候选、Critic/Repair/A-B interrupt、EditSubgraph、PostgreSQL checkpoint | Legacy v3 仅保留回归 |
-| Parent Graph Import/Generate/Edit/Recovery | 可运行 | 浏览器 Import/generate/edit、time-stretch、HITL、resume/cancel、持久 SSE 与刷新恢复 | 极端 checkpoint 矩阵留到 S7 |
-| PostgreSQL/Redis/Celery/Outbox | 可运行 | Generate start/resume/cancel Dispatcher、权威 outbox、Compose readiness、幂等事件和恢复测试 | S7 才扩充负载与极端故障矩阵 |
+| Parent Graph Import/Generate/Edit/Recovery | 可运行 | 浏览器 Import/generate/edit、time-stretch、HITL、resume/cancel、持久 SSE 与刷新恢复 | 极端 checkpoint 矩阵按真实风险触发 |
+| PostgreSQL/Redis/Celery/Outbox | 可运行 | Generate start/resume/cancel Dispatcher、权威 outbox、Compose readiness、幂等事件和恢复测试 | 长时负载/极端故障矩阵尚未测，按真实风险触发 |
 | 受控音频上传与导入 | 可运行 | 单文件 Import 与同一 Project 顺序多 Stem；每项独立权利/错误并刷新 head | 自动 stem separation 明确不做 |
 | BPM/key 分析 | 可运行的轻量基线 | FeatureArtifact、置信度与 HITL | 精度阈值尚无规模化 Eval 校准 |
 | 保持音高 time-stretch | 可运行的受限基线 | FFmpeg atempo、Artifact lineage、恢复和质量测试 | 尚不是专业弹性音频；复杂 tempo map 不在首版 |
 | Artifact 生命周期与 StoragePressureGate | 可运行 | 四态、配额、驱逐/重建、外置 Root | 暂不扩建通用缓存平台，按新 Artifact 类型增量接入 |
 | Tone.js AudioGraphCompiler | 可运行 | ArrangementIR 编译/渲染、12 个语义 Preset alias、Web 只读 Timeline/Track projection、真实 MP3 Transport | Lite 音色仍投影到 3 个合成核心与 click sample；HQ 音色不属于 S4 |
-| PatternSpec 与确定性 Composer | 可运行 | 四风格 Plan 策略、稳定双 seed Candidate、局部 Repair Snapshot、版本化 Plan hash、Parent Graph、共享 Export cursor 与有界 Edit Patch | 更丰富生成/编辑质量随 S7 Eval 校准 |
-| 完整成曲与导出 | 可运行 | 四风格 Web Brief→审批→Revision→7 Jobs→Studio；Master/MP3/四 Stem/MIDI/Project/逻辑 Bundle | 1–5 分钟与最多 12 轨仍留待最终产品验收 |
+| PatternSpec 与确定性 Composer | 可运行 | 四风格 Plan 策略、稳定双 seed Candidate、局部 Repair Snapshot、版本化 Plan hash、Parent Graph、共享 Export cursor 与有界 Edit Patch | 古典/爵士生成质量随 P1/P3 可听基线校准，主观质量未测 |
+| 完整成曲与导出 | 可运行 | 四风格 Web Brief→审批→Revision→7 Jobs→Studio；Master/MP3/四 Stem/MIDI/Project/逻辑 Bundle | 仍写死四 stem；五分钟 PCM24 超出 64 MiB；1–5 分钟/12 轨未实测 |
 | 四个 Style Pack 与 Theory Engine | 可运行 | 四个严格 `StylePack v1`、reviewed source/license snapshot、symbolic exemplar、Preset Palette、稳定 Theory rule/evidence、Web 解释与四风格 no-key 完整导出 | 当前为 Project-authored Lite 知识/音色；更丰富检索与 HQ Pack 非 S4 门槛 |
 | Web Import Review | 可运行 | 上传、分析确认、试听、恢复、同 Project 多 Stem 与窄屏回归 | 更复杂的多轨编辑不属于 Import Review |
 | Web Studio（轻量编辑） | 可运行 | Timeline/Piano Roll/Mixer/Library 面板、Draft/save/Undo/Redo、AI Edit/Preview、MP3 Transport、390px review-only | 更丰富专业 DAW 工具不属于个人作品集首版 |
@@ -73,7 +81,7 @@ README 已按产品、截图、启动、创作流程、Agent 架构、证据和�
 | Export / Run Inspector | 可运行 | 权威七步 Export 投影、安全下载、最多 200 条脱敏 Timeline、决策/预算/Job/Artifact/恢复事实；重复读取不写库 | 大规模历史 Trace 与外部对象存储不属于首版 |
 | Parent Graph 可视化 / 工作台可读性 | 可运行（作品集） | Generate-only `GET /runs/{run_id}/graph` 通过受限 `task_path` 读取器和静态展示注册表投影 `motif-forge-parent.v2`；Run 紧凑路径、Inspector 完整 Graph、并行候选/循环/Worker/人工节点与安全证据面板；Home recent-first、Brief 渐进披露、Run 结果优先、Studio 时间线优先 | 不是通用 Trace 平台；不读取 checkpoint payload/Prompt/推理；Import/Edit 保留事件时间线 |
 | Eval/可观测性 | 可运行（作品集） | S1–S7 共 96 条内部案例、80 条公开 measured 分母、持久 Event/Trace/Usage、About/Eval 页面、一条历史 Generate paid 样本；可选 LangSmith 投影现关联 Parent Graph 与 DeepSeek transport，并默认关闭、输入/输出隐藏、失败开放 | 主观音质、长时负载和 Celery/FFmpeg/Chromium 完整分布式 Trace 明确未测 |
-| 一键本地启停 | 可运行 | `scripts/start_motif_forge.sh` 统一外置存储、Docker/Colima、Compose readiness、Vite 与浏览器入口；`scripts/stop_motif_forge.sh` 完整停止 Web、Compose 和 Colima，同时保留 Volume/镜像/作品；Shell/契约测试覆盖 PID 防误杀与幂等边界 | 2026-08-31 同机 live startup 已通过；旧阶段 Compose 容器仍需精确停止，不能自动清理未知端口占用者 |
+| 一键本地启停 | 可运行 | `scripts/start_motif_forge.sh` 统一外置存储、Docker/Colima、Compose readiness、Vite 与浏览器入口；`scripts/stop_motif_forge.sh` 完整停止 Web、Compose 和 Colima，同时保留 Volume/镜像/作品；Shell/契约测试覆盖 PID 防误杀与幂等边界 | 2026-08-31 同机 live startup 已通过；现有 stopper 会关闭默认 Colima；共享 VM 下暂不使用，P1 独立修复；不清理未知占用者 |
 | CI/CD 与负载测试 | 后置可选 | 精确本地 S7 gate、确定性报告、PostgreSQL 与浏览器代表性验收 | CI workflow、soak、正式容量 P95 在公开托管/多人使用前再做 |
 
 ## 4. 当前验证基线
@@ -190,7 +198,7 @@ S1 已完成：固定作品为 24 bars、80 BPM、4/4、C major、四轨、72 �
 
 最终新容器/新 `/temp` 挂载真实队列复验为 Project `af988445-9123-40f6-81bf-7a6bcc037099`、Revision `f49b820e-0e56-4038-9108-a72cdc3affa5`、Run `c713a239-d169-4c02-836f-ec20ad657c3e`、Bundle Artifact `86d18388-1159-4c76-83ed-ffc317948007`；逻辑 Bundle 只保存 13 个校验项与音频 Artifact 引用，自身占 `59,396` bytes，不复制约 100 MB Master/Stem/MP3。Worker 会从数据库 Revision 重新编译 AudioGraph并拒绝不匹配 payload；`audio-artifact.v2` 结构化保存 Revision/Arrangement/render scope，转码和 Bundle 均拒绝跨 Revision 输入。Render/Transcode/Bundle 均先过会计入显式 temp root、真实目录与有效 Job lease 的 StoragePressureGate；跨挂载提升先复制到最终目录的唯一 partial、复核 bytes/hash，再在 Artifact 文件系统内原子 rename。运行中显式取消会中断协程/FFmpeg、清理新建但未登记的输出并阻止迟到/分歧 completion；Chromium 客户端断连会关闭页面并清理一次性 sink/partial；MP3 还拒绝 `max_volume <= -80 dBFS` 的数字近静音。
 
-当前下一条业务纵切是：
+历史 S1/S2 记录中当时定义的后续业务纵切是（非当前断点）：
 
 > **S7：把已有完整导出和 Agent/编辑闭环产品化为可公开演示的作品集，并补齐 96+ Eval、Run Inspector、必要可观测性与风险驱动硬化。**
 
@@ -220,6 +228,6 @@ S5 已完成两个稳定 Candidate family 的 fan-out/fan-in、真实候选 Prev
 
 S6 已完成轻量 Studio Draft、不可变 Undo/Redo、严格 EditRun/EditPatchProposal、同一 Parent Graph v2 的 EditSubgraph，以及 L0/L1 自动提交和 L2/L3 Preview/HITL。no-key Compose/Chromium 与真实 PostgreSQL 连续 interrupt 重启恢复均已通过，未执行新的付费模型调用。
 
-**当前断点：S7 已关闭，个人作品集首版封板；Graph 可解释性与工作台可读性纵切已完成。** 当前没有默认功能阶段；保留单一 Parent Graph、PlanApproval/CandidateSelection/EditPreview、不可变 Revision、持久费用/恢复、四风格策略和完整导出合同。后续只做作品集可用性维护，或在公开托管、多人使用、长时运行和真实风险触发时启动对应硬化纵切。一键启停与 Graph/readability 都属于可用性维护，不改变产品架构。
+**当前断点（2026-10-19）：S7 历史封板保持，P0 产品基线/合同同步与 P1 钢琴准备已获用户授权。** 保留 Parent Graph、审批、不可变 Revision、费用/恢复和旧四风格兼容；后续产品工作按 ADR-019 和 P1 计划逐纵切进行，不启动全部 P2–P5。资源与真实旧工程证据的具体覆盖/未测边界见 P0 报告。
 
 具体前后顺序、阶段门和优化规则见 `NEXT_DEVELOPMENT_ROADMAP.md`。

@@ -3,7 +3,20 @@
 > **For agentic workers:** 实施本路线中的具体纵切前，必须先为该纵切建立 `docs/superpowers/plans/YYYY-MM-DD-<slice>.md`，再使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 逐项执行。
 > 状态：已批准的主路线；S2 Task 6 起采用 ADR-016 作品集工程模式
 > 起点：受控 Upload → Import → 分析 HITL → 保持音高对齐 → Web Preview 已完成
-> 执行断点（2026-08-25）：G0 与 S1–S7 已验收，个人作品集首版封板。下一步没有默认功能阶段；只有公开托管、多人使用、长时运行或真实风险触发时，才从第 14 节选择对应硬化纵切。
+> 执行断点（2026-10-19）：G0 与 S1–S7 为已完成历史门。用户已授权古典/爵士产品改造，当前为 **P0 合同/基线与 P1 钢琴准备**（ADR-019），不是重新打开 S7。P1 音乐功能未实施，具体任务见下表与 P1 计划。
+
+## 当前产品改造入口（P0–P5）
+
+| 阶段 | 当前状态/依赖 | 交付与证据 |
+|---|---|---|
+| P0 | 本轮测量与计划同步；只读旧导出包，未启动 DB/UI | [实施账本](superpowers/plans/2026-10-19-p0-product-baseline.md)、[实测报告](evidence/2026-10-19-p0-baseline.md) |
+| P1 | 详细方案，待逐 Task 实施 | [最小钢琴计划](superpowers/plans/2026-10-19-p1-minimal-piano.md)：容量/共享 VM 边界→v1/v2 合同→小型 CC0 钢琴→表达/A-B/Undo |
+| P2 | P1 后 | 少量合法经典谱、原谱保护、添加轨道与局部改编 |
+| P3 | P1/P2 可听基线后 | 有界结构/动机生成与爵士节奏组质量，真实模型验收另行预算 |
+| P4 | 测量从 P0 起；功能随证据进入 | 按需音源/渲染、缓存冻结、生命周期、Studio 性能 |
+| P5 | 质量/资源门通过后 | 室内乐和更完整管弦乐，基于实际编制决定轨数合同 |
+
+当前只授权 P0 与 P1 准备，不自动执行 P2–P5。电子风格将退出默认新建入口但保留旧 IDs/作品/声音/导出；P0 尚未过滤当前 UI。以下 S1–S7 表与数量为历史验收/原始追踪，不能误读为当前活动任务。
 
 **目标：** 从当前可靠的导入底座，按最短依赖路径完成“可生成、可听、可编辑、可恢复、可评测”的 Agentic Music Studio。
 
@@ -100,7 +113,7 @@ G0 不包含：重写 API、拆分所有大文件、Graph 代码合并、引入�
 | MF-P06 | 简单 AI 修改直接落地，旋律/曲风/曲式/大范围变化人工确认 | S6 | S6 | L0/L1 自动 Revision + Undo；L2/L3 Preview/HITL；实际影响只可升级 |
 | MF-P07 | 生成前审阅并调整结构、BPM、Key、配器和能量曲线 | S2 Graph、S3 UI | S3 | PlanApproval 是 checkpoint/interrupt，Fallback 也不能绕过 |
 | MF-P08 | 音乐史、美学、和声、古典、爵士知识 | S4 | S4/S5 | RAG 只注入来源明确的 StyleConstraints；硬音乐规则由 Theory Engine 执行 |
-| MF-P09 | Synth Ambient、Minimal Electronic、Classical Chamber、Jazz 四包一起交付 | S4 | S7 | 可按依赖顺序提高成熟度，但首版发布时四包都必须可生成完整作品 |
+| MF-P09 | 当前：古典/爵士新增主线；历史：四包同时交付 | 历史 S4；当前 P0/P1 | P1 UI / 后续质量门 | ADR-019 已获用户授权；legacy 四 ID、旧作品/声音和导出保留；P0 未改当前入口 |
 | MF-P10 | 内置常用音色，并支持 AI 生成/寻找音色和旋律 | S1 Seed Palette、S4 Catalog、S6 AI | S6/S7 | 本地许可审核 Catalog 优先；外部搜索需用户显式开启和许可确认 |
 | MF-P11 | 多轨、钢琴卷帘、混音、拖动、裁切、拆分、复制和尾音处理 | S6 | S6 | EQ、pitch、fade、reverb/delay tail 是不同参数；不冒充完整专业 DAW |
 | MF-P12 | 保持音高不变的 time-stretch | 已完成受限基线 | S3/S7 | 原始 Artifact 不覆盖；首版不承诺实时弹性音频、复杂 tempo map 或极端拉伸 |
@@ -119,7 +132,7 @@ G0 不包含：重写 API、拆分所有大文件、Graph 代码合并、引入�
 - 每个具体实施计划必须列出覆盖的 `MF-Pxx`，未列出的需求不得顺手修改。
 - 每个纵切验收后，只把有运行证据的行同步为“已完成”；Schema、测试或 Spike 单独存在只能记为“内部完成/部分完成”。
 - 如果实现选择与原始需求产生质量、成本或范围取舍，先写 ADR 并向用户确认，不能由实现模型自行降低要求。
-- S1–S7 任一阶段都不得删除完整导出、四个 Style Pack、HITL、AI 局部编辑、可恢复 Graph、既定视觉语言、安全/版权或 Eval，只能按依赖顺序推迟到已标明阶段。
+- 当前与后续阶段不得删除完整导出、四个历史 Style Pack 的兼容与旧作品数据、HITL、AI 局部编辑、可恢复 Graph、既定视觉语言、安全/版权或 Eval，只能按依赖顺序推迟到已标明阶段。
 
 ## 5. 阶段技术交付总表
 
@@ -284,7 +297,7 @@ Candidate fan-out 使用独立 `candidate_id + seed + CandidateState`；fan-in r
 
 前端始终区分四种状态：服务端不可变 Revision、浏览器可撤销 Draft、待审批 Candidate/Preview、Tone/Web Audio runtime。`EditPatchProposal v1` 必须带 `base_revision_id`、selection、commands、rationale/evidence 和 expected effect；服务端模拟后计算真实 ChangeImpact。模型可调用的工具保持纯函数/只读，`commit_revision`、Render enqueue、外部下载和持久化仍只属于 Application/Graph。
 
-## 12. S7：导出产品化复验、Eval、可观测性与发布演示
+## 12. S7：导出产品化复验、Eval、可观测性与发布演示（历史封板范围）
 
 > 状态：**已完成（个人作品集门）**。正式 Export、Run Inspector、About/Eval 页面、96 条内部 Eval、精确本地 gate、真实 PostgreSQL 代表性边界与桌面/390px 浏览器验收已落地。长作品负载、完整 OTel、CI/CD、多租户和全故障矩阵没有伪装成已完成，移入第 14 节的触发式后置路线。
 

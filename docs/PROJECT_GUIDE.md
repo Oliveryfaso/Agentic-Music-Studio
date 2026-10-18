@@ -2,7 +2,7 @@
 
 > 产品工作名：**Motif Forge**（音乐动机锻造台）
 > 文档状态：**架构基线已批准，详细合同已拆分**
-> 当前阶段：**G0 与 S1–S7 已完成，个人作品集首版已经封板**。浏览器已接通 Project Home、四风格 Brief、Plan/HITL、两个候选、Critic/一次 Repair、A/B 选择、轻量 Studio、AI 选区编辑、权威 Export、Run Inspector 与 Eval 页面；统一 Parent Graph v2、费用/恢复和不可变 Revision 合同保持不变。后续只在真实发布、多用户或性能需求触发时做风险驱动硬化。当前事实与可选后续路线分别见 `IMPLEMENTATION_STATUS.md` 和 `NEXT_DEVELOPMENT_ROADMAP.md`。
+> 当前阶段（2026-10-19）：**S1–S7 历史作品集已封板，现进入用户批准的 P0 产品基线与 P1 最小钢琴准备**。产品主线收敛到古典/爵士，电子风格作为 legacy 保留。P0 未改运行时音乐/Schema/界面；当前 UI 仍支持四风格。P1 的真实钢琴与表达为待实施目标。当前证据见 `IMPLEMENTATION_STATUS.md` / `docs/evidence/2026-10-19-p0-baseline.md`，执行入口见 `NEXT_DEVELOPMENT_ROADMAP.md`。
 
 ---
 
@@ -25,6 +25,8 @@
 ---
 
 ## 1. 项目结论
+
+**当前产品方针（ADR-019）**：以可编辑的古典与爵士编曲、演奏工作台为主线，钢琴→爵士小编制/室内乐→管弦乐；保留空白创作、已有作品编辑和完整导出。经典作品导入与再编曲分阶段接入，逐文件审核乐谱/编曲/录音/采样权利。新声音使用版本固定的音源与演奏计划，不重写旧工程默认声音。下文关于 S1–S7、四子图和大音色库的范围为原始合同/历史设计；当前开发优先级与范围变化由 ADR-019、本节及路线开头控制，不能把历史目标写成当前实现。
 
 这是一个本地优先、网页形态、只生成**纯器乐**的 AI 编曲与音乐合成工作台。它不是“输入一句话，调用接口返回 MP3”的包装，也不试图第一版复制完整 DAW。
 
@@ -82,10 +84,10 @@
 - 纯器乐，不生成歌词、人声，不做声音克隆。
 - 首版必须完成从 Brief 到完整成曲的闭环，而不是只生成短片段：支持 1–5 分钟、最多 12 条轨道、具有开端—发展—收束的完整结构，每次最多 2 个完整候选。
 - 固定全局 BPM；先支持 4/4，可再加入 3/4。
-- 首批四套知识包同时交付：`Synth Ambient`、`Minimal Electronic`、`Classical Chamber`、`Jazz Harmony & Improvisation`。
+- 新产品默认创作主线为古典与爵士；`Synth Ambient`、`Minimal Electronic` 保留 legacy 读写/回放/导出兼容。新建入口过滤是待实施 UI Task，当前四个 StylePack ID 不删除。
 - 一个明确的推理模型：DeepSeek V4 Flash；保留 Provider 接口，但不把“支持多模型”当首版目标。
 - 支持导入 WAV、MP3、FLAC；单个混音文件作为一条 Audio Track，多文件 Stem 可分别导入多轨。首版不自动做 stem separation。
-- 默认内置 0.5–1 GiB 的 `Core Sound Palette Lite`，覆盖电子/合成器、基础鼓组、键盘/贝斯、弦乐室内乐和基础爵士管乐的紧凑音色；高采样层 multisample 作为可选 HQ Pack，所有 Sample/SoundFont/Preset 都有明确许可。
+- 当前 v1 音色仍为占位合成器/click；P1 先审核一个约 4.3 MiB 下载/10 MiB 展开的小型 CC0 钢琴候选，未来音源按需扩充。原 0.5–1 GiB Lite 是历史容量目标，未等同已内置资源。所有新包必须有具体版本、许可、文件哈希与资源证据。
 - DeepSeek 可以生成受约束的合成器音色、旋律和伴奏，也可以把自然语言音色描述转换成检索条件，从本地或许可 Allowlist 音源中寻找候选。
 - 基础钢琴卷帘、多轨时间线、混音与效果；不追求专业 DAW 的全部能力。
 - 首版具备 Master WAV、MP3、逐轨 Stem、MIDI、可继续编辑的项目文件、credits/license manifest 和 trace manifest 的完整导出能力；Master WAV 与 Stem 按需渲染，不为每个候选预先永久保存。
@@ -773,7 +775,7 @@ DeepSeek V4 Flash 支持 JSON Output 和工具调用，但集成必须遵守以�
 
 ### 9.3 首版音色库与 AI 音色/旋律能力
 
-首版内置 0.5–1 GiB 的 `Core Sound Palette Lite`，优先保证四个 Style Pack 可以无需外部下载就完成整曲：
+历史音色目标为 0.5–1 GiB 的 `Core Sound Palette Lite`；以下为目标清单，**当前并未实际内置这些真实乐器**。ADR-019 后先从 P1 小型钢琴纵切验证，再决定扩包：
 
 - 基础合成：sine/saw/square/triangle、mono/poly synth、sub bass、pluck、lead、pad、arp、noise/texture。
 - 电子节奏：kick、snare、clap、closed/open hi-hat、tom、cymbal、基础 percussion。
@@ -1246,7 +1248,9 @@ Upload、Candidate fan-out 试听、Render、Time-stretch 和 Export 之前运�
 
 ---
 
-## 16. 实施顺序与每阶段验收门
+## 16. 原始实施顺序与验收门（历史目标参考）
+
+当前 P0/P1 队列以 `NEXT_DEVELOPMENT_ROADMAP.md` 开头及具体计划为准；本节不是新一轮从零实施清单。
 
 这里按前后依赖排序，不按周或日期排期。
 
@@ -1404,7 +1408,7 @@ Upload、Candidate fan-out 试听、Render、Time-stretch 和 Export 之前运�
 
 1. **产品名**：`Motif Forge`；仓库目录继续使用稳定的 `agentic-music-workbench`。
 2. **首版生成内核与音色**：Tone.js 合成器 + 常见 Core Sound Palette + 审核过的 one-shot/sample + MIDI/SoundFont；支持 AI 生成/修改 SynthPatch、旋律、伴奏和检索许可音色。
-3. **首批四个风格包同时交付**：Synth Ambient、Minimal Electronic、Classical Chamber、Jazz Harmony & Improvisation。
+3. **当前风格方针（替代原四包新增主线）**：古典/爵士优先；四个历史 Pack 和电子风格旧作品保持兼容，默认新建入口调整按 P1 UI Task 实施。
 4. **首版必须完整产出**：支持 1–5 分钟、最多 12 轨、两个完整候选，导出 Master WAV/MP3、Stems、MIDI、项目与 manifests。
 5. **基础模型**：DeepSeek V4 Flash 官方 API；简单节点用 non-thinking，复杂规划/批评用 thinking + high。
 6. **完整本地演示架构**：Docker Compose + FastAPI + PostgreSQL + Redis + 独立 Worker + Artifact Store。
@@ -1485,7 +1489,7 @@ Upload、Candidate fan-out 试听、Render、Time-stretch 和 Export 之前运�
 
 > Web 闭环同步（2026-08-12）：Import Review 已从手工 UUID 读取扩展为受控本地上传、权利确认、浏览器 SHA-256、分块 Session、Import Run URL 恢复、低置信度确认/覆盖/跳过/取消、原始/保持音高对齐 Range 试听与独立 Feature Review。`GET /api/v1/imports/{thread_id}` 只投影同一 PostgreSQL checkpoint，不重跑 Graph；音频内容只经 validated Artifact ID 解析，不公开外置盘路径。开发期仍是 host-first，本纵切只在跨服务验收点刷新 API target，没有重建 Media/Chromium Worker。
 
-建议按以下主线推进：
+当前主线按 ADR-019 和 P0/P1 计划推进。以下为原始完整架构流程参考，四个历史策略继续作为兼容实现保留：
 
 > **空白创作或导入 Audio/Stems → 校验/标准化/BPM-key 分析/保持音高的节拍对齐 → ChangeImpact 与音乐策略路由 → 四类风格子图 → 全曲 Plan → 按 Section/Track 生成 Pattern/Synth/Sample Specs → 确定性编译、分段连续性校验与统一 AudioGraph 渲染 → 规则/证据自检与局部 Repair → 简单修改自动落地 / 重大修改 HITL → Master/Stems/MIDI/Manifests 导出。系统使用一个版本化 Graph 拓扑，每次用户任务建立有限 Parent Run，正常、异常、重试、降级和恢复边都在该 Run 内闭合。**
 
