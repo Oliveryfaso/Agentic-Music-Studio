@@ -52,6 +52,7 @@ from motif_forge.application.media_jobs import (
 )
 from motif_forge.application.piano_capability import ReadPianoCapability
 from motif_forge.application.piano_preview import PianoPreviewWorkflow
+from motif_forge.application.piano_semantic import PianoSemanticService
 from motif_forge.application.ports import (
     AIRunUnitOfWorkFactory,
     UnitOfWorkFactory,
@@ -96,12 +97,14 @@ from motif_forge.infrastructure.persistence.database import (
 )
 from motif_forge.infrastructure.persistence.export_reads import PostgresExportProjectionStore
 from motif_forge.infrastructure.persistence.media_jobs import PostgresMediaJobUnitOfWork
+from motif_forge.infrastructure.persistence.piano_plans import PostgresPianoPlanStore
 from motif_forge.infrastructure.persistence.project_reads import PostgresProjectReadStore
 from motif_forge.infrastructure.persistence.run_graph_history import PostgresRunGraphHistoryStore
 from motif_forge.infrastructure.persistence.run_inspection import PostgresRunInspectionStore
 from motif_forge.infrastructure.persistence.storage import PostgresStorageUnitOfWork
 from motif_forge.infrastructure.persistence.uploads import PostgresUploadUnitOfWork
 from motif_forge.observability import configure_langsmith, graph_trace_config
+from motif_forge.providers.piano import build_piano_planner
 
 LOCAL_ACTOR_ID = "local-user"
 IdempotencyKey = Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=160)]
@@ -488,6 +491,14 @@ def create_app(
                         project_uow,
                         runtime_media_uow,
                         ReadPianoCapability(service_url=runtime_settings.render_service_url),
+                        semantic=PianoSemanticService(
+                            cast(AIRunUnitOfWorkFactory, runtime_ai_run_uow),
+                            PostgresPianoPlanStore(session_factory),
+                            lambda run: build_piano_planner(
+                                runtime_settings, run, runtime_ai_run_uow
+                            ),
+                            projects=project_uow,
+                        ),
                     )
                 ),
                 materialize_import=MaterializeImport(project_uow, runtime_media_uow),
@@ -532,6 +543,7 @@ def create_app(
             runtime_uow,
             capability=ReadPianoCapability(service_url=runtime_settings.render_service_url),
             graph_getter=lambda: app.state.parent_graph,
+            ai_runs=runtime_ai_run_uow,
         )
     )
     if runtime_ai_run_uow is not None:

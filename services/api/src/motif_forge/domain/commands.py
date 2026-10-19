@@ -333,6 +333,32 @@ class AppendPianoTrackCommand(CommandEnvelope):
     payload: AppendPianoTrackPayload
 
 
+class AgentAppendPianoTrackCommand(CommandEnvelope):
+    """Validated semantic-plan materialization, always subject to L2 approval."""
+
+    command_type: Literal["agent_append_piano_track"] = "agent_append_piano_track"
+    actor_kind: Literal["agent"] = "agent"
+    payload: AppendPianoTrackPayload
+
+
+class ReplacePianoRangePayload(DomainModel):
+    track: Track
+    start_bar: int = Field(ge=1, le=16)
+    end_bar: int = Field(ge=1, le=16)
+
+    @model_validator(mode="after")
+    def bounded_range(self) -> Self:
+        if not 0 <= self.end_bar - self.start_bar < 4:
+            raise ValueError("ACCOMPANIMENT_SCOPE_INVALID")
+        return self
+
+
+class ReplacePianoRangeCommand(CommandEnvelope):
+    command_type: Literal["replace_piano_range"] = "replace_piano_range"
+    actor_kind: Literal["agent", "human"]
+    payload: ReplacePianoRangePayload
+
+
 class RemoveAddedPianoTrackPayload(DomainModel):
     track_id: UUID
     restore_schema_version: Literal["arrangement-ir.v2", "arrangement-ir.v3"]
@@ -347,6 +373,8 @@ class RemoveAddedPianoTrackCommand(CommandEnvelope):
 EditorCommand = Annotated[
     InitializeCompositionCommand
     | AppendPianoTrackCommand
+    | AgentAppendPianoTrackCommand
+    | ReplacePianoRangeCommand
     | RemoveAddedPianoTrackCommand
     | SetPianoProfileCommand
     | AddTrackCommand
@@ -553,7 +581,7 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
     # The discriminated command model guarantees the payload pairing at parse time. Pydantic's
     # plugin does not currently preserve that relationship when narrowing the union below.
     payload: Any = command.payload
-    if isinstance(command, AppendPianoTrackCommand):
+    if isinstance(command, (AppendPianoTrackCommand, AgentAppendPianoTrackCommand)):
         if not isinstance(arrangement, ArrangementIRV2) or len(arrangement.tracks) != 1:
             raise issue(
                 "PIANO_TRACK_LIMIT_EXCEEDED", "tracks", "add one part to the original melody"
@@ -581,6 +609,48 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
             render_profile=EnsemblePianoRenderProfile(),
         )
         return ArrangementIRV3.model_validate(data)
+    if isinstance(command, ReplacePianoRangeCommand):
+        if not isinstance(arrangement, ArrangementIRV3) or len(arrangement.tracks) != 2:
+            raise issue("ACCOMPANIMENT_TARGET_INVALID", "tracks", "a saved added part is required")
+        original = arrangement.tracks[1]
+        replacement = payload.track
+        start, end = (payload.start_bar - 1) * 1920, payload.end_bar * 1920
+        if (
+            replacement.track_id != original.track_id
+            or original.locked_ranges
+            or len(original.clips) != 1
+            or len(replacement.clips) != 1
+            or not isinstance(original.clips[0], NoteClip)
+            or not isinstance(replacement.clips[0], NoteClip)
+            or original.model_dump(exclude={"clips"}) != replacement.model_dump(exclude={"clips"})
+            or original.clips[0].model_dump(exclude={"notes"})
+            != replacement.clips[0].model_dump(exclude={"notes"})
+            or command.selection
+            != Selection(track_ids=(original.track_id,), start_tick=start, end_tick=end)
+        ):
+            raise issue(
+                "ACCOMPANIMENT_SCOPE_INVALID",
+                "tracks",
+                "only the selected added piano bars may change",
+            )
+        before_notes, after_notes = original.clips[0].notes, replacement.clips[0].notes
+        offset = original.clips[0].start_tick
+        for note in (*before_notes, *after_notes):
+            a, b = offset + note.start_tick, offset + note.start_tick + note.duration_tick
+            if _intersects(a, b, start, end) and not (start <= a < b <= end):
+                raise issue(
+                    "ACCOMPANIMENT_SCOPE_INVALID", "notes", "a note crosses the selected boundary"
+                )
+
+        def outside(notes: tuple[NoteEvent, ...]) -> tuple[NoteEvent, ...]:
+            return tuple(n for n in notes if not start <= offset + n.start_tick < end)
+
+        if outside(before_notes) != outside(after_notes):
+            raise issue(
+                "ACCOMPANIMENT_SCOPE_INVALID", "notes", "unselected notes must remain identical"
+            )
+        _assert_unlocked(original, start, end)
+        return _replace_track(arrangement, 1, replacement)
     if isinstance(command, RemoveAddedPianoTrackCommand):
         if not isinstance(arrangement, ArrangementIRV3):
             raise issue("UNDO_NOT_AVAILABLE", "tracks", "a versioned added part is required")

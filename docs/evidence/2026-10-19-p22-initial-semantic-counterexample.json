@@ -1,0 +1,493 @@
+{
+  "status": "passed",
+  "steps": [
+    {
+      "jobId": "38efe9af-7366-422d-8652-8da28970d3aa",
+      "status": "succeeded",
+      "wallSeconds": 2.243,
+      "freshAppAfterWorker": true,
+      "duplicateResume": true
+    },
+    {
+      "jobId": "f711f1b7-d0af-4a54-b37f-c32db2ba2d99",
+      "status": "succeeded",
+      "wallSeconds": 2.598,
+      "freshAppAfterWorker": true,
+      "duplicateResume": true
+    },
+    {
+      "jobId": "47648e1d-64cd-4899-8c36-20480ff32935",
+      "status": "succeeded",
+      "wallSeconds": 2.69,
+      "freshAppAfterWorker": true,
+      "duplicateResume": true
+    },
+    {
+      "jobId": "741d10f6-de1d-4e79-aa7a-ac7fbf5aa04e",
+      "status": "succeeded",
+      "wallSeconds": 2.543,
+      "freshAppAfterWorker": true,
+      "duplicateResume": true
+    },
+    {
+      "jobId": "d6dc6c00-4796-4de7-a333-e7eca02efbca",
+      "status": "succeeded",
+      "wallSeconds": 2.262,
+      "freshAppAfterWorker": true,
+      "duplicateResume": true
+    },
+    {
+      "jobId": "c9862c91-f984-45a7-8410-2198fceca313",
+      "status": "succeeded",
+      "wallSeconds": 0.175,
+      "freshAppAfterWorker": true,
+      "duplicateResume": true
+    }
+  ],
+  "pageErrors": [],
+  "projectId": "a17cb4f6-d3ea-44a2-9b72-95bda47ea851",
+  "branchId": "6a011747-386d-5aec-981f-9835d4054140",
+  "sourceRevision": "449a326f-b962-502f-8be7-43808ec6cad0",
+  "sourceBranchId": "748d2678-8394-44d8-8a67-e487849ebfd7",
+  "firstQueued": {
+    "thread_id": "piano-157ad578fc4a21c4ca0a28ef9bdc90b0",
+    "phase": "queued",
+    "base_revision_id": "449a326f-b962-502f-8be7-43808ec6cad0",
+    "candidate_content_hash": null,
+    "baseline_artifact_id": null,
+    "piano_artifact_id": null,
+    "revision_id": null,
+    "pending_job_id": null,
+    "error_code": null,
+    "replayed": false,
+    "run_id": "444bccdf-a702-4d57-ae67-9aff1bde5cb0",
+    "semantic_summary": null,
+    "model": null,
+    "model_requests": null,
+    "total_tokens": null,
+    "usage_status": null
+  },
+  "refreshDuringPlanning": true,
+  "firstAudition": {
+    "thread_id": "piano-157ad578fc4a21c4ca0a28ef9bdc90b0",
+    "phase": "waiting_piano_approval",
+    "base_revision_id": "449a326f-b962-502f-8be7-43808ec6cad0",
+    "candidate_content_hash": "dd3dd33c76613b56b97611d9d81dcc842e6d4bbdd3db647e4456a6b3cea2478f",
+    "baseline_artifact_id": "67e49677-62be-46ae-af57-5c582a14ee58",
+    "piano_artifact_id": "8bb77324-b334-430c-93b1-0f5dafee80d1",
+    "revision_id": null,
+    "pending_job_id": null,
+    "error_code": null,
+    "replayed": false,
+    "run_id": "444bccdf-a702-4d57-ae67-9aff1bde5cb0",
+    "semantic_summary": "低音区钢琴伴奏：前8小节稀疏长音，后8小节略活跃，G大调和声G/C/D/Em进行。",
+    "model": "deepseek-flash",
+    "model_requests": 1,
+    "total_tokens": 1889,
+    "usage_status": "partial"
+  },
+  "firstRevision": "1dddbca4-1654-4eb4-9835-4a568ffcfdc0",
+  "semanticMetrics": {
+    "frontNotes": 16,
+    "backNotes": 28,
+    "addedPitchRange": [
+      36,
+      50
+    ],
+    "localBefore": {
+      "notes": 12,
+      "velocity": 55
+    },
+    "localAfter": {
+      "notes": 4,
+      "velocity": 40
+    }
+  },
+  "secondQueued": {
+    "thread_id": "piano-36f98598463356223874539b3f2c508d",
+    "phase": "queued",
+    "base_revision_id": "1dddbca4-1654-4eb4-9835-4a568ffcfdc0",
+    "candidate_content_hash": null,
+    "baseline_artifact_id": null,
+    "piano_artifact_id": null,
+    "revision_id": null,
+    "pending_job_id": null,
+    "error_code": null,
+    "replayed": false,
+    "run_id": "ac9884ab-bbc3-4459-a27e-05fefb2e8a41",
+    "semantic_summary": null,
+    "model": null,
+    "model_requests": null,
+    "total_tokens": null,
+    "usage_status": null
+  },
+  "secondAudition": {
+    "thread_id": "piano-36f98598463356223874539b3f2c508d",
+    "phase": "waiting_piano_approval",
+    "base_revision_id": "1dddbca4-1654-4eb4-9835-4a568ffcfdc0",
+    "candidate_content_hash": "548ca7e60911de4dbbb2f8f5cc3ba1affc474f6f3b1d24cad49901704cd8439c",
+    "baseline_artifact_id": "ae689cba-37fc-4389-999b-1130dfea00c6",
+    "piano_artifact_id": "e07f4805-3065-480c-850b-12f98994cde0",
+    "revision_id": null,
+    "pending_job_id": null,
+    "error_code": null,
+    "replayed": false,
+    "run_id": "ac9884ab-bbc3-4459-a27e-05fefb2e8a41",
+    "semantic_summary": "第9至12小节改为稀疏单音伴奏：每小节仅第一拍弹根音，力度降低，保留G大调和声进行。",
+    "model": "deepseek-flash",
+    "model_requests": 1,
+    "total_tokens": 1650,
+    "usage_status": "partial"
+  },
+  "modifiedRevision": "5ffc6cf9-92d4-409f-b850-8559d48c756d",
+  "outsideExact": true,
+  "originalExact": true,
+  "mobileNoOverflow": true,
+  "export": {
+    "planHash": "c1f97a6360148ee9ae43d3191963542b4b8015a714cd6468a3d8c55ae55e7961",
+    "files": [
+      {
+        "name": "composition.mid",
+        "bytes": 982,
+        "sha256": "3ed1d86d27242878065482d1849e68603bab2f4aa9b70d92953a677e99ff0b9d"
+      },
+      {
+        "name": "credits.json",
+        "bytes": 1088,
+        "sha256": "ea06ee21cd6859303223d9a1628a0b399b477cd786e016b4c3ec9c903fd50b64"
+      },
+      {
+        "name": "license.json",
+        "bytes": 1426,
+        "sha256": "8cbd7547e079cc68bcb26070ef0cc03aa5c59234726308e995133f377a90df5c"
+      },
+      {
+        "name": "master.wav",
+        "bytes": 11750438,
+        "sha256": "5a2ec2ab0a47397589151e6f2a256b21a6d6eafc22f24f044f2b71b708496294"
+      },
+      {
+        "name": "project.json",
+        "bytes": 16799,
+        "sha256": "548ca7e60911de4dbbb2f8f5cc3ba1affc474f6f3b1d24cad49901704cd8439c"
+      },
+      {
+        "name": "provenance.json",
+        "bytes": 1026,
+        "sha256": "cc1c5cc267242dc0ffffcd8810ebebca2242628f12d7b9865de38cb6475bf635"
+      },
+      {
+        "name": "trace.json",
+        "bytes": 139,
+        "sha256": "392f7413b408e917bdc502c167db710a0558e6d6ebd112e0ceb305f1ce7aee96"
+      },
+      {
+        "name": "export-manifest.json",
+        "bytes": 1347,
+        "sha256": "10b5310fdc31b1f9bc6a49c92c5d1a0b1c50792977851958ef42dd24c5f39a54"
+      }
+    ]
+  },
+  "undoRevision": "d7cb4169-8488-41bb-9d66-64645490a52c",
+  "undoExact": true,
+  "reopenPlayback": true,
+  "durableRuns": [
+    {
+      "runId": "ac9884ab-bbc3-4459-a27e-05fefb2e8a41",
+      "status": "succeeded",
+      "requests": 1,
+      "promptTokens": 1454,
+      "completionTokens": 196,
+      "totalTokens": 1650,
+      "usageStatus": "partial"
+    },
+    {
+      "runId": "444bccdf-a702-4d57-ae67-9aff1bde5cb0",
+      "status": "succeeded",
+      "requests": 1,
+      "promptTokens": 1304,
+      "completionTokens": 585,
+      "totalTokens": 1889,
+      "usageStatus": "partial"
+    }
+  ],
+  "plans": [
+    {
+      "plan": {
+        "bars": [
+          {
+            "bar": 9,
+            "grid": [
+              0
+            ],
+            "chord": "Em",
+            "octave": 2,
+            "velocity": 40,
+            "gate_steps": 4
+          },
+          {
+            "bar": 10,
+            "grid": [
+              0
+            ],
+            "chord": "D",
+            "octave": 2,
+            "velocity": 40,
+            "gate_steps": 4
+          },
+          {
+            "bar": 11,
+            "grid": [
+              0
+            ],
+            "chord": "C",
+            "octave": 2,
+            "velocity": 40,
+            "gate_steps": 4
+          },
+          {
+            "bar": 12,
+            "grid": [
+              0
+            ],
+            "chord": "G",
+            "octave": 2,
+            "velocity": 40,
+            "gate_steps": 4
+          }
+        ],
+        "summary": "第9至12小节改为稀疏单音伴奏：每小节仅第一拍弹根音，力度降低，保留G大调和声进行。",
+        "schema_version": "accompaniment-plan.v1"
+      },
+      "model": "deepseek-flash",
+      "usage": {
+        "status": "partial",
+        "total_tokens": 1650,
+        "prompt_tokens": 1454,
+        "reasoning_tokens": null,
+        "completion_tokens": 196,
+        "prompt_cache_hit_tokens": 512,
+        "prompt_cache_miss_tokens": 942
+      },
+      "provider": "deepseek",
+      "operation_id": "deepseek:c5693138-2f5b-4aad-bd4c-9e5cf7707259",
+      "prompt_version": "piano-accompaniment-prompt.v1",
+      "schema_version": "piano-plan-record.v1",
+      "requested_model": "deepseek-v4-flash"
+    },
+    {
+      "plan": {
+        "bars": [
+          {
+            "bar": 1,
+            "grid": [
+              0,
+              8
+            ],
+            "chord": "G",
+            "octave": 2,
+            "velocity": 44,
+            "gate_steps": 4
+          },
+          {
+            "bar": 2,
+            "grid": [
+              0,
+              8
+            ],
+            "chord": "D",
+            "octave": 2,
+            "velocity": 44,
+            "gate_steps": 4
+          },
+          {
+            "bar": 3,
+            "grid": [
+              0,
+              8
+            ],
+            "chord": "C",
+            "octave": 2,
+            "velocity": 46,
+            "gate_steps": 4
+          },
+          {
+            "bar": 4,
+            "grid": [
+              0,
+              8
+            ],
+            "chord": "G",
+            "octave": 2,
+            "velocity": 44,
+            "gate_steps": 4
+          },
+          {
+            "bar": 5,
+            "grid": [
+              0,
+              8
+            ],
+            "chord": "G",
+            "octave": 2,
+            "velocity": 46,
+            "gate_steps": 4
+          },
+          {
+            "bar": 6,
+            "grid": [
+              0,
+              8
+            ],
+            "chord": "D",
+            "octave": 2,
+            "velocity": 46,
+            "gate_steps": 4
+          },
+          {
+            "bar": 7,
+            "grid": [
+              0,
+              8
+            ],
+            "chord": "C",
+            "octave": 2,
+            "velocity": 46,
+            "gate_steps": 4
+          },
+          {
+            "bar": 8,
+            "grid": [
+              0,
+              8
+            ],
+            "chord": "G",
+            "octave": 2,
+            "velocity": 44,
+            "gate_steps": 4
+          },
+          {
+            "bar": 9,
+            "grid": [
+              0,
+              6,
+              12
+            ],
+            "chord": "C",
+            "octave": 2,
+            "velocity": 54,
+            "gate_steps": 3
+          },
+          {
+            "bar": 10,
+            "grid": [
+              0,
+              6,
+              12
+            ],
+            "chord": "D",
+            "octave": 2,
+            "velocity": 56,
+            "gate_steps": 3
+          },
+          {
+            "bar": 11,
+            "grid": [
+              0,
+              6,
+              12
+            ],
+            "chord": "Em",
+            "octave": 2,
+            "velocity": 56,
+            "gate_steps": 3
+          },
+          {
+            "bar": 12,
+            "grid": [
+              0,
+              6,
+              12
+            ],
+            "chord": "G",
+            "octave": 2,
+            "velocity": 54,
+            "gate_steps": 3
+          },
+          {
+            "bar": 13,
+            "grid": [
+              0,
+              4,
+              8,
+              12
+            ],
+            "chord": "G",
+            "octave": 2,
+            "velocity": 60,
+            "gate_steps": 2
+          },
+          {
+            "bar": 14,
+            "grid": [
+              0,
+              4,
+              8,
+              12
+            ],
+            "chord": "D",
+            "octave": 2,
+            "velocity": 62,
+            "gate_steps": 2
+          },
+          {
+            "bar": 15,
+            "grid": [
+              0,
+              4,
+              8,
+              12
+            ],
+            "chord": "C",
+            "octave": 2,
+            "velocity": 62,
+            "gate_steps": 2
+          },
+          {
+            "bar": 16,
+            "grid": [
+              0,
+              4,
+              8,
+              12
+            ],
+            "chord": "G",
+            "octave": 2,
+            "velocity": 60,
+            "gate_steps": 2
+          }
+        ],
+        "summary": "低音区钢琴伴奏：前8小节稀疏长音，后8小节略活跃，G大调和声G/C/D/Em进行。",
+        "schema_version": "accompaniment-plan.v1"
+      },
+      "model": "deepseek-flash",
+      "usage": {
+        "status": "partial",
+        "total_tokens": 1889,
+        "prompt_tokens": 1304,
+        "reasoning_tokens": null,
+        "completion_tokens": 585,
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1304
+      },
+      "provider": "deepseek",
+      "operation_id": "deepseek:13b083eb-2ced-47eb-b298-59e9feb86a27",
+      "prompt_version": "piano-accompaniment-prompt.v1",
+      "schema_version": "piano-plan-record.v1",
+      "requested_model": "deepseek-v4-flash"
+    }
+  ],
+  "mode": "live",
+  "realProviderCalls": 2,
+  "redisCeleryTransportTested": false
+}

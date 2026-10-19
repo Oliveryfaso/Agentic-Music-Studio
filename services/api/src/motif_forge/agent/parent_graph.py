@@ -229,21 +229,28 @@ class ParentGraphState(TypedDict):
 
 
 def initial_piano_preview_state(
-    *, thread_id: str, request: PianoPreviewRequest
+    *, thread_id: str, request: PianoPreviewRequest, run_id: UUID | None = None
 ) -> ParentGraphState:
     if not thread_id or len(thread_id) > 160:
         raise ValueError("thread_id must contain between 1 and 160 characters")
-    return ParentGraphState(
+    state = ParentGraphState(
         thread_id=thread_id,
         project_id=str(request.project_id),
         operation="piano_preview",
         graph_topology_version=PARENT_GRAPH_TOPOLOGY_VERSION,
-        state_schema_version=PARENT_STATE_SCHEMA_VERSION,
+        state_schema_version="piano-accompaniment-run.v1"
+        if request.semantic
+        else PARENT_STATE_SCHEMA_VERSION,
         request_payload=request.model_dump(
-            mode="json", exclude={"accompaniment"} if request.accompaniment is None else set()
+            mode="json",
+            exclude=({"accompaniment"} if request.accompaniment is None else set())
+            | ({"semantic"} if request.semantic is None else set()),
         ),
         phase="received",
     )
+    if run_id is not None:
+        state["run_id"] = str(run_id)
+    return state
 
 
 def initial_export_state(*, thread_id: str, request: RevisionExportRequest) -> ParentGraphState:
@@ -409,6 +416,12 @@ def build_parent_graph(
             if state.get("operation") == "edit"
             else PARENT_STATE_SCHEMA_VERSION
         )
+        if state.get("operation") == "piano_preview" and state.get("request_payload", {}).get(
+            "semantic"
+        ):
+            expected_state_schema = "piano-accompaniment-run.v1"
+            if not state.get("run_id"):
+                return {"phase": "failed", "error_code": "PIANO_RUN_CONTEXT_MISMATCH"}
         if state.get("state_schema_version") != expected_state_schema:
             return {"phase": "failed", "error_code": "STATE_SCHEMA_VERSION_UNSUPPORTED"}
         try:

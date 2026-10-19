@@ -10,7 +10,7 @@ from typing import Any, Self, cast
 from uuid import UUID
 
 from pydantic import ValidationError
-from sqlalchemy import insert, select, update
+from sqlalchemy import exists, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -207,7 +207,7 @@ class PostgresAIRunTransaction:
         ).scalar_one_or_none()
         if row is None:
             raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
-        return _run_from_row(row)
+        return await read_ai_run_with_pending_usage(self._session, row)
 
     async def read_ai_run_by_thread_id(self, thread_id: str) -> AIRun:
         row = (
@@ -217,7 +217,7 @@ class PostgresAIRunTransaction:
         ).scalar_one_or_none()
         if row is None:
             raise ApplicationError("AI_RUN_NOT_FOUND", "the AI run does not exist")
-        return _run_from_row(row)
+        return await read_ai_run_with_pending_usage(self._session, row)
 
     async def read_ai_run_projection(self, run_id: UUID) -> AIRunProjection:
         run = await self.read_ai_run(run_id)
@@ -1574,6 +1574,40 @@ def _run_from_row(row: AIRunRow) -> AIRun:
         updated_at=row.updated_at,
         terminal_at=row.terminal_at,
     )
+
+
+async def read_ai_run_with_pending_usage(session: AsyncSession, row: AIRunRow) -> AIRun:
+    """Project outstanding submissions as unknown without poisoning stored usage sums."""
+
+    pending_request = exists().where(
+        ModelRequestReservationRow.run_id == row.id,
+        ModelRequestReservationRow.status == ModelRequestReservationStatus.RESERVED.value,
+    )
+    current, pending = (
+        await session.execute(
+            select(AIRunRow, pending_request)
+            .where(AIRunRow.id == row.id)
+            .execution_options(populate_existing=True)
+        )
+    ).one()
+    # Fetch totals and outstanding requests in one SQL snapshot. A receipt that
+    # commits between two independent SELECTs must not expose stale known zero.
+    run = _run_from_row(current)
+    if not pending:
+        return run
+    # Stored counters remain the sum of observed receipts. They are not complete
+    # Run totals while any request is unresolved, including a post-send timeout.
+    # Masking only the read view lets a later receipt restore known/partial facts.
+    return run.model_copy(update={
+        "model_usage_status": ModelUsageStatus.UNKNOWN,
+        "prompt_tokens": None,
+        "completion_tokens": None,
+        "total_tokens": None,
+        "prompt_cache_hit_tokens": None,
+        "prompt_cache_miss_tokens": None,
+        "reasoning_tokens": None,
+        "cost": ModelCost(status=CostStatus.UNKNOWN),
+    })
 
 
 def _plan_values(plan: PersistedCompositionPlan) -> dict[str, object]:

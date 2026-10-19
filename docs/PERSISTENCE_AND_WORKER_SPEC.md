@@ -344,3 +344,8 @@ Celery Task 保持 Python 边界；TypeScript 音频引擎只运行在固定的 
 ## P1 生产版本补充（2026-10-19）
 
 音乐IR v2由Revision/Candidate/Studio/Worker显式双读；共享AudioGraph/Job v2固定engine2与审核manifest，独立PianoExportPlan v3/BundleArtifact v3不改变旧计划含义。迁移0024/0025加入版本CHECK与不兼容downgrade guard。人工piano_preview仍在同一Parent，run type parent.piano_preview.v1走既有Job/Outbox/resume dispatcher，无AI Run/模型。Render service仅在显式审核Root+manifest pin配置后暴露实际已装包capability；缺包不fallback，Bundle带确切CC0来源。[实测/未测边界与运行配置](evidence/2026-10-19-p1-piano-production.md)。
+
+
+## P2.2 有界钢琴增补（2026-10-19）
+
+本专项的新请求/state/命令/计划存储、兼容读取、预算/待回执用量和审批合同统一见 [P2_SEMANTIC_PIANO_CONTRACT.md](P2_SEMANTIC_PIANO_CONTRACT.md)。旧合同保持；不把专用双钢琴语义路径放宽成通用编辑/新Graph。

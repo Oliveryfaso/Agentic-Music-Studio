@@ -6,6 +6,7 @@ from motif_forge.domain.commands import (
     AddClipCommand,
     AddNotesCommand,
     AddTrackCommand,
+    AgentAppendPianoTrackCommand,
     AppendPianoTrackCommand,
     DeleteClipCommand,
     DeleteNotesCommand,
@@ -15,6 +16,7 @@ from motif_forge.domain.commands import (
     ImportAudioCommand,
     InitializeCompositionCommand,
     RemoveAddedPianoTrackCommand,
+    ReplacePianoRangeCommand,
     SetClipParamCommand,
     SetPianoProfileCommand,
     SetTrackParamCommand,
@@ -33,7 +35,14 @@ def command_change_impact(command: EditorCommand) -> ChangeImpact:
     """
 
     if isinstance(
-        command, (SetPianoProfileCommand, AppendPianoTrackCommand, RemoveAddedPianoTrackCommand)
+        command,
+        (
+            SetPianoProfileCommand,
+            AppendPianoTrackCommand,
+            AgentAppendPianoTrackCommand,
+            RemoveAddedPianoTrackCommand,
+            ReplacePianoRangeCommand,
+        ),
     ):
         return ChangeImpact.L2
 

@@ -1,0 +1,53 @@
+{
+  "audio": {
+    "added-A.mp3": {
+      "sha256": "787a3ffc00c6b9d1f8a1e4566473b08453e51513bc65c00613e7857e2ff972bc",
+      "bytes": 817005,
+      "seconds": 40.79997916666667,
+      "sampleRate": "48000",
+      "channels": 2,
+      "codec": "mp3",
+      "bitsPerRawSample": null,
+      "samplePeakDbFS": -14.019296296706758,
+      "rmsDbFS": -31.367180496058094,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "added-B.mp3": {
+      "sha256": "961d944a1f4df5fb08e521eadab72b5ebcf712acd9f52a4c8fb40428d60808a6",
+      "bytes": 817005,
+      "seconds": 40.79997916666667,
+      "sampleRate": "48000",
+      "channels": 2,
+      "codec": "mp3",
+      "bitsPerRawSample": null,
+      "samplePeakDbFS": -13.76049369529989,
+      "rmsDbFS": -30.95652086344576,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "modified-B.mp3": {
+      "sha256": "0fb0e5227943a86a3c0f0f4e7668d8bcbd380c3e13ee7c0f08f8f12223a3a5d3",
+      "bytes": 817005,
+      "seconds": 40.79997916666667,
+      "sampleRate": "48000",
+      "channels": 2,
+      "codec": "mp3",
+      "bitsPerRawSample": null,
+      "samplePeakDbFS": -13.76049369529989,
+      "rmsDbFS": -31.087098922329982,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "master.wav": {
+      "sha256": "f6e4a2e9c126d7c86cc4b6232f28a7e024a3ab437f7e17a3e73dda4d8d634aba",
+      "bytes": 11750438,
+      "seconds": 40.79997916666667,
+      "sampleRate": "48000",
+      "channels": 2,
+      "codec": "pcm_s24le",
+      "bitsPerRawSample": "24",
+      "samplePeakDbFS": -13.30444788543096,
+      "rmsDbFS": -30.641641607697878,
+      "samplesAtOrAboveFullScale": 0
+    }
+  },
+  "claims": "Signal/format checks only; no musical preference or perceived quality claim. No audio re-encoding or normalization."
+}

@@ -2,7 +2,7 @@
 
 > 产品工作名：**Motif Forge**（音乐动机锻造台）
 > 文档状态：**架构基线已批准，详细合同已拆分**
-> 当前阶段（2026-10-19）：**P2.1 一首审核经典旋律导入与新增伴奏闭环已验收**。固定16小节《欢乐颂》旋律、锁定原谱/独立分支，选择和弦与织体后真实A/B、显式保留/放弃、重开、精确Undo和导出。仅此路径使用新IR/Graph/engine/Job v3、Plan/Bundle v4，最多两条同审核小钢琴包声部；旧v1/v2和四legacy StylePack兼容，MF-P09古典/爵士入口保留。不是通用导谱、自由编曲、真实多乐器、全P2或音质达标；踏板/release-trigger未支持。最新事实见 `IMPLEMENTATION_STATUS.md` 与 `docs/evidence/2026-10-19-p2-classical-accompaniment.md`。
+> 当前阶段（2026-10-19）：**P2.2 固定经典谱自然语言伴奏与1–4小节局部修改已验收**。复用P2.1原谱保护/双钢琴/同Parent的真实A/B、hash保留、重开/Undo/导出；新计划与0027、费用/恢复合同见 `P2_SEMANTIC_PIANO_CONTRACT.md`。仅此有界语义路径接通真实Flash，局部原和声固定；旧声音版本/四legacy策略兼容。不是多曲/通用导谱/自由编配、全部P2/P3、实时混音或音质达标。事实与反例见 `IMPLEMENTATION_STATUS.md` 和 `docs/evidence/2026-10-19-p22-semantic-piano.md`。
 
 ---
 

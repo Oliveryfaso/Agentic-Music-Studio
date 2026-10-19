@@ -998,6 +998,38 @@ export interface components {
         AddTrackPayload: {
             track: components["schemas"]["Track"];
         };
+        /**
+         * AgentAppendPianoTrackCommand
+         * @description Validated semantic-plan materialization, always subject to L2 approval.
+         */
+        AgentAppendPianoTrackCommand: {
+            /**
+             * Actor Kind
+             * @default agent
+             * @constant
+             */
+            actor_kind: "agent";
+            /** Client Sequence */
+            client_sequence: number;
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            command_type: "agent_append_piano_track";
+            payload: components["schemas"]["AppendPianoTrackPayload"];
+            /**
+             * Schema Version
+             * @default editor-command.v1
+             * @constant
+             */
+            schema_version: "editor-command.v1";
+            selection?: components["schemas"]["Selection"];
+        };
         /** AppendPianoTrackCommand */
         AppendPianoTrackCommand: {
             /**
@@ -1544,7 +1576,7 @@ export interface components {
             /** Client Sequence */
             client_sequence: number;
             /** Commands */
-            commands: (components["schemas"]["InitializeCompositionCommand"] | components["schemas"]["AppendPianoTrackCommand"] | components["schemas"]["RemoveAddedPianoTrackCommand"] | components["schemas"]["SetPianoProfileCommand"] | components["schemas"]["AddTrackCommand"] | components["schemas"]["ImportAudioCommand"] | components["schemas"]["DeleteTrackCommand"] | components["schemas"]["AddClipCommand"] | components["schemas"]["DeleteClipCommand"] | components["schemas"]["DuplicateClipCommand"] | components["schemas"]["MoveClipCommand"] | components["schemas"]["TrimClipCommand"] | components["schemas"]["SplitClipCommand"] | components["schemas"]["SetTrackParamCommand"] | components["schemas"]["SetClipParamCommand"] | components["schemas"]["AddNotesCommand"] | components["schemas"]["UpdateNotesCommand"] | components["schemas"]["DeleteNotesCommand"])[];
+            commands: (components["schemas"]["InitializeCompositionCommand"] | components["schemas"]["AppendPianoTrackCommand"] | components["schemas"]["AgentAppendPianoTrackCommand"] | components["schemas"]["ReplacePianoRangeCommand"] | components["schemas"]["RemoveAddedPianoTrackCommand"] | components["schemas"]["SetPianoProfileCommand"] | components["schemas"]["AddTrackCommand"] | components["schemas"]["ImportAudioCommand"] | components["schemas"]["DeleteTrackCommand"] | components["schemas"]["AddClipCommand"] | components["schemas"]["DeleteClipCommand"] | components["schemas"]["DuplicateClipCommand"] | components["schemas"]["MoveClipCommand"] | components["schemas"]["TrimClipCommand"] | components["schemas"]["SplitClipCommand"] | components["schemas"]["SetTrackParamCommand"] | components["schemas"]["SetClipParamCommand"] | components["schemas"]["AddNotesCommand"] | components["schemas"]["UpdateNotesCommand"] | components["schemas"]["DeleteNotesCommand"])[];
             /** Reason */
             reason: string;
         };
@@ -2005,6 +2037,7 @@ export interface components {
              * @default []
              */
             locked_ranges: components["schemas"]["LockedRangeRef"][];
+            piano_request?: components["schemas"]["PianoSemanticRequest"] | null;
             /**
              * Seed
              * @default 0
@@ -2937,6 +2970,10 @@ export interface components {
             candidate_content_hash?: string | null;
             /** Error Code */
             error_code?: string | null;
+            /** Model */
+            model?: string | null;
+            /** Model Requests */
+            model_requests?: number | null;
             /** Pending Job Id */
             pending_job_id?: string | null;
             /** Phase */
@@ -2950,8 +2987,16 @@ export interface components {
             replayed: boolean;
             /** Revision Id */
             revision_id?: string | null;
+            /** Run Id */
+            run_id?: string | null;
+            /** Semantic Summary */
+            semantic_summary?: string | null;
             /** Thread Id */
             thread_id: string;
+            /** Total Tokens */
+            total_tokens?: number | null;
+            /** Usage Status */
+            usage_status?: string | null;
         };
         /** PianoPreviewDecision */
         PianoPreviewDecision: {
@@ -2985,6 +3030,7 @@ export interface components {
              * @default 0
              */
             seed: number;
+            semantic?: components["schemas"]["PianoSemanticRequest"] | null;
         };
         /** PianoPreviewResponse */
         PianoPreviewResponse: {
@@ -3025,6 +3071,34 @@ export interface components {
              * @constant
              */
             schema_version: "render-profile.v1";
+        };
+        /** PianoSemanticRequest */
+        PianoSemanticRequest: {
+            /**
+             * End Bar
+             * @default 16
+             */
+            end_bar: number;
+            /** Intent */
+            intent: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "append" | "modify";
+            /**
+             * Schema Version
+             * @default piano-semantic-request.v1
+             * @constant
+             */
+            schema_version: "piano-semantic-request.v1";
+            /**
+             * Start Bar
+             * @default 1
+             */
+            start_bar: number;
+            /** Target Track Id */
+            target_track_id?: string | null;
         };
         /** PianoStudyRequest */
         PianoStudyRequest: {
@@ -3290,6 +3364,42 @@ export interface components {
              * Format: uuid
              */
             segment_id: string;
+        };
+        /** ReplacePianoRangeCommand */
+        ReplacePianoRangeCommand: {
+            /**
+             * Actor Kind
+             * @enum {string}
+             */
+            actor_kind: "agent" | "human";
+            /** Client Sequence */
+            client_sequence: number;
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            command_type: "replace_piano_range";
+            payload: components["schemas"]["ReplacePianoRangePayload"];
+            /**
+             * Schema Version
+             * @default editor-command.v1
+             * @constant
+             */
+            schema_version: "editor-command.v1";
+            selection?: components["schemas"]["Selection"];
+        };
+        /** ReplacePianoRangePayload */
+        ReplacePianoRangePayload: {
+            /** End Bar */
+            end_bar: number;
+            /** Start Bar */
+            start_bar: number;
+            track: components["schemas"]["Track"];
         };
         /** ReplanAIRunBody */
         ReplanAIRunBody: {

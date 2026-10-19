@@ -7,6 +7,7 @@ from typing import Any, Protocol
 
 from langgraph.types import interrupt
 
+from motif_forge.agent.planner import PlannerError
 from motif_forge.application.candidate_previews import CandidatePreviewCursor
 from motif_forge.application.errors import ApplicationError
 from motif_forge.application.piano_preview import (
@@ -58,7 +59,7 @@ class PianoPreviewNodes:
             if str(request.project_id) != state["project_id"]:
                 raise ValueError("PIANO_PROJECT_MISMATCH")
             prepared = await self._service.prepare(request, thread_id=state["thread_id"])
-        except ApplicationError as exc:
+        except (ApplicationError, PlannerError) as exc:
             return {"phase": "failed", "error_code": exc.code}
         except (ValueError, KeyError):
             return {"phase": "failed", "error_code": "PIANO_REQUEST_INVALID"}

@@ -18,7 +18,11 @@
 
 ## 2. 当前产品形态
 
-### 当前验收：P2.1 经典旋律导入与新增伴奏（2026-10-19）
+### 当前验收：P2.2 自然语言伴奏与局部修改（2026-10-19）
+
+MF-P02/P04/P05/P06/P11/P13/P15/P16/P17/P18/P21。既有DSAPI Flash→有界逐bar计划→音乐约束/可信原和声校验→同Parent候选A/B→hash保留→第二轨1–4bar修改/重开/精确Undo/导出已通。单动作单请求；0027不可变Plan、预算/待回执unknown和Inspector一致；旧人工P2.1兼容，不新增Graph/音源/依赖。真实累计4调用/7228tokens（包括首轮和声反例），高峰保守费用上界¥0.023852，未查询账单。最终2个Run各1次、6Jobs/8文件SHA；747 Python、102 Web、61Audio、6PG/Inspector、Mypy131源/两build/lint通过。独立审查2Important经唯一修复与限定复核关闭；Minor缺失reported-model默认别名延后。原谱/选区外/所选G-Am-D-G和声exact；范围16→4音、力度57→38。仅这一首与两轨，未宣布全P2/P3/多曲/实时混音/审美质量/默认两风格旧宏观LLM完成。见[合同](P2_SEMANTIC_PIANO_CONTRACT.md)、[验收](evidence/2026-10-19-p22-semantic-piano.md)。
+
+### 已验收：P2.1 经典旋律导入与新增伴奏（2026-10-19）
 
 MF-P01/P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20/P21。固定Mutopia528公版16小节/62音soprano旋律转写，锁定原轨/独立原分支、单事务导入；用户选择逐小节和弦/织体/八度/力度，在既有同一Parent中比较真实两版，显式hash保留/放弃，保存/重开/精确Undo与v4导出已验。新IR/Graph/engine/Job v3最多两条同审核包钢琴，旧v1/v2不放宽；0026迁移与降级guard保留。
 
@@ -131,7 +135,7 @@ README 已按产品、截图、启动、创作流程、Agent 架构、证据和�
 |---|---|---|---|
 | ArrangementIR、EditorCommand、Revision、Branch | 可运行 | 严格 Schema、事务写入、乐观锁、Studio draft/save 和不可变 Undo/Redo | 仍是轻量命令集，不冒充专业 DAW |
 | CandidateSnapshot、PreviewCandidate、L2/L3 审批事务 | 可运行 | Generate A/B 与 Edit Preview Artifact、Critic/Repair lineage、原子 Revision 和 PostgreSQL 回放 | 广泛并发/故障矩阵按真实风险触发 |
-| DeepSeek Provider | 可运行（API） | 生产 Dispatcher、四风格结构化 Plan、持久请求/token 预算、真实 known usage、严格 JSON envelope、官方 endpoint、MockTransport/重启测试与一次受控 live acceptance | 模型调用继续 opt-in；S4 no-key 路径使用同合同 Fallback |
+| DeepSeek Provider | 可运行（限定API路径） | 旧宏观synth_ambient付费Plan、四风格Fallback/确定性策略；新P2.2专用钢琴语义真实Flash、持久请求/token预算、严格JSON/未知usage、官方endpoint | 旧宏观付费Planner仍拒绝classical/jazz；不能把默认UI/四策略说成四风格付费全通；真实调用受用户累计预算约束 |
 | CompositionPlan Graph | 可运行 | Parent Graph v2、四风格 Fallback/Strategy、PlanApproval/Replan、双候选、Critic/Repair/A-B interrupt、EditSubgraph、PostgreSQL checkpoint | Legacy v3 仅保留回归 |
 | Parent Graph Import/Generate/Edit/Recovery | 可运行 | 浏览器 Import/generate/edit、time-stretch、HITL、resume/cancel、持久 SSE 与刷新恢复 | 极端 checkpoint 矩阵按真实风险触发 |
 | PostgreSQL/Redis/Celery/Outbox | 可运行 | Generate start/resume/cancel Dispatcher、权威 outbox、Compose readiness、幂等事件和恢复测试 | 长时负载/极端故障矩阵尚未测，按真实风险触发 |

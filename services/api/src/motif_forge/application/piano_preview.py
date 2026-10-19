@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable
 from typing import Literal
 from uuid import UUID, uuid5
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from motif_forge.application.candidate_previews import (
     CandidatePreviewCursor,
@@ -18,6 +18,7 @@ from motif_forge.application.edit_decisions import AttachEditPreviewArtifact
 from motif_forge.application.errors import ApplicationError
 from motif_forge.application.media_jobs import CancelMediaJob, CancelMediaJobRequest
 from motif_forge.application.piano_capability import PianoCapability
+from motif_forge.application.piano_semantic import PianoSemanticService
 from motif_forge.application.ports import MediaJobUnitOfWorkFactory, UnitOfWorkFactory
 from motif_forge.application.previews import (
     CreateCommandPreview,
@@ -35,6 +36,7 @@ from motif_forge.domain.commands import (
     SetPianoProfilePayload,
 )
 from motif_forge.domain.ir import DomainModel, PerformancePlan, PianoRenderProfile
+from motif_forge.domain.piano_requests import PianoSemanticRequest
 from motif_forge.domain.revisions import CandidateSnapshot
 
 PianoStep = Literal["baseline", "piano"]
@@ -49,6 +51,15 @@ class PianoPreviewRequest(DomainModel):
     performance_plan: PerformancePlan = Field(default_factory=PerformancePlan)
     seed: int = Field(default=0, ge=0, le=2**31 - 1)
     accompaniment: AccompanimentIntent | None = None
+    semantic: PianoSemanticRequest | None = None
+
+    @model_validator(mode="after")
+    def one_musical_source(self) -> PianoPreviewRequest:
+        if self.semantic is not None and (
+            self.accompaniment is not None or self.performance_plan.notes
+        ):
+            raise ValueError("Choose a semantic request or explicit piano controls.")
+        return self
 
 
 class PianoPrepared(DomainModel):
@@ -64,6 +75,13 @@ class PianoPrepared(DomainModel):
     candidate_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     seed: int = Field(ge=0, le=2**31 - 1)
 
+    run_id: UUID | None = None
+    semantic_summary: str | None = None
+    model: str | None = None
+    model_requests: int | None = None
+    total_tokens: int | None = None
+    usage_status: str | None = None
+
 
 class PianoPreviewDecision(DomainModel):
     action: Literal["approve", "reject"]
@@ -77,8 +95,10 @@ class PianoPreviewWorkflow:
         projects: UnitOfWorkFactory,
         media: MediaJobUnitOfWorkFactory,
         capability: Callable[[], Awaitable[PianoCapability]],
+        semantic: PianoSemanticService | None = None,
     ) -> None:
         self._projects, self._media, self._capability = projects, media, capability
+        self._semantic = semantic
         self._create, self._decide = CreateCommandPreview(projects), DecidePreview(projects)
         self._enqueue, self._collect = (
             EnqueueCandidatePreview(media),
@@ -95,10 +115,29 @@ class PianoPreviewWorkflow:
             )
         async with self._projects() as tx:
             base = await tx.get_revision(request.base_revision_id)
+            branch = await tx.lock_branch(
+                project_id=request.project_id, branch_id=request.branch_id
+            )
+            if branch is None or branch.head_revision_id != request.base_revision_id:
+                raise ApplicationError(
+                    "REVISION_CONFLICT", "The saved branch changed before planning."
+                )
         if base is None or base.project_id != request.project_id:
             raise ApplicationError("REVISION_NOT_FOUND", "The base revision does not exist.")
         command: EditorCommand
-        if request.accompaniment is not None:
+        record = None
+        source_run_id = None
+        if request.semantic is not None:
+            if self._semantic is None:
+                raise ApplicationError(
+                    "PIANO_SEMANTIC_UNAVAILABLE",
+                    "Semantic piano planning requires a durable AI Run.",
+                )
+            commands, record, source_run_id = await self._semantic.prepare(
+                request, base.arrangement_ir, thread_id=thread_id
+            )
+            command = commands[0]
+        elif request.accompaniment is not None:
             from motif_forge.domain.ir import ArrangementIRV2
 
             if (
@@ -130,7 +169,8 @@ class PianoPreviewWorkflow:
                 base_revision_id=request.base_revision_id,
                 candidate_id=uuid5(request.request_id, "candidate"),
                 commands=(command,),
-                actor_id="human:local",
+                actor_id="agent:deepseek-piano" if source_run_id else "human:local",
+                source_run_id=source_run_id,
                 idempotency_key=f"piano-preview:{request.request_id}",
             )
         )
@@ -161,6 +201,12 @@ class PianoPreviewWorkflow:
             candidate_snapshot_id=preview.candidate_snapshot_id,
             candidate_content_hash=preview.candidate_content_hash,
             seed=request.seed,
+            run_id=source_run_id,
+            semantic_summary=record["plan"]["summary"] if record else None,
+            model=record["model"] if record else None,
+            model_requests=1 if record else None,
+            total_tokens=record["usage"]["total_tokens"] if record else None,
+            usage_status=record["usage"]["status"] if record else None,
         )
 
     async def enqueue(self, prepared: PianoPrepared, *, step: PianoStep) -> CandidatePreviewCursor:
@@ -188,7 +234,12 @@ class PianoPreviewWorkflow:
         collected = await self._collect(cursor, cursor.job_id)
         if step == "piano":
             assert collected.preview_artifact_id is not None
-            await self._attach(
+            attach = self._attach
+            if prepared.run_id is not None and self._semantic is not None:
+                attach = AttachEditPreviewArtifact(
+                    self._projects, run_id=prepared.run_id, ai_uow_factory=self._semantic.ai_uow
+                )
+            await attach(
                 preview_id=prepared.preview_id,
                 candidate_snapshot_id=prepared.candidate_snapshot_id,
                 expected_candidate_content_hash=prepared.candidate_content_hash,

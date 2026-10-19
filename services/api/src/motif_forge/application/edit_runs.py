@@ -20,6 +20,7 @@ from motif_forge.domain.ai_runs import (
     EditRunRequest,
 )
 from motif_forge.domain.ir import ArrangementIR, DomainModel
+from motif_forge.domain.piano_requests import PIANO_ACCOMPANIMENT_RUN_STATE_SCHEMA_VERSION
 
 CREATE_EDIT_RUN_OPERATION = "ai-run.create-edit.v1"
 
@@ -48,12 +49,11 @@ class CreateEditAIRun:
         self._clock = clock
 
     async def __call__(self, request: CreateEditAIRunRequest) -> AIRun:
-        fingerprint = request_hash(
-            {
-                "schema": CREATE_EDIT_RUN_OPERATION,
-                **request.model_dump(mode="json", exclude={"idempotency_key"}),
-            }
-        )
+        payload = request.model_dump(mode="json", exclude={"idempotency_key"})
+        if request.edit_request.piano_request is None:
+            # Preserve fingerprints created before this optional semantic request existed.
+            payload["edit_request"].pop("piano_request", None)
+        fingerprint = request_hash({"schema": CREATE_EDIT_RUN_OPERATION, **payload})
         async with self._uow_factory() as transaction:
             hit = await transaction.get_ai_run_idempotency(
                 project_id=request.project_id, key=request.idempotency_key
@@ -72,7 +72,11 @@ class CreateEditAIRun:
                 run_type=AIRunType.EDIT,
                 edit_request=request.edit_request.model_dump(mode="json"),
                 graph_topology_version=PARENT_GRAPH_TOPOLOGY_VERSION,
-                state_schema_version=EDIT_RUN_STATE_SCHEMA_VERSION,
+                state_schema_version=(
+                    PIANO_ACCOMPANIMENT_RUN_STATE_SCHEMA_VERSION
+                    if request.edit_request.piano_request is not None
+                    else EDIT_RUN_STATE_SCHEMA_VERSION
+                ),
                 idempotency_key=request.idempotency_key,
                 max_model_requests=request.max_model_requests,
                 max_total_tokens=request.max_total_tokens,

@@ -1,0 +1,96 @@
+{
+  "stage": "P2.2",
+  "authorization_cny": 10,
+  "maximum_submissions": 8,
+  "tokens_reserved_per_submission": 12000,
+  "maximum_peak_cny_per_million_tokens": 8,
+  "total_worst_case_reserved_cny": 0.768,
+  "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+  "checked_at": "2026-10-19",
+  "requested_model": "deepseek-v4-flash",
+  "notes": "Official page routes legacy alias to V4.1-Flash-1017. Usage-priced estimate/upper bound; no account billing assertion. Includes failures and explicit retries. Unknown usage stops further calls.",
+  "submissions": [
+    {
+      "ordinal": 1,
+      "submittedAt": "2026-10-19T09:20:17.864134+00:00",
+      "reservedUpperCny": 0.096,
+      "status": "usage_observed",
+      "requestedModel": "deepseek-v4-flash",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 1304,
+        "completion_tokens": 585,
+        "total_tokens": 1889,
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1304
+      },
+      "peakRateUpperCny": 0.007288,
+      "allTokensOutputRateUpperCny": 0.015112,
+      "promptVersion": "piano-accompaniment-prompt.v1"
+    },
+    {
+      "ordinal": 2,
+      "submittedAt": "2026-10-19T09:20:26.943119+00:00",
+      "reservedUpperCny": 0.096,
+      "status": "usage_observed",
+      "requestedModel": "deepseek-v4-flash",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 1454,
+        "completion_tokens": 196,
+        "total_tokens": 1650,
+        "prompt_cache_hit_tokens": 512,
+        "prompt_cache_miss_tokens": 942
+      },
+      "peakRateUpperCny": 0.004476,
+      "allTokensOutputRateUpperCny": 0.0132,
+      "promptVersion": "piano-accompaniment-prompt.v1",
+      "semanticAcceptance": "failed_unrequested_harmony_change_found_by_independent_review"
+    },
+    {
+      "ordinal": 3,
+      "submittedAt": "2026-10-19T09:39:31.812993+00:00",
+      "reservedUpperCny": 0.096,
+      "status": "usage_observed",
+      "requestedModel": "deepseek-v4-flash",
+      "promptVersion": "piano-accompaniment-prompt.v2",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 1346,
+        "completion_tokens": 587,
+        "total_tokens": 1933,
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1346
+      },
+      "peakRateUpperCny": 0.007388,
+      "allTokensOutputRateUpperCny": 0.015464
+    },
+    {
+      "ordinal": 4,
+      "submittedAt": "2026-10-19T09:39:42.599906+00:00",
+      "reservedUpperCny": 0.096,
+      "status": "usage_observed",
+      "requestedModel": "deepseek-v4-flash",
+      "promptVersion": "piano-accompaniment-prompt.v2",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 1558,
+        "completion_tokens": 198,
+        "total_tokens": 1756,
+        "prompt_cache_hit_tokens": 640,
+        "prompt_cache_miss_tokens": 918
+      },
+      "peakRateUpperCny": 0.0047,
+      "allTokensOutputRateUpperCny": 0.014048
+    }
+  ],
+  "totalObservedTokens": 7228,
+  "peakAllInputMissUpperCny": 0.023852,
+  "upstreamFailures": 0,
+  "automaticRetries": 0,
+  "acceptance": "Final prompt.v2 pair passed; original pair retained and included in spend."
+}

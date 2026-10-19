@@ -1,0 +1,20 @@
+{
+  "keep": [
+    "final live MP3/Master/MIDI/project/manifests/credits/provenance and hashes, browser and review evidence, all four-call usage records including failed semantic acceptance",
+    "reviewed piano pack, immutable source score/license and every earlier accepted output",
+    "current built Web/Worker/dependencies/lockfiles",
+    "shared Colima/services/images/database volumes and mixed builder cache; no global prune"
+  ],
+  "ownContainerAndTmpfsRemoved": true,
+  "generatedCredentialsRemoved": true,
+  "acceptedFilesRehashed": 17,
+  "reclaimedLogicalFileBytes": 15204270,
+  "sharedContainersUnchanged": true,
+  "sharedBuilderPruned": false,
+  "userDatabaseMigrated": false,
+  "newDependenciesOrPacks": false,
+  "services": "Owned loopback app/Chromium closed in harness finally; only owned PG removed here.",
+  "buildRationale": "Host source/runtime changes validated with current built Web/Worker + cached real PostgreSQL container; no Dockerfile/system dependency/lockfile change, no unrelated image rebuild or mixed cache prune.",
+  "beforeOwnedLogicalBytes": 45495681,
+  "afterOwnedLogicalBytes": 30291411
+}

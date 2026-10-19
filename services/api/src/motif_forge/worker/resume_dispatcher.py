@@ -67,6 +67,7 @@ from motif_forge.application.media_jobs import (
 )
 from motif_forge.application.piano_capability import ReadPianoCapability
 from motif_forge.application.piano_preview import PianoPreviewWorkflow
+from motif_forge.application.piano_semantic import PianoSemanticService
 from motif_forge.application.revision_exports import CancelRevisionExport, PrepareRevisionExport
 from motif_forge.application.storage import (
     LocalArtifactCollector,
@@ -89,9 +90,11 @@ from motif_forge.infrastructure.persistence.generation import (
     PostgresCompositionMaterializationUnitOfWork,
 )
 from motif_forge.infrastructure.persistence.media_jobs import PostgresMediaJobUnitOfWork
+from motif_forge.infrastructure.persistence.piano_plans import PostgresPianoPlanStore
 from motif_forge.infrastructure.persistence.storage import PostgresStorageUnitOfWork
 from motif_forge.observability import configure_langsmith
 from motif_forge.providers.deepseek import DeepSeekJsonClient, build_synth_ambient_planner
+from motif_forge.providers.piano import build_piano_planner
 from motif_forge.worker.outbox import (
     GRAPH_ACTION_TOPICS,
     GRAPH_RESUME_TOPICS,
@@ -194,6 +197,11 @@ async def run_resume_dispatcher() -> None:
                             PostgresUnitOfWork(session_factory),
                             media_uow,
                             ReadPianoCapability(service_url=settings.render_service_url),
+                            semantic=PianoSemanticService(
+                                ai_uow, PostgresPianoPlanStore(session_factory),
+                                lambda run: build_piano_planner(settings, run, ai_uow),
+                                projects=PostgresUnitOfWork(session_factory),
+                            ),
                         )
                     ),
                     prepare_revision_export=PrepareRevisionExport(media_uow),
@@ -277,6 +285,9 @@ async def run_resume_dispatcher() -> None:
             edit_base = ReadEditBase(PostgresUnitOfWork(session_factory))
 
             async def graph_for(run: AIRun) -> object:
+                if (run.run_type is AIRunType.EDIT and run.edit_request
+                    and run.edit_request.get("piano_request")):
+                    return graph_with(MissingDeepSeekPlanner())
                 if run.run_type is AIRunType.EDIT:
 
                     async def load_context(request: EditRunRequest) -> BoundedEditContext:

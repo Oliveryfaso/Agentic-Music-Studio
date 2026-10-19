@@ -30,6 +30,7 @@ from motif_forge.application.edit_decisions import (
     RecordEditPreviewDecision,
 )
 from motif_forge.application.edit_runs import CreateEditAIRun, CreateEditAIRunRequest
+from motif_forge.application.errors import ApplicationError
 from motif_forge.application.ports import (
     AIRunProgress,
     AIRunProjection,
@@ -346,6 +347,20 @@ def build_ai_run_router(
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1", tags=["ai-runs"])
 
+    def refuse_piano_request(edit_request: EditRunRequest) -> None:
+        if edit_request.piano_request is not None:
+            raise ApplicationError(
+                "PIANO_SEMANTIC_ENDPOINT_REQUIRED",
+                "Use the piano preview endpoint for semantic accompaniment actions.",
+            )
+
+    async def require_generic_run(run_id: UUID) -> None:
+        run = await ReadAIRun(uow)(run_id)
+        if run.edit_request is not None:
+            refuse_piano_request(
+                EditRunRequest.model_validate_json(json.dumps(run.edit_request), strict=True)
+            )
+
     @router.post(
         "/projects/{project_id}/ai-runs",
         status_code=202,
@@ -359,6 +374,7 @@ def build_ai_run_router(
             edit_request = EditRunRequest.model_validate_json(
                 json.dumps(body.edit_request), strict=True
             )
+            refuse_piano_request(edit_request)
             run = await CreateEditAIRun(uow)(
                 CreateEditAIRunRequest(
                     project_id=project_id,
@@ -393,6 +409,7 @@ def build_ai_run_router(
     async def resume_run(
         run_id: UUID, body: ResumeAIRunBody, idempotency_key: IdempotencyKey
     ) -> AIRunResponse:
+        await require_generic_run(run_id)
         run = await ResumeAIRunApproval(uow)(
             run_id=run_id, actor_id=body.actor_id, decision=body.decision,
             assertion=body.approval_assertion, expected_version=body.expected_version,
@@ -405,6 +422,7 @@ def build_ai_run_router(
     async def select_candidate(
         run_id: UUID, body: SelectCandidateBody, idempotency_key: IdempotencyKey
     ) -> AIRunResponse:
+        await require_generic_run(run_id)
         run = await ResumeAIRunCandidateSelection(uow)(
             run_id=run_id, actor_id=body.actor_id, decision=body.decision,
             assertion=body.selection_assertion, selected_preview_id=body.preview_id,
@@ -421,6 +439,7 @@ def build_ai_run_router(
         body: EditPreviewDecisionBody,
         idempotency_key: IdempotencyKey,
     ) -> AIRunResponse:
+        await require_generic_run(run_id)
         if project_uow is None:
             raise RuntimeError("Edit Preview decisions require project persistence")
         await RecordEditPreviewDecision(uow, project_uow_factory=project_uow)(
@@ -434,6 +453,7 @@ def build_ai_run_router(
     async def action(
         run_id: UUID, body: RunActionBody, key: str, name: str
     ) -> AIRunResponse:
+        await require_generic_run(run_id)
         run = await RequestAIRunAction(uow)(
             run_id=run_id, action=name, expected_version=body.expected_version,
             idempotency_key=key,
@@ -460,6 +480,7 @@ def build_ai_run_router(
     async def replan_run(
         run_id: UUID, body: ReplanAIRunBody, idempotency_key: IdempotencyKey
     ) -> AIRunResponse:
+        await require_generic_run(run_id)
         adjustment = PlanAdjustment.model_validate_json(
             json.dumps(body.adjustment), strict=True
         )

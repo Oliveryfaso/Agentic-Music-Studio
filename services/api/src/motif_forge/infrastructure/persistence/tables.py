@@ -754,6 +754,25 @@ class AIRunEventRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class PianoAccompanimentPlanRow(Base):
+    __tablename__ = "piano_accompaniment_plans"
+    __table_args__ = (
+        CheckConstraint(
+            "(schema_version = 'piano-plan-record.v1' AND "
+            "jsonb_typeof(payload) = 'object' AND "
+            "payload->>'schema_version' = schema_version) IS TRUE",
+            name="piano_accompaniment_plans_version_valid",
+        ),
+    )
+    run_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(f"{APP_SCHEMA}.ai_runs.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    schema_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+
+
 class ModelRequestReservationRow(Base):
     __tablename__ = "ai_model_request_reservations"
     __table_args__ = (

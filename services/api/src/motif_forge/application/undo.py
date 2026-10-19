@@ -25,6 +25,7 @@ from motif_forge.domain.commands import (
     AddNotesPayload,
     AddTrackCommand,
     AddTrackPayload,
+    AgentAppendPianoTrackCommand,
     AppendPianoTrackCommand,
     DeleteClipCommand,
     DeleteNotesCommand,
@@ -40,6 +41,8 @@ from motif_forge.domain.commands import (
     NoteUpdate,
     RemoveAddedPianoTrackCommand,
     RemoveAddedPianoTrackPayload,
+    ReplacePianoRangeCommand,
+    ReplacePianoRangePayload,
     SetClipParamCommand,
     SetClipParamPayload,
     SetPianoProfileCommand,
@@ -137,7 +140,7 @@ def _inverse_for(
             )
         )
 
-    if isinstance(command, AppendPianoTrackCommand):
+    if isinstance(command, (AppendPianoTrackCommand, AgentAppendPianoTrackCommand)):
         add(
             RemoveAddedPianoTrackCommand,
             RemoveAddedPianoTrackPayload(
@@ -145,6 +148,15 @@ def _inverse_for(
                 restore_schema_version="arrangement-ir.v3"
                 if isinstance(before, ArrangementIRV3)
                 else "arrangement-ir.v2",
+            ),
+        )
+    elif isinstance(command, ReplacePianoRangeCommand):
+        add(
+            ReplacePianoRangeCommand,
+            ReplacePianoRangePayload(
+                track=_track(before, payload.track.track_id),
+                start_bar=payload.start_bar,
+                end_bar=payload.end_bar,
             ),
         )
     elif isinstance(command, RemoveAddedPianoTrackCommand):
@@ -356,6 +368,7 @@ class UndoCommittedRevision:
                             SetPianoProfileCommand,
                             AppendPianoTrackCommand,
                             RemoveAddedPianoTrackCommand,
+                            ReplacePianoRangeCommand,
                         ),
                     )
                     for command in commands

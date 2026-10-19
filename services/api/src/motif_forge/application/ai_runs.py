@@ -158,7 +158,7 @@ def graph_progress_target(
     except ValueError:
         return None
     terminal = state.get("terminal_status")
-    raw_revision_id = state.get("materialized_revision_id")
+    raw_revision_id = state.get("materialized_revision_id") or state.get("piano_revision_id")
     try:
         materialized_revision_id = (
             UUID(raw_revision_id) if isinstance(raw_revision_id, str) else None
@@ -179,7 +179,9 @@ def graph_progress_target(
         return run_id, AIRunStatus.REJECTED, None, None
     if terminal == "cancelled":
         return run_id, AIRunStatus.CANCELLED, None, None
-    if state.get("phase") in {"waiting_generate_worker", "waiting_worker"}:
+    if state.get("phase") in {
+        "waiting_generate_worker", "waiting_worker", "waiting_piano_worker"
+    }:
         return run_id, AIRunStatus.WAITING_WORKER, None, None
     if state.get("phase") == "waiting_edit_approval":
         return run_id, AIRunStatus.WAITING_EDIT_APPROVAL, None, None

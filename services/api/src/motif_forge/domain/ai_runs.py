@@ -16,6 +16,10 @@ from motif_forge.agent.schemas import CompositionPlan
 from motif_forge.domain.commands import Selection
 from motif_forge.domain.editing import LockedRangeRef
 from motif_forge.domain.ir import DomainModel
+from motif_forge.domain.piano_requests import (
+    PIANO_ACCOMPANIMENT_RUN_STATE_SCHEMA_VERSION,
+    PianoSemanticRequest,
+)
 
 AI_RUN_SCHEMA_VERSION = "ai-run.v1"
 MAX_MODEL_REQUESTS = 3
@@ -52,6 +56,27 @@ class EditRunRequest(DomainModel):
     locked_ranges: tuple[LockedRangeRef, ...] = ()
     allow_local_catalog: Literal[True] = True
     seed: int = Field(default=0, ge=0, le=2**31 - 1)
+    piano_request: PianoSemanticRequest | None = None
+
+    @model_validator(mode="after")
+    def validate_piano_scope(self) -> Self:
+        semantic = self.piano_request
+        if semantic is None:
+            return self
+        if self.intent != semantic.intent:
+            raise ValueError("Edit intent must match the explicit semantic piano intent")
+        if semantic.mode == "append":
+            expected = Selection()
+        else:
+            assert semantic.target_track_id is not None
+            expected = Selection(
+                track_ids=(semantic.target_track_id,),
+                start_tick=(semantic.start_bar - 1) * 1920,
+                end_tick=semantic.end_bar * 1920,
+            )
+        if self.selection != expected:
+            raise ValueError("Edit selection must match the explicit semantic piano scope")
+        return self
 
 
 class CostStatus(StrEnum):
@@ -322,7 +347,14 @@ class AIRun(DomainModel):
     def default_run_state_schema(cls, value: object) -> object:
         if isinstance(value, dict) and value.get("run_type") in {AIRunType.EDIT, "edit"}:
             normalized = dict(value)
-            normalized.setdefault("state_schema_version", EDIT_RUN_STATE_SCHEMA_VERSION)
+            request = normalized.get("edit_request")
+            semantic = isinstance(request, dict) and request.get("piano_request") is not None
+            normalized.setdefault(
+                "state_schema_version",
+                PIANO_ACCOMPANIMENT_RUN_STATE_SCHEMA_VERSION
+                if semantic
+                else EDIT_RUN_STATE_SCHEMA_VERSION,
+            )
             return normalized
         return value
 
@@ -334,9 +366,14 @@ class AIRun(DomainModel):
         else:
             if self.brief is not None or self.edit_request is None:
                 raise ValueError("Edit Run requires edit_request and forbids brief")
-            EditRunRequest.model_validate_json(json.dumps(self.edit_request), strict=True)
-            if self.state_schema_version != EDIT_RUN_STATE_SCHEMA_VERSION:
-                raise ValueError("Edit Run requires edit-run-state.v1")
+            request = EditRunRequest.model_validate_json(json.dumps(self.edit_request), strict=True)
+            expected_schema = (
+                PIANO_ACCOMPANIMENT_RUN_STATE_SCHEMA_VERSION
+                if request.piano_request is not None
+                else EDIT_RUN_STATE_SCHEMA_VERSION
+            )
+            if self.state_schema_version != expected_schema:
+                raise ValueError(f"Edit Run requires {expected_schema}")
         if (self.status in _TERMINAL) != (self.terminal_at is not None):
             raise ValueError("terminal status and terminal_at must be present together")
         pending = (

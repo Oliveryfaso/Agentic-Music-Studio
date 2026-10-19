@@ -146,6 +146,7 @@ class _ChatCompletion(BaseModel):
     model_config = ConfigDict(extra="ignore", strict=True)
 
     id: str | None = None
+    model: str = DEEPSEEK_MODEL
     choices: tuple[_ResponseChoice, ...] = Field(min_length=1)
     usage: _ResponseUsage = Field(default_factory=_ResponseUsage)
 
@@ -424,6 +425,7 @@ class DeepSeekJsonClient:
                 ) from None
             operation_material = ":".join(operation_ids).encode()
             return DeepSeekStructuredResponse(
+                model=completion.model,
                 output=output,
                 usage=accumulated_usage,
                 model_calls=len(operation_ids),
@@ -609,6 +611,7 @@ class DeepSeekJsonClient:
                     request_kind=ModelRequestKind.SCHEMA_REPAIR,
                 )
                 return DeepSeekStructuredResponse(
+                    model=repaired.model,
                     output=repaired.output,
                     usage=self._add_usage(current_usage, repaired.usage),
                     model_calls=1 + repaired.model_calls,
@@ -622,6 +625,7 @@ class DeepSeekJsonClient:
             ) from None
 
         return DeepSeekStructuredResponse(
+            model=completion.model,
             output=parsed,
             usage=current_usage,
             operation_id=self._provider_operation_id(completion.id, response_text),

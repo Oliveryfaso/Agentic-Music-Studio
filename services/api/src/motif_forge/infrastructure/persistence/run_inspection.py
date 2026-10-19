@@ -18,6 +18,7 @@ from motif_forge.application.run_inspection import (
     RunVersionSummary,
     safe_event_summary,
 )
+from motif_forge.infrastructure.persistence.ai_runs import read_ai_run_with_pending_usage
 from motif_forge.infrastructure.persistence.database import SessionFactory
 from motif_forge.infrastructure.persistence.tables import (
     AIRunApprovalRow,
@@ -44,6 +45,7 @@ class PostgresRunInspectionStore:
             ).scalar_one_or_none()
             if run is None:
                 return None
+            usage_run = await read_ai_run_with_pending_usage(session, run)
             raw_events = tuple(
                 (
                     await session.execute(
@@ -176,9 +178,12 @@ class PostgresRunInspectionStore:
                 submitted_model_requests=run.submitted_model_requests,
                 max_model_requests=run.max_model_requests,
                 max_total_tokens=run.max_total_tokens,
-                prompt_tokens=run.prompt_tokens, completion_tokens=run.completion_tokens,
-                total_tokens=run.total_tokens, usage_status=run.model_usage_status,
-                cost_status=run.cost_status, cost_amount_microusd=run.cost_microusd,
+                prompt_tokens=usage_run.prompt_tokens,
+                completion_tokens=usage_run.completion_tokens,
+                total_tokens=usage_run.total_tokens,
+                usage_status=usage_run.model_usage_status.value,
+                cost_status=usage_run.cost.status.value,
+                cost_amount_microusd=usage_run.cost.amount_microusd,
             ),
             timeline=timeline, timeline_truncated=len(raw_events) > 200,
             decisions=tuple(decisions),

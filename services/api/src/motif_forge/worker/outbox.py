@@ -25,8 +25,10 @@ from motif_forge.agent.generate import (
     PlanApprovalDecision,
     initial_generate_state,
 )
+from motif_forge.agent.parent_graph import initial_piano_preview_state
 from motif_forge.application.edit_decisions import EditPreviewDecision
 from motif_forge.application.errors import ApplicationError
+from motif_forge.application.piano_preview import PianoPreviewRequest
 from motif_forge.domain.ai_runs import AIRun, AIRunStatus, AIRunType, EditRunRequest
 from motif_forge.domain.ir import ArrangementIR, DomainModel
 from motif_forge.domain.media_jobs import WorkerResumePayload
@@ -396,6 +398,22 @@ class ParentGraphActionPublisher:
             project_id=run.project_id,
             run_type=run.run_type.value,
         )
+        edit_request = (
+            EditRunRequest.model_validate_json(json.dumps(run.edit_request), strict=True)
+            if run.run_type is AIRunType.EDIT and run.edit_request is not None
+            else None
+        )
+        piano_request = edit_request.piano_request if edit_request is not None else None
+        if piano_request is not None:
+            if payload.action == "resume":
+                raise ValueError("semantic piano decisions require the piano preview endpoint")
+            if payload.action == "start" and run.status in {
+                AIRunStatus.SUCCEEDED,
+                AIRunStatus.FAILED,
+                AIRunStatus.REJECTED,
+                AIRunStatus.CANCELLED,
+            }:
+                return
         graph = await self._graph_for(run)
         snapshot = (
             await graph.aget_state(config, subgraphs=True)
@@ -405,7 +423,7 @@ class ParentGraphActionPublisher:
         values = snapshot.values
         edit_graph = None
         edit_task_config = None
-        if run.run_type is AIRunType.EDIT and values:
+        if run.run_type is AIRunType.EDIT and piano_request is None and values:
             edit_graph = dict(graph.get_subgraphs()).get("EditSubgraph")
             task_states = [
                 task.state
@@ -425,9 +443,31 @@ class ParentGraphActionPublisher:
                     "waiting_plan_approval",
                     "waiting_candidate_selection",
                     "waiting_edit_approval",
+                    "waiting_piano_worker",
+                    "waiting_piano_approval",
                 }:
                     return
                 result = await graph.ainvoke(None, config)
+                if self._record_progress is not None and isinstance(result, Mapping):
+                    await self._record_progress(result)
+                return
+            if piano_request is not None:
+                assert edit_request is not None
+                result = await graph.ainvoke(
+                    initial_piano_preview_state(
+                        thread_id=run.thread_id,
+                        run_id=run.run_id,
+                        request=PianoPreviewRequest(
+                            project_id=run.project_id,
+                            branch_id=run.branch_id,
+                            base_revision_id=run.base_revision_id,
+                            request_id=run.run_id,
+                            semantic=piano_request,
+                            seed=edit_request.seed,
+                        ),
+                    ),
+                    config,
+                )
                 if self._record_progress is not None and isinstance(result, Mapping):
                     await self._record_progress(result)
                 return
@@ -486,6 +526,8 @@ class ParentGraphActionPublisher:
                 "waiting_candidate_selection",
                 "waiting_edit_approval",
                 "rendering_candidate_previews",
+                "waiting_piano_worker",
+                "waiting_piano_approval",
             }:
                 if values.get("phase") == "waiting_edit_approval":
                     if edit_graph is None or edit_task_config is None:

@@ -282,3 +282,8 @@ Worker 从 Artifact Repository 获得受控输入流和一次性输出 sink；�
 - Artifact 四态转换、幂等 rehydrate、不可重建 410 和重建失败回滚。
 - StoragePressureGate 的 proceed/GC/rehydrate/wait/fail 路由及外置盘断开恢复。
 - Candidate 保留完整 IR + 完整时长压缩试听，并能在回收后恢复和完成按需无损 Master/Stem 导出。
+
+
+## P2.2 有界钢琴增补（2026-10-19）
+
+本专项的新请求/state/命令/计划存储、兼容读取、预算/待回执用量和审批合同统一见 [P2_SEMANTIC_PIANO_CONTRACT.md](P2_SEMANTIC_PIANO_CONTRACT.md)。旧合同保持；不把专用双钢琴语义路径放宽成通用编辑/新Graph。

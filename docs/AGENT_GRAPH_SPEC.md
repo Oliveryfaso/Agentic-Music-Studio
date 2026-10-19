@@ -403,3 +403,8 @@ LangGraph recursion limit 只是最后保护，不能替代业务终止条件。
 - 自动 GC 的受保护 Artifact 误删率为 0；回收试听后仍能重建并按需导出完整无损 Master/Stem。
 - L0/L1 自动提交与 L2/L3 漏拦截目标为 0。
 - Graph 版本升级的 in-flight fixture。
+
+
+## P2.2 有界钢琴增补（2026-10-19）
+
+本专项的新请求/state/命令/计划存储、兼容读取、预算/待回执用量和审批合同统一见 [P2_SEMANTIC_PIANO_CONTRACT.md](P2_SEMANTIC_PIANO_CONTRACT.md)。旧合同保持；不把专用双钢琴语义路径放宽成通用编辑/新Graph。
