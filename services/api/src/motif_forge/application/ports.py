@@ -23,7 +23,7 @@ from motif_forge.domain.ai_runs import (
 from motif_forge.domain.commands import EditorCommand
 from motif_forge.domain.media_jobs import (
     AudioArtifact,
-    ExportBundleArtifact,
+    ExportBundleArtifactValue,
     FeatureArtifact,
     FeatureProfile,
     MediaJob,
@@ -224,7 +224,7 @@ class MediaJobTransaction(Protocol):
 
     async def get_export_bundle_artifact(
         self, artifact_id: UUID
-    ) -> ExportBundleArtifact | None: ...
+    ) -> ExportBundleArtifactValue | None: ...
 
     async def get_feature_artifact(self, artifact_id: UUID) -> FeatureArtifact | None: ...
 
@@ -248,6 +248,14 @@ class MediaJobTransaction(Protocol):
     async def cancel_media_job(
         self, job_id: UUID, *, actor_id: str, now: datetime
     ) -> MediaJob | None: ...
+
+    async def pin_export_request(
+        self, *, request_id: UUID, request_hash: str, now: datetime
+    ) -> bool: ...
+
+    async def cancel_revision_export_run(
+        self, *, project_id: UUID, run_id: UUID, thread_id: str, now: datetime
+    ) -> UUID | None: ...
 
     async def heartbeat_media_job(
         self,
@@ -301,6 +309,7 @@ class MediaJobTransaction(Protocol):
         self,
         *,
         expected_thread_id: str,
+        expected_export_plan_hash: str | None = None,
         job: MediaJob,
         run_event_id: UUID,
         job_event_id: UUID,
@@ -313,7 +322,7 @@ class MediaJobTransaction(Protocol):
         event: WorkerEvent,
         updated_job: MediaJob,
         run_status: RunStatus,
-        artifact: AudioArtifact | FeatureArtifact | ExportBundleArtifact | None,
+        artifact: AudioArtifact | FeatureArtifact | ExportBundleArtifactValue | None,
         feature_artifacts: tuple[FeatureArtifact, ...],
         validated_source_artifact: AudioArtifact | None,
         consumer: str,
@@ -322,7 +331,7 @@ class MediaJobTransaction(Protocol):
         job_event_id: UUID,
         outbox_event_id: UUID,
         outbox_topic: str,
-    ) -> AudioArtifact | FeatureArtifact | ExportBundleArtifact | None: ...
+    ) -> AudioArtifact | FeatureArtifact | ExportBundleArtifactValue | None: ...
 
 
 MediaJobUnitOfWorkFactory = Callable[[], MediaJobTransaction]

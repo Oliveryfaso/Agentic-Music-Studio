@@ -6,22 +6,39 @@ import hashlib
 import json
 import re
 from pathlib import Path
-from typing import Literal, Protocol, Self
+from typing import Any, Literal, Protocol, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 from motif_forge.application.errors import ApplicationError
 from motif_forge.application.generation import EXPORT_STEPS
+from motif_forge.domain.export_plan import ExportPlanV2
 from motif_forge.domain.media_jobs import ArtifactAvailability
 
-ExportStatus = Literal["partial", "failed", "ready"]
+ExportStatus = Literal["partial", "failed", "ready", "cancelled"]
 ExportFileCategory = Literal["master", "stem", "delivery", "midi", "project", "manifest"]
 SAFE_FILENAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$")
 
 
 class ExportReadModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+    @model_serializer(mode="wrap")
+    def serialize_projection(self, handler: SerializerFunctionWrapHandler):  # type: ignore[no-untyped-def]
+        # No return annotation: retain the model field schema for OpenAPI responses.
+        values: dict[str, Any] = handler(self)
+        for field in ("export_plan", "plan_hash", "export_thread_id"):
+            if values.get(field) is None:
+                values.pop(field, None)
+        return values
 
 
 class ExportStepSummary(ExportReadModel):
@@ -53,6 +70,22 @@ class ExportBundleSummary(ExportReadModel):
     byte_size: int = Field(ge=0)
     file_count: int = Field(ge=1)
 
+    export_plan: ExportPlanV2 | None = None
+    plan_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def validate_plan_identity(self) -> Self:
+        if self.export_plan is None:
+            if self.plan_hash is not None:
+                raise ValueError("EXPORT_PLAN_HASH_MISMATCH")
+        elif (
+            self.plan_hash != self.export_plan.content_hash
+            or self.project_id != self.export_plan.project_id
+            or self.revision_id != self.export_plan.revision_id
+        ):
+            raise ValueError("EXPORT_PLAN_HASH_MISMATCH")
+        return self
+
 
 class StoredExportBundle(ExportBundleSummary):
     storage_prefix: str = Field(min_length=1, max_length=500)
@@ -68,10 +101,21 @@ class RevisionExportProjection(ExportReadModel):
     files: tuple[ExportFileSummary, ...]
     error_code: str | None = Field(default=None, max_length=100)
 
+    export_thread_id: str | None = Field(default=None, max_length=160)
+    export_plan: ExportPlanV2 | None = None
+    plan_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+
     @model_validator(mode="after")
     def validate_ordered_steps(self) -> Self:
-        if tuple(item.step for item in self.steps) != EXPORT_STEPS:
-            raise ValueError("Export steps must use the canonical seven-step order")
+        expected = self.export_plan.steps if self.export_plan is not None else EXPORT_STEPS
+        if tuple(item.step for item in self.steps) != expected:
+            raise ValueError("Export steps must match their versioned plan")
+        if self.export_plan is not None and (
+            self.plan_hash != self.export_plan.content_hash
+            or self.project_id != self.export_plan.project_id
+            or self.revision_id != self.export_plan.revision_id
+        ):
+            raise ValueError("EXPORT_PLAN_HASH_MISMATCH")
         if self.status == "ready" and self.bundle is None:
             raise ValueError("ready Export requires a Bundle")
         if self.status == "failed" and self.error_code is None:
@@ -87,7 +131,7 @@ class BundleFile(ExportReadModel):
 
 class ExportProjectionStore(Protocol):
     async def read_revision_export(
-        self, *, project_id: UUID, revision_id: UUID
+        self, *, project_id: UUID, revision_id: UUID, plan_hash: str | None = None
     ) -> RevisionExportProjection | None: ...
 
     async def read_bundle(self, bundle_id: UUID) -> StoredExportBundle | None: ...
@@ -98,14 +142,19 @@ class ReadRevisionExport:
         self._store = store
 
     async def __call__(
-        self, *, project_id: UUID, revision_id: UUID
+        self, *, project_id: UUID, revision_id: UUID, plan_hash: str | None = None
     ) -> RevisionExportProjection:
-        projection = await self._store.read_revision_export(
-            project_id=project_id, revision_id=revision_id
+        projection = (
+            await self._store.read_revision_export(project_id=project_id, revision_id=revision_id)
+            if plan_hash is None
+            else await self._store.read_revision_export(
+                project_id=project_id, revision_id=revision_id, plan_hash=plan_hash
+            )
         )
         if projection is None:
             raise ApplicationError(
-                "REVISION_NOT_FOUND", "the revision does not belong to the project"
+                "EXPORT_PLAN_NOT_FOUND" if plan_hash else "REVISION_NOT_FOUND",
+                "the revision or requested export plan does not belong to the project",
             )
         return projection
 
@@ -131,8 +180,12 @@ class ResolveBundleFile:
             raw = manifest_path.read_bytes()
             if len(raw) > 1_000_000:
                 raise ValueError("manifest too large")
+            if hashlib.sha256(raw).hexdigest() != bundle.content_hash:
+                raise ValueError("manifest pin mismatch")
             manifest = json.loads(raw)
-            member = _manifest_member(manifest, bundle=bundle, filename=filename)
+            member = _manifest_member(
+                manifest, bundle=bundle, filename=filename, manifest_byte_size=len(raw)
+            )
         except (OSError, UnicodeDecodeError, ValueError, TypeError, KeyError):
             raise ApplicationError(
                 "EXPORT_MANIFEST_INVALID", "the Export manifest is invalid"
@@ -166,9 +219,14 @@ class ResolveBundleFile:
 
 
 def _manifest_member(
-    manifest: object, *, bundle: StoredExportBundle, filename: str
+    manifest: object,
+    *,
+    bundle: StoredExportBundle,
+    filename: str,
+    manifest_byte_size: int | None = None,
 ) -> dict[str, object]:
-    if not isinstance(manifest, dict) or manifest.get("schema_version") != "export-manifest.v1":
+    version = "export-manifest.v2" if bundle.export_plan is not None else "export-manifest.v1"
+    if not isinstance(manifest, dict) or manifest.get("schema_version") != version:
         raise ValueError("manifest schema invalid")
     if manifest.get("project_id") != str(bundle.project_id) or manifest.get("revision_id") != str(
         bundle.revision_id
@@ -177,10 +235,28 @@ def _manifest_member(
     files = manifest.get("files")
     if not isinstance(files, list):
         raise ValueError("manifest files invalid")
+    if bundle.export_plan is not None:
+        expected = {name for name, _ in bundle.export_plan.audio_files} | {
+            "project.json",
+            "composition.mid",
+            "credits.json",
+            "license.json",
+            "provenance.json",
+            "trace.json",
+        }
+        actual = [entry.get("filename") for entry in files if isinstance(entry, dict)]
+        if (
+            manifest.get("export_plan_hash") != bundle.plan_hash
+            or len(files) != len(expected)
+            or len(actual) != len(expected)
+            or set(actual) != expected
+            or bundle.file_count != len(expected) + 1
+        ):
+            raise ValueError("manifest plan mismatch")
+    if filename == "export-manifest.json" and manifest_byte_size is not None:
+        return {"sha256": bundle.content_hash, "bytes": manifest_byte_size}
     matches = [
-        item
-        for item in files
-        if isinstance(item, dict) and item.get("filename") == filename
+        item for item in files if isinstance(item, dict) and item.get("filename") == filename
     ]
     if len(matches) != 1:
         raise ValueError("manifest member invalid")

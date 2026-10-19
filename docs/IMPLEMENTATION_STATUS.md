@@ -48,6 +48,12 @@ MF-P15/P16/P17/P18/P21。已在下一生产实施阶段前完成用户要求的�
 
 同一root范围before38pass/2过期断言fail、8.81s；after34pass、7.91s；进程总计9.852→8.819s，但保留的慢停止测试自身波动0.69s，不宣称稳定提速。Ruff变更测试/bash语法/diff通过，未为文档重跑全suite。现有Python/TS/SQL分工与实际约束已核；不引入Java/Rust，先版本接线和必要profiling。见[审计及架构评估](evidence/2026-10-19-test-structure-architecture.md)。下一生产Task仍为A2.2，再B；新钢琴持久Undo/UI仍未验。
 
+### 最新断点：P1-A2.2 生产动态导出（2026-10-19）
+
+MF-P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20/P21。同一Parent Graph的显式export请求接通Run/Job/Outbox/Worker/权威读模型/API/界面；plan绑定Revision及实际轨道，可选MP3/stem，多次请求独立，旧v1七步保留。迁移0022/0023、请求body pin、sourceJob元数据身份、按物理键计额、manifest数据库pin、取消/恢复均有对应证据。
+
+真实短单轨canonical5Jobs/2Bundles、8/9文件全下载校验、重开应用/checkpoint和重复事件通过；相关107 passed、Web4、Mypy116、Ruff/TS通过；一次审查及唯一修复复核关闭两类Important。见[完整证据](evidence/2026-10-19-p1-a22-production.md)。独立PG为后续B保留，共享服务不动。不是音乐v2/生产新钢琴/持久Undo验收；下一Task为B/C/D。以下旧断点按各自日期/Task保留，不代表当前生产仍未接动态导出。
+
 ### 最新断点：P1-C1 真实钢琴内部边界（2026-10-19）
 
 MF-P02/P05/P10/P15/P16/P17/P18/P21。用户明确批准正常共享映像读写重挂与任务内官方7-Zip，均成功；原只读卷/解压/隔离PG资源阻塞已解除，以下2.0.1–2.0.4按各门当时事实保留。CC0/SFZ及26个实际WAV全部核验，固定manifest/样本hash、nonce+sampleId catalog和共享适配器生成4份真实30秒48k stereo PCM24。独立WAV检查通过，旧声音回退最大1LSB，原谱不变；没有音乐审美结论。

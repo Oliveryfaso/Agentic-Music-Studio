@@ -1,0 +1,189 @@
+{
+  "schema": "a22-boundary.v1",
+  "projectId": "4b43e88b-baa5-44bf-b883-9160b6aab7bc",
+  "revisionId": "bb618b29-83ec-4728-8c66-6234b012f58a",
+  "database": "motif_test_475262a8afd3",
+  "wallSeconds": 2.886235000099987,
+  "cases": [
+    {
+      "oneStem": false,
+      "planHash": "dd326d7dcb521cb008724c55718116aa82441eae7d7b3f7d36aefb7d6d74f5bd",
+      "threadId": "export-77ecd4baafbfbd5f35f89249c2c8d164",
+      "steps": [
+        {
+          "jobId": "f0b4e82e-173e-4a08-96e3-e367f824f944",
+          "status": "succeeded",
+          "duplicateResumeAccepted": true
+        },
+        {
+          "jobId": "8def1cd1-100d-4616-b914-0956e6835635",
+          "status": "succeeded",
+          "duplicateResumeAccepted": true
+        }
+      ],
+      "files": [
+        {
+          "filename": "composition.mid",
+          "bytes": 62,
+          "sha256": "679fa2910bcbae8162ab91dcd90ce06c2563023caf2ac5c8aee326854716578b"
+        },
+        {
+          "filename": "credits.json",
+          "bytes": 44,
+          "sha256": "d470aef31635a5f4187e9b2df5a54890683ffe7d45db5cdd826ac891c3938988"
+        },
+        {
+          "filename": "license.json",
+          "bytes": 76,
+          "sha256": "499f0c4252c7ebd984b7c6eefc9e66e1ba9cd95a2cd208ae54b65ffb64fbbfcb"
+        },
+        {
+          "filename": "master.wav",
+          "bytes": 576044,
+          "sha256": "3a1e3c4ba35da4569b1650e4089432425d46c70fa23a6c19f5352f1d32d61365"
+        },
+        {
+          "filename": "project.json",
+          "bytes": 1091,
+          "sha256": "15ee8df2789ee0f15eec71895968b8665eed8179f1f77243cbd039dafb95e44c"
+        },
+        {
+          "filename": "provenance.json",
+          "bytes": 290,
+          "sha256": "416f5538af1a22e8284f1602e603e846b3cfe6595e88988dac0e002325ca9b4e"
+        },
+        {
+          "filename": "trace.json",
+          "bytes": 139,
+          "sha256": "70e2892deaeb7d09d2276a252936f8811acb913e09c6587d14b92dd3221cbda0"
+        },
+        {
+          "filename": "export-manifest.json",
+          "bytes": 1338,
+          "sha256": "c2e46eb99b4cc20c63793430303acc6602109304b87941440180dc702ec66271"
+        }
+      ],
+      "status": "ready"
+    },
+    {
+      "oneStem": true,
+      "planHash": "12e4dd78c10d0bc7340192b390218c09a9692fe119e6de207ff9a723f7bedea1",
+      "threadId": "export-7f3823ba3daac3931c2a72b5c632cfbb",
+      "steps": [
+        {
+          "jobId": "c90051d1-07da-4ea1-9980-814b4890c77d",
+          "status": "succeeded",
+          "duplicateResumeAccepted": true
+        },
+        {
+          "jobId": "3ebf90af-c37c-46eb-81f3-2dbad92ca3cd",
+          "status": "succeeded",
+          "duplicateResumeAccepted": true
+        },
+        {
+          "jobId": "fdcfaf12-6323-435b-a751-c3bfc87d329b",
+          "status": "succeeded",
+          "duplicateResumeAccepted": true
+        }
+      ],
+      "files": [
+        {
+          "filename": "composition.mid",
+          "bytes": 62,
+          "sha256": "679fa2910bcbae8162ab91dcd90ce06c2563023caf2ac5c8aee326854716578b"
+        },
+        {
+          "filename": "credits.json",
+          "bytes": 44,
+          "sha256": "d470aef31635a5f4187e9b2df5a54890683ffe7d45db5cdd826ac891c3938988"
+        },
+        {
+          "filename": "license.json",
+          "bytes": 76,
+          "sha256": "499f0c4252c7ebd984b7c6eefc9e66e1ba9cd95a2cd208ae54b65ffb64fbbfcb"
+        },
+        {
+          "filename": "master.wav",
+          "bytes": 576044,
+          "sha256": "3a1e3c4ba35da4569b1650e4089432425d46c70fa23a6c19f5352f1d32d61365"
+        },
+        {
+          "filename": "project.json",
+          "bytes": 1091,
+          "sha256": "15ee8df2789ee0f15eec71895968b8665eed8179f1f77243cbd039dafb95e44c"
+        },
+        {
+          "filename": "provenance.json",
+          "bytes": 290,
+          "sha256": "416f5538af1a22e8284f1602e603e846b3cfe6595e88988dac0e002325ca9b4e"
+        },
+        {
+          "filename": "stem-9c3a0281-96f9-4ecb-999c-399090c8c3b8.wav",
+          "bytes": 576044,
+          "sha256": "3a1e3c4ba35da4569b1650e4089432425d46c70fa23a6c19f5352f1d32d61365"
+        },
+        {
+          "filename": "trace.json",
+          "bytes": 182,
+          "sha256": "6aeb2a47588e29bc89168ceb1a94070ac5b8f732b213ddce449f940e2c513b51"
+        },
+        {
+          "filename": "export-manifest.json",
+          "bytes": 1806,
+          "sha256": "a4055fa08b70c2b076539d5324a12a42eebf98a6957fb464c4632b5c09b1c30d"
+        }
+      ],
+      "status": "ready"
+    }
+  ],
+  "jobs": 5,
+  "bundles": 2,
+  "canonicalRenderer": "actual Chromium + shared TS engine",
+  "newAppPerWorkerStep": true,
+  "modelCalls": 0,
+  "sharedServicesTouched": false,
+  "stage": "P1-A2.2 accepted",
+  "base": "cd15bde3c5c2092f92f43fbb25e44700e8b6a2c4",
+  "checks": {
+    "relatedCombined": "107 passed/4.20s",
+    "updatedQuotaFixture": "1 passed/0.86s, 4 metadata/3 objects/21732 bytes",
+    "web": "4 passed/1.55s",
+    "strictMypy": "116 source files passed",
+    "ruff": "passed",
+    "typescript": "passed"
+  },
+  "independentReview": {
+    "passes": 2,
+    "remainingBlockers": 0,
+    "independentNarrow": "21 passed",
+    "fixes": [
+      "prepared API checkpoint continuation",
+      "post-Collect outbox continuation",
+      "shared-file quota count"
+    ]
+  },
+  "storage": {
+    "scope": "only task-owned ignored p1-a22-boundary compiled launcher and empty diagnostic log",
+    "beforeLogicalBytes": 1180404,
+    "removed": [
+      {
+        "path": "renderer.mjs",
+        "bytes": 21725
+      },
+      {
+        "path": "renderer-stderr.log",
+        "bytes": 0
+      }
+    ],
+    "afterLogicalBytes": 1158679,
+    "partials": 0,
+    "ownPostgres": "retained for continuous authorized P1-B, no user/shared DB touched",
+    "sharedVM": "left running unchanged"
+  },
+  "limitations": [
+    "actual short builtin one-track DSP proof, not piano music v2",
+    "persisted Outbox production publisher exercised directly; Redis/Celery transport and Compose not rerun",
+    "new app/checkpoint connection per step, not host power-loss durability",
+    "no P95/stress/aesthetic claim"
+  ]
+}

@@ -156,9 +156,7 @@ class PostgresOutboxStore:
                     OutboxEventRow.payload["run_type"].astext.like(f"{self._run_type_prefix}%")
                 )
             if self._run_type_exact is not None:
-                conditions.append(
-                    OutboxEventRow.payload["run_type"].astext == self._run_type_exact
-                )
+                conditions.append(OutboxEventRow.payload["run_type"].astext == self._run_type_exact)
             if self._aggregate_type is not None:
                 conditions.append(OutboxEventRow.aggregate_type == self._aggregate_type)
             rows = (
@@ -312,6 +310,14 @@ class ParentGraphResumePublisher:
             payload.resume_event_id is not None
             and values.get("last_resume_event_id") == payload.resume_event_id
         ):
+            # Receipt deduplication must not discard downstream checkpoint work.
+            # Re-run only pending non-interrupt nodes; their side effects are idempotent.
+            if (
+                getattr(snapshot, "next", ())
+                and values.get("terminal_status") is None
+                and not any(task.interrupts for task in getattr(snapshot, "tasks", ()))
+            ):
+                values = await graph.ainvoke(None, config)
             if self._record_progress is not None and isinstance(values, Mapping):
                 await self._record_progress(values)
             return
@@ -450,15 +456,18 @@ class ParentGraphActionPublisher:
             if run.brief is None:
                 raise ValueError("authoritative AI Run is missing its Brief")
             generate_request = GenerateRequest.model_validate_json(
-                json.dumps({
-                    "run_id": run.run_id,
-                    "project_id": run.project_id,
-                    "branch_id": run.branch_id,
-                    "base_revision_id": run.base_revision_id,
-                    "brief": run.brief,
-                    "seed": 0,
-                    "expected_run_version": run.version,
-                }, default=str),
+                json.dumps(
+                    {
+                        "run_id": run.run_id,
+                        "project_id": run.project_id,
+                        "branch_id": run.branch_id,
+                        "base_revision_id": run.base_revision_id,
+                        "brief": run.brief,
+                        "seed": 0,
+                        "expected_run_version": run.version,
+                    },
+                    default=str,
+                ),
                 strict=True,
             )
             result = await graph.ainvoke(

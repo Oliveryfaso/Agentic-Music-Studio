@@ -64,6 +64,7 @@ from motif_forge.application.media_jobs import (
     LoadArtifactRehydration,
     StartArtifactRehydration,
 )
+from motif_forge.application.revision_exports import CancelRevisionExport, PrepareRevisionExport
 from motif_forge.application.storage import (
     LocalArtifactCollector,
     LocalStorageRootInspector,
@@ -185,6 +186,8 @@ async def run_resume_dispatcher() -> None:
                 return build_parent_graph(
                     EnqueueMediaJob(media_uow),
                     checkpointer=saver,
+                    prepare_revision_export=PrepareRevisionExport(media_uow),
+                    cancel_revision_export=CancelRevisionExport(media_uow),
                     materialize_import=MaterializeImport(
                         PostgresUnitOfWork(session_factory),
                         PostgresMediaJobUnitOfWork(session_factory),
@@ -317,6 +320,8 @@ async def run_resume_dispatcher() -> None:
             read_run_by_thread = ReadAIRunByThreadId(ai_uow)
 
             async def graph_for_worker(payload: WorkerResumePayload) -> object:
+                if payload.run_type == "parent.export.v1":
+                    return graph_with(MissingDeepSeekPlanner())
                 return await graph_for(await read_run_by_thread(payload.thread_id))
 
             record_progress = RecordAIRunGraphProgress(ai_uow)

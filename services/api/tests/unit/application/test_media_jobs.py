@@ -143,12 +143,13 @@ class FakeMediaJobTransaction:
         self,
         *,
         expected_thread_id: str,
+        expected_export_plan_hash: str | None = None,
         job: MediaJob,
         run_event_id: UUID,
         job_event_id: UUID,
         outbox_event_id: UUID,
     ) -> bool:
-        del run_event_id, job_event_id, outbox_event_id
+        del run_event_id, job_event_id, outbox_event_id, expected_export_plan_hash
         run = self.runs.get(job.run_id)
         if run is None or run.thread_id != expected_thread_id:
             return False
@@ -470,3 +471,26 @@ async def test_rehydration_atomically_claims_evicted_artifact_and_is_idempotent(
     assert transaction.jobs[first.job_id].job_type is MediaJobType.REHYDRATE
     assert replay.job_id == first.job_id
     assert replay.replayed is True
+
+
+@pytest.mark.asyncio
+async def test_legacy_enqueue_replays_a_fingerprint_persisted_before_export_v2():
+    transaction = FakeMediaJobTransaction()
+    use_case = EnqueueMediaJob(transaction)
+    request = EnqueueMediaJobRequest(
+        project_id=UUID(int=1),
+        thread_id="legacy-enqueue",
+        run_type="candidate_preview",
+        job_type=MediaJobType.RENDER_PREVIEW,
+        input_payload={"candidate_snapshot_id": str(UUID(int=2))},
+        output_quality_profile=MediaQualityProfile.CANDIDATE_PREVIEW_V1,
+        idempotency_key="legacy-compatible-key",
+    )
+    first = await use_case(request)
+    old_hash = "bdc5c106688f65aa83fde8ca92d9c182a96ec7196ddf459ddf09c27401197727"
+    transaction.jobs[first.job_id] = transaction.jobs[first.job_id].model_copy(
+        update={"request_hash": old_hash}
+    )
+    replay = await use_case(request)
+    assert replay.replayed and replay.job_id == first.job_id
+    assert len(transaction.jobs) == 1

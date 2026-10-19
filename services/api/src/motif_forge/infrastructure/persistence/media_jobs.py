@@ -9,9 +9,11 @@ from typing import Any, Self, cast
 from uuid import UUID, uuid4
 
 from sqlalchemy import insert, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from motif_forge.domain.export_plan import ExportPlanV2
 from motif_forge.domain.ir import ArrangementIR
 from motif_forge.domain.media_jobs import (
     ArtifactAvailability,
@@ -19,6 +21,8 @@ from motif_forge.domain.media_jobs import (
     ArtifactValidationStatus,
     AudioArtifact,
     ExportBundleArtifact,
+    ExportBundleArtifactV2,
+    ExportBundleArtifactValue,
     FeatureArtifact,
     FeatureProfile,
     ImportedAudioAnalysis,
@@ -48,6 +52,7 @@ from motif_forge.infrastructure.persistence.tables import (
     CandidateSnapshotRow,
     ExportBundleArtifactRow,
     FeatureArtifactRow,
+    IdempotencyRow,
     InboxReceiptRow,
     JobEventRow,
     MediaJobRow,
@@ -139,9 +144,7 @@ class PostgresMediaJobTransaction:
             created_at=row.created_at,
         )
 
-    async def get_candidate_snapshot(
-        self, candidate_snapshot_id: UUID
-    ) -> CandidateSnapshot | None:
+    async def get_candidate_snapshot(self, candidate_snapshot_id: UUID) -> CandidateSnapshot | None:
         row = (
             await self._session.execute(
                 select(CandidateSnapshotRow).where(CandidateSnapshotRow.id == candidate_snapshot_id)
@@ -157,7 +160,9 @@ class PostgresMediaJobTransaction:
         ).scalar_one_or_none()
         return None if row is None else _artifact_from_row(row)
 
-    async def get_export_bundle_artifact(self, artifact_id: UUID) -> ExportBundleArtifact | None:
+    async def get_export_bundle_artifact(
+        self, artifact_id: UUID
+    ) -> ExportBundleArtifactValue | None:
         row = (
             await self._session.execute(
                 select(ExportBundleArtifactRow).where(ExportBundleArtifactRow.id == artifact_id)
@@ -231,6 +236,13 @@ class PostgresMediaJobTransaction:
         ).scalar_one_or_none()
         if row is None:
             return None
+        run = (
+            await self._session.execute(
+                select(MediaRunRow).where(MediaRunRow.id == row.run_id).with_for_update()
+            )
+        ).scalar_one()
+        if run.status == RunStatus.CANCELLED.value:
+            return None
         terminal = {
             JobStatus.SUCCEEDED.value,
             JobStatus.FAILED_TERMINAL.value,
@@ -258,7 +270,7 @@ class PostgresMediaJobTransaction:
         row.updated_at = now
         await self._session.execute(
             update(MediaRunRow)
-            .where(MediaRunRow.id == row.run_id)
+            .where(MediaRunRow.id == row.run_id, MediaRunRow.status != RunStatus.CANCELLED.value)
             .values(status=RunStatus.RUNNING.value, updated_at=now)
         )
         await self._session.execute(
@@ -300,7 +312,7 @@ class PostgresMediaJobTransaction:
         row.updated_at = now
         await self._session.execute(
             update(MediaRunRow)
-            .where(MediaRunRow.id == row.run_id)
+            .where(MediaRunRow.id == row.run_id, MediaRunRow.status != RunStatus.CANCELLED.value)
             .values(status=RunStatus.FAILED.value, updated_at=now)
         )
         await self._session.execute(
@@ -317,6 +329,50 @@ class PostgresMediaJobTransaction:
         if _is_rehydration_job(cancelled_job):
             await self._release_failed_rehydration(cancelled_job)
         return cancelled_job
+
+    async def pin_export_request(
+        self, *, request_id: UUID, request_hash: str, now: datetime
+    ) -> bool:
+        operation, key = "revision-export.v2", str(request_id)
+        await self._session.execute(
+            pg_insert(IdempotencyRow)
+            .values(
+                operation=operation,
+                idempotency_key=key,
+                request_hash=request_hash,
+                resource_id=request_id,
+                result_payload={},
+                created_at=now,
+            )
+            .on_conflict_do_nothing(
+                index_elements=[IdempotencyRow.operation, IdempotencyRow.idempotency_key]
+            )
+        )
+        stored = (
+            await self._session.execute(
+                select(IdempotencyRow.request_hash).where(
+                    IdempotencyRow.operation == operation, IdempotencyRow.idempotency_key == key
+                )
+            )
+        ).scalar_one()
+        return bool(stored == request_hash)
+
+    async def cancel_revision_export_run(
+        self, *, project_id: UUID, run_id: UUID, thread_id: str, now: datetime
+    ) -> UUID | None:
+        return (
+            await self._session.execute(
+                update(MediaRunRow)
+                .where(
+                    MediaRunRow.id == run_id,
+                    MediaRunRow.project_id == project_id,
+                    MediaRunRow.thread_id == thread_id,
+                    MediaRunRow.run_type == "parent.export.v1",
+                )
+                .values(status=RunStatus.CANCELLED.value, updated_at=now)
+                .returning(MediaRunRow.waiting_for_job_id)
+            )
+        ).scalar_one_or_none()
 
     async def heartbeat_media_job(
         self,
@@ -488,6 +544,7 @@ class PostgresMediaJobTransaction:
         self,
         *,
         expected_thread_id: str,
+        expected_export_plan_hash: str | None = None,
         job: MediaJob,
         run_event_id: UUID,
         job_event_id: UUID,
@@ -504,7 +561,11 @@ class PostgresMediaJobTransaction:
                 .with_for_update()
             )
         ).scalar_one_or_none()
-        if run is None:
+        if (
+            run is None
+            or run.status == RunStatus.CANCELLED.value
+            or run.plan_hash != expected_export_plan_hash
+        ):
             return False
         await self._session.execute(insert(MediaJobRow).values(**_job_values(job)))
         run.status = RunStatus.WAITING_WORKER.value
@@ -566,7 +627,7 @@ class PostgresMediaJobTransaction:
         event: WorkerEvent,
         updated_job: MediaJob,
         run_status: RunStatus,
-        artifact: AudioArtifact | FeatureArtifact | ExportBundleArtifact | None,
+        artifact: AudioArtifact | FeatureArtifact | ExportBundleArtifactValue | None,
         feature_artifacts: tuple[FeatureArtifact, ...],
         validated_source_artifact: AudioArtifact | None,
         consumer: str,
@@ -575,14 +636,14 @@ class PostgresMediaJobTransaction:
         job_event_id: UUID,
         outbox_event_id: UUID,
         outbox_topic: str,
-    ) -> AudioArtifact | FeatureArtifact | ExportBundleArtifact | None:
+    ) -> AudioArtifact | FeatureArtifact | ExportBundleArtifactValue | None:
         if validated_source_artifact is not None:
             await self._update_validated_source_artifact(validated_source_artifact)
         if isinstance(artifact, FeatureArtifact):
             persisted_artifact: (
-                AudioArtifact | FeatureArtifact | ExportBundleArtifact | None
+                AudioArtifact | FeatureArtifact | ExportBundleArtifactValue | None
             ) = await self._register_or_reuse_feature(artifact)
-        elif isinstance(artifact, ExportBundleArtifact):
+        elif isinstance(artifact, ExportBundleArtifactValue):
             persisted_artifact = await self._register_or_reuse_export_bundle(artifact)
         else:
             persisted_artifact = await self._register_or_reuse_artifact(artifact)
@@ -610,7 +671,10 @@ class PostgresMediaJobTransaction:
         )
         await self._session.execute(
             update(MediaRunRow)
-            .where(MediaRunRow.id == updated_job.run_id)
+            .where(
+                MediaRunRow.id == updated_job.run_id,
+                MediaRunRow.status != RunStatus.CANCELLED.value,
+            )
             .values(status=run_status.value, updated_at=event.occurred_at)
         )
         await self._session.execute(
@@ -730,13 +794,16 @@ class PostgresMediaJobTransaction:
             if artifact.candidate_snapshot_id is not None:
                 identity.extend(
                     [
-                        AudioArtifactRow.candidate_snapshot_id
-                        == artifact.candidate_snapshot_id,
+                        AudioArtifactRow.candidate_snapshot_id == artifact.candidate_snapshot_id,
                         AudioArtifactRow.source_job_id == artifact.source_job_id,
                     ]
                 )
             else:
                 identity.append(AudioArtifactRow.candidate_snapshot_id.is_(None))
+                if artifact.revision_id is not None:
+                    identity.append(AudioArtifactRow.source_job_id == artifact.source_job_id)
+                else:
+                    identity.append(AudioArtifactRow.revision_id.is_(None))
             existing = (
                 await self._session.execute(select(AudioArtifactRow).where(*identity))
             ).scalar_one_or_none()
@@ -789,17 +856,28 @@ class PostgresMediaJobTransaction:
         return artifact
 
     async def _register_or_reuse_export_bundle(
-        self, artifact: ExportBundleArtifact
-    ) -> ExportBundleArtifact:
+        self, artifact: ExportBundleArtifactValue
+    ) -> ExportBundleArtifactValue:
         existing = (
             await self._session.execute(
                 select(ExportBundleArtifactRow).where(
                     ExportBundleArtifactRow.project_id == artifact.project_id,
                     ExportBundleArtifactRow.revision_id == artifact.revision_id,
+                    ExportBundleArtifactRow.plan_hash == artifact.plan_hash
+                    if isinstance(artifact, ExportBundleArtifactV2)
+                    else ExportBundleArtifactRow.plan_hash.is_(None),
                 )
             )
         ).scalar_one_or_none()
         if existing is not None:
+            requested_plan_hash = (
+                artifact.plan_hash if isinstance(artifact, ExportBundleArtifactV2) else None
+            )
+            if (
+                existing.schema_version != artifact.schema_version
+                or existing.plan_hash != requested_plan_hash
+            ):
+                raise RuntimeError("EXPORT_PLAN_CONFLICT")
             if existing.content_hash != artifact.content_hash:
                 raise RuntimeError("Export Bundle revision identity changed")
             return _export_bundle_from_row(existing)
@@ -850,6 +928,10 @@ def _run_values(run: MediaRun) -> dict[str, object]:
         "schema_version": run.schema_version,
         "created_at": run.created_at,
         "updated_at": run.updated_at,
+        "export_plan": run.export_plan.model_dump(mode="json")
+        if run.export_plan is not None
+        else None,
+        "plan_hash": run.export_plan.content_hash if run.export_plan is not None else None,
     }
 
 
@@ -972,7 +1054,7 @@ def _feature_values(artifact: FeatureArtifact) -> dict[str, object]:
     }
 
 
-def _export_bundle_values(artifact: ExportBundleArtifact) -> dict[str, object]:
+def _export_bundle_values(artifact: ExportBundleArtifactValue) -> dict[str, object]:
     return {
         "id": artifact.artifact_id,
         "project_id": artifact.project_id,
@@ -990,6 +1072,10 @@ def _export_bundle_values(artifact: ExportBundleArtifact) -> dict[str, object]:
         "availability": artifact.availability.value,
         "schema_version": artifact.schema_version,
         "created_at": artifact.created_at,
+        "export_plan": artifact.plan.model_dump(mode="json")
+        if isinstance(artifact, ExportBundleArtifactV2)
+        else None,
+        "plan_hash": artifact.plan_hash if isinstance(artifact, ExportBundleArtifactV2) else None,
     }
 
 
@@ -1103,23 +1189,28 @@ def _feature_from_row(row: FeatureArtifactRow) -> FeatureArtifact:
     )
 
 
-def _export_bundle_from_row(row: ExportBundleArtifactRow) -> ExportBundleArtifact:
-    return ExportBundleArtifact.model_validate(
-        {
-            "artifact_id": row.id,
-            "project_id": row.project_id,
-            "source_job_id": row.source_job_id,
-            "revision_id": row.revision_id,
-            "content_hash": row.content_hash,
-            "byte_size": row.byte_size,
-            "storage_prefix": row.storage_prefix,
-            "file_count": row.file_count,
-            "arrangement_hash": row.arrangement_hash,
-            "engine_version": row.engine_version,
-            "seed": row.seed,
-            "input_artifact_ids": tuple(UUID(item) for item in row.input_artifact_ids),
-            "lifecycle_class": row.lifecycle_class,
-            "availability": row.availability,
-            "created_at": row.created_at,
-        }
-    )
+def _export_bundle_from_row(row: ExportBundleArtifactRow) -> ExportBundleArtifactValue:
+    values: dict[str, object] = {
+        "artifact_id": row.id,
+        "project_id": row.project_id,
+        "source_job_id": row.source_job_id,
+        "revision_id": row.revision_id,
+        "content_hash": row.content_hash,
+        "byte_size": row.byte_size,
+        "storage_prefix": row.storage_prefix,
+        "file_count": row.file_count,
+        "arrangement_hash": row.arrangement_hash,
+        "engine_version": row.engine_version,
+        "seed": row.seed,
+        "input_artifact_ids": tuple(UUID(item) for item in row.input_artifact_ids),
+        "lifecycle_class": row.lifecycle_class,
+        "availability": row.availability,
+        "created_at": row.created_at,
+    }
+    if row.schema_version == "export-bundle-artifact.v1":
+        return ExportBundleArtifact.model_validate(values)
+    if row.schema_version == "export-bundle-artifact.v2":
+        plan = ExportPlanV2.model_validate_json(json.dumps(row.export_plan), strict=True)
+        values.update(plan=plan, plan_hash=row.plan_hash)
+        return ExportBundleArtifactV2.model_validate(values)
+    raise ValueError("EXPORT_BUNDLE_VERSION_UNSUPPORTED")

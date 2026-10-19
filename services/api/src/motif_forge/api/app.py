@@ -36,6 +36,10 @@ from motif_forge.application.audio_content import ResolveAudioContent
 from motif_forge.application.errors import ApplicationError, RevisionConflictError
 from motif_forge.application.export_reads import ExportProjectionStore
 from motif_forge.application.features import ListAudioFeatures, ReadFeatureArtifact
+from motif_forge.application.generation import (
+    CollectCompleteExportArtifact,
+    EnqueueNextCompleteExportJob,
+)
 from motif_forge.application.imports import LoadImportAnalysisContext, MaterializeImport
 from motif_forge.application.media_jobs import (
     EnqueueFollowupMediaJob,
@@ -50,6 +54,7 @@ from motif_forge.application.ports import (
 )
 from motif_forge.application.project_reads import ProjectReadStore
 from motif_forge.application.projects import CreateProject, CreateProjectRequest
+from motif_forge.application.revision_exports import CancelRevisionExport, PrepareRevisionExport
 from motif_forge.application.revisions import CommitCommandBatch, CommitCommandBatchRequest
 from motif_forge.application.run_graph import ReadRunGraph
 from motif_forge.application.run_graph_history import RunGraphHistoryStore
@@ -312,10 +317,13 @@ def _application_status(error: ApplicationError) -> int:
         "ARTIFACT_NOT_FOUND",
         "IMPORT_RUN_NOT_FOUND",
         "EXPORT_BUNDLE_NOT_FOUND",
+        "EXPORT_RUN_NOT_FOUND",
+        "EXPORT_PLAN_NOT_FOUND",
         "AI_RUN_NOT_FOUND",
     }:
         return 404
     if error.code in {
+        "EXPORT_RUN_STATE_CONFLICT",
         "REVISION_CONFLICT",
         "IDEMPOTENCY_KEY_REUSED",
         "CHANGE_IMPACT_ESCALATED",
@@ -352,6 +360,7 @@ def _application_status(error: ApplicationError) -> int:
         "ARTIFACT_NOT_PLAYABLE",
         "PLAN_ADJUSTMENT_TOO_LARGE",
         "EXPORT_FILE_NAME_INVALID",
+        "EXPORT_REQUEST_INVALID",
         "RUN_GRAPH_UNSUPPORTED",
     }:
         return 422
@@ -468,6 +477,14 @@ def create_app(
                 enqueue_artifact_rehydration=StartArtifactRehydration(runtime_media_uow),
                 load_artifact_rehydration=LoadArtifactRehydration(runtime_media_uow),
                 storage_pressure_gate=runtime_storage_gate,
+                prepare_revision_export=PrepareRevisionExport(runtime_media_uow),
+                cancel_revision_export=CancelRevisionExport(runtime_media_uow),
+                enqueue_next_complete_export_job=EnqueueNextCompleteExportJob(
+                    runtime_media_uow,
+                    enqueue_first=EnqueueMediaJob(runtime_media_uow),
+                    enqueue_followup=EnqueueFollowupMediaJob(runtime_media_uow),
+                ),
+                collect_complete_export_artifact=CollectCompleteExportArtifact(runtime_media_uow),
             )
         try:
             yield
@@ -486,30 +503,27 @@ def create_app(
     app.state.parent_graph = None
     app.include_router(build_sound_catalog_router())
     if runtime_ai_run_uow is not None:
-        app.include_router(
-            build_ai_run_router(runtime_ai_run_uow, project_uow=runtime_uow)
-        )
+        app.include_router(build_ai_run_router(runtime_ai_run_uow, project_uow=runtime_uow))
     if runtime_project_reads is not None:
         app.include_router(
             build_project_read_router(
                 runtime_project_reads,
-                storage_root_inspector
-                or LocalStorageRootInspector(runtime_settings.artifact_root),
+                storage_root_inspector or LocalStorageRootInspector(runtime_settings.artifact_root),
             )
         )
     if runtime_export_reads is not None:
         app.include_router(
             build_export_router(
-                runtime_export_reads, artifact_root=runtime_settings.artifact_root
+                runtime_export_reads,
+                artifact_root=runtime_settings.artifact_root,
+                graph_getter=lambda: app.state.parent_graph,
             )
         )
     if runtime_run_inspection is not None:
         app.include_router(build_run_inspection_router(runtime_run_inspection))
     if runtime_run_inspection is not None and runtime_run_graph_history is not None:
         app.include_router(
-            build_run_graph_router(
-                ReadRunGraph(runtime_run_inspection, runtime_run_graph_history)
-            )
+            build_run_graph_router(ReadRunGraph(runtime_run_inspection, runtime_run_graph_history))
         )
 
     @app.middleware("http")
@@ -1071,9 +1085,7 @@ def _import_run_data(
     refs = state.get("artifact_refs", [])
     request_payload = state.get("request_payload", {})
     source_artifact_id = (
-        request_payload.get("source_artifact_id")
-        if isinstance(request_payload, Mapping)
-        else None
+        request_payload.get("source_artifact_id") if isinstance(request_payload, Mapping) else None
     )
     return ImportRunData(
         thread_id=thread_id,
@@ -1086,9 +1098,7 @@ def _import_run_data(
         artifact_id=UUID(refs[0]) if refs else None,
         source_artifact_id=UUID(source_artifact_id) if source_artifact_id else None,
         normalized_artifact_id=(
-            UUID(state["normalized_artifact_id"])
-            if state.get("normalized_artifact_id")
-            else None
+            UUID(state["normalized_artifact_id"]) if state.get("normalized_artifact_id") else None
         ),
         revision_id=(
             UUID(state["materialized_revision_id"])

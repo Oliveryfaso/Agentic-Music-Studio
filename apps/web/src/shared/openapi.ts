@@ -32,3 +32,6 @@ export type RunGraphReadModel = Schemas["RunGraphReadModel"];
 export type GraphPhaseView = Schemas["GraphPhaseView"];
 export type GraphNodeView = Schemas["GraphNodeView"];
 export type GraphEdgeView = Schemas["GraphEdgeView"];
+
+export type RevisionExportOptions = Schemas["RevisionExportOptions"];
+export type RevisionExportRun = Schemas["RevisionExportRunData"];

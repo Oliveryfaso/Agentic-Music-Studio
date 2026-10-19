@@ -44,25 +44,42 @@ class FakeExportStore:
 
 def ready_projection() -> RevisionExportProjection:
     return RevisionExportProjection(
-        project_id=uid(1), revision_id=uid(2), source_run_id=uid(3), status="ready",
+        project_id=uid(1),
+        revision_id=uid(2),
+        source_run_id=uid(3),
+        status="ready",
         bundle=ExportBundleSummary(
-            bundle_id=uid(20), project_id=uid(1), revision_id=uid(2),
+            bundle_id=uid(20),
+            project_id=uid(1),
+            revision_id=uid(2),
             availability=ArtifactAvailability.AVAILABLE,
-            content_hash="a" * 64, byte_size=100, file_count=13,
+            content_hash="a" * 64,
+            byte_size=100,
+            file_count=13,
         ),
         steps=tuple(
-            ExportStepSummary(step=step, job_id=uid(100 + index), status="succeeded",
-                              artifact_id=uid(200 + index), error_code=None)
+            ExportStepSummary(
+                step=step,
+                job_id=uid(100 + index),
+                status="succeeded",
+                artifact_id=uid(200 + index),
+                error_code=None,
+            )
             for index, step in enumerate(EXPORT_STEPS)
         ),
-        files=(ExportFileSummary(
-            file_id="audio:00000000-0000-0000-0000-0000000000c8",
-            filename="master.wav", category="master", media_type="audio/wav",
-            byte_size=12, availability=ArtifactAvailability.AVAILABLE,
-            checksum="b" * 64,
-            content_url="/api/v1/audio-artifacts/00000000-0000-0000-0000-0000000000c8/content",
-            artifact_id=uid(200),
-        ),),
+        files=(
+            ExportFileSummary(
+                file_id="audio:00000000-0000-0000-0000-0000000000c8",
+                filename="master.wav",
+                category="master",
+                media_type="audio/wav",
+                byte_size=12,
+                availability=ArtifactAvailability.AVAILABLE,
+                checksum="b" * 64,
+                content_url="/api/v1/audio-artifacts/00000000-0000-0000-0000-0000000000c8/content",
+                artifact_id=uid(200),
+            ),
+        ),
     )
 
 
@@ -100,14 +117,25 @@ async def test_bundle_file_requires_safe_manifest_member_and_protocol_checksum(
     content = b'{"schema_version":"project.v1"}'
     checksum = hashlib.sha256(content).hexdigest()
     (bundle_dir / "project.json").write_bytes(content)
-    (bundle_dir / "export-manifest.json").write_text(json.dumps({
-        "schema_version": "export-manifest.v1",
-        "project_id": str(uid(1)), "revision_id": str(uid(2)),
-        "files": [{"filename": "project.json", "sha256": checksum, "bytes": len(content)}],
-    }))
+    (bundle_dir / "export-manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "export-manifest.v1",
+                "project_id": str(uid(1)),
+                "revision_id": str(uid(2)),
+                "files": [{"filename": "project.json", "sha256": checksum, "bytes": len(content)}],
+            }
+        )
+    )
     store = FakeExportStore()
     store.bundle = StoredExportBundle(
-        **ready_projection().bundle.model_dump(mode="python"), storage_prefix="safe/bundle"
+        **{
+            **ready_projection().bundle.model_dump(mode="python"),
+            "content_hash": hashlib.sha256(
+                (bundle_dir / "export-manifest.json").read_bytes()
+            ).hexdigest(),
+        },
+        storage_prefix="safe/bundle",
     )
 
     result = await ResolveBundleFile(store, artifact_root=tmp_path)(uid(20), "project.json")
@@ -119,20 +147,41 @@ async def test_bundle_file_requires_safe_manifest_member_and_protocol_checksum(
             await ResolveBundleFile(store, artifact_root=tmp_path)(uid(20), unsafe)
         assert captured.value.code == "EXPORT_FILE_NAME_INVALID"
 
+    # Changing both the member and its manifest must not bypass the persisted manifest pin.
+    changed = b"changed"
+    (bundle_dir / "project.json").write_bytes(changed)
+    manifest = json.loads((bundle_dir / "export-manifest.json").read_text())
+    manifest["files"][0].update(sha256=hashlib.sha256(changed).hexdigest(), bytes=len(changed))
+    (bundle_dir / "export-manifest.json").write_text(json.dumps(manifest))
+    with pytest.raises(ApplicationError) as forged:
+        await ResolveBundleFile(store, artifact_root=tmp_path)(uid(20), "project.json")
+    assert forged.value.code == "EXPORT_MANIFEST_INVALID"
+
 
 @pytest.mark.asyncio
 async def test_bundle_file_rejects_checksum_mismatch(tmp_path: Path) -> None:
     bundle_dir = tmp_path / "safe" / "bundle"
     bundle_dir.mkdir(parents=True)
     (bundle_dir / "project.json").write_text("changed")
-    (bundle_dir / "export-manifest.json").write_text(json.dumps({
-        "schema_version": "export-manifest.v1",
-        "project_id": str(uid(1)), "revision_id": str(uid(2)),
-        "files": [{"filename": "project.json", "sha256": "b" * 64, "bytes": 7}],
-    }))
+    (bundle_dir / "export-manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "export-manifest.v1",
+                "project_id": str(uid(1)),
+                "revision_id": str(uid(2)),
+                "files": [{"filename": "project.json", "sha256": "b" * 64, "bytes": 7}],
+            }
+        )
+    )
     store = FakeExportStore()
     store.bundle = StoredExportBundle(
-        **ready_projection().bundle.model_dump(mode="python"), storage_prefix="safe/bundle"
+        **{
+            **ready_projection().bundle.model_dump(mode="python"),
+            "content_hash": hashlib.sha256(
+                (bundle_dir / "export-manifest.json").read_bytes()
+            ).hexdigest(),
+        },
+        storage_prefix="safe/bundle",
     )
 
     with pytest.raises(ApplicationError) as captured:

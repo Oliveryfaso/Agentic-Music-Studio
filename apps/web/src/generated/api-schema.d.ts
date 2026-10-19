@@ -209,6 +209,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/revisions/{revision_id}/export-runs/{thread_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Export Run */
+        get: operations["read_export_run_api_v1_projects__project_id__revisions__revision_id__export_runs__thread_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/revisions/{revision_id}/export-runs/{thread_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Export Run */
+        post: operations["cancel_export_run_api_v1_projects__project_id__revisions__revision_id__export_runs__thread_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/revisions/{revision_id}/exports": {
         parameters: {
             query?: never;
@@ -219,7 +253,8 @@ export interface paths {
         /** Read Revision Export */
         get: operations["read_revision_export_api_v1_projects__project_id__revisions__revision_id__exports_get"];
         put?: never;
-        post?: never;
+        /** Start Export */
+        post: operations["start_export_api_v1_projects__project_id__revisions__revision_id__exports_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1546,8 +1581,11 @@ export interface components {
             byte_size: number;
             /** Content Hash */
             content_hash: string;
+            export_plan?: components["schemas"]["ExportPlanV2"] | null;
             /** File Count */
             file_count: number;
+            /** Plan Hash */
+            plan_hash?: string | null;
             /**
              * Project Id
              * Format: uuid
@@ -1581,6 +1619,49 @@ export interface components {
             filename: string;
             /** Media Type */
             media_type: string;
+        };
+        /** ExportPlanV2 */
+        ExportPlanV2: {
+            /** Arrangement Hash */
+            arrangement_hash: string;
+            /**
+             * Engine Version
+             * @default motif-forge-audio-engine.v1
+             * @constant
+             */
+            engine_version: "motif-forge-audio-engine.v1";
+            /**
+             * Include Mp3
+             * @default true
+             */
+            include_mp3: boolean;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Request Id */
+            request_id?: string | null;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+            /**
+             * Schema Version
+             * @default export-plan.v2
+             * @constant
+             */
+            schema_version: "export-plan.v2";
+            /** Seed */
+            seed: number;
+            /**
+             * Stem Track Ids
+             * @default []
+             */
+            stem_track_ids: string[];
+            /** Track Ids */
+            track_ids: string[];
         };
         /** ExportStepSummary */
         ExportStepSummary: {
@@ -2403,13 +2484,41 @@ export interface components {
              */
             note: string;
         };
+        /** RevisionExportOptions */
+        RevisionExportOptions: {
+            /**
+             * Include All Stems
+             * @default false
+             */
+            include_all_stems: boolean;
+            /**
+             * Include Mp3
+             * @default true
+             */
+            include_mp3: boolean;
+            /**
+             * Seed
+             * @default 0
+             */
+            seed: number;
+            /**
+             * Stem Track Ids
+             * @default []
+             */
+            stem_track_ids: string[];
+        };
         /** RevisionExportProjection */
         RevisionExportProjection: {
             bundle: components["schemas"]["ExportBundleSummary"] | null;
             /** Error Code */
             error_code?: string | null;
+            export_plan?: components["schemas"]["ExportPlanV2"] | null;
+            /** Export Thread Id */
+            export_thread_id?: string | null;
             /** Files */
             files: components["schemas"]["ExportFileSummary"][];
+            /** Plan Hash */
+            plan_hash?: string | null;
             /**
              * Project Id
              * Format: uuid
@@ -2426,13 +2535,40 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "partial" | "failed" | "ready";
+            status: "partial" | "failed" | "ready" | "cancelled";
             /** Steps */
             steps: components["schemas"]["ExportStepSummary"][];
         };
         /** RevisionExportResponse */
         RevisionExportResponse: {
             data: components["schemas"]["RevisionExportProjection"];
+        };
+        /** RevisionExportRunData */
+        RevisionExportRunData: {
+            /** Bundle Artifact Id */
+            bundle_artifact_id?: string | null;
+            /** Error Code */
+            error_code?: string | null;
+            export_plan?: components["schemas"]["ExportPlanV2"] | null;
+            /** Media Run Id */
+            media_run_id?: string | null;
+            /** Pending Job Id */
+            pending_job_id?: string | null;
+            /** Phase */
+            phase: string;
+            /** Plan Hash */
+            plan_hash?: string | null;
+            /**
+             * Replayed
+             * @default false
+             */
+            replayed: boolean;
+            /** Thread Id */
+            thread_id: string;
+        };
+        /** RevisionExportRunResponse */
+        RevisionExportRunResponse: {
+            data: components["schemas"]["RevisionExportRunData"];
         };
         /** RevisionStudioData */
         RevisionStudioData: {
@@ -3689,9 +3825,77 @@ export interface operations {
             };
         };
     };
-    read_revision_export_api_v1_projects__project_id__revisions__revision_id__exports_get: {
+    read_export_run_api_v1_projects__project_id__revisions__revision_id__export_runs__thread_id__get: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                revision_id: string;
+                thread_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionExportRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_export_run_api_v1_projects__project_id__revisions__revision_id__export_runs__thread_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                revision_id: string;
+                thread_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionExportRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_revision_export_api_v1_projects__project_id__revisions__revision_id__exports_get: {
+        parameters: {
+            query?: {
+                plan_hash?: string | null;
+            };
             header?: never;
             path: {
                 project_id: string;
@@ -3708,6 +3912,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RevisionExportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_export_api_v1_projects__project_id__revisions__revision_id__exports_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                project_id: string;
+                revision_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevisionExportOptions"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionExportRunResponse"];
                 };
             };
             /** @description Validation Error */

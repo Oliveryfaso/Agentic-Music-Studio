@@ -1,18 +1,57 @@
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { StatusBanner } from "../../app/StatusBanner";
 import { routePath } from "../../app/routes";
 import type { RevisionExportProjection } from "../../shared/openapi";
-import { readRevisionExport } from "./exportApi";
+import { readRevisionExport, startRevisionExport, cancelRevisionExport } from "./exportApi";
 
 export function ExportPage({ projectId, revisionId }: { projectId: string; revisionId: string }) {
-  const query = useQuery({ queryKey: ["revision-export", projectId, revisionId], queryFn: () => readRevisionExport(projectId, revisionId) });
+  const [planHash, setPlanHash] = useState<string | undefined>(() => new URLSearchParams(window.location.search).get("export_plan") ?? undefined);
+  const [includeMp3, setIncludeMp3] = useState(true);
+  const [allStems, setAllStems] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const request = useRef<{ key: string; body: string } | null>(null);
+  const query = useQuery({ queryKey: ["revision-export", projectId, revisionId, planHash],
+    queryFn: () => readRevisionExport(projectId, revisionId, planHash),
+    refetchInterval: (q) => q.state.data?.export_thread_id && q.state.data.status === "partial" ? 2000 : false });
+  async function start(retryRequest = false) {
+    if (busy) return;
+    setBusy(true); setActionError(null);
+    const options = { include_mp3: includeMp3, include_all_stems: allStems };
+    const body = JSON.stringify(options);
+    if (!retryRequest || request.current?.body !== body) request.current = { key: crypto.randomUUID(), body };
+    const pending = request.current!;
+    try {
+      const result = await startRevisionExport(projectId, revisionId, options, pending.key);
+      if (!result.plan_hash) throw new Error("导出未返回文件计划，请重试请求。");
+      setPlanHash(result.plan_hash);
+      const url = new URL(window.location.href); url.searchParams.set("export_plan", result.plan_hash);
+      window.history.replaceState(null, "", url);
+      request.current = null;
+    } catch (error) { setActionError(message(error)); }
+    finally { setBusy(false); }
+  }
+  async function cancel(threadId: string) {
+    setBusy(true); setActionError(null);
+    try { await cancelRevisionExport(projectId, revisionId, threadId); await query.refetch(); }
+    catch (error) { setActionError(message(error)); }
+    finally { setBusy(false); }
+  }
   if (query.isPending) return <section className="loading-state"><div className="spectral-loader" aria-hidden="true"><i /><i /><i /><i /><i /></div><h2>正在整理交付文件</h2><p>读取当前版本已完成的音频与工程文件。</p></section>;
   if (query.isError) return <section className="error-state" role="alert"><span>!</span><div><h2>无法读取导出</h2><p>{message(query.error)}</p><button className="secondary-inline" type="button" onClick={() => void query.refetch()}>重试</button></div></section>;
   const value = query.data;
   return <section className="export-page">
     <header className="export-hero"><div><p className="eyebrow">TAKE YOUR MUSIC WITH YOU</p><h1>带走你的作品</h1><p>试听分享用 MP3，后期制作用 WAV 与分轨；MIDI 和工程文件让创作可以继续。</p></div><div className="export-actions"><span className="status-pill">{statusLabel(value.status)}</span><a className="secondary-inline" href={routePath({ name: "studio", projectId, revisionId })}>返回 Studio</a>{value.source_run_id && <a className="secondary-inline" href={routePath({ name: "inspect", runId: value.source_run_id })}>查看执行记录</a>}</div></header>
-    {value.status !== "ready" && <StatusBanner tone={value.status === "failed" ? "danger" : "warning"} message="导出部分完成" detail={`已完成的文件仍可下载；${value.error_code ?? "其余文件尚未就绪"}。`} />}
+    <section className="export-panel" aria-label="导出选项"><div className="export-actions">
+      <label><input type="checkbox" checked={includeMp3} onChange={(event) => setIncludeMp3(event.target.checked)} disabled={busy} />包含试听 MP3</label>
+      <label><input type="checkbox" checked={allStems} onChange={(event) => setAllStems(event.target.checked)} disabled={busy} />包含独立分轨</label>
+      <button className="primary-button" type="button" disabled={busy || (Boolean(value.export_thread_id) && value.status === "partial")} onClick={() => void start()}>{value.files.length ? "重新导出" : "生成导出文件"}</button>
+      {value.export_thread_id && value.status === "partial" && <button className="secondary-inline" type="button" disabled={busy} onClick={() => void cancel(value.export_thread_id!)}>取消导出</button>}
+    </div><p>Master WAV、MIDI 和工程文件始终包含；分轨按当前版本的实际音轨生成。</p>
+    {actionError && <div role="alert"><p>{actionError}</p>{request.current && <button type="button" disabled={busy} onClick={() => void start(true)}>重试请求</button>}</div>}</section>
+    {value.status === "cancelled" ? <StatusBanner tone="warning" message="导出已取消" detail="已完成的文件仍可下载。可以重新生成一份导出。" /> : value.status !== "ready" && <StatusBanner tone={value.status === "failed" ? "danger" : "warning"} message="导出部分完成" detail={`已完成的文件仍可下载；${value.error_code ?? "其余文件尚未就绪"}。`} />}
     <section className="export-panel" aria-labelledby="export-files-title"><div className="panel-heading"><div><p className="eyebrow">YOUR FILES</p><h2 id="export-files-title">交付文件</h2></div><span className="count-badge">{value.files.length}</span></div>{value.files.length === 0 ? <div className="empty-panel"><p>当前版本还没有可下载文件。请查看任务进度，完成后刷新此页。</p></div> : <div className="export-file-grid">{value.files.map((file) => <ExportFile key={file.file_id} file={file} />)}</div>}</section>
     <details className="export-panel export-steps-details" open={value.status !== "ready"}><summary>查看导出步骤与任务状态 · {value.steps.filter((step) => step.status === "succeeded").length}/{value.steps.length} 完成</summary><div className="export-step-scroll"><ol className="export-step-list">{value.steps.map((step) => <li data-testid="export-step" key={step.step}><span>{stepLabel(step.step)}</span><strong>{jobLabel(step.status)}</strong>{step.error_code && <code>{step.error_code}</code>}<small>{step.job_id ?? "尚未入队"}</small></li>)}</ol></div></details>
   </section>;
@@ -25,7 +64,7 @@ function ExportFile({ file }: { file: RevisionExportProjection["files"][number] 
 
 function fileLabel(category: string, filename: string): string { if (category === "master") return "Master WAV"; if (category === "delivery") return "试听 MP3"; if (category === "stem") return `分轨 · ${filename}`; if (category === "midi") return "乐谱 MIDI"; if (category === "project") return "可编辑工程"; return filename; }
 function stepLabel(step: string): string { return step.replace("stem:", "Stem · ").replace("mp3", "Delivery MP3").replace("bundle", "Bundle"); }
-function statusLabel(status: string): string { return status === "ready" ? "文件已就绪" : status === "failed" ? "部分失败" : "进行中"; }
+function statusLabel(status: string): string { return status === "cancelled" ? "已取消" : status === "ready" ? "文件已就绪" : status === "failed" ? "部分失败" : "进行中"; }
 function formatBytes(value: number): string { return value < 1024 ? `${value} B` : value < 1024 ** 2 ? `${(value / 1024).toFixed(1)} KiB` : `${(value / 1024 ** 2).toFixed(1)} MiB`; }
 function message(error: unknown): string { return error instanceof Error ? error.message : "客户端发生未知错误"; }
 function fileDescription(category: string): string { return ({ master: "无损主混音，适合归档和后期制作。", delivery: "轻量压缩音频，适合试听与分享。", stem: "独立音轨，可在其他 DAW 中继续混音。", midi: "保留音符信息，方便重新配器。", project: "保留编排结构，供后续编辑与复现。" } as Record<string, string>)[category] ?? "作品随附的来源、许可或执行记录。"; }

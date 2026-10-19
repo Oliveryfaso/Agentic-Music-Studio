@@ -9,7 +9,7 @@ from enum import StrEnum
 from typing import Any, Literal, Self
 from uuid import UUID
 
-from pydantic import Field, model_validator
+from pydantic import Field, SerializerFunctionWrapHandler, model_serializer, model_validator
 
 from motif_forge.domain.export_plan import ExportPlanV2
 from motif_forge.domain.ir import DomainModel
@@ -56,6 +56,7 @@ class RunStatus(StrEnum):
     RUNNING = "running"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 class JobStatus(StrEnum):
@@ -248,7 +249,7 @@ class ImportedAudioAnalysis(DomainModel):
 
 
 class MediaRun(DomainModel):
-    schema_version: Literal["media-run.v1"] = "media-run.v1"
+    schema_version: Literal["media-run.v1", "media-run.v2"] = "media-run.v1"
     run_id: UUID
     project_id: UUID
     thread_id: str = Field(min_length=1, max_length=160)
@@ -257,6 +258,32 @@ class MediaRun(DomainModel):
     waiting_for_job_id: UUID
     created_at: datetime
     updated_at: datetime
+
+    export_plan: ExportPlanV2 | None = None
+
+    @model_validator(mode="after")
+    def validate_export_plan(self) -> Self:
+        if self.schema_version == "media-run.v2":
+            if (
+                self.run_type not in {"complete_song_export.v2", "parent.export.v1"}
+                or self.export_plan is None
+                or self.export_plan.project_id != self.project_id
+            ):
+                raise ValueError("EXPORT_RUN_PLAN_INVALID")
+        elif self.export_plan is not None or self.run_type in {
+            "complete_song_export.v2",
+            "parent.export.v1",
+        }:
+            raise ValueError("EXPORT_RUN_PLAN_INVALID")
+        return self
+
+    @model_serializer(mode="wrap")
+    def serialize_run(self, handler: SerializerFunctionWrapHandler):  # type: ignore[no-untyped-def]
+        # No return annotation: retain the model field schema for OpenAPI responses.
+        value: dict[str, Any] = handler(self)
+        if self.export_plan is None:
+            value.pop("export_plan", None)
+        return value
 
 
 class MediaJob(DomainModel):
@@ -676,12 +703,60 @@ class ExportBundleArtifact(DomainModel):
         return self
 
 
+class ExportBundleArtifactV2(DomainModel):
+    schema_version: Literal["export-bundle-artifact.v2"] = "export-bundle-artifact.v2"
+    artifact_id: UUID
+    project_id: UUID
+    source_job_id: UUID
+    revision_id: UUID
+    content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    byte_size: int = Field(gt=0)
+    storage_prefix: str = Field(min_length=1, max_length=500)
+    file_count: int = Field(ge=8, le=100)
+    arrangement_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    engine_version: Literal["motif-forge-audio-engine.v1"]
+    seed: int = Field(ge=0, le=2**31 - 1)
+    input_artifact_ids: tuple[UUID, ...] = Field(min_length=1, max_length=14)
+    lifecycle_class: Literal[ArtifactLifecycle.PROTECTED] = ArtifactLifecycle.PROTECTED
+    availability: Literal[ArtifactAvailability.AVAILABLE] = ArtifactAvailability.AVAILABLE
+    created_new: bool = False
+    created_at: datetime
+
+    plan: ExportPlanV2
+    plan_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def validate_bundle_artifact(self) -> Self:
+        parts = self.storage_prefix.split("/")
+        if self.storage_prefix.startswith("/") or ".." in parts or "" in parts:
+            raise ValueError("storage_prefix must be a safe repository-relative key")
+        if self.plan_hash != self.plan.content_hash:
+            raise ValueError("EXPORT_PLAN_HASH_MISMATCH")
+        if (
+            self.project_id != self.plan.project_id
+            or self.revision_id != self.plan.revision_id
+            or self.arrangement_hash != self.plan.arrangement_hash
+            or self.engine_version != self.plan.engine_version
+            or self.seed != self.plan.seed
+            or len(self.input_artifact_ids) != len(self.plan.audio_files)
+            or len(set(self.input_artifact_ids)) != len(self.input_artifact_ids)
+            or self.file_count != len(self.plan.audio_files) + 7
+        ):
+            raise ValueError("EXPORT_PLAN_ARTIFACT_MISMATCH")
+        if self.created_at.tzinfo is None or self.created_at.utcoffset() is None:
+            raise ValueError("created_at must be timezone-aware")
+        return self
+
+
+ExportBundleArtifactValue = ExportBundleArtifact | ExportBundleArtifactV2
+
+
 class WorkerEvent(DomainModel):
     schema_version: Literal["worker-event.v1"] = "worker-event.v1"
     event_id: str = Field(min_length=1, max_length=200)
     job_id: UUID
     event_type: Literal["job.completed", "job.failed_retryable", "job.failed_terminal"]
-    artifact: AudioArtifact | FeatureArtifact | ExportBundleArtifact | None = None
+    artifact: AudioArtifact | FeatureArtifact | ExportBundleArtifactValue | None = None
     feature_artifacts: tuple[FeatureArtifact, ...] = ()
     validated_source_artifact: AudioArtifact | None = None
     error_code: str | None = Field(default=None, min_length=1, max_length=100)
@@ -743,7 +818,7 @@ class WorkerResumePayload(DomainModel):
 
 
 class ExportBundleJobPayloadV2(DomainModel):
-    """Internal preparation contract; the production Worker still admits v1 only."""
+    """Plan-bound dynamic Bundle Job; legacy v1 Jobs keep their original consumer."""
 
     schema_version: Literal["export-bundle-job.v2"] = "export-bundle-job.v2"
     plan: ExportPlanV2
@@ -763,3 +838,23 @@ class ExportBundleJobPayloadV2(DomainModel):
         ):
             raise ValueError("EXPORT_AUDIO_SET_INVALID")
         return self
+
+    @property
+    def project_id(self) -> UUID:
+        return self.plan.project_id
+
+    @property
+    def revision_id(self) -> UUID:
+        return self.plan.revision_id
+
+    @property
+    def arrangement_hash(self) -> str:
+        return self.plan.arrangement_hash
+
+    @property
+    def engine_version(self) -> str:
+        return self.plan.engine_version
+
+    @property
+    def seed(self) -> int:
+        return self.plan.seed

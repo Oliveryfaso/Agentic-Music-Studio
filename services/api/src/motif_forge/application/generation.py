@@ -54,14 +54,21 @@ from motif_forge.domain.composition import (
     CompositionBuild,
     SynthAmbientCompilationError,
 )
-from motif_forge.domain.export_plan import CompleteExportCursorV2
+from motif_forge.domain.export_plan import (
+    CompleteExportCursorV2,
+    ExportPlanV2,
+    export_key_v2,
+    verify_export_plan_revision,
+)
 from motif_forge.domain.ir import DomainModel, TrackRole
 from motif_forge.domain.media_jobs import (
     ArtifactAvailability,
     AudioArtifact,
     BundleAudioInput,
-    ExportBundleArtifact,
+    ExportBundleArtifactV2,
+    ExportBundleArtifactValue,
     ExportBundleJobPayload,
+    ExportBundleJobPayloadV2,
     ExportMp3JobPayload,
     JobStatus,
     MediaJobType,
@@ -157,7 +164,9 @@ def read_complete_export_cursor(raw: str) -> CompleteExportCursor | CompleteExpo
     raise ValueError("EXPORT_CURSOR_VERSION_UNSUPPORTED")
 
 
-def _export_key(cursor: CompleteExportCursor, step: str) -> str:
+def _export_key(cursor: CompleteExportCursor | CompleteExportCursorV2, step: str) -> str:
+    if isinstance(cursor, CompleteExportCursorV2):
+        return export_key_v2(cursor.plan, step)
     digest = hashlib.sha256(
         f"complete-export.v1:{cursor.project_id}:{cursor.revision_id}:{cursor.seed}:{step}".encode()
     ).hexdigest()
@@ -315,6 +324,62 @@ def build_export_bundle_payload(
     )
 
 
+def _verify_cursor_revision(
+    cursor: CompleteExportCursor | CompleteExportCursorV2,
+    revision: Revision,
+) -> None:
+    if isinstance(cursor, CompleteExportCursorV2):
+        try:
+            verify_export_plan_revision(cursor.plan, revision)
+        except ValueError as exc:
+            raise ApplicationError(str(exc), "the export plan does not match its Revision") from exc
+
+
+def _cursor_track_id(
+    cursor: CompleteExportCursor | CompleteExportCursorV2,
+    revision: Revision,
+    step: str,
+) -> UUID:
+    if isinstance(cursor, CompleteExportCursorV2):
+        track_id = UUID(step.removeprefix("stem:"))
+        if track_id not in cursor.plan.stem_track_ids:
+            raise ApplicationError("EXPORT_RENDER_SCOPE_INVALID", "Stem is not requested")
+        return track_id
+    return _track_id_for_step(revision, step)
+
+
+def build_export_bundle_payload_v2(
+    *,
+    plan: ExportPlanV2,
+    revision: Revision,
+    artifacts: tuple[AudioArtifact, ...],
+    trace_refs: tuple[str, ...],
+) -> ExportBundleJobPayloadV2:
+    verify_export_plan_revision(plan, revision)
+    if len(artifacts) != len(plan.audio_files):
+        raise ApplicationError("EXPORT_ARTIFACT_SET_INCOMPLETE", "planned audio is missing")
+    inputs = []
+    for step, (filename, profile), artifact in zip(
+        plan.steps[:-1],
+        plan.audio_files,
+        artifacts,
+        strict=True,
+    ):
+        is_stem = step.startswith("stem:")
+        tracks = (UUID(step.removeprefix("stem:")),) if is_stem else ()
+        _verify_audio_lineage(
+            artifact,
+            revision=revision,
+            profile=profile,
+            render_scope=RenderScope.STEM if is_stem else RenderScope.MASTER,
+            render_track_ids=tracks,
+        )
+        inputs.append(_bundle_input(artifact, filename=filename))
+    return ExportBundleJobPayloadV2(
+        plan=plan, plan_hash=plan.content_hash, audio_inputs=tuple(inputs), trace_refs=trace_refs
+    )
+
+
 class EnqueueNextCompleteExportJob:
     """Reload truth and enqueue exactly the next step of a finite export chain."""
 
@@ -329,7 +394,9 @@ class EnqueueNextCompleteExportJob:
         self._enqueue_first = enqueue_first
         self._enqueue_followup = enqueue_followup
 
-    async def __call__(self, cursor: CompleteExportCursor) -> CompleteExportCursor:
+    async def __call__(
+        self, cursor: CompleteExportCursor | CompleteExportCursorV2
+    ) -> CompleteExportCursor | CompleteExportCursorV2:
         if cursor.pending_job_id is not None or not cursor.pending_steps:
             return cursor
         revision = await _load_revision(
@@ -337,6 +404,7 @@ class EnqueueNextCompleteExportJob:
             project_id=cursor.project_id,
             revision_id=cursor.revision_id,
         )
+        _verify_cursor_revision(cursor, revision)
         await self._verify_collected_audio(cursor, revision=revision)
         step = cursor.pending_steps[0]
         key = _export_key(cursor, step)
@@ -345,7 +413,7 @@ class EnqueueNextCompleteExportJob:
         payload: dict[str, object]
         deadline: int
         if step == "master" or step.startswith("stem:"):
-            track_ids = () if step == "master" else (_track_id_for_step(revision, step),)
+            track_ids = () if step == "master" else (_cursor_track_id(cursor, revision, step),)
             render = build_canonical_render_payload(
                 revision,
                 seed=cursor.seed,
@@ -357,7 +425,12 @@ class EnqueueNextCompleteExportJob:
             deadline = 300
         elif step == "mp3":
             artifacts = await self._load_audio_artifacts(cursor.audio_artifact_ids)
-            if len(artifacts) != 5:
+            expected = (
+                1 + len(cursor.plan.stem_track_ids)
+                if isinstance(cursor, CompleteExportCursorV2)
+                else 5
+            )
+            if len(artifacts) != expected:
                 raise ApplicationError(
                     "EXPORT_ARTIFACT_SET_INCOMPLETE", "Master and Stems must complete before MP3"
                 )
@@ -391,25 +464,30 @@ class EnqueueNextCompleteExportJob:
             deadline = 240
         else:
             artifacts = await self._load_audio_artifacts(cursor.audio_artifact_ids)
-            bundle = build_export_bundle_payload(
-                revision=revision,
-                seed=cursor.seed,
-                artifacts=artifacts,
-                trace_refs=(
-                    f"run:{cursor.media_run_id}",
-                    *(f"job:{job_id}" for job_id in cursor.completed_job_ids),
-                ),
+            trace_refs = (
+                f"run:{cursor.media_run_id}",
+                *(f"job:{job_id}" for job_id in cursor.completed_job_ids),
             )
+            if isinstance(cursor, CompleteExportCursorV2):
+                payload = build_export_bundle_payload_v2(
+                    plan=cursor.plan, revision=revision, artifacts=artifacts, trace_refs=trace_refs
+                ).model_dump(mode="json")
+            else:
+                payload = build_export_bundle_payload(
+                    revision=revision, seed=cursor.seed, artifacts=artifacts, trace_refs=trace_refs
+                ).model_dump(mode="json")
             job_type = MediaJobType.EXPORT_BUNDLE
             quality = MediaQualityProfile.EXPORT_BUNDLE_V1
-            payload = bundle.model_dump(mode="json")
             deadline = 240
         if cursor.media_run_id is None:
             result = await self._enqueue_first(
                 EnqueueMediaJobRequest(
                     project_id=cursor.project_id,
                     thread_id=cursor.thread_id,
-                    run_type="complete_song_export.v1",
+                    run_type=cursor.run_type
+                    if isinstance(cursor, CompleteExportCursorV2)
+                    else "complete_song_export.v1",
+                    export_plan=cursor.plan if isinstance(cursor, CompleteExportCursorV2) else None,
                     job_type=job_type,
                     input_payload=payload,
                     output_quality_profile=quality,
@@ -420,6 +498,9 @@ class EnqueueNextCompleteExportJob:
         else:
             result = await self._enqueue_followup(
                 EnqueueFollowupMediaJobRequest(
+                    export_plan_hash=cursor.plan_hash
+                    if isinstance(cursor, CompleteExportCursorV2)
+                    else None,
                     run_id=cursor.media_run_id,
                     project_id=cursor.project_id,
                     thread_id=cursor.thread_id,
@@ -449,14 +530,14 @@ class EnqueueNextCompleteExportJob:
 
     async def _verify_collected_audio(
         self,
-        cursor: CompleteExportCursor,
+        cursor: CompleteExportCursor | CompleteExportCursorV2,
         *,
         revision: Revision,
     ) -> None:
         artifacts = await self._load_audio_artifacts(cursor.audio_artifact_ids)
         for step, job_id, artifact in zip(
-            cursor.completed_steps[:6],
-            cursor.completed_job_ids[:6],
+            cursor.completed_steps[: len(cursor.audio_artifact_ids)],
+            cursor.completed_job_ids[: len(cursor.audio_artifact_ids)],
             artifacts,
             strict=True,
         ):
@@ -467,7 +548,7 @@ class EnqueueNextCompleteExportJob:
             elif step.startswith("stem:"):
                 profile = MediaQualityProfile.CANONICAL_STEM_V1
                 scope = RenderScope.STEM
-                track_ids = (_track_id_for_step(revision, step),)
+                track_ids = (_cursor_track_id(cursor, revision, step),)
             else:
                 profile = MediaQualityProfile.DELIVERY_MP3_V1
                 scope = RenderScope.MASTER
@@ -490,10 +571,10 @@ class CollectCompleteExportArtifact:
 
     async def __call__(
         self,
-        cursor: CompleteExportCursor,
+        cursor: CompleteExportCursor | CompleteExportCursorV2,
         *,
         completed_job_id: UUID | None = None,
-    ) -> CompleteExportCursor:
+    ) -> CompleteExportCursor | CompleteExportCursorV2:
         job_id = completed_job_id or cursor.pending_job_id
         if job_id is None:
             raise ApplicationError("EXPORT_JOB_NOT_PENDING", "there is no pending export Job")
@@ -508,6 +589,7 @@ class CollectCompleteExportArtifact:
             project_id=cursor.project_id,
             revision_id=cursor.revision_id,
         )
+        _verify_cursor_revision(cursor, revision)
         async with self._uow_factory() as transaction:
             job = await transaction.get_media_job(job_id)
             audio = (
@@ -537,13 +619,20 @@ class CollectCompleteExportArtifact:
         bundle_id = cursor.bundle_artifact_id
         if step == "bundle":
             if (
-                not isinstance(bundle, ExportBundleArtifact)
+                not isinstance(bundle, ExportBundleArtifactValue)
                 or bundle.project_id != revision.project_id
                 or bundle.revision_id != revision.revision_id
                 or bundle.arrangement_hash != revision.content_hash
                 or bundle.source_job_id != job_id
                 or bundle.seed != cursor.seed
                 or set(bundle.input_artifact_ids) != set(cursor.audio_artifact_ids)
+                or (
+                    isinstance(cursor, CompleteExportCursorV2)
+                    and (
+                        not isinstance(bundle, ExportBundleArtifactV2)
+                        or bundle.plan_hash != cursor.plan_hash
+                    )
+                )
             ):
                 raise ApplicationError(
                     "EXPORT_ARTIFACT_LINEAGE_MISMATCH", "Bundle lineage does not match"
@@ -561,7 +650,7 @@ class CollectCompleteExportArtifact:
             elif step.startswith("stem:"):
                 profile = MediaQualityProfile.CANONICAL_STEM_V1
                 scope = RenderScope.STEM
-                track_ids = (_track_id_for_step(revision, step),)
+                track_ids = (_cursor_track_id(cursor, revision, step),)
             else:
                 profile = MediaQualityProfile.DELIVERY_MP3_V1
                 scope = RenderScope.MASTER

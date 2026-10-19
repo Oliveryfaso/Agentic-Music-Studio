@@ -22,6 +22,7 @@ from motif_forge.domain.media_jobs import (
     AudioArtifact,
     JobStatus,
     MediaJob,
+    MediaJobType,
     MediaQualityProfile,
     MediaRun,
     RenderScope,
@@ -393,3 +394,71 @@ async def test_enqueue_revalidates_previously_collected_artifacts() -> None:
 
     with pytest.raises(ApplicationError, match="EXPORT_ARTIFACT_LINEAGE_MISMATCH"):
         await enqueue(advanced)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("request_stem", [False, True])
+async def test_v2_single_track_chain_never_schedules_unrequested_role_stems(
+    request_stem: bool,
+) -> None:
+    from motif_forge.domain.canonical import arrangement_content_hash
+    from motif_forge.domain.export_plan import CompleteExportCursorV2, plan_export
+
+    original = _revision()
+    arrangement = original.arrangement_ir.model_copy(
+        update={"tracks": (original.arrangement_ir.tracks[0],)}
+    )
+    revision = original.model_copy(
+        update={
+            "arrangement_ir": arrangement,
+            "content_hash": arrangement_content_hash(arrangement),
+        }
+    )
+    track_id = arrangement.tracks[0].track_id
+    plan = plan_export(
+        revision, seed=31, include_mp3=False, stem_track_ids=(track_id,) if request_stem else ()
+    )
+    cursor = CompleteExportCursorV2(
+        plan=plan, plan_hash=plan.content_hash, thread_id="v2-single-track-boundary"
+    )
+    transaction = FakeExportTransaction(revision)
+    enqueue, collect = _services(transaction)
+
+    first = await enqueue(cursor)
+    replay = await enqueue(cursor)
+    assert first.pending_job_id == replay.pending_job_id
+    assert len(transaction.jobs) == 1
+    job = transaction.jobs[first.pending_job_id]
+    assert job.job_type is MediaJobType.RENDER_CANONICAL
+    assert len(job.input_payload["audio_graph"]["tracks"]) == 1
+    master = _artifact(
+        artifact_id=5000,
+        job_id=job.job_id,
+        profile=MediaQualityProfile.CANONICAL_MASTER_V1,
+        scope=RenderScope.MASTER,
+        arrangement_hash=revision.content_hash,
+    )
+    transaction.artifacts[master.artifact_id] = master
+    transaction.jobs[job.job_id] = job.model_copy(
+        update={
+            "status": JobStatus.SUCCEEDED,
+            "result_artifact_id": master.artifact_id,
+        }
+    )
+    completed = await collect(first)
+    assert completed.completed_steps == ("master",)
+    next_cursor = await enqueue(completed)
+    assert len(transaction.jobs) == 2
+    next_job = transaction.jobs[next_cursor.pending_job_id]
+    if request_stem:
+        assert next_job.job_type is MediaJobType.RENDER_CANONICAL
+        assert next_job.input_payload["render_track_ids"] == [str(track_id)]
+    else:
+        assert next_job.job_type is MediaJobType.EXPORT_BUNDLE
+        assert next_job.input_payload["schema_version"] == "export-bundle-job.v2"
+        assert len(next_job.input_payload["audio_inputs"]) == 1
+        from motif_forge.worker.execution import _parse_export_bundle_payload
+
+        parsed = _parse_export_bundle_payload(next_job)
+        assert parsed.schema_version == "export-bundle-job.v2"
+        assert parsed.plan_hash == plan.content_hash

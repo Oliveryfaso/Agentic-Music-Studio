@@ -16,13 +16,14 @@ from motif_forge.application.errors import (
     MediaJobStateConflictError,
 )
 from motif_forge.application.ports import MediaJobUnitOfWorkFactory
+from motif_forge.domain.export_plan import ExportPlanV2
 from motif_forge.domain.ir import DomainModel
 from motif_forge.domain.media_jobs import (
     ArtifactAvailability,
     ArtifactLifecycle,
     AudioArtifact,
     CandidatePreviewJobPayload,
-    ExportBundleArtifact,
+    ExportBundleArtifactValue,
     FeatureArtifact,
     FeatureProfile,
     FeatureRehydrateJobPayload,
@@ -49,6 +50,9 @@ class EnqueueMediaJobRequest(DomainModel):
     max_attempts: int = Field(default=3, ge=1, le=5)
     deadline_seconds: int = Field(default=900, ge=30, le=3600)
 
+    # Internal metadata is persisted separately; absence preserves the v1 fingerprint.
+    export_plan: ExportPlanV2 | None = Field(default=None, exclude=True)
+
 
 class EnqueueMediaJobResult(DomainModel):
     run_id: UUID
@@ -68,6 +72,8 @@ class EnqueueFollowupMediaJobRequest(DomainModel):
     idempotency_key: str = Field(min_length=8, max_length=160)
     max_attempts: int = Field(default=3, ge=1, le=5)
     deadline_seconds: int = Field(default=900, ge=30, le=3600)
+
+    export_plan_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$", exclude=True)
 
 
 class CancelMediaJobRequest(DomainModel):
@@ -173,6 +179,11 @@ class EnqueueMediaJob:
             {
                 "schema": "media-job-enqueue.v1",
                 **request.model_dump(mode="json", exclude={"idempotency_key"}),
+                **(
+                    {"export_plan_hash": request.export_plan.content_hash}
+                    if request.export_plan is not None
+                    else {}
+                ),
             }
         )
         async with self._uow_factory() as transaction:
@@ -195,6 +206,10 @@ class EnqueueMediaJob:
             run_id = self._id_factory()
             job_id = self._id_factory()
             run = MediaRun(
+                schema_version="media-run.v2"
+                if request.export_plan is not None
+                else "media-run.v1",
+                export_plan=request.export_plan,
                 run_id=run_id,
                 project_id=request.project_id,
                 thread_id=request.thread_id,
@@ -482,6 +497,11 @@ class EnqueueFollowupMediaJob:
             {
                 "schema": "media-followup-job-enqueue.v1",
                 **request.model_dump(mode="json", exclude={"idempotency_key"}),
+                **(
+                    {"export_plan_hash": request.export_plan_hash}
+                    if request.export_plan_hash is not None
+                    else {}
+                ),
             }
         )
         async with self._uow_factory() as transaction:
@@ -516,6 +536,7 @@ class EnqueueFollowupMediaJob:
             )
             appended = await transaction.append_media_job_to_run(
                 expected_thread_id=request.thread_id,
+                expected_export_plan_hash=request.export_plan_hash,
                 job=job,
                 run_event_id=self._id_factory(),
                 job_event_id=self._id_factory(),
@@ -563,8 +584,10 @@ class ApplyWorkerEvent:
                 if job.status is JobStatus.SUCCEEDED and event.artifact is not None:
                     result_id = job.result_artifact_id
                     if result_id is not None:
-                        persisted: AudioArtifact | FeatureArtifact | ExportBundleArtifact | None
-                        if isinstance(event.artifact, ExportBundleArtifact):
+                        persisted: (
+                            AudioArtifact | FeatureArtifact | ExportBundleArtifactValue | None
+                        )
+                        if isinstance(event.artifact, ExportBundleArtifactValue):
                             persisted = await transaction.get_export_bundle_artifact(result_id)
                         elif isinstance(event.artifact, FeatureArtifact):
                             persisted = await transaction.get_feature_artifact(result_id)
@@ -583,7 +606,7 @@ class ApplyWorkerEvent:
                     raise MediaJobStateConflictError("artifact does not belong to the target job")
                 artifact_profile = (
                     MediaQualityProfile.EXPORT_BUNDLE_V1
-                    if isinstance(artifact, ExportBundleArtifact)
+                    if isinstance(artifact, ExportBundleArtifactValue)
                     else artifact.quality_profile
                     if isinstance(artifact, AudioArtifact)
                     else artifact.feature_profile

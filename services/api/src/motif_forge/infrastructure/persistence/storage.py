@@ -105,38 +105,28 @@ class PostgresStorageTransaction:
             .all()
         )
         active_artifact_refs = {
-            item
-            for payload in active_job_payloads
-            for item in _uuid_values(payload)
+            item for payload in active_job_payloads for item in _uuid_values(payload)
         }
+        # Explicit export attempts retain distinct Job provenance while sharing
+        # immutable content files. Count physical storage keys, not metadata rows.
+        audio_objects = (
+            select(
+                AudioArtifactRow.storage_key,
+                func.max(AudioArtifactRow.byte_size).label("bytes"),
+                func.bool_or(AudioArtifactRow.project_id == project_id).label("belongs_to_project"),
+            )
+            .where(AudioArtifactRow.availability == ArtifactAvailability.AVAILABLE.value)
+            .group_by(AudioArtifactRow.storage_key)
+            .subquery()
+        )
         audio_usage = (
             await self._session.execute(
                 select(
+                    func.coalesce(func.sum(audio_objects.c.bytes), 0),
                     func.coalesce(
                         func.sum(
                             case(
-                                (
-                                    AudioArtifactRow.availability
-                                    == ArtifactAvailability.AVAILABLE.value,
-                                    AudioArtifactRow.byte_size,
-                                ),
-                                else_=0,
-                            )
-                        ),
-                        0,
-                    ),
-                    func.coalesce(
-                        func.sum(
-                            case(
-                                (
-                                    (AudioArtifactRow.project_id == project_id)
-                                    & (
-                                        AudioArtifactRow.availability
-                                        == ArtifactAvailability.AVAILABLE.value
-                                    ),
-                                    AudioArtifactRow.byte_size,
-                                ),
-                                else_=0,
+                                (audio_objects.c.belongs_to_project, audio_objects.c.bytes), else_=0
                             )
                         ),
                         0,
@@ -196,8 +186,7 @@ class PostgresStorageTransaction:
                         0,
                     ),
                 ).where(
-                    ExportBundleArtifactRow.availability
-                    == ArtifactAvailability.AVAILABLE.value
+                    ExportBundleArtifactRow.availability == ArtifactAvailability.AVAILABLE.value
                 )
             )
         ).one()
@@ -303,6 +292,7 @@ class PostgresStorageTransaction:
             ).scalar_one()
         )
         return count == len(set(input_ids))
+
     async def record_storage_decision(self, decision: StoragePressureDecision) -> None:
         sequence = int(
             (
@@ -388,8 +378,7 @@ class PostgresStorageTransaction:
                     update(FeatureArtifactRow)
                     .where(
                         FeatureArtifactRow.id == artifact_id,
-                        FeatureArtifactRow.availability
-                        == ArtifactAvailability.AVAILABLE.value,
+                        FeatureArtifactRow.availability == ArtifactAvailability.AVAILABLE.value,
                     )
                     .values(
                         availability=ArtifactAvailability.EVICTED.value,

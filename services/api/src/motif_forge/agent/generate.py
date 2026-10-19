@@ -48,6 +48,7 @@ from motif_forge.domain.candidates import (
     CandidateLabel,
     derive_candidate_seed,
 )
+from motif_forge.domain.export_plan import CompleteExportCursorV2
 from motif_forge.domain.ir import DomainModel
 from motif_forge.domain.media_jobs import WorkerResumePayload
 from motif_forge.domain.style_packs import builtin_style_pack_registry
@@ -83,9 +84,7 @@ class CandidateSelectionDecision(DomainModel):
     selection_assertion: str = Field(min_length=16, max_length=500)
     selected_preview_id: UUID | None = None
     expected_candidate_id: UUID | None = None
-    expected_candidate_content_hash: str | None = Field(
-        default=None, pattern=r"^[0-9a-f]{64}$"
-    )
+    expected_candidate_content_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     note: str = Field(default="", max_length=500)
 
     def model_post_init(self, __context: object) -> None:
@@ -123,8 +122,9 @@ class CompositionMaterializer(Protocol):
     async def __call__(self, request: MaterializeApprovedCompositionRequest) -> Any: ...
 
 
-ExportEnqueuer = Callable[[CompleteExportCursor], Awaitable[CompleteExportCursor]]
-ExportCollector = Callable[..., Awaitable[CompleteExportCursor]]
+ExportCursorValue = CompleteExportCursor | CompleteExportCursorV2
+ExportEnqueuer = Callable[[ExportCursorValue], Awaitable[ExportCursorValue]]
+ExportCollector = Callable[..., Awaitable[ExportCursorValue]]
 CandidateCreator = Callable[[CreateCompositionCandidateRequest], Awaitable[Any]]
 CandidatePreviewEnqueuer = Callable[[EnqueueCandidatePreviewRequest], Awaitable[Any]]
 CandidatePreviewCollector = Callable[[CandidatePreviewCursor, UUID], Awaitable[Any]]
@@ -566,9 +566,7 @@ class GenerateNodes:
             return {"phase": "repair_complete", "repair_count": 0}
         measurement = next(
             (
-                MeasuredCandidateEvidence.model_validate_json(
-                    json.dumps(item), strict=True
-                )
+                MeasuredCandidateEvidence.model_validate_json(json.dumps(item), strict=True)
                 for item in state["candidate_measurements"]
                 if item["segment"]["segment_id"] == proposal["segment_id"]
             ),
@@ -618,9 +616,7 @@ class GenerateNodes:
             original_blocking_errors=0,
             repaired_blocking_errors=0,
         )
-        await self._quality_gate.record(
-            run_id=UUID(str(state["run_id"])), decision=decision
-        )
+        await self._quality_gate.record(run_id=UUID(str(state["run_id"])), decision=decision)
         branches = [dict(item) for item in state["candidate_working"]]
         changed = next(item for item in branches if item["candidate_id"] == branch["candidate_id"])
         changed["repair_status"] = decision.repair_status
@@ -696,8 +692,7 @@ class GenerateNodes:
         if (
             selected is None
             or selected["candidate_id"] != str(decision.expected_candidate_id)
-            or selected["candidate_content_hash"]
-            != decision.expected_candidate_content_hash
+            or selected["candidate_content_hash"] != decision.expected_candidate_content_hash
         ):
             return {"phase": "failed", "error_code": "CANDIDATE_SELECTION_MISMATCH"}
         return {
@@ -723,9 +718,7 @@ class GenerateNodes:
                 plan_id=UUID(str(state["plan_id"])),
                 expected_plan_hash=str(state["plan_hash"]),
                 selected_preview_id=UUID(str(state["selected_preview_id"])),
-                expected_candidate_content_hash=str(
-                    state["selected_candidate_content_hash"]
-                ),
+                expected_candidate_content_hash=str(state["selected_candidate_content_hash"]),
                 seed=int(state["selected_seed"]),
                 actor_id=str(state["selection_actor_id"]),
                 selection_assertion=str(state["selection_assertion"]),
@@ -745,8 +738,14 @@ class GenerateNodes:
         }
 
     @staticmethod
-    def _cursor(value: object) -> CompleteExportCursor:
-        return CompleteExportCursor.model_validate_json(json.dumps(value), strict=True)
+    def _cursor(value: object) -> ExportCursorValue:
+        model = (
+            CompleteExportCursorV2
+            if isinstance(value, dict)
+            and value.get("schema_version") == "complete-export-cursor.v2"
+            else CompleteExportCursor
+        )
+        return model.model_validate_json(json.dumps(value), strict=True)
 
     async def enqueue_export(self, state: Any) -> dict[str, Any]:
         cursor = self._cursor(state["export_cursor"])

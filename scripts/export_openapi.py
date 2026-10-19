@@ -17,8 +17,12 @@ if sys.prefix == sys.base_prefix and VENV_PYTHON.exists():
 
 sys.path.insert(0, str(ROOT / "services/api/src"))
 
-from motif_forge.api.app import create_app  # noqa: E402
+from unittest.mock import patch  # noqa: E402
+
 from motif_forge.config import Settings  # noqa: E402
+
+with patch("motif_forge.config.get_settings", return_value=Settings.for_test()):
+    from motif_forge.api.app import create_app
 
 
 class UnconfiguredAIRunUOW:
@@ -33,7 +37,7 @@ class UnconfiguredProjectReadStore:
 
 class UnconfiguredExportReadStore:
     async def read_revision_export(
-        self, *, project_id: object, revision_id: object
+        self, *, project_id: object, revision_id: object, plan_hash: str | None = None
     ) -> None:
         raise RuntimeError("OpenAPI export does not execute persistence")
 
@@ -42,16 +46,13 @@ class UnconfiguredRunInspectionStore:
     async def read_run_inspection(self, run_id: object) -> None:
         raise RuntimeError("OpenAPI export does not execute persistence")
 
-
     async def read_bundle(self, bundle_id: object) -> None:
         raise RuntimeError("OpenAPI export does not execute persistence")
 
     async def read_project(self, project_id: object) -> None:
         raise RuntimeError("OpenAPI export does not execute persistence")
 
-    async def read_revision_studio(
-        self, *, project_id: object, revision_id: object
-    ) -> None:
+    async def read_revision_studio(self, *, project_id: object, revision_id: object) -> None:
         raise RuntimeError("OpenAPI export does not execute persistence")
 
 
@@ -62,7 +63,7 @@ class UnconfiguredRunGraphHistoryStore:
 
 def main() -> None:
     app = create_app(
-        Settings(),
+        Settings.for_test(),
         ai_run_uow_factory=UnconfiguredAIRunUOW(),  # type: ignore[arg-type]
         project_read_store=UnconfiguredProjectReadStore(),  # type: ignore[arg-type]
         export_read_store=UnconfiguredExportReadStore(),  # type: ignore[arg-type]

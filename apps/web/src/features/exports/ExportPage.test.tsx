@@ -76,3 +76,40 @@ function projection(status: "ready" | "failed"): RevisionExportProjection {
     }],
   };
 }
+
+it("starts only the requested files, reads its plan and cancels that finite request", async () => {
+  const { fireEvent, waitFor } = await import("@testing-library/react");
+  const posts: Array<{ path: string; body: unknown }> = [];
+  const planHash = "c".repeat(64);
+  const thread = "export-" + "d".repeat(32);
+  let started = false;
+  let cancelled = false;
+  vi.stubGlobal("fetch", vi.fn(async (path: string, init?: RequestInit) => {
+    if (init?.method === "POST") {
+      posts.push({ path, body: init.body ? JSON.parse(String(init.body)) : null });
+      if (path.endsWith("/cancel")) cancelled = true;
+      else started = true;
+      return new Response(JSON.stringify({ data: { thread_id: thread, phase: cancelled ? "cancelled" : "waiting_export_worker", plan_hash: planHash } }));
+    }
+    const value = projection("ready");
+    if (started) {
+      value.status = cancelled ? "cancelled" : "partial";
+      value.export_thread_id = thread;
+      value.plan_hash = planHash;
+      value.steps = ["master", "bundle"].map((step) => ({ step, job_id: MASTER_ID, status: "queued", artifact_id: null }));
+      value.files = [];
+    }
+    return new Response(JSON.stringify({ data: value }));
+  }));
+  renderPage();
+  const mp3 = await screen.findByRole("checkbox", { name: "包含试听 MP3" });
+  fireEvent.click(mp3);
+  fireEvent.click(screen.getByRole("button", { name: "重新导出" }));
+  await waitFor(() => expect(screen.getAllByTestId("export-step")).toHaveLength(2));
+  expect(posts[0]?.body).toEqual({ include_mp3: false, include_all_stems: false });
+  expect(window.location.search).toContain(planHash);
+  fireEvent.click(screen.getByRole("button", { name: "取消导出" }));
+  await screen.findByText("导出已取消");
+  expect(posts[1]?.path).toContain(`/export-runs/${thread}/cancel`);
+  window.history.replaceState(null, "", "/");
+});

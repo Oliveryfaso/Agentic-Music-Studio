@@ -208,3 +208,69 @@ def test_v2_preparation_does_not_publish_builtin_credits_for_unapproved_sample_p
     )
     with pytest.raises(ValueError, match="EXPORT_SOURCE_PROFILE_UNSUPPORTED"):
         contract.plan_export(revision, seed=7)
+
+
+def test_v2_bundle_receipt_accepts_actual_plan_and_rejects_forged_identity():
+    from datetime import UTC, datetime
+
+    revision = single_track_revision()
+    plan = contract.plan_export(revision, seed=7, include_mp3=False)
+    artifact_type = getattr(media_jobs, "ExportBundleArtifactV2", None)
+    assert artifact_type is not None, "production needs a versioned dynamic Bundle receipt"
+    receipt = artifact_type(
+        artifact_id=UUID(int=5200),
+        project_id=revision.project_id,
+        source_job_id=UUID(int=5201),
+        revision_id=revision.revision_id,
+        content_hash="a" * 64,
+        byte_size=1024,
+        storage_prefix="protected/exports/one",
+        file_count=8,
+        arrangement_hash=revision.content_hash,
+        engine_version="motif-forge-audio-engine.v1",
+        seed=7,
+        input_artifact_ids=(UUID(int=5202),),
+        plan=plan,
+        plan_hash=plan.content_hash,
+        created_at=datetime.now(UTC),
+    )
+    event = media_jobs.WorkerEvent(
+        event_id="job:v2-completed",
+        job_id=receipt.source_job_id,
+        event_type="job.completed",
+        artifact=receipt,
+        occurred_at=datetime.now(UTC),
+    )
+    assert event.artifact.schema_version == "export-bundle-artifact.v2"
+    assert event.artifact.file_count == 8
+    with pytest.raises(ValidationError, match="EXPORT_PLAN_HASH_MISMATCH"):
+        artifact_type.model_validate({**receipt.model_dump(), "plan_hash": "0" * 64})
+    with pytest.raises(ValidationError, match="EXPORT_PLAN_ARTIFACT_MISMATCH"):
+        artifact_type.model_validate({**receipt.model_dump(), "revision_id": UUID(int=999)})
+
+
+def test_export_v2_run_cannot_hide_behind_legacy_schema_without_plan():
+    from datetime import UTC, datetime
+
+    with pytest.raises(ValidationError, match="EXPORT_RUN_PLAN_INVALID"):
+        media_jobs.MediaRun(
+            run_id=UUID(int=6000),
+            project_id=UUID(int=6001),
+            thread_id="unsupported-run",
+            run_type="complete_song_export.v2",
+            waiting_for_job_id=UUID(int=6002),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        )
+
+
+def test_explicit_export_request_ids_separate_retry_jobs_without_changing_revision():
+    revision = single_track_revision()
+    first = contract.plan_export(revision, seed=7, request_id=UUID(int=7101))
+    repeated = contract.plan_export(revision, seed=7, request_id=UUID(int=7101))
+    retried = contract.plan_export(revision, seed=7, request_id=UUID(int=7102))
+    assert first.content_hash == repeated.content_hash
+    assert first.content_hash != retried.content_hash
+    assert first.arrangement_hash == retried.arrangement_hash == revision.content_hash
+    old = contract.plan_export(revision, seed=7)
+    assert "request_id" not in old.model_dump(mode="json")

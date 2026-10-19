@@ -1,13 +1,13 @@
-"""Pure v2 export contracts. Production activation requires the PostgreSQL gate."""
+"""Pure plan-bound v2 export contracts, alongside unchanged legacy v1 consumers."""
 
 from __future__ import annotations
 
 import hashlib
 import json
-from typing import TYPE_CHECKING, Literal, Self
+from typing import TYPE_CHECKING, Any, Literal, Self
 from uuid import UUID
 
-from pydantic import Field, model_validator
+from pydantic import Field, SerializerFunctionWrapHandler, model_serializer, model_validator
 
 from motif_forge.domain.canonical import arrangement_content_hash
 from motif_forge.domain.ir import ArrangementIR, DomainModel, NoteClip, TrackType
@@ -41,7 +41,16 @@ class ExportPlanV2(DomainModel):
     track_ids: tuple[UUID, ...] = Field(min_length=1, max_length=12)
     stem_track_ids: tuple[UUID, ...] = Field(default=(), max_length=12)
     include_mp3: bool = True
+    request_id: UUID | None = None
     engine_version: Literal["motif-forge-audio-engine.v1"] = "motif-forge-audio-engine.v1"
+
+    @model_serializer(mode="wrap")
+    def serialize_plan(self, handler: SerializerFunctionWrapHandler):  # type: ignore[no-untyped-def]
+        # No return annotation: retain the model field schema for OpenAPI responses.
+        value: dict[str, Any] = handler(self)
+        if self.request_id is None:
+            value.pop("request_id", None)
+        return value
 
     @model_validator(mode="after")
     def validate_tracks(self) -> Self:
@@ -109,6 +118,7 @@ def plan_export(
     seed: int,
     include_mp3: bool = True,
     stem_track_ids: tuple[UUID, ...] = (),
+    request_id: UUID | None = None,
 ) -> ExportPlanV2:
     plan = ExportPlanV2(
         project_id=revision.project_id,
@@ -118,6 +128,7 @@ def plan_export(
         track_ids=_sorted_ids(tuple(t.track_id for t in revision.arrangement_ir.tracks)),
         stem_track_ids=_sorted_ids(stem_track_ids),
         include_mp3=include_mp3,
+        request_id=request_id,
     )
     verify_export_plan_revision(plan, revision)
     return plan
@@ -135,6 +146,7 @@ class CompleteExportCursorV2(DomainModel):
     plan: ExportPlanV2
     plan_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     thread_id: str = Field(min_length=1, max_length=160)
+    run_type: Literal["complete_song_export.v2", "parent.export.v1"] = "complete_song_export.v2"
     media_run_id: UUID | None = None
     pending_job_id: UUID | None = None
     pending_idempotency_key: str | None = Field(default=None, max_length=160)
@@ -142,6 +154,14 @@ class CompleteExportCursorV2(DomainModel):
     completed_job_ids: tuple[UUID, ...] = ()
     audio_artifact_ids: tuple[UUID, ...] = ()
     bundle_artifact_id: UUID | None = None
+
+    @model_serializer(mode="wrap")
+    def serialize_cursor(self, handler: SerializerFunctionWrapHandler):  # type: ignore[no-untyped-def]
+        # No return annotation: retain the model field schema for OpenAPI responses.
+        value: dict[str, Any] = handler(self)
+        if self.run_type == "complete_song_export.v2":
+            value.pop("run_type", None)
+        return value
 
     @model_validator(mode="after")
     def validate_progress(self) -> Self:
@@ -175,6 +195,18 @@ class CompleteExportCursorV2(DomainModel):
         if (count > 0 or self.pending_job_id is not None) != (self.media_run_id is not None):
             raise ValueError("EXPORT_RUN_IDENTITY_INVALID")
         return self
+
+    @property
+    def project_id(self) -> UUID:
+        return self.plan.project_id
+
+    @property
+    def revision_id(self) -> UUID:
+        return self.plan.revision_id
+
+    @property
+    def seed(self) -> int:
+        return self.plan.seed
 
     @property
     def pending_steps(self) -> tuple[str, ...]:

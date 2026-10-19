@@ -23,6 +23,7 @@ from motif_forge.agent.generate import (
     build_generate_nodes,
 )
 from motif_forge.agent.planner import CompositionPlanner
+from motif_forge.agent.revision_export import RevisionExportNodes
 from motif_forge.agent.worker_gate import wait_for_job_event
 from motif_forge.application.ai_runs import RecordAIRunApproval
 from motif_forge.application.candidate_previews import (
@@ -55,6 +56,7 @@ from motif_forge.application.media_jobs import (
     EnqueueMediaJobResult,
     StartArtifactRehydrationRequest,
 )
+from motif_forge.application.revision_exports import RevisionExportRequest
 from motif_forge.domain.ai_runs import EDIT_RUN_STATE_SCHEMA_VERSION
 from motif_forge.domain.candidates import merge_candidate_branches
 from motif_forge.domain.import_policy import decide_import_alignment
@@ -141,7 +143,7 @@ class ParentGraphState(TypedDict):
     thread_id: str
     project_id: str
     operation: Literal[
-        "generate", "edit", "time_stretch", "import_audio", "artifact_rehydrate"
+        "generate", "edit", "time_stretch", "import_audio", "artifact_rehydrate", "export"
     ]
     graph_topology_version: str
     state_schema_version: str
@@ -153,7 +155,7 @@ class ParentGraphState(TypedDict):
     pending_action: NotRequired[str]
     error_code: NotRequired[str]
     last_resume_event_id: NotRequired[str]
-    terminal_status: NotRequired[Literal["succeeded", "failed"]]
+    terminal_status: NotRequired[Literal["succeeded", "failed", "cancelled"]]
     branch_id: NotRequired[str]
     base_revision_id: NotRequired[str]
     materialized_revision_id: NotRequired[str]
@@ -187,9 +189,7 @@ class ParentGraphState(TypedDict):
     export_cursor: NotRequired[dict[str, object]]
     media_run_id: NotRequired[str | None]
     candidate_label: NotRequired[str]
-    candidate_branches: NotRequired[
-        Annotated[list[dict[str, Any]], merge_candidate_branches]
-    ]
+    candidate_branches: NotRequired[Annotated[list[dict[str, Any]], merge_candidate_branches]]
     candidate_working: NotRequired[list[dict[str, Any]]]
     candidate_preview_cursor: NotRequired[dict[str, Any] | None]
     critique: NotRequired[dict[str, Any]]
@@ -211,6 +211,20 @@ class ParentGraphState(TypedDict):
     proposal: NotRequired[dict[str, object]]
     simulation: NotRequired[dict[str, object]]
     edit_route: NotRequired[str]
+
+
+def initial_export_state(*, thread_id: str, request: RevisionExportRequest) -> ParentGraphState:
+    if not thread_id or len(thread_id) > 160:
+        raise ValueError("thread_id must contain between 1 and 160 characters")
+    return ParentGraphState(
+        thread_id=thread_id,
+        project_id=str(request.project_id),
+        operation="export",
+        graph_topology_version=PARENT_GRAPH_TOPOLOGY_VERSION,
+        state_schema_version=PARENT_STATE_SCHEMA_VERSION,
+        request_payload=request.model_dump(mode="json"),
+        phase="received",
+    )
 
 
 def initial_time_stretch_state(
@@ -334,8 +348,24 @@ def build_parent_graph(
     candidate_quality_gate: EvaluateCandidatePair | None = None,
     record_candidate_critique: CandidateCritiqueRecorder | None = None,
     edit_graph: Any | None = None,
+    prepare_revision_export: Any | None = None,
+    cancel_revision_export: Any | None = None,
 ) -> CompiledStateGraph[ParentGraphState, None, ParentGraphState, ParentGraphState]:
     """Compile Import and standalone time-stretch inside one Parent topology."""
+
+    export_nodes = None
+    if (
+        prepare_revision_export is not None
+        and cancel_revision_export is not None
+        and enqueue_next_complete_export_job is not None
+        and collect_complete_export_artifact is not None
+    ):
+        export_nodes = RevisionExportNodes(
+            prepare=prepare_revision_export,
+            cancel=cancel_revision_export,
+            enqueue=enqueue_next_complete_export_job,
+            collect=collect_complete_export_artifact,
+        )
 
     async def validate_request(state: ParentGraphState) -> dict[str, Any]:
         if state.get("graph_topology_version") != PARENT_GRAPH_TOPOLOGY_VERSION:
@@ -348,6 +378,10 @@ def build_parent_graph(
         if state.get("state_schema_version") != expected_state_schema:
             return {"phase": "failed", "error_code": "STATE_SCHEMA_VERSION_UNSUPPORTED"}
         try:
+            if state["operation"] == "export":
+                if export_nodes is None:
+                    return {"phase": "failed", "error_code": "EXPORT_NOT_CONFIGURED"}
+                return await export_nodes.validate(state)
             if state["operation"] == "generate":
                 if generate_nodes is None:
                     return {"phase": "failed", "error_code": "GENERATE_NOT_CONFIGURED"}
@@ -378,7 +412,9 @@ def build_parent_graph(
 
     def validation_route(
         state: ParentGraphState,
-    ) -> Literal["generate", "edit", "load", "storage", "error"]:
+    ) -> Literal["generate", "edit", "export", "load", "storage", "error"]:
+        if state.get("phase") == "export_prepared":
+            return "export"
         if state.get("phase") == "generate_validated":
             return "generate"
         if state.get("phase") == "edit_validated":
@@ -508,13 +544,9 @@ def build_parent_graph(
                 }
             try:
                 payload: (
-                    RehydrateJobPayload
-                    | FeatureRehydrateJobPayload
-                    | CandidatePreviewJobPayload
-                ) = (
-                    RehydrateJobPayload.model_validate_json(
-                        json.dumps(state["request_payload"]), strict=True
-                    )
+                    RehydrateJobPayload | FeatureRehydrateJobPayload | CandidatePreviewJobPayload
+                ) = RehydrateJobPayload.model_validate_json(
+                    json.dumps(state["request_payload"]), strict=True
                 )
             except ValidationError:
                 try:
@@ -818,6 +850,28 @@ def build_parent_graph(
         graph.add_node("EnqueueCompleteExportStep", generate_nodes.enqueue_export)
         graph.add_node("WaitForGenerateJobEvent", generate_nodes.wait_for_export)
         graph.add_node("CompleteGenerate", generate_nodes.complete)
+    if export_nodes is not None:
+        graph.add_node("EnqueueRevisionExportStep", export_nodes.enqueue)
+        graph.add_node("WaitForRevisionExportJob", export_nodes.wait)
+        graph.add_conditional_edges(
+            "EnqueueRevisionExportStep",
+            lambda s: s.get("phase"),
+            {
+                "waiting_export_worker": "WaitForRevisionExportJob",
+                "completed": END,
+                "failed": "RouteError",
+            },
+        )
+        graph.add_conditional_edges(
+            "WaitForRevisionExportJob",
+            lambda s: s.get("phase"),
+            {
+                "waiting_export_worker": "WaitForRevisionExportJob",
+                "export_step_collected": "EnqueueRevisionExportStep",
+                "cancelled": END,
+                "failed": "RouteError",
+            },
+        )
     graph.add_edge(START, "ValidateRequest")
     graph.add_conditional_edges(
         "ValidateRequest",
@@ -825,6 +879,7 @@ def build_parent_graph(
         {
             "generate": "PlanInputAdapter" if generate_nodes is not None else "RouteError",
             "edit": "EditSubgraph" if edit_graph is not None else "RouteError",
+            "export": "EnqueueRevisionExportStep" if export_nodes is not None else "RouteError",
             "load": "LoadArtifactMetadata",
             "storage": "StoragePressureGate",
             "error": "RouteError",
@@ -836,11 +891,10 @@ def build_parent_graph(
         graph.add_edge("PlanInputAdapter", "PlanOutputAdapter")
         graph.add_conditional_edges(
             "PlanOutputAdapter",
-            lambda state: (
-                "approval" if state.get("phase") == "waiting_plan_approval" else "error"
-            ),
+            lambda state: "approval" if state.get("phase") == "waiting_plan_approval" else "error",
             {"approval": "PlanApproval", "error": "RouteError"},
         )
+
         def route_plan_approval(state: ParentGraphState):  # type: ignore[no-untyped-def]
             if state.get("phase") == "approved":
                 if generate_nodes.candidate_flow_enabled:

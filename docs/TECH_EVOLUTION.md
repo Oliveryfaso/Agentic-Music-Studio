@@ -471,3 +471,10 @@ MF-P02/P05/P10/P15/P16/P17/P18/P21。用户明确批准后普通detach/readwrite
 P1 supporting；MF-P15/P16/P17/P18/P21。AST清点127Python文件，未发现完全相同body；人工区分真实产物读文件与源码断言，不按mock/read_text判坏。删6项门禁自登记/命令别名/旧README位置测试及1过时UI文案断言，S7保留完整门但去除重复子集与重复build；Compose测试显式空env。
 
 root before38pass/2fail8.81s，after34pass7.91s；进程总计9.852→8.819s，单对测量且最慢保留测试波动0.69s，不宣称稳定提速。Ruff/bash/diff通过，一次独立审查无阻塞；未重跑无关全suite/旧端到端。实际PG schema与代码证明SQL约束/索引/幂等已在用，优先补v2消费者、恢复/Undo和测量，不引入Java/Rust重写。新古典轨隔离/持久新琴Undo/审美仍是待验目标。[报告](evidence/2026-10-19-test-structure-architecture.md)。
+
+
+## 2026-10-19 P1-A2.2 生产动态导出
+
+MF-P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20/P21。显式有限export请求接同一Parent Graph，不创建AI Run；plan/Revision/hash/实际轨道固定，MP3/stem可选，Run/Job/Outbox/Worker/receipt/下载/API/UI双读。0022/0023迁移保留旧数据语义并拒绝不兼容降级，sourceJob最终元数据独立、实体音频复用、配额按storage_key去重。真实自制2秒单轨master-only/单stem共5Jobs2Bundles、8/9文件全校验，实际持久Outbox→生产Publisher、重开应用checkpoint、重复事件通过；不是Redis/Celery/Compose或钢琴音乐v2验收。
+
+独立审查两类Important经RED→GREEN关闭：请求/事件已收到但遗漏下游pending节点，及metadata身份变更导致物理音频重复计额。唯一合并复核21passed无阻塞；作者相关组合107passed/4.20s、更新配额fixture1passed、Web4、Mypy116/Ruff/TS/audio宿主build通过。未重复长压力。自有PG为连续B保留，共享VM/旧服务不动；只删除本任务可重建启动器/空log、partial0，Guide无diff，无付费/大包/新语言/公共push。[证据](evidence/2026-10-19-p1-a22-production.md)、[审查](evidence/2026-10-19-p1-a22-review.md)。

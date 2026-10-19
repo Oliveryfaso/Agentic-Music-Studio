@@ -47,7 +47,8 @@ from motif_forge.audio.transcode import (
     transcode_master_to_mp3,
 )
 from motif_forge.config import Settings
-from motif_forge.domain.exporting import AudioExportRef, ExportBundleRequest
+from motif_forge.domain.export_plan import verify_export_plan_revision
+from motif_forge.domain.exporting import AudioExportRef, ExportBundleRequest, ExportBundleRequestV2
 from motif_forge.domain.media_jobs import (
     ArtifactAvailability,
     ArtifactLifecycle,
@@ -57,7 +58,10 @@ from motif_forge.domain.media_jobs import (
     CandidatePreviewJobPayload,
     CanonicalRenderJobPayload,
     ExportBundleArtifact,
+    ExportBundleArtifactV2,
+    ExportBundleArtifactValue,
     ExportBundleJobPayload,
+    ExportBundleJobPayloadV2,
     ExportMp3JobPayload,
     FeatureArtifact,
     FeatureProfile,
@@ -186,15 +190,13 @@ async def _await_work_or_cancellation(
     return await task
 
 
-def _cleanup_cancelled_output(
-    media_result: object, *, artifact_root: Path
-) -> None:
+def _cleanup_cancelled_output(media_result: object, *, artifact_root: Path) -> None:
     key: str | None = None
     created_new = False
     if isinstance(media_result, (CanonicalRenderResult, Mp3TranscodeResult)):
         key = media_result.storage_key
         created_new = media_result.created_new
-    elif isinstance(media_result, tuple) and isinstance(media_result[1], ExportBundleArtifact):
+    elif isinstance(media_result, tuple) and isinstance(media_result[1], ExportBundleArtifactValue):
         key = media_result[1].storage_prefix
         created_new = media_result[1].created_new
     elif isinstance(media_result, tuple) and isinstance(media_result[1], Mp3TranscodeResult):
@@ -230,11 +232,11 @@ async def _apply_worker_event_fail_closed(
             _cleanup_cancelled_output(media_result, artifact_root=artifact_root)
             raise
         if current.status is JobStatus.SUCCEEDED:
-            persisted: AudioArtifact | FeatureArtifact | ExportBundleArtifact | None = None
+            persisted: AudioArtifact | FeatureArtifact | ExportBundleArtifactValue | None = None
             artifact = event.artifact
             if current.result_artifact_id is not None and artifact is not None:
                 async with uow() as transaction:
-                    if isinstance(artifact, ExportBundleArtifact):
+                    if isinstance(artifact, ExportBundleArtifactValue):
                         persisted = await transaction.get_export_bundle_artifact(
                             current.result_artifact_id
                         )
@@ -243,9 +245,7 @@ async def _apply_worker_event_fail_closed(
                             current.result_artifact_id
                         )
                     else:
-                        persisted = await transaction.get_audio_artifact(
-                            current.result_artifact_id
-                        )
+                        persisted = await transaction.get_audio_artifact(current.result_artifact_id)
             if _same_authoritative_artifact(persisted, artifact):
                 return WorkerEventResult(
                     run_id=current.run_id,
@@ -296,8 +296,8 @@ def _same_authoritative_artifact(persisted: object, candidate: object) -> bool:
             and persisted.storage_key == candidate.storage_key
             and persisted.feature_profile == candidate.feature_profile
         )
-    if isinstance(persisted, ExportBundleArtifact) and isinstance(
-        candidate, ExportBundleArtifact
+    if isinstance(persisted, ExportBundleArtifactValue) and isinstance(
+        candidate, ExportBundleArtifactValue
     ):
         return (
             persisted.artifact_id == candidate.artifact_id
@@ -308,6 +308,14 @@ def _same_authoritative_artifact(persisted: object, candidate: object) -> bool:
             and persisted.arrangement_hash == candidate.arrangement_hash
             and persisted.storage_prefix == candidate.storage_prefix
             and persisted.input_artifact_ids == candidate.input_artifact_ids
+            and persisted.schema_version == candidate.schema_version
+            and (
+                not isinstance(candidate, ExportBundleArtifactV2)
+                or (
+                    isinstance(persisted, ExportBundleArtifactV2)
+                    and persisted.plan_hash == candidate.plan_hash
+                )
+            )
         )
     return False
 
@@ -357,7 +365,9 @@ async def execute_media_job(
                 | CanonicalRenderResult
                 | Mp3TranscodeResult
                 | tuple[CandidatePreviewJobPayload, Mp3TranscodeResult]
-                | tuple[ExportBundleJobPayload, ExportBundleArtifact]
+                | tuple[
+                    ExportBundleJobPayload | ExportBundleJobPayloadV2, ExportBundleArtifactValue
+                ]
             )
             source: AudioArtifact | None = None
             if claimed.job_type not in {
@@ -370,9 +380,7 @@ async def execute_media_job(
             if claimed.job_type is MediaJobType.RENDER_PREVIEW:
                 cancel_event = threading.Event()
                 media_result = await _await_work_or_cancellation(
-                    _execute_candidate_preview(
-                        claimed, uow, settings, cancel_event=cancel_event
-                    ),
+                    _execute_candidate_preview(claimed, uow, settings, cancel_event=cancel_event),
                     job_id=claimed.job_id,
                     uow=uow,
                     on_cancel=cancel_event.set,
@@ -398,9 +406,7 @@ async def execute_media_job(
                 assert source is not None
                 cancel_event = threading.Event()
                 media_result = await _await_work_or_cancellation(
-                    _execute_export_transcode(
-                        claimed, source, settings, cancel_event=cancel_event
-                    ),
+                    _execute_export_transcode(claimed, source, settings, cancel_event=cancel_event),
                     job_id=claimed.job_id,
                     uow=uow,
                     on_cancel=cancel_event.set,
@@ -593,7 +599,7 @@ async def execute_media_job(
         if claimed.job_type is MediaJobType.EXPORT_BUNDLE:
             assert isinstance(media_result, tuple)
             _, bundle_artifact = media_result
-            assert isinstance(bundle_artifact, ExportBundleArtifact)
+            assert isinstance(bundle_artifact, ExportBundleArtifactValue)
             event = WorkerEvent(
                 event_id=(
                     f"job:{claimed.job_id}:attempt:{claimed.attempts}:completed:"
@@ -1105,8 +1111,19 @@ def _parse_export_mp3_payload(job: MediaJob) -> ExportMp3JobPayload:
     return ExportMp3JobPayload.model_validate_json(json.dumps(job.input_payload), strict=True)
 
 
-def _parse_export_bundle_payload(job: MediaJob) -> ExportBundleJobPayload:
-    return ExportBundleJobPayload.model_validate_json(json.dumps(job.input_payload), strict=True)
+def _parse_export_bundle_payload(
+    job: MediaJob,
+) -> ExportBundleJobPayload | ExportBundleJobPayloadV2:
+    version = job.input_payload.get("schema_version", "export-bundle-job.v1")
+    if version == "export-bundle-job.v1":
+        return ExportBundleJobPayload.model_validate_json(
+            json.dumps(job.input_payload), strict=True
+        )
+    if version == "export-bundle-job.v2":
+        return ExportBundleJobPayloadV2.model_validate_json(
+            json.dumps(job.input_payload), strict=True
+        )
+    raise ValueError("EXPORT_BUNDLE_VERSION_UNSUPPORTED")
 
 
 async def _execute_export_bundle(
@@ -1115,7 +1132,7 @@ async def _execute_export_bundle(
     settings: Settings,
     *,
     cancel_event: threading.Event | None = None,
-) -> tuple[ExportBundleJobPayload, ExportBundleArtifact]:
+) -> tuple[ExportBundleJobPayload | ExportBundleJobPayloadV2, ExportBundleArtifactValue]:
     payload = _parse_export_bundle_payload(job)
     if (
         payload.project_id != job.project_id
@@ -1144,13 +1161,9 @@ async def _execute_export_bundle(
             ):
                 raise ExportTranscodeError("EXPORT_BUNDLE_INPUT_UNAVAILABLE")
             resolved.append((item, audio_artifact))
-    request = ExportBundleRequest(
-        project_id=job.project_id,
-        revision_id=payload.revision_id,
-        seed=payload.seed,
-        arrangement=revision.arrangement_ir,
-        arrangement_hash=payload.arrangement_hash,
-        audio_exports=tuple(
+    request_values: dict[str, object] = {
+        "arrangement": revision.arrangement_ir,
+        "audio_exports": tuple(
             AudioExportRef(
                 artifact_id=artifact.artifact_id,
                 quality_profile=artifact.quality_profile,
@@ -1161,31 +1174,58 @@ async def _execute_export_bundle(
             )
             for item, artifact in resolved
         ),
-        engine_version=payload.engine_version,
-        trace_refs=payload.trace_refs,
-    )
+        "trace_refs": payload.trace_refs,
+    }
+    request: ExportBundleRequest | ExportBundleRequestV2
+    if isinstance(payload, ExportBundleJobPayloadV2):
+        verify_export_plan_revision(payload.plan, revision)
+        for item, artifact in resolved:
+            stem = item.filename.startswith("stem-")
+            track_ids = (UUID(item.filename[5:-4]),) if stem else ()
+            if (
+                artifact.render_scope is not (RenderScope.STEM if stem else RenderScope.MASTER)
+                or artifact.render_track_ids != track_ids
+            ):
+                raise ExportTranscodeError("EXPORT_BUNDLE_INPUT_LINEAGE_INVALID")
+        request_values.update(plan=payload.plan, plan_hash=payload.plan_hash)
+        request = ExportBundleRequestV2.model_validate(request_values, strict=True)
+    else:
+        request_values.update(
+            project_id=job.project_id,
+            revision_id=payload.revision_id,
+            seed=payload.seed,
+            arrangement_hash=payload.arrangement_hash,
+            engine_version=payload.engine_version,
+        )
+        request = ExportBundleRequest.model_validate(request_values, strict=True)
     result = await asyncio.to_thread(
         write_export_bundle,
         artifact_root=settings.artifact_root,
         request=request,
         cancel_event=cancel_event,
     )
-    bundle_artifact = ExportBundleArtifact(
-        artifact_id=uuid4(),
-        project_id=job.project_id,
-        source_job_id=job.job_id,
-        revision_id=payload.revision_id,
-        content_hash=result.manifest_sha256,
-        byte_size=result.total_bytes,
-        storage_prefix=result.storage_prefix,
-        file_count=result.file_count,
-        arrangement_hash=payload.arrangement_hash,
-        engine_version=payload.engine_version,
-        seed=payload.seed,
-        input_artifact_ids=tuple(item.artifact_id for item in payload.audio_inputs),
-        created_new=result.created_new,
-        created_at=datetime.now(UTC),
-    )
+    receipt_values: dict[str, object] = {
+        "artifact_id": uuid4(),
+        "project_id": job.project_id,
+        "source_job_id": job.job_id,
+        "revision_id": payload.revision_id,
+        "content_hash": result.manifest_sha256,
+        "byte_size": result.total_bytes,
+        "storage_prefix": result.storage_prefix,
+        "file_count": result.file_count,
+        "arrangement_hash": payload.arrangement_hash,
+        "engine_version": payload.engine_version,
+        "seed": payload.seed,
+        "input_artifact_ids": tuple(item.artifact_id for item in payload.audio_inputs),
+        "created_new": result.created_new,
+        "created_at": datetime.now(UTC),
+    }
+    bundle_artifact: ExportBundleArtifactValue
+    if isinstance(payload, ExportBundleJobPayloadV2):
+        receipt_values.update(plan=payload.plan, plan_hash=payload.plan_hash)
+        bundle_artifact = ExportBundleArtifactV2.model_validate(receipt_values, strict=True)
+    else:
+        bundle_artifact = ExportBundleArtifact.model_validate(receipt_values, strict=True)
     return payload, bundle_artifact
 
 
@@ -1312,9 +1352,7 @@ async def _execute_candidate_preview(
     return payload, mp3
 
 
-def _discard_candidate_preview_output(
-    result: Mp3TranscodeResult, *, artifact_root: Path
-) -> None:
+def _discard_candidate_preview_output(result: Mp3TranscodeResult, *, artifact_root: Path) -> None:
     if not result.created_new:
         return
     root = artifact_root.resolve()

@@ -336,7 +336,21 @@ class ApprovalRow(Base):
 
 class MediaRunRow(Base):
     __tablename__ = "runs"
-    __table_args__ = (Index("ix_runs_project_status", "project_id", "status"),)
+    __table_args__ = (
+        Index("ix_runs_project_status", "project_id", "status"),
+        CheckConstraint(
+            """((schema_version = 'media-run.v1'
+ AND run_type NOT IN ('complete_song_export.v2','parent.export.v1')
+ AND export_plan IS NULL AND plan_hash IS NULL) OR
+ (schema_version = 'media-run.v2'
+ AND run_type IN ('complete_song_export.v2','parent.export.v1')
+ AND export_plan IS NOT NULL AND plan_hash IS NOT NULL
+ AND plan_hash ~ '^[0-9a-f]{64}$'
+ AND export_plan->>'schema_version' = 'export-plan.v2'
+ AND export_plan->>'project_id' = project_id::text)) IS TRUE""",
+            name="run_versioned_export_plan",
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
     project_id: Mapped[UUID] = mapped_column(
@@ -349,6 +363,11 @@ class MediaRunRow(Base):
     schema_version: Mapped[str] = mapped_column(String(40), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    export_plan: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    plan_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class MediaJobRow(Base):
@@ -791,7 +810,16 @@ class AudioArtifactRow(Base):
             "content_hash",
             "quality_profile",
             unique=True,
-            postgresql_where=text("candidate_snapshot_id IS NULL"),
+            postgresql_where=text("candidate_snapshot_id IS NULL AND revision_id IS NULL"),
+        ),
+        Index(
+            "uq_artifacts_final_job_content",
+            "project_id",
+            "source_job_id",
+            "content_hash",
+            "quality_profile",
+            unique=True,
+            postgresql_where=text("candidate_snapshot_id IS NULL AND revision_id IS NOT NULL"),
         ),
         Index(
             "uq_artifacts_candidate_job_content",
@@ -857,8 +885,38 @@ class AudioArtifactRow(Base):
 class ExportBundleArtifactRow(Base):
     __tablename__ = "export_bundle_artifacts"
     __table_args__ = (
-        UniqueConstraint("project_id", "revision_id", name="uq_export_bundles_project_revision"),
+        Index(
+            "uq_export_bundles_legacy_revision",
+            "project_id",
+            "revision_id",
+            unique=True,
+            postgresql_where=text("plan_hash IS NULL"),
+        ),
+        Index(
+            "uq_export_bundles_revision_plan",
+            "project_id",
+            "revision_id",
+            "plan_hash",
+            unique=True,
+            postgresql_where=text("plan_hash IS NOT NULL"),
+        ),
         Index("ix_export_bundles_project_created", "project_id", "created_at"),
+        CheckConstraint(
+            """(
+ (schema_version = 'export-bundle-artifact.v1'
+  AND export_plan IS NULL AND plan_hash IS NULL)
+ OR
+ (schema_version = 'export-bundle-artifact.v2'
+  AND export_plan IS NOT NULL AND plan_hash IS NOT NULL
+  AND plan_hash ~ '^[0-9a-f]{64}$'
+  AND export_plan->>'schema_version' = 'export-plan.v2'
+  AND export_plan->>'project_id' = project_id::text
+  AND export_plan->>'revision_id' = revision_id::text
+  AND export_plan->>'arrangement_hash' = arrangement_hash
+  AND file_count >= 8)
+) IS TRUE""",
+            name="export_bundle_versioned_plan",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
@@ -883,6 +941,11 @@ class ExportBundleArtifactRow(Base):
     availability: Mapped[str] = mapped_column(String(24), nullable=False)
     schema_version: Mapped[str] = mapped_column(String(48), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    export_plan: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    plan_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class FeatureArtifactRow(Base):
