@@ -2,7 +2,7 @@
 
 > 产品工作名：**Motif Forge**（音乐动机锻造台）
 > 文档状态：**架构基线已批准，详细合同已拆分**
-> 当前阶段（2026-10-19）：**P1-A2.2 与 B/C2/D/E 单钢琴生产纵切已验收**。真实钢琴可显式试听审批、保存/重开、导出与精确父版本 Undo；旧声音与四个 legacy StylePack 保留。当前限一条钢琴轨与审核小包，踏板/release-trigger 不支持；MF-P09 默认古典/爵士入口调整仍是单独 UI Task，不把本轮当作整个 P1 或 P2–P5 完成。最新事实见 `IMPLEMENTATION_STATUS.md` 与 `docs/evidence/2026-10-19-p1-piano-production.md`。
+> 当前阶段（2026-10-19）：**P1-A2.2 与 B/C2/D/E 单钢琴生产纵切已验收**。真实钢琴可显式试听审批、保存/重开、导出与精确父版本 Undo；旧声音与四个 legacy StylePack 保留。当前限一条钢琴轨与审核小包，踏板/release-trigger 不支持；MF-P09 默认古典/爵士入口整理亦已验收（新建两项、默认古典，legacy 兼容），不把本轮当作整个 P1 或 P2–P5 完成。最新事实见 `IMPLEMENTATION_STATUS.md`、`docs/evidence/2026-10-19-p1-piano-production.md` 与 `docs/evidence/2026-10-19-mf-p09-entry.md`。
 
 ---
 
@@ -84,7 +84,7 @@
 - 纯器乐，不生成歌词、人声，不做声音克隆。
 - 首版必须完成从 Brief 到完整成曲的闭环，而不是只生成短片段：支持 1–5 分钟、最多 12 条轨道、具有开端—发展—收束的完整结构，每次最多 2 个完整候选。
 - 固定全局 BPM；先支持 4/4，可再加入 3/4。
-- 新产品默认创作主线为古典与爵士；`Synth Ambient`、`Minimal Electronic` 保留 legacy 读写/回放/导出兼容。新建入口过滤是待实施 UI Task，当前四个 StylePack ID 不删除。
+- 新产品默认创作主线为古典与爵士；`Synth Ambient`、`Minimal Electronic` 保留 legacy 读写/回放/导出兼容。新建入口已按 P1-MF-P09 过滤为古典/爵士，默认古典；当前四个 StylePack ID 不删除。
 - 一个明确的推理模型：DeepSeek V4 Flash；保留 Provider 接口，但不把“支持多模型”当首版目标。
 - 支持导入 WAV、MP3、FLAC；单个混音文件作为一条 Audio Track，多文件 Stem 可分别导入多轨。首版不自动做 stem separation。
 - v1 音色仍保留原占位合成器/click；显式批准的 v2 单钢琴使用已审核的小型 CC0 音源（约4.3 MiB原归档），未来按证据扩充。原 0.5–1 GiB Lite 是历史容量目标，未等同已内置资源。所有新包必须有具体版本、许可、文件哈希与资源证据。
@@ -1408,7 +1408,7 @@ Upload、Candidate fan-out 试听、Render、Time-stretch 和 Export 之前运�
 
 1. **产品名**：`Motif Forge`；仓库目录继续使用稳定的 `agentic-music-workbench`。
 2. **首版生成内核与音色**：Tone.js 合成器 + 常见 Core Sound Palette + 审核过的 one-shot/sample + MIDI/SoundFont；支持 AI 生成/修改 SynthPatch、旋律、伴奏和检索许可音色。
-3. **当前风格方针（替代原四包新增主线）**：古典/爵士优先；四个历史 Pack 和电子风格旧作品保持兼容，默认新建入口调整按 P1 UI Task 实施。
+3. **当前风格方针（替代原四包新增主线）**：古典/爵士优先；四个历史 Pack 和电子风格旧作品保持兼容，默认新建入口已按 P1-MF-P09 UI Task 实施；不等于新音源或音乐质量升级。
 4. **首版必须完整产出**：支持 1–5 分钟、最多 12 轨、两个完整候选，导出 Master WAV/MP3、Stems、MIDI、项目与 manifests。
 5. **基础模型**：DeepSeek V4 Flash 官方 API；简单节点用 non-thinking，复杂规划/批评用 thinking + high。
 6. **完整本地演示架构**：Docker Compose + FastAPI + PostgreSQL + Redis + 独立 Worker + Artifact Store。

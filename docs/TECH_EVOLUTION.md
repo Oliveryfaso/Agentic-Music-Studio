@@ -484,3 +484,12 @@ MF-P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20/P21。显式有限export请�
 MF-P01/P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20/P21。IR/profile/performance、共享Graph/Job v2与Plan/Bundle v3双读，0024/0025版本约束；同一Parent人工作业试听/精确hash审批、保存/重开、canonical导出与受限父版本Undo。自制30秒谱与必要Studio界面，旧声音不改。真实PG/Chromium8Jobs3Bundles/5短渲染、所有下载SHA、Undo1LSB/尾2秒0；live UI新建/刷新/取消/播放/窄屏通过，缺包真失败且无fallback，模型0。
 
 一次独立审查的重试旧key卡死、固定piano下无效换音色两项Important，经一次作者RED→GREEN修复；最终Python635/Web92/Audio59/Mypy121/Ruff与build通过，无二次独立复审。已清理自身PG/凭据/probe，保留音源许可与accepted文件，共享服务未动。不是整个P1/MF-P09、踏板、主观听感、生产RSS或Compose/断电验收；用户库未迁移、未常驻应用/推送发布。[证据](evidence/2026-10-19-p1-piano-production.md)、[原始审查](evidence/2026-10-19-p1-piano-review.md)。
+
+
+## 2026-10-19 — P1-MF-P09 古典/爵士新建入口
+
+MF-P09；关联MF-P10/P13/P15/P16/P18/P21。沿ADR-019/P1 Task D.4，BriefForm本地两选项/默认古典，Home与高级乐器示例同步；产品限3文件，修改2个现有行为测试。共享Schema/API/四StylePack/旧消费者/声音不改，未增加依赖、持久字段或渲染行为。
+
+RED3→focused21/Web93，原四风格domain/Eval与render19、tsc/Vitebuild、diff通过；一次独立审查无findings，另行UI25/风格渲染14/tsc通过，无作者修复回合。built UI隔离Chromium/API fixtures验证两种实际body及原预算、旧v1打开/既有MP3播放/七步导出/WAV下载bytes+SHA、390px无溢出；503为主动fixture拒绝，非live后台生成。模型0/新渲染0，无PG/队列/共享服务/Docker操作，不重复上一门音乐长链。
+
+冻结accepted音源/音频/许可、当前webdist、依赖/锁文件与共享资源；本轮浏览器JSON/两截图314,668logicalbytes前后相同，回收0，无过期大型输出。自己的ignored计划workspace在审查/完成日志归档后清理；probe finally关闭浏览器/server且exit0。Guide从a44bbf3/clean开始，仅同步原批准入口的当前实施事实，不改架构合同。Brief未自动升级真实钢琴/IRv2，无音质达标、用户库迁移、常驻应用/公开push或P2+声明。[报告](evidence/2026-10-19-mf-p09-entry.md)、[原始审查](evidence/2026-10-19-mf-p09-review.md)、[浏览器](evidence/2026-10-19-mf-p09-browser.json)、[存储](evidence/2026-10-19-mf-p09-storage.json)。

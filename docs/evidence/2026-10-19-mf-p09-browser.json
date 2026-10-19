@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "builtUi": true,
+  "apiFixtures": true,
+  "actualBackendOrProvider": false,
+  "modelCalls": 0,
+  "newRenders": 0,
+  "focusedChoices": [
+    "classical_chamber",
+    "jazz_harmony_improvisation"
+  ],
+  "default": "classical_chamber",
+  "submittedStyles": [
+    "classical_chamber",
+    "jazz_harmony_improvisation"
+  ],
+  "mobileNoHorizontalOverflow": true,
+  "legacyV1Opened": true,
+  "legacyAcceptedMp3Decoded": true,
+  "legacyExportSevenSteps": true,
+  "legacyAcceptedWavDownloadedAndShaVerified": true,
+  "pageErrors": [],
+  "screenshots": [
+    "/Users/oliver/Documents/Codex/2026-10-18/task-2/research/output/playwright/mf-p09/focused-brief-desktop.png",
+    "/Users/oliver/Documents/Codex/2026-10-18/task-2/research/output/playwright/mf-p09/focused-brief-mobile.png"
+  ]
+}

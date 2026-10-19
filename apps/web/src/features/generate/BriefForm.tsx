@@ -4,11 +4,11 @@ import type { CreateAIRunInput } from "../../shared/openapi";
 import { AdvancedBriefFields, type AdvancedBriefValues } from "./AdvancedBriefFields";
 
 type Brief = NonNullable<CreateAIRunInput["brief"]>;
-type StyleId = "synth_ambient" | "minimal_electronic" | "classical_chamber" | "jazz_harmony_improvisation";
+type NewCompositionStyle = "classical_chamber" | "jazz_harmony_improvisation";
 
 export function BriefForm({ disabled, onSubmit }: { disabled: boolean; onSubmit: (brief: Brief) => void }) {
   const [title, setTitle] = useState("");
-  const [style, setStyle] = useState<StyleId>("synth_ambient");
+  const [style, setStyle] = useState<NewCompositionStyle>("classical_chamber");
   const [purpose, setPurpose] = useState("");
   const [duration, setDuration] = useState("90");
   const [meter, setMeter] = useState<"4/4" | "3/4">("4/4");
@@ -77,9 +77,7 @@ export function BriefForm({ disabled, onSubmit }: { disabled: boolean; onSubmit:
       <div className="form-section-heading"><span className="step-number">01</span><div><h2>从音乐的方向开始</h2><p>不需要专业术语。场景、情绪和一个大致的时长，就足够开始。</p></div></div>
       <div className="brief-grid">
         <Field label="作品标题"><input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} placeholder="给这次编曲起一个名字" /></Field>
-        <Field label="音乐策略"><select value={style} onChange={(event) => setStyle(event.target.value as StyleId)}>
-          <option value="synth_ambient">Synth Ambient</option>
-          <option value="minimal_electronic">Minimal Electronic</option>
+        <Field label="音乐策略"><select value={style} onChange={(event) => setStyle(event.target.value as NewCompositionStyle)}>
           <option value="classical_chamber">Classical Chamber</option>
           <option value="jazz_harmony_improvisation">Jazz Harmony &amp; Improvisation</option>
         </select></Field>
@@ -88,7 +86,7 @@ export function BriefForm({ disabled, onSubmit }: { disabled: boolean; onSubmit:
         <Field label="目标时长（秒）"><input type="number" min="60" max="300" value={duration} onChange={(event) => setDuration(event.target.value)} /></Field>
       </div>
       <p className="form-note" id="moods-hint">情绪可填 1–6 个，用逗号分开。时长支持 60–300 秒；目前仅支持纯器乐。</p>
-      <p className="style-description"><strong>{({ synth_ambient: "氛围合成", minimal_electronic: "极简电子", classical_chamber: "古典室内乐", jazz_harmony_improvisation: "爵士和声" })[style]}</strong>{({ synth_ambient: "舒展的音色与空间层次，适合影像、沉思与缓慢展开的场景。", minimal_electronic: "围绕脉冲、低频与重复动机，建立简洁而有推进感的律动。", classical_chamber: "关注曲式、声部与音域；使用轻量合成音色呈现，不模拟真实乐团。", jazz_harmony_improvisation: "围绕和弦色彩、声部配置与摇摆乐句，探索即兴感的器乐表达。" })[style]}</p>
+      <p className="style-description"><strong>{({ classical_chamber: "古典室内乐", jazz_harmony_improvisation: "爵士和声" })[style]}</strong>{({ classical_chamber: "关注曲式、声部与音域；使用轻量合成音色呈现，不模拟真实乐团。", jazz_harmony_improvisation: "围绕和弦色彩、声部配置与摇摆乐句，探索即兴感的器乐表达。" })[style]}</p>
       <AdvancedBriefFields
         values={{ meter, bpm, key, instruments, hardConstraints, softPreferences, negativeConstraints }}
         onChange={setAdvanced}

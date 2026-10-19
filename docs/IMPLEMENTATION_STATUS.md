@@ -18,13 +18,19 @@
 
 ## 2. 当前产品形态
 
-### 当前验收：P1 B/C2/D/E 单钢琴生产链（2026-10-19）
+### 当前验收：P1-MF-P09 古典/爵士新建入口（2026-10-19）
+
+MF-P09；关联 MF-P10/P13/P15/P16/P18/P21。新建编曲仅提供古典室内乐/爵士和声与即兴，默认古典；首页与乐器示例同步。过滤仅在新建表单，API/后端四 StylePack IDs 与旧 Plan/Candidate/Studio/Export、作品声音保留，不自动把 Brief 升级成真实钢琴或 IR v2。
+
+作者 RED3→目标21/Web93、既有四风格/Eval/渲染19、tsc/Vite build 通过；独立审查无 findings，另跑 UI25/风格渲染14/tsc/diff。built UI + 隔离接口样例浏览器验证两种实际 POST、原预算、旧 v1 播放/七步导出/原 WAV 下载校验与390px布局。未运行真实后台/PG/模型/新渲染，不重复上阶段钢琴长链，未作音乐质量声明。自有 browser/server 已关闭；保留314,668 bytes浏览器证据，无共享资源清理，P2–P5未启动。见[验收报告](evidence/2026-10-19-mf-p09-entry.md)。
+
+### 已验收：P1 B/C2/D/E 单钢琴生产链（2026-10-19）
 
 MF-P01/P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20/P21。自制30秒谱入口→同一Parent人工A/B→精确hash审批→v2保存/重开→canonical导出→受限Undo恢复v1，已在真实独立PG/Chromium和built UI/本地HTTP验证。IR/Graph/Job显式v2、Plan/Bundle显式v3；旧v1声音/aliases不改，0024/0025迁移guard保留。单琴/小包/单有效力度层；踏板与release-trigger不支持。
 
 实际8Jobs3Bundles/5次短渲染、所有文件下载SHA、错误审批409/重放/连接恢复；Undo max1LSB，last2s0。模型调用/该项目AI Run0。一次独立审查2Important经一次作者RED→GREEN修复，无剩余阻塞；Python635、Web92、Audio59、Mypy121、Ruff/两个build通过。自有PG/凭据已删、probe已停；accepted音频/CC0/manifest与证据保留，共享服务未动。[完整证据](evidence/2026-10-19-p1-piano-production.md)。
 
-这是有限钢琴生产纵切，未验主观音质、Redis/Celery/Compose重启或本轮RSS上限；未迁移用户库/常驻应用。MF-P09默认古典/爵士入口仍为下一单独UI Task，P2–P5未启动。以下子门按其验收当时事实保留，不覆盖本段最新状态。
+这是有限钢琴生产纵切，未验主观音质、Redis/Celery/Compose重启或本轮RSS上限；未迁移用户库/常驻应用。MF-P09后续入口整理已通过，见上段；P2–P5未启动。以下子门按其验收当时事实保留，不覆盖最新状态。
 
 ### 2.0 产品改造 P0 与 P1 准备（2026-10-19）
 

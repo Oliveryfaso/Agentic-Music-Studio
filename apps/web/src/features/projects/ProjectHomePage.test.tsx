@@ -56,6 +56,8 @@ describe("Project Home", () => {
 
     releaseInitial?.(jsonResponse({ data: [] }));
     expect(await screen.findByText("还没有作品")).toBeInTheDocument();
+    expect(screen.getByText("古典与爵士")).toBeInTheDocument();
+    expect(screen.queryByText("4 种音乐风格")).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("作品名称"), {
       target: { value: "Orbital Glass" },

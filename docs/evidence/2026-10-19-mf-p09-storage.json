@@ -1,0 +1,56 @@
+{
+  "stage": "P1-MF-P09",
+  "scope": "own presentation-gate output only",
+  "keep": [
+    "MF-P09 browser JSON and two screenshots",
+    "current validated web dist",
+    "accepted piano packs/audio/licenses and production evidence",
+    "shared Colima, historical services and all database volumes",
+    "lockfiles and dependencies"
+  ],
+  "before": {
+    "files": [
+      {
+        "path": "output/playwright/mf-p09/browser.json",
+        "bytes": 805
+      },
+      {
+        "path": "output/playwright/mf-p09/focused-brief-desktop.png",
+        "bytes": 166085
+      },
+      {
+        "path": "output/playwright/mf-p09/focused-brief-mobile.png",
+        "bytes": 147778
+      }
+    ],
+    "logicalBytes": 314668
+  },
+  "after": {
+    "files": [
+      {
+        "path": "output/playwright/mf-p09/browser.json",
+        "bytes": 805
+      },
+      {
+        "path": "output/playwright/mf-p09/focused-brief-desktop.png",
+        "bytes": 166085
+      },
+      {
+        "path": "output/playwright/mf-p09/focused-brief-mobile.png",
+        "bytes": 147778
+      }
+    ],
+    "logicalBytes": 314668
+  },
+  "reclaimedBytes": 0,
+  "reason": "No obsolete audio, database, Docker build/cache or model output was created by this UI task. Keep accepted browser evidence; only the own ignored plan scratch will be removed after archiving.",
+  "runtime": {
+    "probeExitCode": 0,
+    "browserAndLoopbackServerClosedByFinally": true,
+    "postgresStarted": false,
+    "modelCalls": 0,
+    "newRenders": 0,
+    "dockerOrSharedServiceMutation": false
+  },
+  "validation": "Previously accepted v1 MP3 played and WAV downloaded/size+SHA verified by the same completed built-UI probe."
+}

@@ -47,7 +47,7 @@ export function ProjectHomePage() {
           <p className="eyebrow">YOUR IDEAS. YOUR MUSIC.</p>
           <h1 id="project-home-title">把脑海里的声音，<br /><span>变成你的作品。</span></h1>
           <p>说出音乐的用途与情绪，让 Agent 帮你规划、编曲。试听两个方向，在 Studio 里继续打磨——每一步，都由你决定。</p>
-          <div className="home-capabilities"><span>4 种音乐风格</span><span>可编辑多轨</span><span>可追溯的 Agent 协作</span></div>
+          <div className="home-capabilities"><span>古典与爵士</span><span>可编辑多轨</span><span>可追溯的 Agent 协作</span></div>
         </div>
         <MotifScore />
       </div>

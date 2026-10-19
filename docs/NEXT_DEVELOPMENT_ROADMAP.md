@@ -3,20 +3,20 @@
 > **For agentic workers:** 实施本路线中的具体纵切前，必须先为该纵切建立 `docs/superpowers/plans/YYYY-MM-DD-<slice>.md`，再使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 逐项执行。
 > 状态：已批准的主路线；S2 Task 6 起采用 ADR-016 作品集工程模式
 > 起点：受控 Upload → Import → 分析 HITL → 保持音高对齐 → Web Preview 已完成
-> 执行断点（2026-10-19）：G0 与 S1–S7 为已完成历史门。用户已授权古典/爵士产品改造，当前已完成 **P0、P1-A1、包合同准备及A2.1内部导出子门**（ADR-019），不是重新打开S7。C1真实钢琴内部边界已验、隔离PG资源已解阻；用户要求的测试精简/技术栈审计已完成，A2.2及B/C2/D/E有限钢琴生产链已通过，下一独立UI Task为MF-P09默认古典/爵士入口；不自动推进P2–P5，见最新证据。
+> 执行断点（2026-10-19）：G0 与 S1–S7 为已完成历史门。用户已授权古典/爵士产品改造，当前已完成 **P0、P1-A1、包合同准备及A2.1内部导出子门**（ADR-019），不是重新打开S7。C1真实钢琴内部边界已验、隔离PG资源已解阻；用户要求的测试精简/技术栈审计已完成，A2.2及B/C2/D/E有限钢琴生产链已通过，MF-P09默认古典/爵士入口亦已通过；不自动推进P2–P5，见最新证据。
 
 ## 当前产品改造入口（P0–P5）
 
 | 阶段 | 当前状态/依赖 | 交付与证据 |
 |---|---|---|
 | P0 | 本轮测量与计划同步；只读旧导出包，未启动 DB/UI | [实施账本](superpowers/plans/2026-10-19-p0-product-baseline.md)、[实测报告](evidence/2026-10-19-p0-baseline.md) |
-| P1 | A1/包合同/A2.1/C1内部真实钢琴已验；共享卷读写与解压/隔离PG门通过；A2.2生产动态导出已验；B/C2/D/E单钢琴生产/审批/持久Undo/UI已验；MF-P09入口过滤及更完整P1目标仍单列 | [最小钢琴计划](superpowers/plans/2026-10-19-p1-minimal-piano.md)：容量/共享 VM 边界→v1/v2 合同→小型 CC0 钢琴→表达/A-B/Undo |
+| P1 | A1/包合同/A2.1/C1内部真实钢琴已验；共享卷读写与解压/隔离PG门通过；A2.2生产动态导出已验；B/C2/D/E单钢琴生产/审批/持久Undo/UI已验；MF-P09两项新建入口/默认古典已验；更完整P1质量/资源目标仍单列 | [最小钢琴计划](superpowers/plans/2026-10-19-p1-minimal-piano.md)：容量/共享 VM 边界→v1/v2 合同→小型 CC0 钢琴→表达/A-B/Undo |
 | P2 | P1 后 | 少量合法经典谱、原谱保护、添加轨道与局部改编 |
 | P3 | P1/P2 可听基线后 | 有界结构/动机生成与爵士节奏组质量，真实模型验收另行预算 |
 | P4 | 测量从 P0 起；功能随证据进入 | 按需音源/渲染、缓存冻结、生命周期、Studio 性能 |
 | P5 | 质量/资源门通过后 | 室内乐和更完整管弦乐，基于实际编制决定轨数合同 |
 
-用户已续授权独立推进A2/B，不自动执行P2–P5。最新[C1证据](evidence/2026-10-19-p1-c1-real-piano.md)证明真实小包→catalog→共享adapter→WAV，不能替代生产IR/Job/API/UI。普通共享映像读写重挂、任务内7-Zip均已明确批准并执行；隔离PG真实2 passed，资源阻塞解除，自有容器/凭据已清理。最小测试精简/技术栈评估已通过[审计](evidence/2026-10-19-test-structure-architecture.md)，A2.2同一Parent/Worker/权威读模型/API/UI接线已通过[验收](evidence/2026-10-19-p1-a22-production.md)，B/C2/D/E音乐v2/审核小包/人工审批/导出/Undo与必要UI已通过[生产验收](evidence/2026-10-19-p1-piano-production.md)；下一独立Task是MF-P09入口过滤。电子风格默认入口调整仍未实施；旧IDs/作品/声音/导出保留。踏板/release-trigger仍unsupported，生产冷/热资源与审美质量另按证据推进。以下S1–S7数量为历史验收，不能当成当前任务。
+用户已续授权独立推进A2/B，不自动执行P2–P5。最新[C1证据](evidence/2026-10-19-p1-c1-real-piano.md)证明真实小包→catalog→共享adapter→WAV，不能替代生产IR/Job/API/UI。普通共享映像读写重挂、任务内7-Zip均已明确批准并执行；隔离PG真实2 passed，资源阻塞解除，自有容器/凭据已清理。最小测试精简/技术栈评估已通过[审计](evidence/2026-10-19-test-structure-architecture.md)，A2.2同一Parent/Worker/权威读模型/API/UI接线已通过[验收](evidence/2026-10-19-p1-a22-production.md)，B/C2/D/E音乐v2/审核小包/人工审批/导出/Undo与必要UI已通过[生产验收](evidence/2026-10-19-p1-piano-production.md)；MF-P09古典/爵士入口已通过[验收](evidence/2026-10-19-mf-p09-entry.md)。电子风格退出默认新建选择；旧IDs/作品/声音/导出保留，后台合同不禁用。踏板/release-trigger仍unsupported，生产冷/热资源与审美质量另按证据推进。以下S1–S7数量为历史验收，不能当成当前任务。
 
 **目标：** 从当前可靠的导入底座，按最短依赖路径完成“可生成、可听、可编辑、可恢复、可评测”的 Agentic Music Studio。
 
@@ -113,7 +113,7 @@ G0 不包含：重写 API、拆分所有大文件、Graph 代码合并、引入�
 | MF-P06 | 简单 AI 修改直接落地，旋律/曲风/曲式/大范围变化人工确认 | S6 | S6 | L0/L1 自动 Revision + Undo；L2/L3 Preview/HITL；实际影响只可升级 |
 | MF-P07 | 生成前审阅并调整结构、BPM、Key、配器和能量曲线 | S2 Graph、S3 UI | S3 | PlanApproval 是 checkpoint/interrupt，Fallback 也不能绕过 |
 | MF-P08 | 音乐史、美学、和声、古典、爵士知识 | S4 | S4/S5 | RAG 只注入来源明确的 StyleConstraints；硬音乐规则由 Theory Engine 执行 |
-| MF-P09 | 当前：古典/爵士新增主线；历史：四包同时交付 | 历史 S4；当前 P0/P1 | P1 UI / 后续质量门 | ADR-019 已获用户授权；legacy 四 ID、旧作品/声音和导出保留；P0 未改当前入口 |
+| MF-P09 | 当前：古典/爵士新增主线；历史：四包同时交付 | 历史 S4；当前 P0/P1 | P1 UI / 后续质量门 | ADR-019 已获用户授权；P1-MF-P09 新建两项/默认古典已验，legacy 四 ID、旧作品/声音和导出保留；后续音乐质量另验 |
 | MF-P10 | 内置常用音色，并支持 AI 生成/寻找音色和旋律 | S1 Seed Palette、S4 Catalog、S6 AI | S6/S7 | 本地许可审核 Catalog 优先；外部搜索需用户显式开启和许可确认 |
 | MF-P11 | 多轨、钢琴卷帘、混音、拖动、裁切、拆分、复制和尾音处理 | S6 | S6 | EQ、pitch、fade、reverb/delay tail 是不同参数；不冒充完整专业 DAW |
 | MF-P12 | 保持音高不变的 time-stretch | 已完成受限基线 | S3/S7 | 原始 Artifact 不覆盖；首版不承诺实时弹性音频、复杂 tempo map 或极端拉伸 |
