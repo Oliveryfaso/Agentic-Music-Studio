@@ -56,13 +56,19 @@ MF-P02/P05/P10/P15/P16/P17/P18/P21。新增instrument-pack.v1语法/资源/样�
 
 自制builtin click的短OfflineAudioContext实测确认升八度约2.03频率比、力度翻倍能量比4、独立重击和末尾释放；它不是钢琴录音或音质证据。音频TS48条、tsc/宿主构建通过；一次独立审查暴露的非零起点最短gate浮点问题及探针NaN/描述字段问题已RED→GREEN关闭。provider=0/0，无DB/UI/VM。
 
-FreePats KW small WAV具体归档4,551,289 bytes，已hash/列目录并隔离保留；26个WAV，包内CC0和SFZ尚未读取，bsdtar3.5.3不支持其过滤器。未放行真实音源、未安装7z。官方可选macOS7-Zip26.04归档1,861,928 bytes，只查元数据、未下载运行；需要单独允许新工具后才继续包内核查。见[证据与条件](evidence/2026-10-19-p1-piano-pack-contract.md)。A2完整导出/B持久v2/生产审核catalog/真实钢琴A-B仍待实施。
+FreePats KW small WAV归档4,551,289 bytes，26个WAV，已hash/列目录并隔离保留。此准备子门当时尚未读取包内CC0/SFZ；后续2.0.4已用现有bsdtar fast-read完成三文本核验，WAV仍因不支持过滤器阻塞。未放行真实音源、未安装7z。可选macOS7-Zip26.04归档1,861,928 bytes未下载运行，若用其解压WAV仍须明确工具批准；读取文本已不依赖新工具。原阶段[证据](evidence/2026-10-19-p1-piano-pack-contract.md)与最新[资源核查](evidence/2026-10-19-p1-source-storage-audit.md)分别保留。A2生产接线/B持久v2/审核catalog/真实钢琴A-B仍待实施。
 
 ### 2.0.3 P1-A2.1 动态导出内部合同（2026-10-19）
 
 MF-P02/P05/P06/P08/P10/P11/P15/P16/P17/P18/P21。新增export-plan.v2、cursor/job/request v2与显式双读helper，按真实轨道请求stem及可选MP3；writer内部v2按plan hash/规范输入集合绑定幂等。仅支持现有builtin NoteClip，拒绝未审核外部音源，未激活Graph/Worker/Outbox/API/UI，音乐IR/Revision仍为v1。
 
 自制PCM+已有FFmpeg真实文件边界为8/9/10逻辑文件，bytes/hash/重复复用/预设取消保留旧包通过；不是钢琴或canonical DSP验收。API unit561、Mypy5源、Ruff7文件通过，一次独立审查无新增Critical/Important；88合法/82错误cursor状态及v1七实体文件bytes对照通过。隔离PG未配置，真实集成2 skipped；迁移源码head=20260824_0021，未连接数据库。A2.2真实持久接线、B音乐v2双读/Undo/迁移与真实钢琴仍待验，7-Zip未批准未运行。见[证据](evidence/2026-10-19-p1-a2-contract.md)。
+
+### 2.0.4 P1 音源许可/SFZ文本与PG真实存储阻塞（2026-10-19）
+
+MF-P05/P10/P15/P16/P17/P18/P21。复用已隔离4,551,289-byte KW small包，系统bsdtar fast-read完整读取cc0/readme/SFZ（退出0、精确bytes和sha）。SFZ26 region覆盖MIDI21–108，12循环/14不循环、release0.6，未声明速度分层；只有文本验证，WAV仍因filter40202不可读，系统3.5.3和已有Conda3.7.7同样失败。没有兼容性manifest、真实钢琴渲染或音质验收；7-Zip未下载运行。
+
+用户终端也复现Colima EROFS，已确认_lima链接到UnityWorkspace；该APFS sparsebundle映像实际以只读附加/挂载，而底层KINGSTON可写，文件flags/归属和空间不是已见原因。纠正先前单一sandbox归因，为什么映像被只读附加仍未知。未重挂共享卷、改权限或再启动VM；A2.2/B仍等隔离PG，普通共享卷弹出/读写重挂方案等待明确确认。见[事实与证据](evidence/2026-10-19-p1-source-storage-audit.md)。
 
 ### 2.1 浅色工作台与产品表达升级（2026-09-24）
 

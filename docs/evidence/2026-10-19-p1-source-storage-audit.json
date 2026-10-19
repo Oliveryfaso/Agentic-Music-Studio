@@ -1,0 +1,305 @@
+{
+  "schemaVersion": "p1-source-and-storage-audit.v1",
+  "stage": "P1 supporting resource audit",
+  "requirements": [
+    "MF-P05",
+    "MF-P10",
+    "MF-P15",
+    "MF-P16",
+    "MF-P17",
+    "MF-P18",
+    "MF-P21"
+  ],
+  "baseCommit": "d312dbc923b6ef3eb57a5da65ad87686d9fa765b",
+  "sourceDownloadApproved": true,
+  "archiveReDownloaded": false,
+  "sevenZipDownloadedOrRun": false,
+  "productionCodeChanged": false,
+  "databaseConnections": 0,
+  "providerRequests": 0,
+  "providerTokens": 0,
+  "storage": {
+    "schemaVersion": "colima-storage-root-cause.v1",
+    "recordedAt": "2026-10-19T02:22:42.352708+00:00",
+    "paths": [
+      {
+        "path": "/Users/oliver/.colima",
+        "resolved": "/Users/oliver/.colima",
+        "symlink": false,
+        "linkTarget": null,
+        "mode": "drwxr-xr-x",
+        "flags": 0,
+        "uid": 501,
+        "gid": 20,
+        "readonlyFilesystem": false,
+        "freeAvailableBytes": 51385081856
+      },
+      {
+        "path": "/Users/oliver/.colima/_lima",
+        "resolved": "/Volumes/UnityWorkspace/ColimaVM/lima",
+        "symlink": true,
+        "linkTarget": "/Volumes/UnityWorkspace/ColimaVM/lima",
+        "mode": "lrwxr-xr-x",
+        "flags": 0,
+        "uid": 501,
+        "gid": 20,
+        "readonlyFilesystem": true,
+        "freeAvailableBytes": 44864217088
+      },
+      {
+        "path": "/Users/oliver/.colima/_lima/colima",
+        "resolved": "/Volumes/UnityWorkspace/ColimaVM/lima/colima",
+        "symlink": false,
+        "linkTarget": null,
+        "mode": "drwx------",
+        "flags": 0,
+        "uid": 501,
+        "gid": 20,
+        "readonlyFilesystem": true,
+        "freeAvailableBytes": 44864217088
+      },
+      {
+        "path": "/Users/oliver/.colima/_lima/colima/lima.yaml",
+        "resolved": "/Volumes/UnityWorkspace/ColimaVM/lima/colima/lima.yaml",
+        "symlink": false,
+        "linkTarget": null,
+        "mode": "-rw-r--r--",
+        "flags": 0,
+        "uid": 501,
+        "gid": 20,
+        "readonlyFilesystem": true,
+        "freeAvailableBytes": 44864217088
+      },
+      {
+        "path": "/Volumes/UnityWorkspace",
+        "resolved": "/Volumes/UnityWorkspace",
+        "symlink": false,
+        "linkTarget": null,
+        "mode": "drwxr-xr-x",
+        "flags": 0,
+        "uid": 501,
+        "gid": 20,
+        "readonlyFilesystem": true,
+        "freeAvailableBytes": 44864217088
+      },
+      {
+        "path": "/Volumes/KINGSTON/idea/.tools/UnityWorkspace.sparsebundle",
+        "resolved": "/Volumes/KINGSTON/idea/.tools/UnityWorkspace.sparsebundle",
+        "symlink": false,
+        "linkTarget": null,
+        "mode": "drwx------",
+        "flags": 0,
+        "uid": 501,
+        "gid": 20,
+        "readonlyFilesystem": false,
+        "freeAvailableBytes": 127637651456
+      }
+    ],
+    "mountLines": [
+      "/dev/disk4s1 on /Volumes/KINGSTON (exfat, local, nodev, nosuid, noowners, noatime, fskit)",
+      "/dev/disk6s1 on /Volumes/UnityWorkspace (apfs, local, nodev, nosuid, read-only, journaled, noowners, mounted by oliver)"
+    ],
+    "attachment": {
+      "image-path": "/Volumes/KINGSTON/idea/.tools/UnityWorkspace.sparsebundle",
+      "image-type": "sparse bundle disk image",
+      "writeable": false,
+      "image-encrypted": false,
+      "owner-uid": 501,
+      "system-entities": [
+        {
+          "content-hint": "GUID_partition_scheme",
+          "dev-entry": "/dev/disk5"
+        },
+        {
+          "content-hint": "C12A7328-F81F-11D2-BA4B-00A0C93EC93B",
+          "dev-entry": "/dev/disk5s1"
+        },
+        {
+          "content-hint": "7C3457EF-0000-11AA-AA11-00306543ECAC",
+          "dev-entry": "/dev/disk5s2"
+        },
+        {
+          "content-hint": "EF57347C-0000-11AA-AA11-00306543ECAC",
+          "dev-entry": "/dev/disk6"
+        },
+        {
+          "content-hint": "41504653-0000-11AA-AA11-00306543ECAC",
+          "dev-entry": "/dev/disk6s1",
+          "mount-point": "/Volumes/UnityWorkspace"
+        }
+      ]
+    },
+    "diskutil": [
+      {
+        "target": "/Volumes/UnityWorkspace",
+        "exit": 0,
+        "DeviceIdentifier": "disk6s1",
+        "VolumeName": "UnityWorkspace",
+        "MountPoint": "/Volumes/UnityWorkspace",
+        "FilesystemType": "apfs",
+        "Writable": false,
+        "APFSSnapshot": false,
+        "BusProtocol": "Disk Image",
+        "Internal": false
+      },
+      {
+        "target": "/Volumes/KINGSTON",
+        "exit": 0,
+        "DeviceIdentifier": "disk4s1",
+        "VolumeName": "KINGSTON",
+        "MountPoint": "/Volumes/KINGSTON",
+        "FilesystemType": "exfat",
+        "Writable": true,
+        "BusProtocol": "USB",
+        "Internal": false
+      }
+    ],
+    "visibleVolumeUsers": {
+      "exit": 1,
+      "pidAndCommandOnly": "",
+      "stderr": "",
+      "limitation": "No output is not proof of no possible external task dependence."
+    },
+    "colima": {
+      "name": "default",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 4,
+      "memory": 4294967296,
+      "disk": 16106127360,
+      "runtime": "docker"
+    },
+    "causeConfirmed": "Colima Lima state is on an APFS disk image attached and mounted read-only, while its ExFAT backing volume is writable.",
+    "whyImageWasAttachedReadOnly": "not established by this audit; do not infer corruption or intent",
+    "previousExplanationCorrected": "Not solely an agent sandbox denial; the host volume is actually read-only, explaining the same user-terminal error.",
+    "mutations": {
+      "mountChanged": false,
+      "permissionsChanged": false,
+      "vmStarted": false,
+      "dataDeleted": false,
+      "softwareDownloadedOrInstalled": false
+    }
+  },
+  "pianoTextAudit": {
+    "schemaVersion": "piano-sfz-text-audit.v1",
+    "archiveSha256": "ffb547fceb91eeb93d78cf8d220d1d5f726dcac891afc15e517805ac48abb39d",
+    "sourceVersion": "2019-07-03",
+    "licenseDeclaration": "CC0 1.0 Universal; package readme and included cc0.txt agree with official source page",
+    "licenseSha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+    "sfzSha256": "239b21ca2579bc0603f1fe667fe1cd0bc09e2eedcdfb6f353390a702009d9001",
+    "readmeSha256": "176d252d3192c4cb1576c88512f94e981f6208aedec65b9ec5174280c02dc534",
+    "selectedTextReadExitCodes": [
+      0,
+      0,
+      0
+    ],
+    "regionCount": 26,
+    "uniqueSamplePaths": 26,
+    "keyCoverage": [
+      21,
+      108
+    ],
+    "coverageGapOrOverlap": false,
+    "explicitVelocitySplitOpcodes": false,
+    "loopContinuousRegions": 12,
+    "noLoopRegions": 14,
+    "releaseSecondsDeclared": 0.6,
+    "opcodes": [
+      "ampeg_release",
+      "hikey",
+      "lokey",
+      "loop_end",
+      "loop_mode",
+      "loop_start",
+      "pitch_keycenter",
+      "sample"
+    ],
+    "waveBytesDecoded": 0,
+    "waveFormatFramesAndSampleHashesVerified": false,
+    "manifestAdmitted": false,
+    "realPianoRendered": false,
+    "newExtractorDownloadedOrRun": false,
+    "note": "Text claims only. WAV audit and SFZ loop endpoint conversion remain blocked."
+  },
+  "selectedReads": [
+    {
+      "member": "UprightPianoKW-small-20190703.sfz",
+      "expectedBytes": 2641,
+      "bytes": 2641,
+      "exit": 0,
+      "stderr": "",
+      "sha256": "239b21ca2579bc0603f1fe667fe1cd0bc09e2eedcdfb6f353390a702009d9001",
+      "saved": true
+    },
+    {
+      "member": "cc0.txt",
+      "expectedBytes": 7048,
+      "bytes": 7048,
+      "exit": 0,
+      "stderr": "",
+      "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+      "saved": true
+    },
+    {
+      "member": "readme.txt",
+      "expectedBytes": 896,
+      "bytes": 896,
+      "exit": 0,
+      "stderr": "",
+      "sha256": "176d252d3192c4cb1576c88512f94e981f6208aedec65b9ec5174280c02dc534",
+      "saved": true
+    },
+    {
+      "member": "samples/A3vH.wav",
+      "expectedBytes": 373678,
+      "bytes": 0,
+      "exit": 1,
+      "stderr": "UprightPianoKW-small-SFZ-20190703/samples/A3vH.wav: Unsupported filter 3 for 40202\nbsdtar: Error exit delayed from previous errors.\n",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "existingCondaBsdtar": {
+    "existingTool": "/opt/anaconda3/bin/bsdtar",
+    "exit": 1,
+    "bytes": 0,
+    "expectedBytes": 373678,
+    "stderr": "UprightPianoKW-small-SFZ-20190703/samples/A3vH.wav: Unsupported filter 3 for 40202: Unknown error: -1\nbsdtar: Error exit delayed from previous errors.\n"
+  },
+  "alternativeOfficialFormatHeads": [
+    {
+      "suffix": ".tar.xz",
+      "status": 404
+    },
+    {
+      "suffix": ".zip",
+      "status": 404
+    }
+  ],
+  "remainingActions": {
+    "sharedDiskImageRemount": "not performed; confirm safe ordinary detach/reattach of this exact shared image; no force, no chmod/chflags/security changes",
+    "waveExtraction": "requires a compatible approved extractor; proposed official 7-Zip26.04 archive 1,861,928 bytes remains unapproved; no installation or execution",
+    "pianoAdmission": "blocked until WAV hashes/format/frames/loop endpoints verified; text mapping alone is insufficient"
+  },
+  "scopedStorage": {
+    "newAudioArchiveBytes": 0,
+    "existingArchiveRetainedBytes": 4551289,
+    "selectedTextBytes": 10585,
+    "wavProbeOutputBytes": 0,
+    "deletedPaths": [],
+    "sharedCachesImagesVolumesChanged": false
+  },
+  "independentReview": {
+    "status": "passed",
+    "openCriticalImportant": 0,
+    "independentArchiveAndTextHashChecks": true,
+    "independentSfzCountsVerified": true,
+    "fixedFinding": "Status historical paragraph still claimed text unread; now explicitly superseded by section2.0.4",
+    "guideDiffEmpty": true,
+    "limitations": [
+      "why initially attached readonly",
+      "remount success and complete shared-volume dependence",
+      "WAV format/hash/frames/loop endpoints",
+      "real piano sound quality"
+    ]
+  }
+}
