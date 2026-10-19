@@ -54,16 +54,6 @@ def test_s3_smoke_covers_refresh_replan_mobile_and_same_project_imports() -> Non
     assert "distinct.length === 2" in source
     assert "import_revision_count" in source
     assert "import_run_count" in source
-    assert "只读时间线" in source
     assert "track_count" in source
     assert "JSON.stringify(summary)" in source
     assert "process.env" not in source[source.index("const summary ="):]
-
-
-def test_s3_stage_gate_exposes_browser_smoke() -> None:
-    package = (ROOT / "package.json").read_text()
-    gate = (ROOT / "scripts" / "check_s1.sh").read_text()
-
-    assert '"smoke:s3": "node scripts/run_s3_browser_smoke.mjs"' in package
-    assert "test_s3_browser_smoke_contract.py" in gate
-    assert "npm run smoke:s3" in gate

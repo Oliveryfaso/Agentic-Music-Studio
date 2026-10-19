@@ -3,7 +3,7 @@
 > **For agentic workers:** 实施本路线中的具体纵切前，必须先为该纵切建立 `docs/superpowers/plans/YYYY-MM-DD-<slice>.md`，再使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 逐项执行。
 > 状态：已批准的主路线；S2 Task 6 起采用 ADR-016 作品集工程模式
 > 起点：受控 Upload → Import → 分析 HITL → 保持音高对齐 → Web Preview 已完成
-> 执行断点（2026-10-19）：G0 与 S1–S7 为已完成历史门。用户已授权古典/爵士产品改造，当前已完成 **P0、P1-A1、包合同准备及A2.1内部导出子门**（ADR-019），不是重新打开S7。C1真实钢琴内部边界已验、隔离PG资源已解阻；下一生产A2.2/B接线前先完成用户要求的测试精简，见最新证据。
+> 执行断点（2026-10-19）：G0 与 S1–S7 为已完成历史门。用户已授权古典/爵士产品改造，当前已完成 **P0、P1-A1、包合同准备及A2.1内部导出子门**（ADR-019），不是重新打开S7。C1真实钢琴内部边界已验、隔离PG资源已解阻；用户要求的测试精简/技术栈审计已完成，下一生产Task为A2.2，再B，见最新证据。
 
 ## 当前产品改造入口（P0–P5）
 
@@ -16,7 +16,7 @@
 | P4 | 测量从 P0 起；功能随证据进入 | 按需音源/渲染、缓存冻结、生命周期、Studio 性能 |
 | P5 | 质量/资源门通过后 | 室内乐和更完整管弦乐，基于实际编制决定轨数合同 |
 
-用户已续授权独立推进A2/B，不自动执行P2–P5。最新[C1证据](evidence/2026-10-19-p1-c1-real-piano.md)证明真实小包→catalog→共享adapter→WAV，不能替代生产IR/Job/API/UI。普通共享映像读写重挂、任务内7-Zip均已明确批准并执行；隔离PG真实2 passed，资源阻塞解除，自有容器/凭据已清理。下一Task先完成最小测试结构精简与技术栈评估，再A2.2同一Parent/Worker/权威读模型接线，B按音乐v2双读/Commands/Undo/迁移guard推进。电子风格默认入口调整仍未实施；旧IDs/作品/声音/导出保留。以下S1–S7数量为历史验收，不能当成当前任务。
+用户已续授权独立推进A2/B，不自动执行P2–P5。最新[C1证据](evidence/2026-10-19-p1-c1-real-piano.md)证明真实小包→catalog→共享adapter→WAV，不能替代生产IR/Job/API/UI。普通共享映像读写重挂、任务内7-Zip均已明确批准并执行；隔离PG真实2 passed，资源阻塞解除，自有容器/凭据已清理。最小测试精简/技术栈评估已通过[审计](evidence/2026-10-19-test-structure-architecture.md)，下一Task为A2.2同一Parent/Worker/权威读模型接线，B按音乐v2双读/Commands/Undo/迁移guard推进。电子风格默认入口调整仍未实施；旧IDs/作品/声音/导出保留。以下S1–S7数量为历史验收，不能当成当前任务。
 
 **目标：** 从当前可靠的导入底座，按最短依赖路径完成“可生成、可听、可编辑、可恢复、可评测”的 Agentic Music Studio。
 

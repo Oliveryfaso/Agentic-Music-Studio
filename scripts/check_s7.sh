@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-.venv/bin/pytest tests/test_s7_script_contract.py services/api/tests/eval/test_s7_portfolio_eval.py tests/test_s7_eval_report_contract.py -q
+.venv/bin/pytest tests/test_s7_script_contract.py tests/test_s7_eval_report_contract.py -q
 .venv/bin/pytest services/api/tests/eval -q
 .venv/bin/pytest services/api/tests/unit -q --ignore-glob='**/._*'
 npm run test:web
-npm run build:web
 npm run eval:s7
 npm run generate:openapi
 npm run build:web

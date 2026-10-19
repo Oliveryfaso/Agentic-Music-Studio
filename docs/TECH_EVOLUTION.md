@@ -464,3 +464,10 @@ MF-P02/P05/P10/P15/P16/P17/P18/P21。用户明确批准后普通detach/readwrite
 独立审查发现启动预算竞态，以deferred生命周期回归RED→GREEN修复，唯一复核无阻塞；audio/Worker55、tsc/宿主build通过。样本解码20,575,408bytes，214ms；机械/表达渲染写盘808/805ms，采样进程树RSS约1.16GiB，非生产上限/性能分布/审美证明。缺踏板与release-trigger，尚无生产v2IR/Job/UI或持久Undo。
 
 缓存PG17.10专用tmpfs库两真实导出测试2passed/1.18s，迁移20260824_0021、30张app表及选定约束索引实际可见；不证明主机掉电持久性。删除自有PG及生成凭据，保留共享VM/历史服务，Docker context default不变。精确删除旧candidate和重复源44,824,612logicalbytes；保留最终音频与源/工具并重验hash。无付费/大包/公共push。[完整证据](evidence/2026-10-19-p1-c1-real-piano.md)。
+
+
+## 2026-10-19 测试结构最小精简与技术栈核查
+
+P1 supporting；MF-P15/P16/P17/P18/P21。AST清点127Python文件，未发现完全相同body；人工区分真实产物读文件与源码断言，不按mock/read_text判坏。删6项门禁自登记/命令别名/旧README位置测试及1过时UI文案断言，S7保留完整门但去除重复子集与重复build；Compose测试显式空env。
+
+root before38pass/2fail8.81s，after34pass7.91s；进程总计9.852→8.819s，单对测量且最慢保留测试波动0.69s，不宣称稳定提速。Ruff/bash/diff通过，一次独立审查无阻塞；未重跑无关全suite/旧端到端。实际PG schema与代码证明SQL约束/索引/幂等已在用，优先补v2消费者、恢复/Undo和测量，不引入Java/Rust重写。新古典轨隔离/持久新琴Undo/审美仍是待验目标。[报告](evidence/2026-10-19-test-structure-architecture.md)。

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 from pathlib import Path
@@ -40,14 +39,6 @@ def test_s6_smokes_use_public_boundaries_and_never_execute_workers_directly() ->
     )
 
 
-def test_s6_stage_gate_and_package_commands_are_executable() -> None:
-    root = Path(__file__).parents[1]
-    scripts = json.loads((root / "package.json").read_text(encoding="utf-8"))["scripts"]
-    assert scripts["smoke:s6"] == ".venv/bin/python -m scripts.run_s6_deterministic_smoke"
-    assert scripts["smoke:s6:browser"] == "node scripts/run_s6_browser_smoke.mjs"
-    gate = root / "scripts/check_s6.sh"
-    assert gate.exists()
-    assert "test_s6_edit_eval.py" in gate.read_text(encoding="utf-8")
 
 
 def test_s6_no_key_runtime_cannot_inherit_provider_secret() -> None:

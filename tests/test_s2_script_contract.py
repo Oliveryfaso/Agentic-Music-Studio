@@ -46,11 +46,3 @@ def test_s2_smoke_verifies_authoritative_lineage_and_physical_checksums() -> Non
         "cost_status",
     ):
         assert contract in source
-
-
-def test_s1_stage_gate_includes_s2_host_eval_and_smoke() -> None:
-    source = (ROOT / "scripts" / "check_s1.sh").read_text()
-
-    assert "test_s2_generate_eval.py" in source
-    assert "test_s2_script_contract.py" in source
-    assert "run_s2_deterministic_smoke.py" in source

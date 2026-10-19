@@ -19,6 +19,8 @@ def _resolved_compose() -> dict[str, object]:
         [
             "docker",
             "compose",
+            "--env-file",
+            "/dev/null",
             "config",
             "--no-env-resolution",
             "--format",
@@ -66,22 +68,3 @@ def test_langsmith_environment_defaults_off() -> None:
     assert "LANGSMITH_API_KEY=" in example
     assert "LANGSMITH_HIDE_INPUTS=true" in example
     assert "LANGSMITH_HIDE_OUTPUTS=true" in example
-
-
-def test_readme_documents_opt_in_disable_privacy_and_cost_controls() -> None:
-    readme = (ROOT / "README.md").read_text(encoding="utf-8")
-
-    for required in (
-        "## Optional LangSmith tracing",
-        "LANGSMITH_TRACING=true",
-        "LANGSMITH_API_KEY=",
-        "LANGSMITH_TRACING=false",
-        "scripts/build_compose_images.sh api",
-        "scripts/start_motif_forge.sh",
-        "scripts/stop_motif_forge.sh",
-        "inputs and outputs are hidden",
-        "PostgreSQL remains authoritative",
-        "retention",
-        "spend limit",
-    ):
-        assert required in readme

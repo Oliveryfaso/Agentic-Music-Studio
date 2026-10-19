@@ -1,0 +1,1096 @@
+{
+  "stage": "P1 supporting minimal test trim and code-backed architecture assessment",
+  "requirements": [
+    "MF-P15",
+    "MF-P16",
+    "MF-P17",
+    "MF-P18",
+    "MF-P21"
+  ],
+  "precedingC1Checkpoint": "a6fd5ba",
+  "inventoryBefore": {
+    "method": "AST test definitions, not parameterized execution counts; text reads/mock mentions are review candidates, not quality judgments",
+    "pythonFiles": 127,
+    "testDefinitionsByLayer": {
+      "api-eval": 17,
+      "api-unit": 414,
+      "api-integration": 70,
+      "root-contract": 37
+    },
+    "exactBodyDuplicateCandidates": [],
+    "files": [
+      {
+        "file": "tests/test_langsmith_observability_contract.py",
+        "layer": "root-contract",
+        "testDefinitions": 3,
+        "lines": 87,
+        "textReadCalls": 2,
+        "mockMentions": 0
+      },
+      {
+        "file": "tests/test_local_launcher_contract.py",
+        "layer": "root-contract",
+        "testDefinitions": 5,
+        "lines": 194,
+        "textReadCalls": 3,
+        "mockMentions": 0
+      },
+      {
+        "file": "tests/test_s2_live_smoke_contract.py",
+        "layer": "root-contract",
+        "testDefinitions": 10,
+        "lines": 257,
+        "textReadCalls": 1,
+        "mockMentions": 0
+      },
+      {
+        "file": "tests/test_s2_script_contract.py",
+        "layer": "root-contract",
+        "testDefinitions": 3,
+        "lines": 56,
+        "textReadCalls": 3,
+        "mockMentions": 0
+      },
+      {
+        "file": "tests/test_s3_browser_smoke_contract.py",
+        "layer": "root-contract",
+        "testDefinitions": 3,
+        "lines": 69,
+        "textReadCalls": 4,
+        "mockMentions": 0
+      },
+      {
+        "file": "tests/test_s4_script_contract.py",
+        "layer": "root-contract",
+        "testDefinitions": 3,
+        "lines": 80,
+        "textReadCalls": 1,
+        "mockMentions": 5
+      },
+      {
+        "file": "tests/test_s5_script_contract.py",
+        "layer": "root-contract",
+        "testDefinitions": 2,
+        "lines": 34,
+        "textReadCalls": 1,
+        "mockMentions": 0
+      },
+      {
+        "file": "tests/test_s6_script_contract.py",
+        "layer": "root-contract",
+        "testDefinitions": 4,
+        "lines": 59,
+        "textReadCalls": 5,
+        "mockMentions": 0
+      },
+      {
+        "file": "tests/test_s7_eval_report_contract.py",
+        "layer": "root-contract",
+        "testDefinitions": 1,
+        "lines": 23,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "tests/test_s7_script_contract.py",
+        "layer": "root-contract",
+        "testDefinitions": 3,
+        "lines": 41,
+        "textReadCalls": 4,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/eval/test_s1_deterministic_eval.py",
+        "layer": "api-eval",
+        "testDefinitions": 2,
+        "lines": 53,
+        "textReadCalls": 1,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/eval/test_s2_generate_eval.py",
+        "layer": "api-eval",
+        "testDefinitions": 2,
+        "lines": 875,
+        "textReadCalls": 1,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/eval/test_s3_replan_eval.py",
+        "layer": "api-eval",
+        "testDefinitions": 1,
+        "lines": 51,
+        "textReadCalls": 1,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/eval/test_s4_style_pack_eval.py",
+        "layer": "api-eval",
+        "testDefinitions": 2,
+        "lines": 64,
+        "textReadCalls": 2,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/eval/test_s5_candidate_eval.py",
+        "layer": "api-eval",
+        "testDefinitions": 4,
+        "lines": 108,
+        "textReadCalls": 3,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/eval/test_s6_edit_eval.py",
+        "layer": "api-eval",
+        "testDefinitions": 4,
+        "lines": 102,
+        "textReadCalls": 1,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/eval/test_s7_portfolio_eval.py",
+        "layer": "api-eval",
+        "testDefinitions": 2,
+        "lines": 32,
+        "textReadCalls": 1,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_ai_run_sse.py",
+        "layer": "api-integration",
+        "testDefinitions": 3,
+        "lines": 313,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_controlled_audio_import.py",
+        "layer": "api-integration",
+        "testDefinitions": 2,
+        "lines": 341,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_feature_artifact_recovery.py",
+        "layer": "api-integration",
+        "testDefinitions": 1,
+        "lines": 266,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_generate_dispatcher.py",
+        "layer": "api-integration",
+        "testDefinitions": 1,
+        "lines": 204,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_postgres_ai_run_replan.py",
+        "layer": "api-integration",
+        "testDefinitions": 1,
+        "lines": 298,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_postgres_ai_runs.py",
+        "layer": "api-integration",
+        "testDefinitions": 18,
+        "lines": 1590,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_postgres_checkpoint_resume.py",
+        "layer": "api-integration",
+        "testDefinitions": 5,
+        "lines": 389,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_postgres_generate_export_jobs.py",
+        "layer": "api-integration",
+        "testDefinitions": 1,
+        "lines": 146,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_postgres_generate_materialization.py",
+        "layer": "api-integration",
+        "testDefinitions": 10,
+        "lines": 1043,
+        "textReadCalls": 0,
+        "mockMentions": 2
+      },
+      {
+        "file": "services/api/tests/integration/test_postgres_project_persistence_contract.py",
+        "layer": "api-integration",
+        "testDefinitions": 8,
+        "lines": 1042,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_postgres_project_reads.py",
+        "layer": "api-integration",
+        "testDefinitions": 1,
+        "lines": 226,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_postgres_run_graph_history.py",
+        "layer": "api-integration",
+        "testDefinitions": 1,
+        "lines": 73,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_postgres_s5_candidate_preview_jobs.py",
+        "layer": "api-integration",
+        "testDefinitions": 1,
+        "lines": 436,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_postgres_s5_candidates.py",
+        "layer": "api-integration",
+        "testDefinitions": 3,
+        "lines": 334,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_postgres_s6_edit_human_loop.py",
+        "layer": "api-integration",
+        "testDefinitions": 1,
+        "lines": 194,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_postgres_s7_export_reads.py",
+        "layer": "api-integration",
+        "testDefinitions": 1,
+        "lines": 123,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_postgres_s7_run_inspection.py",
+        "layer": "api-integration",
+        "testDefinitions": 2,
+        "lines": 176,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_postgres_storage_pressure.py",
+        "layer": "api-integration",
+        "testDefinitions": 1,
+        "lines": 332,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_s1_render_job_contract.py",
+        "layer": "api-integration",
+        "testDefinitions": 6,
+        "lines": 543,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_s2_generate_parent_graph.py",
+        "layer": "api-integration",
+        "testDefinitions": 2,
+        "lines": 386,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/integration/test_s5_parent_graph.py",
+        "layer": "api-integration",
+        "testDefinitions": 1,
+        "lines": 259,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/agent/test_baseline.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 32,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/agent/test_critic.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 191,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/agent/test_edit_graph.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 325,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/agent/test_fallback.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 53,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/agent/test_generate_graph.py",
+        "layer": "api-unit",
+        "testDefinitions": 13,
+        "lines": 637,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/agent/test_generate_replan.py",
+        "layer": "api-unit",
+        "testDefinitions": 1,
+        "lines": 49,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/agent/test_graph.py",
+        "layer": "api-unit",
+        "testDefinitions": 9,
+        "lines": 257,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/agent/test_parent_graph.py",
+        "layer": "api-unit",
+        "testDefinitions": 9,
+        "lines": 563,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/agent/test_planning_subgraph.py",
+        "layer": "api-unit",
+        "testDefinitions": 10,
+        "lines": 282,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/agent/test_schemas.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 39,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/agent/test_worker_gate.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 109,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/api/test_ai_run_replan.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 172,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/api/test_ai_runs.py",
+        "layer": "api-unit",
+        "testDefinitions": 8,
+        "lines": 409,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/api/test_exports.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 82,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/api/test_health.py",
+        "layer": "api-unit",
+        "testDefinitions": 7,
+        "lines": 128,
+        "textReadCalls": 0,
+        "mockMentions": 4
+      },
+      {
+        "file": "services/api/tests/unit/api/test_project_reads.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 127,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/api/test_project_writes.py",
+        "layer": "api-unit",
+        "testDefinitions": 10,
+        "lines": 315,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/api/test_run_graph.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 165,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/api/test_run_inspection.py",
+        "layer": "api-unit",
+        "testDefinitions": 1,
+        "lines": 72,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/api/test_sound_catalog.py",
+        "layer": "api-unit",
+        "testDefinitions": 1,
+        "lines": 18,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_ai_run_replan.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 130,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_ai_runs.py",
+        "layer": "api-unit",
+        "testDefinitions": 5,
+        "lines": 79,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_audio_content.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 94,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_candidate_previews.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 160,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_candidate_repair.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 169,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_composition.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 91,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_edit_decisions.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 182,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_edit_runs.py",
+        "layer": "api-unit",
+        "testDefinitions": 1,
+        "lines": 24,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_export_reads.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 141,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_export_v2.py",
+        "layer": "api-unit",
+        "testDefinitions": 7,
+        "lines": 210,
+        "textReadCalls": 1,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_exporting.py",
+        "layer": "api-unit",
+        "testDefinitions": 1,
+        "lines": 85,
+        "textReadCalls": 1,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_features.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 157,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_generation.py",
+        "layer": "api-unit",
+        "testDefinitions": 5,
+        "lines": 362,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_generation_candidates.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 329,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_generation_export.py",
+        "layer": "api-unit",
+        "testDefinitions": 7,
+        "lines": 395,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_imports.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 120,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_media_jobs.py",
+        "layer": "api-unit",
+        "testDefinitions": 6,
+        "lines": 472,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_previews.py",
+        "layer": "api-unit",
+        "testDefinitions": 5,
+        "lines": 184,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_project_reads.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 164,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_projects.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 59,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_render_capacity.py",
+        "layer": "api-unit",
+        "testDefinitions": 7,
+        "lines": 151,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_rendering.py",
+        "layer": "api-unit",
+        "testDefinitions": 6,
+        "lines": 131,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_revisions.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 132,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_run_graph.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 314,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_run_graph_registry.py",
+        "layer": "api-unit",
+        "testDefinitions": 1,
+        "lines": 80,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_run_inspection.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 76,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_sound_catalog.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 25,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_storage.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 121,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/application/test_undo.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 139,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/audio/test_analysis.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 77,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/audio/test_atomic_promote.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 49,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/audio/test_chromium_render.py",
+        "layer": "api-unit",
+        "testDefinitions": 10,
+        "lines": 408,
+        "textReadCalls": 0,
+        "mockMentions": 7
+      },
+      {
+        "file": "services/api/tests/unit/audio/test_export_transcode.py",
+        "layer": "api-unit",
+        "testDefinitions": 5,
+        "lines": 238,
+        "textReadCalls": 0,
+        "mockMentions": 11
+      },
+      {
+        "file": "services/api/tests/unit/audio/test_features.py",
+        "layer": "api-unit",
+        "testDefinitions": 1,
+        "lines": 41,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/audio/test_ingest.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 75,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/audio/test_midi.py",
+        "layer": "api-unit",
+        "testDefinitions": 1,
+        "lines": 21,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/audio/test_time_stretch.py",
+        "layer": "api-unit",
+        "testDefinitions": 5,
+        "lines": 131,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/audio/test_uploads.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 105,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_ai_run_plan_hash.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 121,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_ai_runs.py",
+        "layer": "api-unit",
+        "testDefinitions": 10,
+        "lines": 161,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_candidates.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 105,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_commands.py",
+        "layer": "api-unit",
+        "testDefinitions": 6,
+        "lines": 292,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_composition.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 114,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_editing.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 166,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_error_policy.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 33,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_import_policy.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 37,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_ir.py",
+        "layer": "api-unit",
+        "testDefinitions": 5,
+        "lines": 145,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_media_jobs.py",
+        "layer": "api-unit",
+        "testDefinitions": 9,
+        "lines": 217,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_music_strategies.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 147,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_policies.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 86,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_render_jobs.py",
+        "layer": "api-unit",
+        "testDefinitions": 5,
+        "lines": 170,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_revisions.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 127,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_storage.py",
+        "layer": "api-unit",
+        "testDefinitions": 8,
+        "lines": 183,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_style_packs.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 67,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_synth_ambient.py",
+        "layer": "api-unit",
+        "testDefinitions": 21,
+        "lines": 792,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_theory.py",
+        "layer": "api-unit",
+        "testDefinitions": 4,
+        "lines": 83,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/domain/test_timebase.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 35,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/infrastructure/persistence/test_run_graph_history.py",
+        "layer": "api-unit",
+        "testDefinitions": 3,
+        "lines": 66,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/infrastructure/persistence/test_tables.py",
+        "layer": "api-unit",
+        "testDefinitions": 7,
+        "lines": 150,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/infrastructure/test_checkpoints.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 75,
+        "textReadCalls": 0,
+        "mockMentions": 3
+      },
+      {
+        "file": "services/api/tests/unit/infrastructure/test_observability.py",
+        "layer": "api-unit",
+        "testDefinitions": 1,
+        "lines": 16,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/providers/test_deepseek.py",
+        "layer": "api-unit",
+        "testDefinitions": 23,
+        "lines": 1032,
+        "textReadCalls": 0,
+        "mockMentions": 4
+      },
+      {
+        "file": "services/api/tests/unit/test_config.py",
+        "layer": "api-unit",
+        "testDefinitions": 11,
+        "lines": 156,
+        "textReadCalls": 0,
+        "mockMentions": 11
+      },
+      {
+        "file": "services/api/tests/unit/test_langsmith_observability.py",
+        "layer": "api-unit",
+        "testDefinitions": 6,
+        "lines": 220,
+        "textReadCalls": 0,
+        "mockMentions": 13
+      },
+      {
+        "file": "services/api/tests/unit/test_test_environment.py",
+        "layer": "api-unit",
+        "testDefinitions": 1,
+        "lines": 8,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/worker/test_candidate_preview_execution.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 61,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/worker/test_celery_contract.py",
+        "layer": "api-unit",
+        "testDefinitions": 1,
+        "lines": 15,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/worker/test_outbox.py",
+        "layer": "api-unit",
+        "testDefinitions": 14,
+        "lines": 683,
+        "textReadCalls": 0,
+        "mockMentions": 0
+      },
+      {
+        "file": "services/api/tests/unit/worker/test_render_capacity_gate.py",
+        "layer": "api-unit",
+        "testDefinitions": 2,
+        "lines": 100,
+        "textReadCalls": 0,
+        "mockMentions": 2
+      }
+    ]
+  },
+  "before": {
+    "exit": 1,
+    "wallSeconds": 9.852258583000001,
+    "scope": "tests/ root contracts only; single measured run, order/cache/noise not controlled",
+    "args": [
+      "/Volumes/KINGSTON/idea/agentic-music-workbench/.venv/bin/python",
+      "-m",
+      "pytest",
+      "tests",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "--ignore-glob=**/._*",
+      "--durations=10",
+      "--junitxml=/tmp/motif-test-trim-before.xml"
+    ]
+  },
+  "after": {
+    "exit": 0,
+    "wallSeconds": 8.819397167,
+    "scope": "tests/ root contracts only; single measured run, order/cache/noise not controlled",
+    "args": [
+      "/Volumes/KINGSTON/idea/agentic-music-workbench/.venv/bin/python",
+      "-m",
+      "pytest",
+      "tests",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "--ignore-glob=**/._*",
+      "--durations=10",
+      "--junitxml=/tmp/motif-test-trim-after.xml"
+    ]
+  },
+  "beforePytestOutput": "..F......................F..............                                 [100%]\n=================================== FAILURES ===================================\n________ test_readme_documents_opt_in_disable_privacy_and_cost_controls ________\n\n    def test_readme_documents_opt_in_disable_privacy_and_cost_controls() -> None:\n        readme = (ROOT / \"README.md\").read_text(encoding=\"utf-8\")\n    \n        for required in (\n            \"## Optional LangSmith tracing\",\n            \"LANGSMITH_TRACING=true\",\n            \"LANGSMITH_API_KEY=\",\n            \"LANGSMITH_TRACING=false\",\n            \"scripts/build_compose_images.sh api\",\n            \"scripts/start_motif_forge.sh\",\n            \"scripts/stop_motif_forge.sh\",\n            \"inputs and outputs are hidden\",\n            \"PostgreSQL remains authoritative\",\n            \"retention\",\n            \"spend limit\",\n        ):\n>           assert required in readme\nE           AssertionError: assert '## Optional LangSmith tracing' in '# Motif Forge\\n\\n### 从一个音乐想法，到一首可以继续编辑的作品。\\n\\n一个本地优先的 Agentic 音乐工作台。写下创作意图，审核编曲计划，试听两个方向，再把选中的版本带进 Studio：调整音符、修改局部、导...ense at\\n\\n    http://www.apache.org/licenses/LICENSE-2.0\\n```\\n\\n再分发时请保留 [LICENSE](LICENSE) 文件；如修改了源文件，需按第 4 条标注改动。\\n'\n\ntests/test_langsmith_observability_contract.py:87: AssertionError\n_____ test_s3_smoke_covers_refresh_replan_mobile_and_same_project_imports ______\n\n    def test_s3_smoke_covers_refresh_replan_mobile_and_same_project_imports() -> None:\n        source = SCRIPT.read_text()\n    \n        assert \"page.reload\" in source\n        assert \"390\" in source\n        assert \"scrollWidth\" in source\n        assert \"old_plan_readable\" in source\n        assert \"child_run_id\" in source\n        assert \"head_before_imports\" in source\n        assert \"head_after_first_import\" in source\n        assert \"head_after_second_import\" in source\n        assert \"provider_requests\" in source\n        assert \"provider_tokens\" in source\n        assert \"job_count\" in source\n        assert \"audio_artifact_count\" in source\n        assert \"bundle_count\" in source\n        assert \"source_lineage_distinct_count\" in source\n        assert \"distinct.length === 2\" in source\n        assert \"import_revision_count\" in source\n        assert \"import_run_count\" in source\n>       assert \"只读时间线\" in source\nE       AssertionError: assert '只读时间线' in '#!/usr/bin/env node\\n/** Deterministic browser acceptance for the complete S3 composition journey. */\\n\\nimport { exe...tic browser smoke failed: ${error instanceof Error ? error.message : String(error)}`);\\n  process.exitCode = 1;\\n});\\n'\n\ntests/test_s3_browser_smoke_contract.py:57: AssertionError\n============================= slowest 10 durations =============================\n7.29s call     tests/test_local_launcher_contract.py::test_stopper_shuts_down_owned_web_compose_and_colima_without_deleting_data\n0.35s call     tests/test_local_launcher_contract.py::test_stopper_discards_stale_pid_without_killing_an_unrelated_process\n0.20s call     tests/test_langsmith_observability_contract.py::test_compose_limits_langsmith_secret_to_observed_python_services\n0.07s call     tests/test_s6_script_contract.py::test_s6_smokes_use_public_boundaries_and_never_execute_workers_directly\n0.06s call     tests/test_s7_script_contract.py::test_s7_browser_smoke_covers_evidence_inspector_export_and_mobile\n0.06s call     tests/test_s5_script_contract.py::test_s5_stage_gate_exposes_executable_runtime_and_browser_smokes\n0.01s call     tests/test_local_launcher_contract.py::test_launcher_help_is_valid_without_starting_services\n0.01s call     tests/test_s2_live_smoke_contract.py::test_live_plan_requires_strict_schema_and_recomputed_v2_hash\n\n(2 durations < 0.005s hidden.  Use -vv to show these durations.)\n=========================== short test summary info ============================\nFAILED tests/test_langsmith_observability_contract.py::test_readme_documents_opt_in_disable_privacy_and_cost_controls\nFAILED tests/test_s3_browser_smoke_contract.py::test_s3_smoke_covers_refresh_replan_mobile_and_same_project_imports\n2 failed, 38 passed in 8.81s\n",
+  "afterPytestOutput": "..................................                                       [100%]\n============================= slowest 10 durations =============================\n6.60s call     tests/test_local_launcher_contract.py::test_stopper_shuts_down_owned_web_compose_and_colima_without_deleting_data\n0.35s call     tests/test_local_launcher_contract.py::test_stopper_discards_stale_pid_without_killing_an_unrelated_process\n0.18s call     tests/test_langsmith_observability_contract.py::test_compose_limits_langsmith_secret_to_observed_python_services\n0.06s call     tests/test_s6_script_contract.py::test_s6_smokes_use_public_boundaries_and_never_execute_workers_directly\n0.05s call     tests/test_s7_script_contract.py::test_s7_browser_smoke_covers_evidence_inspector_export_and_mobile\n0.01s call     tests/test_local_launcher_contract.py::test_launcher_help_is_valid_without_starting_services\n\n(4 durations < 0.005s hidden.  Use -vv to show these durations.)\n34 passed in 7.91s\n",
+  "removedTestDefinitions": 6,
+  "removedObsoleteCopyAssertions": 1,
+  "removedDuplicateStageInvocations": 2,
+  "performanceConclusion": "No stable speedup claim: one unpaired-before/after measurement per revision; retained stopper test itself varied 0.69s.",
+  "review": "One independent read-only diff review: no blocking findings; six metadata/layout deletions preserve independent boundaries; S7 complete eval/unit/Web/OpenAPI build and conditional PG remain. bash -n and diff check passed. Remaining source-string tests are partial evidence, not runtime proof.",
+  "scopeChecks": {
+    "ruffChangedTests": "passed",
+    "bashSyntax": "passed",
+    "diffWhitespace": "passed",
+    "guideUnchanged": true
+  },
+  "notRun": [
+    "full Python suite",
+    "complete S7 stage gate",
+    "old Compose/browser end-to-end",
+    "new persisted piano Undo"
+  ],
+  "languagesAdded": [],
+  "architectureConclusion": "Python orchestration + TS shared audio/UI + existing PG constraints remain; finish versioned consumers first, profile audio memory phases before any native rewrite.",
+  "actualSchemaEvidence": "2026-10-19-p1-c1-real-piano.json#schemaInventory"
+}
