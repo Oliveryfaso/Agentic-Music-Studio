@@ -20,3 +20,8 @@ Web 只改草稿；显式保存形成新 Revision，重开恢复。每轨“恢�
 单钢琴 v2、EQ/reverb/master、实时混音、主题/整页重排、通用 DAW 不在本门。新的专业推子/旋钮/频谱与 EQ 响应曲线仍为设计研究；真实三段 EQ 必须另有预览/导出同源合同。recipe 静音规则标签 Minor M1-R1 记录于路线，不把模拟控件当音频功能。
 
 详见[实施计划](superpowers/plans/2026-10-19-m1-piano-mixing.md)、[验收](evidence/2026-10-19-m1-basic-mixing.md)、[独立审查](evidence/2026-10-19-m1-review.md)。
+
+
+## 2026-10-19 M2 三段 EQ 增补
+
+后续 M2 已按独立合同实现真实静态三段EQ，保留本M1历史语义；v5非None mix修改保留EQ，退出mix前必须先退出EQ。详见[版本合同](PIANO_EQ_CONTRACT.md)和[验收证据](evidence/2026-10-19-m2-three-band-eq.md)。

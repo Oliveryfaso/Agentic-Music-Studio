@@ -13,11 +13,12 @@ from pydantic import Field, SerializerFunctionWrapHandler, model_serializer, mod
 
 from motif_forge.domain.export_plan import (
     EnsembleExportPlanV4,
+    EqExportPlanV6,
     ExportPlanValue,
     MixExportPlanV5,
     PianoExportPlanV3,
 )
-from motif_forge.domain.ir import DomainModel
+from motif_forge.domain.ir import DomainModel, PianoEqProfile, PianoTrackEq
 
 
 class MediaQualityProfile(StrEnum):
@@ -227,10 +228,12 @@ class CandidatePreviewJobPayloadV3(CandidatePreviewJobPayload):
         return self
 
 
-def _validate_mix_graph(graph: dict[str, Any]) -> None:
+def _validate_mix_graph(
+    graph: dict[str, Any], *, schema_version: str = "audio-graph-spec.v4"
+) -> None:
     tracks = graph.get("tracks")
     if (
-        graph.get("schemaVersion") != "audio-graph-spec.v4"
+        graph.get("schemaVersion") != schema_version
         or not isinstance(tracks, list)
         or not tracks
         or any(
@@ -262,6 +265,41 @@ class CandidatePreviewJobPayloadV4(CandidatePreviewJobPayload):
     @model_validator(mode="after")
     def validate_mix_graph(self) -> Self:
         _validate_mix_graph(self.audio_graph)
+        return self
+
+
+def _validate_eq_graph(graph: dict[str, Any]) -> None:
+    _validate_mix_graph(graph, schema_version="audio-graph-spec.v5")
+    profile = graph.get("eqProfile")
+    if not isinstance(profile, dict) or profile.keys() != PianoEqProfile.model_fields.keys():
+        raise ValueError("AUDIO_GRAPH_EQ_PROFILE_INVALID")
+    PianoEqProfile.model_validate(profile)
+    for track in graph["tracks"]:
+        settings = track.get("eq3")
+        if not isinstance(settings, dict) or settings.keys() != PianoTrackEq.model_fields.keys() - {
+            "track_id"
+        }:
+            raise ValueError("AUDIO_GRAPH_EQ_INVALID")
+        PianoTrackEq.model_validate_json(json.dumps({**settings, "track_id": track.get("trackId")}))
+
+
+class CanonicalRenderJobPayloadV5(CanonicalRenderJobPayload):
+    schema_version: Literal["canonical-render-job.v5"] = "canonical-render-job.v5"  # type: ignore[assignment]
+    audio_engine_version: Literal["motif-forge-audio-engine.v5"]  # type: ignore[assignment]
+
+    @model_validator(mode="after")
+    def validate_eq_graph(self) -> Self:
+        _validate_eq_graph(self.audio_graph)
+        return self
+
+
+class CandidatePreviewJobPayloadV5(CandidatePreviewJobPayload):
+    schema_version: Literal["candidate-preview-job.v5"] = "candidate-preview-job.v5"  # type: ignore[assignment]
+    audio_engine_version: Literal["motif-forge-audio-engine.v5"]  # type: ignore[assignment]
+
+    @model_validator(mode="after")
+    def validate_eq_graph(self) -> Self:
+        _validate_eq_graph(self.audio_graph)
         return self
 
 
@@ -853,12 +891,19 @@ class MixExportBundleArtifactV5(EnsembleExportBundleArtifactV4):
     plan: MixExportPlanV5
 
 
+class EqExportBundleArtifactV6(MixExportBundleArtifactV5):
+    schema_version: Literal["export-bundle-artifact.v6"] = "export-bundle-artifact.v6"  # type: ignore[assignment]
+    engine_version: Literal["motif-forge-audio-engine.v5"]  # type: ignore[assignment]
+    plan: EqExportPlanV6
+
+
 ExportBundleArtifactValue = (
     ExportBundleArtifact
     | ExportBundleArtifactV2
     | PianoExportBundleArtifactV3
     | EnsembleExportBundleArtifactV4
     | MixExportBundleArtifactV5
+    | EqExportBundleArtifactV6
 )
 
 

@@ -3,7 +3,7 @@
 > **For agentic workers:** 实施本路线中的具体纵切前，必须先为该纵切建立 `docs/superpowers/plans/YYYY-MM-DD-<slice>.md`，再使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 逐项执行。
 > 状态：已批准的主路线；S2 Task 6 起采用 ADR-016 作品集工程模式
 > 起点：受控 Upload → Import → 分析 HITL → 保持音高对齐 → Web Preview 已完成
-> 执行断点（2026-10-19）：P2.2 有界语义钢琴后，M1 双钢琴基础混音第一阶段已验收；草稿保存/重开/Undo/reset、音量/声像/mute/solo 与同源保存版音频/导出通过。实时混音、三段 EQ、专业调音台新原型/配色、整页重构、多曲和其余 P2–P5 仍待独立合同，不静默并入本门。
+> 执行断点（2026-10-19）：M2 真实三段 EQ 已在保存版 M1 双钢琴上验收，见 `PIANO_EQ_CONTRACT.md`。草稿/保存/重开/精确 Undo、实际参数响应与同源试听导出已通。实时调音、频谱、自动化、新配色/整页原型、多曲和其余 P2–P5 仍待各自授权与合同，不自动启动下一功能。
 
 ## 当前产品改造入口（P0–P5）
 
@@ -367,7 +367,7 @@ Candidate fan-out 使用独立 `candidate_id + seed + CandidateState`；fan-in r
 - Minor（P2.2独立审查M1）：旧JSON Adapter响应缺少model时回退请求别名；本轮四次均有真实reported model。下一次Provider诊断升级或公开发布前，补缺失身份回执fixture并表示unknown；不影响本次真实调用的已知模型字段。
 - 三首规范素材是独立研究交付，尚未进入资源目录/来源保护/声音与持久化验收。不得绕过固定score ID或把删装饰转换版当完整原作。新的拍号/小节/和声能力需要显式版本化合同。
 - 前端先复用现piano-preview thread/run/base/hash、排队/规划/Worker/待保留/终态，改善经典入口、原版本/修改版标签与范围行；候选过期/Artifact四态准确投影需先补读模型，不自动rebase或重新付费。
-- P2.2 时基础混音另立 M0–M3 合同；后续 M1 已用显式 v4 完成双钢琴基础控制、原谱保护分离与合法静音，见[合同](BASIC_PIANO_MIX_CONTRACT.md)。草稿仍非实时音频；EQ/主题/整页设计继续独立评估。
+- P2.2 时基础混音另立 M0–M3 合同；后续 M1 已用显式 v4 完成双钢琴基础控制、原谱保护分离与合法静音，见[合同](BASIC_PIANO_MIX_CONTRACT.md)。草稿仍非实时音频；后续 M2 已独立验收静态三段 EQ，主题/整页设计仍未定。
 
 ## 15. 计划维护规则
 
@@ -386,4 +386,10 @@ Candidate fan-out 使用独立 `candidate_id + seed + CandidateState`；fan-in r
 
 - M1-R1 / Minor：静音 v4 candidate recipe 仍固定 non-silence.v1，policy 沿旧名。执行当前不消费此标签，实际可信静音/重建通过；消费 validation_rules、Inspector 升级或公开发布前，修正新配方标签并保持旧 recipe hash 兼容，补静音 fixture。不把它写成已修复。
 - 默认并行 Web 的两项既有异步等待超时保留原始记录；完整单 worker 109 项通过。需要并行 CI 门时再定位，不从一次串行通过推成稳定性修复。
-- 用户新要求重新研究配色，保留整洁基础结构，专业旋钮/推子/频谱与三段 EQ 响应曲线由前端线交原型。M1 无整页重排或模拟 EQ；真实 EQ 在基础门完成后再评估低资源、预览/导出同源实现，不自动启动下一功能。
+- 用户新要求重新研究配色，保留整洁基础结构，专业旋钮/推子/频谱与三段 EQ 响应曲线由前端线交原型。M1 无整页重排或模拟 EQ；后续 M2 已按独立合同完成低资源三段 EQ、保存版预览/导出同源；频谱/主题/整页实现仍未开始，不自动启动下一功能。
+
+### M2 关闭与后续边界
+
+- M2-R1/R2 两Minor已在唯一作者修复与限定复核关闭：修饰键释放不拆分长按Undo；已保存M1 v4/v5才开放EQ。新v5 recipe标签正确，旧v4 M1-R1保留历史hash，消费旧validation_rules前仍需单独兼容处理。
+- 本门13音频为2bar/4秒内部低电平fixture；非整首质量/主观音色/CPU-RSS-P95/Compose恢复证据。后续完整曲目、头间余量或负载问题以实际需求/测量触发，不为本门扩矩阵。
+- 只新增参数响应和静态三段，不把原型合成频谱变成真实分析；两套配色未选，实时/自动化/额外效果/整页改造均待新授权。用户已取消额度轮询，不自动恢复。

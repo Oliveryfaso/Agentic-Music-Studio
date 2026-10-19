@@ -2,7 +2,7 @@ import type { components } from "../generated/api-schema";
 
 type Schemas = components["schemas"];
 
-export type ArrangementIR = Schemas["ArrangementIR"] | Schemas["ArrangementIRV2"] | Schemas["ArrangementIRV3"] | Schemas["ArrangementIRV4"];
+export type ArrangementIR = Schemas["ArrangementIR"] | Schemas["ArrangementIRV2"] | Schemas["ArrangementIRV3"] | Schemas["ArrangementIRV4"] | Schemas["ArrangementIRV5"];
 export type EditorCommand = Schemas["CommandBatchBody"]["commands"][number];
 export type CommitCommandBatchInput = Schemas["CommandBatchBody"];
 export type CommandBatchData = Schemas["CommandBatchData"];

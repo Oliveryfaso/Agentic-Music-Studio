@@ -18,6 +18,7 @@ from motif_forge.domain.commands import (
     RemoveAddedPianoTrackCommand,
     ReplacePianoRangeCommand,
     SetClipParamCommand,
+    SetPianoEqCommand,
     SetPianoMixCommand,
     SetPianoProfileCommand,
     SetTrackParamCommand,
@@ -35,7 +36,7 @@ def command_change_impact(command: EditorCommand) -> ChangeImpact:
     escalated even when the same explicit gesture would be a bounded human edit.
     """
 
-    if isinstance(command, SetPianoMixCommand):
+    if isinstance(command, (SetPianoMixCommand, SetPianoEqCommand)):
         return ChangeImpact.L0
 
     if isinstance(

@@ -355,3 +355,8 @@ Application 层将其映射为 HTTP Problem Detail、Graph route 和 Run Event�
 ## 2026-10-19 M1 双钢琴混音版本
 
 IR4 顶层 piano_mix 是唯一有效混音状态；原 Track 与音符/来源保持不变。human L0 set_piano_mix 使用完整 snapshot、精确父版本逆命令，旧混音字段不能成为第二份可变真值。详见[版本合同](BASIC_PIANO_MIX_CONTRACT.md)和[实测边界](evidence/2026-10-19-m1-basic-mixing.md)。
+
+
+## 2026-10-19 M2 三段 EQ 增补
+
+IR5 required piano_eq 与固定 eq_profile；human-only L0 set_piano_eq 完整snapshot/None退出，mix与局部编辑保留EQ。首次启用Undo精确恢复v4 hash，原Track/source/performance不变。详见[版本合同](PIANO_EQ_CONTRACT.md)和[验收证据](evidence/2026-10-19-m2-three-band-eq.md)。

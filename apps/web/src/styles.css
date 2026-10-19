@@ -522,3 +522,22 @@ footer { font-size: 12px; letter-spacing: 0; padding-block: 22px; }
 .classical-score-entry details p { overflow-wrap:anywhere; }
 .piano-expression-fields .piano-chord-field { display:grid; gap:8px; }
 .piano-expression-fields .piano-chord-field input { width:100%; box-sizing:border-box; }
+
+
+/* M2 static EQ controls only; global palette and workspace layout remain unchanged. */
+.piano-eq-panel { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.eq-heading { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.eq-heading h3 { margin: 0; }.eq-heading p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.eq-heading label { display: grid; gap: 5px; }.eq-heading select { max-width: 100%; padding: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); border-radius: 7px; }
+.eq-control-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin: 20px 0 16px; }
+.eq-band { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.eq-band small { color: var(--muted); }.eq-dial { width: 76px; height: 76px; display: grid; place-items: center; touch-action: none; cursor: ns-resize; border-radius: 50%; user-select: none; }
+.eq-dial[aria-disabled="true"] { opacity: .48; cursor: not-allowed; }.eq-dial:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.eq-dial-face { width: 58px; height: 58px; border: 2px solid var(--line-strong); border-radius: 50%; display: block; position: relative; background: var(--surface); }
+.eq-dial-face > span { position: absolute; inset: 5px; transform-origin: center; }.eq-dial-face > span::after { content: ""; display: block; width: 3px; height: 12px; border-radius: 2px; background: var(--text); margin: 0 auto; }
+.eq-number { display: flex; align-items: center; justify-content: center; gap: 5px; }.eq-number input { width: 78px; min-width: 0; padding: 7px 5px; background: var(--surface); color: var(--text); border: 1px solid var(--line-strong); border-radius: 6px; text-align: center; font-variant-numeric: tabular-nums; }
+.eq-actions { display: flex; flex-wrap: wrap; gap: 8px; }.eq-actions button[aria-pressed="true"] { border-width: 2px; border-color: var(--text); }
+.eq-response { margin: 18px 0 0; }.eq-response figcaption { font-size: 13px; color: var(--muted); }.eq-response svg { display: block; width: 100%; height: auto; max-height: 260px; overflow: visible; }
+.eq-response text { fill: var(--muted); font-size: 10px; }.eq-grid-line { stroke: var(--line); stroke-width: 1; }.eq-response-line,.eq-response-ghost { fill: none; stroke: var(--text); stroke-width: 2; vector-effect: non-scaling-stroke; }.eq-response-ghost { stroke: var(--muted); stroke-dasharray: 5 4; stroke-width: 1; }
+.eq-response p { font-size: 12px; color: var(--muted); margin: 0; }
+@media(max-width:480px) { .eq-control-grid { gap: 5px; }.eq-band small { font-size: 10px; }.eq-number input { width: 60px; }.eq-actions button { padding: 8px; font-size: 12px; } }

@@ -1,0 +1,129 @@
+{
+  "status": "passed",
+  "base": "9520a89548826baf0c9882f96422694e1cc6ff69",
+  "checks": [
+    {
+      "name": "upgrade-preserves-protected-source-mix-performance-provenance",
+      "passed": true
+    },
+    {
+      "name": "first-upgrade-inverse-is-exact-v4-hash",
+      "passed": true
+    },
+    {
+      "name": "mix-edit-retains-eq-engine-and-source",
+      "passed": true
+    },
+    {
+      "name": "mixed-command-batch-undo-is-exact",
+      "passed": true
+    },
+    {
+      "name": "cannot-drop-mix-while-eq-active",
+      "passed": true
+    },
+    {
+      "name": "reject:bypass:'false'",
+      "passed": true
+    },
+    {
+      "name": "reject:bypass:1",
+      "passed": true
+    },
+    {
+      "name": "reject:low_gain_db:'6'",
+      "passed": true
+    },
+    {
+      "name": "reject:high_gain_db:True",
+      "passed": true
+    },
+    {
+      "name": "reject:mid_gain_db:inf",
+      "passed": true
+    },
+    {
+      "name": "reject:profile_id:'forged'",
+      "passed": true
+    },
+    {
+      "name": "human-only-eq",
+      "passed": true
+    },
+    {
+      "name": "BASE-graph-and-hash-unchanged:arrangement-ir.v1",
+      "passed": true,
+      "graphHash": "89247b14518fc59ee0f6b285c2da5087728c6f68077cd8230c39a583c4e75364"
+    },
+    {
+      "name": "BASE-graph-and-hash-unchanged:arrangement-ir.v2",
+      "passed": true,
+      "graphHash": "b29eb4c5016ced1777568cf7b51bd38eff13bb465c58e6b84881735d9b5684b8"
+    },
+    {
+      "name": "BASE-graph-and-hash-unchanged:arrangement-ir.v3",
+      "passed": true,
+      "graphHash": "a71a324731ff1b71170fa6509e8a9a46d65f3ccf14828312c81decbd913b3543"
+    },
+    {
+      "name": "BASE-graph-and-hash-unchanged:arrangement-ir.v4",
+      "passed": true,
+      "graphHash": "07f93c4830d68934e1763b1c0146fe3aea613ab5cc272d000a3e8cc1c0e78927"
+    },
+    {
+      "name": "BASE-recipe-and-hash-unchanged:arrangement-ir.v1",
+      "passed": true,
+      "recipeHash": "5e8ae06f0ac99e49bc3daf299ca4dad29c177e4c21cee01f4832ab083f1ea992"
+    },
+    {
+      "name": "BASE-recipe-and-hash-unchanged:arrangement-ir.v2",
+      "passed": true,
+      "recipeHash": "840ed7fe6050c899be3833c2e9b9f74e10f6a286163b250d8afd0bd7400299a0"
+    },
+    {
+      "name": "BASE-recipe-and-hash-unchanged:arrangement-ir.v3",
+      "passed": true,
+      "recipeHash": "0efa2c92d6da540f7c370387fe19397dc229c759076293563d9e6a5a00d3010b"
+    },
+    {
+      "name": "BASE-recipe-and-hash-unchanged:arrangement-ir.v4",
+      "passed": true,
+      "recipeHash": "22f7e3ba1c0fdbb83502321d2c48383981fe7df1e5017c885a064d442d1971ec"
+    },
+    {
+      "name": "eq-graph-exact-eight-and-six-fields",
+      "passed": true
+    },
+    {
+      "name": "authority-rejects:consistent-fake-silence",
+      "passed": true
+    },
+    {
+      "name": "authority-rejects:valid-different-gain",
+      "passed": true
+    },
+    {
+      "name": "invalid-HTTP422-before-transaction",
+      "passed": true,
+      "status": 422
+    },
+    {
+      "name": "retained-graph-hashes-recompute",
+      "passed": true,
+      "graphJobs": 11
+    },
+    {
+      "name": "exported-IR-recompiles-retained-authoritative-graphs:eq-export",
+      "passed": true,
+      "masterJobs": 2,
+      "graphHash": "89fe98f39eecae6ec83123c3797b69521f29aa24ce98b806b043fc867032a2fa"
+    },
+    {
+      "name": "exported-IR-recompiles-retained-authoritative-graphs:silent-eq-export",
+      "passed": true,
+      "masterJobs": 2,
+      "graphHash": "efb19dfed3ada21a6487fa46bbce191204b5e1cd09685e9de52c94acef4c8f32"
+    }
+  ],
+  "limits": "Offline authoritative-object mocks only; no PG, browser rerender, model, external calls or env file."
+}

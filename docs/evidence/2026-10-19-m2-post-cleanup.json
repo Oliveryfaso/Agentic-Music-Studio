@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "rehashedAudioFiles": 13,
+  "publicExportFileIdentities": 20,
+  "retainedMp3Probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ]
+  },
+  "currentBuiltAssetsExist": [
+    "/assets/index-Dyfi_X2J.js",
+    "/assets/index-BwIeNxkL.css"
+  ],
+  "ownDatabaseAndCredentialsClosed": true,
+  "ownedLoopbackServicesClosedByHarness": true,
+  "scope": "Retained files and current built assets only; no service restart/rebuild/Redis/Celery/Compose/production-readiness claim."
+}

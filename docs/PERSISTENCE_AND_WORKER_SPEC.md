@@ -354,3 +354,8 @@ Celery Task 保持 Python 边界；TypeScript 音频引擎只运行在固定的 
 ## 2026-10-19 M1 混音执行与持久化
 
 0028 显式接 IR4、Job4/engine4、Plan5/Bundle5 并阻止历史不安全 downgrade。Worker 从 Revision/Snapshot 重编译 graph/hash，只有可信 expectedSilence 允许真正零 PCM；旧版本与预期有声 gate 不放宽。详见[版本合同](BASIC_PIANO_MIX_CONTRACT.md)和[实测边界](evidence/2026-10-19-m1-basic-mixing.md)。
+
+
+## 2026-10-19 M2 三段 EQ 增补
+
+0029接IR5/engine-Job5/Plan6/Bundle6并检查历史不安全downgrade。Worker由Revision/Snapshot重编译完整graph/hash后才执行；新v5 recipe区分可信静音/非静音，旧hash不重写。详见[版本合同](PIANO_EQ_CONTRACT.md)和[验收证据](evidence/2026-10-19-m2-three-band-eq.md)。

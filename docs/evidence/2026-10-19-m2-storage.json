@@ -1,0 +1,56 @@
+{
+  "ownContainerAndTmpfsRemoved": true,
+  "generatedCredentialsRemoved": true,
+  "acceptedFilesRehashed": 31,
+  "reclaimedLogicalFileBytes": 45930,
+  "sharedContainersUnchanged": true,
+  "sharedBuilderPruned": false,
+  "userDatabaseMigrated": false,
+  "newDependenciesOrPacks": false,
+  "services": "Owned loopback app/Chromium closed in harness finally; only owned PG removed here.",
+  "buildRationale": "Host source/runtime changes validated with current built Web/Worker + cached real PostgreSQL container; no Dockerfile/system dependency/lockfile change, no unrelated image rebuild or mixed cache prune.",
+  "cache": {
+    "stage": "M2",
+    "closedCaches": [
+      {
+        "name": "m2-final-mypy-cache",
+        "files": 4,
+        "logicalBytes": 34234738
+      },
+      {
+        "name": "motif-m2-audio-mypy",
+        "files": 3,
+        "logicalBytes": 9273568
+      }
+    ],
+    "cacheLogicalBytes": 43508306,
+    "backendAlreadyCleanedLogicalBytes": 34100139,
+    "ownLauncherLogicalBytes": 45930,
+    "totalLogicalBytes": 77654375,
+    "sharedPrune": false,
+    "physicalDockerDiskCompressionClaim": false
+  },
+  "postCleanup": {
+    "status": "passed",
+    "rehashedAudioFiles": 13,
+    "publicExportFileIdentities": 20,
+    "retainedMp3Probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 2
+        }
+      ]
+    },
+    "currentBuiltAssetsExist": [
+      "/assets/index-Dyfi_X2J.js",
+      "/assets/index-BwIeNxkL.css"
+    ],
+    "ownDatabaseAndCredentialsClosed": true,
+    "ownedLoopbackServicesClosedByHarness": true,
+    "scope": "Retained files and current built assets only; no service restart/rebuild/Redis/Celery/Compose/production-readiness claim."
+  }
+}

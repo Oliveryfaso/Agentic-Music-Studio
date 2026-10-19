@@ -156,7 +156,8 @@ class CommandBatchBody(ApiModel):
             raise ValueError("commands must be an array")
         return tuple(
             EDITOR_COMMAND_ADAPTER.validate_json(json.dumps(command, allow_nan=False), strict=True)
-            if isinstance(command, dict) and command.get("command_type") == "set_piano_mix"
+            if isinstance(command, dict)
+            and command.get("command_type") in {"set_piano_mix", "set_piano_eq"}
             else EDITOR_COMMAND_ADAPTER.validate_python(command, strict=False)
             for command in value
         )

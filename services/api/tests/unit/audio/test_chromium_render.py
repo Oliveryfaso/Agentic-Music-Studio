@@ -438,10 +438,17 @@ async def test_client_preserves_explicit_missing_instrument_without_retry(tmp_pa
         (4, 0, True, 0.0, False),
         (4, False, 1, 0.0, False),
         (4, False, True, 0.1, False),
+        (5, False, True, 0.0, True),
+        (5, True, False, 0.0, False),
+        (5, True, True, 0.0, False),
+        (5, False, False, 0.0, False),
+        (5, 0, True, 0.0, False),
+        (5, False, 1, 0.0, False),
+        (5, False, True, 0.1, False),
         (3, False, True, 0.0, False),
     ],
 )
-async def test_expected_silence_receipt_requires_exact_v4_mix(
+async def test_expected_silence_receipt_requires_exact_versioned_mix(
     tmp_path, version, audible, expected_silence, peak, accept
 ):
     import json
@@ -500,14 +507,15 @@ async def test_expected_silence_receipt_requires_exact_v4_mix(
 
 
 @pytest.mark.asyncio
-async def test_expected_silence_rejects_nonzero_pcm_even_when_receipt_says_zero(tmp_path):
+@pytest.mark.parametrize("version", [4, 5])
+async def test_expected_silence_rejects_nonzero_pcm_even_when_receipt_says_zero(tmp_path, version):
     import json
 
     payload = _payload()
     graph = {
         **payload.audio_graph,
-        "schemaVersion": "audio-graph-spec.v4",
-        "engineVersion": "motif-forge-audio-engine.v4",
+        "schemaVersion": f"audio-graph-spec.v{version}",
+        "engineVersion": f"motif-forge-audio-engine.v{version}",
         "expectedSilence": True,
         "tracks": [{**payload.audio_graph["tracks"][0], "audible": False}],
     }
@@ -546,3 +554,34 @@ async def test_expected_silence_rejects_nonzero_pcm_even_when_receipt_says_zero(
             transport=httpx.MockTransport(handler),
             minimum_free_bytes=0,
         ).render(job_id=JOB_ID, payload=payload)
+
+
+@pytest.mark.parametrize(
+    "tamper", ["graph-engine", "payload-engine", "unknown-scope", "muted-scope"]
+)
+def test_v5_adapter_does_not_relax_silence_for_mismatched_version_or_scope(tamper):
+    from motif_forge.audio.chromium_render import _expected_silence
+
+    payload = _payload()
+    audible_id, muted_id = UUID(int=60), UUID(int=61)
+    graph = {
+        **payload.audio_graph,
+        "schemaVersion": "audio-graph-spec.v5",
+        "engineVersion": "motif-forge-audio-engine.v5",
+        "expectedSilence": False,
+        "tracks": [
+            {"trackId": str(audible_id), "audible": True},
+            {"trackId": str(muted_id), "audible": False},
+        ],
+    }
+    updates = {"audio_graph": graph, "audio_engine_version": "motif-forge-audio-engine.v5"}
+    if tamper == "graph-engine":
+        graph["engineVersion"] = "motif-forge-audio-engine.v4"
+    if tamper == "payload-engine":
+        updates["audio_engine_version"] = "motif-forge-audio-engine.v4"
+    if tamper == "unknown-scope":
+        updates["render_track_ids"] = (UUID(int=62),)
+    if tamper == "muted-scope":
+        updates["render_track_ids"] = (muted_id,)
+    with pytest.raises(ChromiumRenderError, match="RENDER_SILENCE_PROFILE_INVALID"):
+        _expected_silence(payload.model_copy(update=updates))

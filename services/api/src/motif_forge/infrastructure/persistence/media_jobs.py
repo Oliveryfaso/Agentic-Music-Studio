@@ -23,6 +23,7 @@ from motif_forge.domain.media_jobs import (
     ArtifactValidationStatus,
     AudioArtifact,
     EnsembleExportBundleArtifactV4,
+    EqExportBundleArtifactV6,
     ExportBundleArtifact,
     ExportBundleArtifactV2,
     ExportBundleArtifactValue,
@@ -1217,11 +1218,14 @@ def _export_bundle_from_row(row: ExportBundleArtifactRow) -> ExportBundleArtifac
         "export-bundle-artifact.v3",
         "export-bundle-artifact.v4",
         "export-bundle-artifact.v5",
+        "export-bundle-artifact.v6",
     }:
         plan = read_export_plan_json(json.dumps(row.export_plan), strict=True)
         values.update(plan=plan, plan_hash=row.plan_hash)
         model = (
-            MixExportBundleArtifactV5
+            EqExportBundleArtifactV6
+            if row.schema_version == "export-bundle-artifact.v6"
+            else MixExportBundleArtifactV5
             if row.schema_version == "export-bundle-artifact.v5"
             else EnsembleExportBundleArtifactV4
             if row.schema_version == "export-bundle-artifact.v4"

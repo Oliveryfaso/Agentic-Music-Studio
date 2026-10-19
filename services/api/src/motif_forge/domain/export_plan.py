@@ -15,8 +15,10 @@ from motif_forge.domain.ir import (
     ArrangementIRV2,
     ArrangementIRV3,
     ArrangementIRV4,
+    ArrangementIRV5,
     DomainModel,
     EnsemblePianoRenderProfile,
+    EqPianoRenderProfile,
     MixPianoRenderProfile,
     NoteClip,
     PianoRenderProfile,
@@ -131,15 +133,21 @@ class MixExportPlanV5(EnsembleExportPlanV4):
     render_profile: MixPianoRenderProfile
 
 
+class EqExportPlanV6(MixExportPlanV5):
+    schema_version: Literal["export-plan.v6"] = "export-plan.v6"  # type: ignore[assignment]
+    engine_version: Literal["motif-forge-audio-engine.v5"] = "motif-forge-audio-engine.v5"  # type: ignore[assignment]
+    render_profile: EqPianoRenderProfile
+
+
 ExportPlanValue = Annotated[
-    ExportPlanV2 | PianoExportPlanV3 | EnsembleExportPlanV4 | MixExportPlanV5,
+    ExportPlanV2 | PianoExportPlanV3 | EnsembleExportPlanV4 | MixExportPlanV5 | EqExportPlanV6,
     Field(discriminator="schema_version"),
 ]
 
 
 def read_export_plan_json(
     value: str | bytes, *, strict: Literal[True] = True
-) -> ExportPlanV2 | PianoExportPlanV3 | EnsembleExportPlanV4 | MixExportPlanV5:
+) -> ExportPlanV2 | PianoExportPlanV3 | EnsembleExportPlanV4 | MixExportPlanV5 | EqExportPlanV6:
     data = json.loads(value)
     version = data.get("schema_version") if isinstance(data, dict) else None
     if version == "export-plan.v2":
@@ -150,6 +158,8 @@ def read_export_plan_json(
         return EnsembleExportPlanV4.model_validate_json(value, strict=strict)
     if version == "export-plan.v5":
         return MixExportPlanV5.model_validate_json(value, strict=strict)
+    if version == "export-plan.v6":
+        return EqExportPlanV6.model_validate_json(value, strict=strict)
     raise ValueError("EXPORT_PLAN_VERSION_UNSUPPORTED")
 
 
@@ -191,7 +201,9 @@ def plan_export(
         request_id=request_id,
     )
     plan = (
-        MixExportPlanV5(**values, render_profile=revision.arrangement_ir.render_profile)
+        EqExportPlanV6(**values, render_profile=revision.arrangement_ir.render_profile)
+        if isinstance(revision.arrangement_ir, ArrangementIRV5)
+        else MixExportPlanV5(**values, render_profile=revision.arrangement_ir.render_profile)
         if isinstance(revision.arrangement_ir, ArrangementIRV4)
         else EnsembleExportPlanV4(**values, render_profile=revision.arrangement_ir.render_profile)
         if isinstance(revision.arrangement_ir, ArrangementIRV3)

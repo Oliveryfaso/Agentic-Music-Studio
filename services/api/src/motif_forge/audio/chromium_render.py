@@ -17,8 +17,10 @@ from motif_forge.audio.atomic_promote import AtomicPromoteError, promote_verifie
 from motif_forge.domain.media_jobs import (
     CandidatePreviewJobPayload,
     CandidatePreviewJobPayloadV4,
+    CandidatePreviewJobPayloadV5,
     CanonicalRenderJobPayload,
     CanonicalRenderJobPayloadV4,
+    CanonicalRenderJobPayloadV5,
 )
 from motif_forge.domain.render_capacity import estimate_render_capacity
 
@@ -27,6 +29,8 @@ RenderPayload = (
     | CandidatePreviewJobPayload
     | CanonicalRenderJobPayloadV4
     | CandidatePreviewJobPayloadV4
+    | CanonicalRenderJobPayloadV5
+    | CandidatePreviewJobPayloadV5
 )
 
 
@@ -92,12 +96,18 @@ def _inspect_pcm24_wav(
 
 def _expected_silence(payload: RenderPayload) -> bool:
     graph = payload.audio_graph
-    if graph.get("schemaVersion") != "audio-graph-spec.v4":
+    schema_version = graph.get("schemaVersion")
+    if schema_version not in ("audio-graph-spec.v4", "audio-graph-spec.v5"):
         return False
+    engine_version = (
+        "motif-forge-audio-engine.v5"
+        if schema_version == "audio-graph-spec.v5"
+        else "motif-forge-audio-engine.v4"
+    )
     tracks = graph.get("tracks")
     if (
-        graph.get("engineVersion") != "motif-forge-audio-engine.v4"
-        or payload.audio_engine_version != "motif-forge-audio-engine.v4"
+        graph.get("engineVersion") != engine_version
+        or payload.audio_engine_version != engine_version
         or type(graph.get("expectedSilence")) is not bool
         or not isinstance(tracks, list)
         or not 1 <= len(tracks) <= 2

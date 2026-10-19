@@ -5,3 +5,4 @@ export * from "./spike-fixture.js";
 export * from "./validation.js";
 export * from "./wav.js";
 export * from "./instruments.js";
+export * from "./piano-eq.js";

@@ -18,7 +18,15 @@
 
 ## 2. 当前产品形态
 
-### 当前验收：M1 双钢琴基础混音（2026-10-19）
+### 当前验收：M2 真实三段 EQ（2026-10-19）
+
+MF-P05/P06/P11/P13/P15/P16/P17/P18/P21。已保存 v4/v5 双钢琴可调三段 ±12dB/总旁路/归零/恢复保存 EQ；IR5+固定 profile、human L0 snapshot 与精确 Undo，原 Track/来源/performance/M1 mix 保留。engine/Job5、Plan6/Bundle6、0029 历史 guard；Worker 重编译完整权威 graph/hash。旧 Tone EQ3 后只为可听非零段增至多3个 native biquad；零/旁路不增节点。无实时/频谱/整页新主题，候选配色未定。
+
+真实 PG1、built UI/正式Worker/Parent export 最终15Jobs，全部三次探针尝试25Jobs/0AIRun；13实际音频，旁路/全零对M1≤1PCM24LSB、Master两Stem和≤2LSB、可信静音真零。生产模块15设置/75频点PCM曲线误差≤1.1e-6dB（有界探针）。Python838/Web115单worker/Audio124/Mypy133/Ruff/两build通过；一次fresh独立审查27领域断言+独立PCM/身份核验，两Minor唯一作者修复与限定UI3复核关闭。迁移JSON绑定反例、手势RED和两次浏览器harness失败保留。旧v4 M1-R1未改写，新v5规则标签正确。
+
+自有PG/凭据/启动器关闭，31保留文件rehash；另13音频/20导出文件与buildassets复核。总精确回收77,654,375逻辑bytes，共享容器身份不变，无prune。产品模型0，既有4调用/7228tokens/公开峰价上界¥0.023852非账单；额度轮询取消，Library本轮未重试。非全曲审美/CPU/RSS/P95/Redis-Celery-Compose验收。见[合同](PIANO_EQ_CONTRACT.md)、[验收](evidence/2026-10-19-m2-three-band-eq.md)、[独立审查](evidence/2026-10-19-m2-review.md)。
+
+### 已验收：M1 双钢琴基础混音（2026-10-19）
 
 MF-P05/P06/P11/P13/P15/P16/P17/P18/P21。独立 piano_mix/IR4 保留原 Track/notes/来源，严格 human L0 命令与原谱锁分离；完整 IR 计算 mute/solo 后选 stem，v4 可信预期静音为真正零 PCM；Job4/engine4、Plan5/Bundle5、0028 历史降级 guard。UI 草稿→保存→显式生成保存版音频，reset/重开/精确 Undo 通过，无实时/EQ/整页改造。
 

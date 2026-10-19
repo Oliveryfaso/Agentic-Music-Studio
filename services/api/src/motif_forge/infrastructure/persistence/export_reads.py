@@ -20,6 +20,7 @@ from motif_forge.application.export_reads import (
 from motif_forge.application.generation import EXPORT_STEPS
 from motif_forge.domain.export_plan import (
     EnsembleExportPlanV4,
+    EqExportPlanV6,
     ExportPlanValue,
     MixExportPlanV5,
     PianoExportPlanV3,
@@ -176,6 +177,7 @@ class PostgresExportProjectionStore:
                     "export-bundle-artifact.v3",
                     "export-bundle-artifact.v4",
                     "export-bundle-artifact.v5",
+                    "export-bundle-artifact.v6",
                 }
                 and plan is None
             ):
@@ -270,6 +272,7 @@ class PostgresExportProjectionStore:
                 "export-bundle-artifact.v3",
                 "export-bundle-artifact.v4",
                 "export-bundle-artifact.v5",
+                "export-bundle-artifact.v6",
             }
             else "export-manifest.v1"
         )
@@ -405,7 +408,9 @@ def _lineage_error_v2(
         or bundle.source_job_id != jobs[-1].id
         or bundle.schema_version
         != (
-            "export-bundle-artifact.v5"
+            "export-bundle-artifact.v6"
+            if isinstance(plan, EqExportPlanV6)
+            else "export-bundle-artifact.v5"
             if isinstance(plan, MixExportPlanV5)
             else "export-bundle-artifact.v4"
             if isinstance(plan, EnsembleExportPlanV4)
@@ -436,6 +441,7 @@ def _public_bundle(row: ExportBundleArtifactRow) -> ExportBundleSummary:
             "export-bundle-artifact.v3",
             "export-bundle-artifact.v4",
             "export-bundle-artifact.v5",
+            "export-bundle-artifact.v6",
         }
         else None,
         plan_hash=row.plan_hash,

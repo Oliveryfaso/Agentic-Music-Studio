@@ -524,3 +524,14 @@ MF-P05/P06/P11/P13/P15/P16/P17/P18/P21；从9e6cf15/Guide clean起步。独立 p
 真实HTTP负例抓到字符串false被旧宽松解析接受，窄严格JSON路径13项RED→GREEN并端到端复验。真实隔离PG/built UI/生产Worker与Parent export19Jobs、17音频；−6dB实测−5.9999994、左右方向/真零静音、同graph/hash试听导出通过。Python792、Web109单worker、Audio77、PG1、Mypy133、两build/Ruff通过；保留默认并行Web2等待超时，不称修复。独立一次63项无阻塞；Minor recipe静音规则标签延后。
 
 模型0；此前4调用7228tokens峰价保守上界0.023852CNY原账不变，非账单。Library支持helper不可用，无ID，停止重试。自有PG/tmpfs/凭据已删、36保留文件rehash，共享容器身份不变；精确回收launcher43,632+专用Mypy缓存43,352,658=43,396,290逻辑bytes，partial0。宿主builtUI/Worker加缓存PG容器验证；无Dockerfile/依赖/lockfile变更，不为形式重建无关镜像或prune混合cache。无用户库迁移/main合并/部署。见[验收](evidence/2026-10-19-m1-basic-mixing.md)、[审查](evidence/2026-10-19-m1-review.md)、[存储](evidence/2026-10-19-m1-storage.json)。
+
+
+## 2026-10-19 M2 双钢琴真实三段 EQ
+
+MF-P05/P06/P11/P13/P15/P16/P17/P18/P21；起点9520a89/Guide clean，至独立复核结束Guide/状态/路线diff仍为空，本次仅同步已验证事实。IR5/piano_eq固定profile、人类L0/完整snapshot/精确Undo，保留source/Track/performance/mix；engine-Job5/Plan6/Bundle6/0029。保留Tone旧链后串0–3nativebiquad，只为可听非零段创建；参数曲线无FFT/AudioContext/RAF，不改主题/全页，不提供实时。
+
+真实PG首RED发现SQLAlchemy紧凑JSON冒号误作bind，migration+metadata分隔空格修复后PG1pass。两交互RED修复一手势提交；后独立审查两Minor（Shift先keyup、未保存M1提前EQ）经唯一作者修复RED2→聚焦13/完整Web115/build/独立UI3关闭。Python838/Audio124/Mypy133/Ruff通过；新唯一head断言更新0029，保留旧断言失败。独立27领域断言/旧v1–v4完整图与recipe hash、伪静音/篡gain权威拒绝及stdlib PCM身份核验，未独立重渲染/MP3解码/PG。
+
+最终builtUI/Worker/Parent export15Jobs；两次harness失败分别1/9Jobs（屏外鼠标坐标、React立即读），三次实际总25Jobs/0AIRun；13实际音频。旁路/zero≤1PCM24LSB、Master两stem≤2LSB、静音真0、同Revision graph/hash；15设置75频点PCM曲线误差1.062153e-6dB。4秒暖小probe33.25/36.60/32.10ms是有界耗时，不是CPU/RSS/P95/整曲审美；MP3 RMS容差0.5dB，实际preview−.446140/export−.000213dB。新v5recipe正确静音标签，旧v4 M1-R1仍延期、不改hash。
+
+产品模型0/新增依赖音源0；旧4调用7228tokens公开峰价上界¥.023852非账单原账不变；用户取消额度轮询，Library不重试。自有PG/tmpfs/凭据/launcher清理，31保留files重核，关闭后13音频/20导出身份和当前buildassets复核；精准逻辑回收77,654,375bytes（backend34,100,139+cache43,508,306+launcher45,930），共享容器身份不变，无prune/用户库迁移/main合并/部署。没有新Dockerfile/lockfile/系统依赖，沿host-first当前built Web/Worker+缓存PG容器验证，不为形式重建无关镜像。见[验收](evidence/2026-10-19-m2-three-band-eq.md)、[审查](evidence/2026-10-19-m2-review.md)、[存储](evidence/2026-10-19-m2-storage.json)。

@@ -1,0 +1,293 @@
+{
+  "status": "signal_checks_passed",
+  "completeBrowserStatus": "passed",
+  "audio": {
+    "m1-baseline.wav": {
+      "bytes": 1152044,
+      "sha256": "de2583d6317d070353435fc8025c97351505fe2e46ee4fab349f2719a1ded4f3",
+      "seconds": 4.0,
+      "codec": "pcm_s24le",
+      "sampleRate": "48000",
+      "channels": 2,
+      "samplePeak": 0.05637025833129883,
+      "rms": 0.009476541339569988,
+      "rmsDbFS": -40.46700277056631,
+      "leftRms": 0.009476541339569988,
+      "rightRms": 0.009476541339569988,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "eq-mid.wav": {
+      "bytes": 1152044,
+      "sha256": "f585ba1adb253ecceaa4fe162bff162ec84c8cc098ca76b43c88ea57f99a0ab0",
+      "seconds": 4.0,
+      "codec": "pcm_s24le",
+      "sampleRate": "48000",
+      "channels": 2,
+      "samplePeak": 0.06492447853088379,
+      "rms": 0.010407857817983633,
+      "rmsDbFS": -39.65277298628318,
+      "leftRms": 0.010407857817983633,
+      "rightRms": 0.010407857817983633,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "eq-audition.mp3": {
+      "bytes": 81165,
+      "sha256": "3f4526fbf0ff85c7a6589953e5f40d94a39e2e5be44ab7ca434e9638842866a1",
+      "seconds": 4.0,
+      "codec": "mp3",
+      "sampleRate": "48000",
+      "channels": 2,
+      "samplePeak": 0.06168510764837265,
+      "rms": 0.00988676806965857,
+      "rmsDbFS": -40.09891307382854,
+      "leftRms": 0.00988676806965857,
+      "rightRms": 0.00988676806965857,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "eq-bypassed.wav": {
+      "bytes": 1152044,
+      "sha256": "144f77f1dfe16e8754ac5f4b8fcab84cb9a65facc3a18122f542a6ac9096213f",
+      "seconds": 4.0,
+      "codec": "pcm_s24le",
+      "sampleRate": "48000",
+      "channels": 2,
+      "samplePeak": 0.05637025833129883,
+      "rms": 0.009476541269379902,
+      "rmsDbFS": -40.46700283490026,
+      "leftRms": 0.009476541269379902,
+      "rightRms": 0.009476541269379902,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "eq-neutral.wav": {
+      "bytes": 1152044,
+      "sha256": "84daecab31b7d4a51e7d243573cb1475665812a405ec3ffb36ede70536f67a9a",
+      "seconds": 4.0,
+      "codec": "pcm_s24le",
+      "sampleRate": "48000",
+      "channels": 2,
+      "samplePeak": 0.05637025833129883,
+      "rms": 0.009476541328501559,
+      "rmsDbFS": -40.46700278071128,
+      "leftRms": 0.009476541328501559,
+      "rightRms": 0.009476541328501559,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "all-muted.wav": {
+      "bytes": 1152044,
+      "sha256": "5fef74d2dcdc7a08b774d6695c3683fbff7150ac3d579356ea49663ae8b428cd",
+      "seconds": 4.0,
+      "codec": "pcm_s24le",
+      "sampleRate": "48000",
+      "channels": 2,
+      "samplePeak": 0.0,
+      "rms": 0.0,
+      "rmsDbFS": null,
+      "leftRms": 0.0,
+      "rightRms": 0.0,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "silent-eq-audition.mp3": {
+      "bytes": 81165,
+      "sha256": "a8cf2b5e01e8a58cf0d7ffcb311013c6bf55f7e7ab39b7cf5568dd45d3974d84",
+      "seconds": 4.0,
+      "codec": "mp3",
+      "sampleRate": "48000",
+      "channels": 2,
+      "samplePeak": 0.0,
+      "rms": 0.0,
+      "rmsDbFS": null,
+      "leftRms": 0.0,
+      "rightRms": 0.0,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "eq-export-master.mp3": {
+      "bytes": 129837,
+      "sha256": "ea7dd263f5f5c1ecabcea8c3f61dcfcd405058c3e50e549fee0a7e432a82e501",
+      "seconds": 4.0,
+      "codec": "mp3",
+      "sampleRate": "48000",
+      "channels": 2,
+      "samplePeak": 0.0649360865354538,
+      "rms": 0.010407602016303934,
+      "rmsDbFS": -39.65298646849082,
+      "leftRms": 0.010407602016303934,
+      "rightRms": 0.010407602016303934,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "eq-export-master.wav": {
+      "bytes": 1152044,
+      "sha256": "028216704850e349fb78a9504dc49bead887c279c5c7c836c0eb7eda2aea024c",
+      "seconds": 4.0,
+      "codec": "pcm_s24le",
+      "sampleRate": "48000",
+      "channels": 2,
+      "samplePeak": 0.06492447853088379,
+      "rms": 0.010407857828545492,
+      "rmsDbFS": -39.65277297746877,
+      "leftRms": 0.010407857828545492,
+      "rightRms": 0.010407857828545492,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "eq-export-stem-00000000-0000-0000-0000-000000000001.wav": {
+      "bytes": 1152044,
+      "sha256": "8bf77db360027a45f6837979a78f460b7b11f93c3b25098636cdbe4b0459d657",
+      "seconds": 4.0,
+      "codec": "pcm_s24le",
+      "sampleRate": "48000",
+      "channels": 2,
+      "samplePeak": 0.035614609718322754,
+      "rms": 0.0072749338764554455,
+      "rmsDbFS": -42.76341899452778,
+      "leftRms": 0.0072749338764554455,
+      "rightRms": 0.0072749338764554455,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "eq-export-stem-00000000-0000-0000-0000-000000000002.wav": {
+      "bytes": 1152044,
+      "sha256": "89ecc755899c44f3922b3652953aa5245ae1cc74f49bf15c8bccea734367f10d",
+      "seconds": 4.0,
+      "codec": "pcm_s24le",
+      "sampleRate": "48000",
+      "channels": 2,
+      "samplePeak": 0.04445922374725342,
+      "rms": 0.008629489185214704,
+      "rmsDbFS": -41.28029822383794,
+      "leftRms": 0.008629489185214704,
+      "rightRms": 0.008629489185214704,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "silent-eq-export-master.mp3": {
+      "bytes": 129837,
+      "sha256": "db6695ae070ce84f552fb556526a707f82c1b240973e1eb28c3fc5148f54b753",
+      "seconds": 4.0,
+      "codec": "mp3",
+      "sampleRate": "48000",
+      "channels": 2,
+      "samplePeak": 0.0,
+      "rms": 0.0,
+      "rmsDbFS": null,
+      "leftRms": 0.0,
+      "rightRms": 0.0,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "silent-eq-export-master.wav": {
+      "bytes": 1152044,
+      "sha256": "5fef74d2dcdc7a08b774d6695c3683fbff7150ac3d579356ea49663ae8b428cd",
+      "seconds": 4.0,
+      "codec": "pcm_s24le",
+      "sampleRate": "48000",
+      "channels": 2,
+      "samplePeak": 0.0,
+      "rms": 0.0,
+      "rmsDbFS": null,
+      "leftRms": 0.0,
+      "rightRms": 0.0,
+      "samplesAtOrAboveFullScale": 0
+    }
+  },
+  "checks": {
+    "bypassEqualsM1WithinOnePcm24Lsb": true,
+    "neutralEqualsM1WithinOnePcm24Lsb": true,
+    "activeEqChangesPianoSignal": true,
+    "masterEqualsTwoStemsWithinTwoLsb": true,
+    "allMutedPcmExactlyZero": true,
+    "previewMp3AndExportRmsDeltaDb": {
+      "eq-audition.mp3": -0.44614008754535917,
+      "eq-export-master.mp3": -0.00021348220764139114
+    },
+    "sameProtectedTracksInExportedProjects": true
+  },
+  "graphs": {
+    "sameRevisionCanonicalPreviewAndExportGraphHash": "89fe98f39eecae6ec83123c3797b69521f29aa24ce98b806b043fc867032a2fa",
+    "sameGraphAndHash": true,
+    "audioEngine": "motif-forge-audio-engine.v5",
+    "baselineRemainsEngine4": true,
+    "expectedSilenceVerifiedAgainstDurableJobs": true
+  },
+  "productionResponseProbe": {
+    "cases": 15,
+    "points": 75,
+    "maxPcmCurveErrorDb": 1.062152792385973e-06,
+    "timings": [
+      {
+        "mode": "m1-legacy",
+        "runs": [
+          {
+            "milliseconds": 39.10000014305115,
+            "extraBiquads": 0
+          },
+          {
+            "milliseconds": 34.299999952316284,
+            "extraBiquads": 0
+          },
+          {
+            "milliseconds": 34.09999990463257,
+            "extraBiquads": 0
+          },
+          {
+            "milliseconds": 32.40000009536743,
+            "extraBiquads": 0
+          },
+          {
+            "milliseconds": 31.799999952316284,
+            "extraBiquads": 0
+          }
+        ],
+        "warmMedianMilliseconds": 33.25
+      },
+      {
+        "mode": "eq-active",
+        "runs": [
+          {
+            "milliseconds": 37.40000009536743,
+            "extraBiquads": 3
+          },
+          {
+            "milliseconds": 36.799999952316284,
+            "extraBiquads": 3
+          },
+          {
+            "milliseconds": 36.09999990463257,
+            "extraBiquads": 3
+          },
+          {
+            "milliseconds": 37.30000019073486,
+            "extraBiquads": 3
+          },
+          {
+            "milliseconds": 36.39999985694885,
+            "extraBiquads": 3
+          }
+        ],
+        "warmMedianMilliseconds": 36.59999990463257
+      },
+      {
+        "mode": "eq-bypassed",
+        "runs": [
+          {
+            "milliseconds": 32.799999952316284,
+            "extraBiquads": 0
+          },
+          {
+            "milliseconds": 32.30000019073486,
+            "extraBiquads": 0
+          },
+          {
+            "milliseconds": 31.699999809265137,
+            "extraBiquads": 0
+          },
+          {
+            "milliseconds": 33.10000014305115,
+            "extraBiquads": 0
+          },
+          {
+            "milliseconds": 31.899999856948853,
+            "extraBiquads": 0
+          }
+        ],
+        "warmMedianMilliseconds": 32.10000002384186
+      }
+    ]
+  },
+  "limits": "Internal 2bar/4second/two-piano fixture plus bounded synthetic response probe. No whole-score quality/subjective judgment/real-time mixing/EQ automation/spectrum/LUFS/truepeak/productionCPU/RSS/P95 claims. MP3 is lossy."
+}

@@ -1,0 +1,772 @@
+{
+  "status": "passed",
+  "profile": {
+    "schema_version": "three-band-eq-profile.v1",
+    "profile_id": "motif-three-band-static.v1",
+    "sample_rate_hz": 48000,
+    "low_frequency_hz": 180,
+    "mid_frequency_hz": 1000,
+    "mid_q": 0.8,
+    "high_frequency_hz": 6000,
+    "shelf_slope": 1
+  },
+  "cases": [
+    {
+      "label": "neutral",
+      "settings": {
+        "schema_version": "piano-eq.v1",
+        "profile_id": "motif-three-band-static.v1",
+        "bypass": false,
+        "low_gain_db": 0,
+        "mid_gain_db": 0,
+        "high_gain_db": 0
+      },
+      "biquads": 0,
+      "maxDifferenceToNeutral": 0,
+      "response": [
+        {
+          "frequencyHz": 60,
+          "nativeDb": 0,
+          "curveDb": 0,
+          "pcmDb": 1.8999835486632072e-9
+        },
+        {
+          "frequencyHz": 180,
+          "nativeDb": 0,
+          "curveDb": 0,
+          "pcmDb": -7.537552819270698e-9
+        },
+        {
+          "frequencyHz": 1000,
+          "nativeDb": 0,
+          "curveDb": 0,
+          "pcmDb": -3.8951822932720435e-8
+        },
+        {
+          "frequencyHz": 6000,
+          "nativeDb": 0,
+          "curveDb": 0,
+          "pcmDb": 3.990666710646061e-9
+        },
+        {
+          "frequencyHz": 12000,
+          "nativeDb": 0,
+          "curveDb": 0,
+          "pcmDb": -1.7022096304235434e-8
+        }
+      ]
+    },
+    {
+      "label": "bypassed",
+      "settings": {
+        "schema_version": "piano-eq.v1",
+        "profile_id": "motif-three-band-static.v1",
+        "bypass": true,
+        "low_gain_db": 6,
+        "mid_gain_db": -3,
+        "high_gain_db": 2
+      },
+      "biquads": 0,
+      "maxDifferenceToNeutral": 0,
+      "response": [
+        {
+          "frequencyHz": 60,
+          "nativeDb": 0,
+          "curveDb": 0,
+          "pcmDb": 1.8999835486632072e-9
+        },
+        {
+          "frequencyHz": 180,
+          "nativeDb": 0,
+          "curveDb": 0,
+          "pcmDb": -7.537552819270698e-9
+        },
+        {
+          "frequencyHz": 1000,
+          "nativeDb": 0,
+          "curveDb": 0,
+          "pcmDb": -3.8951822932720435e-8
+        },
+        {
+          "frequencyHz": 6000,
+          "nativeDb": 0,
+          "curveDb": 0,
+          "pcmDb": 3.990666710646061e-9
+        },
+        {
+          "frequencyHz": 12000,
+          "nativeDb": 0,
+          "curveDb": 0,
+          "pcmDb": -1.7022096304235434e-8
+        }
+      ]
+    },
+    {
+      "label": "low:-12",
+      "settings": {
+        "schema_version": "piano-eq.v1",
+        "profile_id": "motif-three-band-static.v1",
+        "bypass": false,
+        "low_gain_db": -12,
+        "mid_gain_db": 0,
+        "high_gain_db": 0
+      },
+      "biquads": 1,
+      "maxDifferenceToNeutral": 0.014703020613524131,
+      "response": [
+        {
+          "frequencyHz": 60,
+          "nativeDb": -11.805105437774886,
+          "curveDb": -11.805106450393101,
+          "pcmDb": -11.805105388240309
+        },
+        {
+          "frequencyHz": 180,
+          "nativeDb": -5.999999457689846,
+          "curveDb": -6.000000000002213,
+          "pcmDb": -5.999999441235229
+        },
+        {
+          "frequencyHz": 1000,
+          "nativeDb": -0.01687383985528543,
+          "curveDb": -0.01687365258867479,
+          "pcmDb": -0.016873695361331043
+        },
+        {
+          "frequencyHz": 6000,
+          "nativeDb": -0.000010354393500402945,
+          "curveDb": -0.000010601970712265812,
+          "pcmDb": -0.000010584983911621935
+        },
+        {
+          "frequencyHz": 12000,
+          "nativeDb": -5.177193818643528e-7,
+          "curveDb": -3.120932981853825e-7,
+          "pcmDb": -3.2855873578264864e-7
+        }
+      ]
+    },
+    {
+      "label": "low:-6",
+      "settings": {
+        "schema_version": "piano-eq.v1",
+        "profile_id": "motif-three-band-static.v1",
+        "bypass": false,
+        "low_gain_db": -6,
+        "mid_gain_db": 0,
+        "high_gain_db": 0
+      },
+      "biquads": 1,
+      "maxDifferenceToNeutral": 0.009067351464182138,
+      "response": [
+        {
+          "frequencyHz": 60,
+          "nativeDb": -5.921119401494738,
+          "curveDb": -5.921119113492631,
+          "pcmDb": -5.921119565445715
+        },
+        {
+          "frequencyHz": 180,
+          "nativeDb": -3.0000002493010487,
+          "curveDb": -2.9999999999994174,
+          "pcmDb": -3.0000002564783617
+        },
+        {
+          "frequencyHz": 1000,
+          "nativeDb": -0.006765084204238739,
+          "curveDb": -0.0067651691626180845,
+          "pcmDb": -0.006765205393100278
+        },
+        {
+          "frequencyHz": 6000,
+          "nativeDb": -0.000004141755918952541,
+          "curveDb": -0.000004246821944884111,
+          "pcmDb": -0.000004230432789360125
+        },
+        {
+          "frequencyHz": 12000,
+          "nativeDb": 0,
+          "curveDb": -1.2501486537879843e-7,
+          "pcmDb": -1.3643699610319337e-7
+        }
+      ]
+    },
+    {
+      "label": "low:6",
+      "settings": {
+        "schema_version": "piano-eq.v1",
+        "profile_id": "motif-three-band-static.v1",
+        "bypass": false,
+        "low_gain_db": 6,
+        "mid_gain_db": 0,
+        "high_gain_db": 0
+      },
+      "biquads": 1,
+      "maxDifferenceToNeutral": 0.0139964884147048,
+      "response": [
+        {
+          "frequencyHz": 60,
+          "nativeDb": 5.921119528858048,
+          "curveDb": 5.9211191134879755,
+          "pcmDb": 5.921119479815211
+        },
+        {
+          "frequencyHz": 180,
+          "nativeDb": 3.000000185367711,
+          "curveDb": 3.0000000000008042,
+          "pcmDb": 3.0000001837148735
+        },
+        {
+          "frequencyHz": 1000,
+          "nativeDb": 0.006764992421740939,
+          "curveDb": 0.00676516916281061,
+          "pcmDb": 0.006765157183411854
+        },
+        {
+          "frequencyHz": 6000,
+          "nativeDb": 0.0000041417539440098905,
+          "curveDb": 0.00000424682194686243,
+          "pcmDb": 0.000004254837300355354
+        },
+        {
+          "frequencyHz": 12000,
+          "nativeDb": 0,
+          "curveDb": 1.2501486515529957e-7,
+          "pcmDb": 6.959736449105537e-8
+        }
+      ]
+    },
+    {
+      "label": "low:12",
+      "settings": {
+        "schema_version": "piano-eq.v1",
+        "profile_id": "motif-three-band-static.v1",
+        "bypass": false,
+        "low_gain_db": 12,
+        "mid_gain_db": 0,
+        "high_gain_db": 0
+      },
+      "biquads": 1,
+      "maxDifferenceToNeutral": 0.035489780362695456,
+      "response": [
+        {
+          "frequencyHz": 60,
+          "nativeDb": 11.805105851561837,
+          "curveDb": 11.805106450403418,
+          "pcmDb": 11.805106030864321
+        },
+        {
+          "frequencyHz": 180,
+          "nativeDb": 5.999999783366708,
+          "curveDb": 5.999999999999092,
+          "pcmDb": 5.999999772890627
+        },
+        {
+          "frequencyHz": 1000,
+          "nativeDb": 0.0168736761369817,
+          "curveDb": 0.016873652588722334,
+          "pcmDb": 0.016873604364538726
+        },
+        {
+          "frequencyHz": 6000,
+          "nativeDb": 0.000010354381157011374,
+          "curveDb": 0.000010601970710937207,
+          "pcmDb": 0.000010592169440982844
+        },
+        {
+          "frequencyHz": 12000,
+          "nativeDb": 0,
+          "curveDb": 3.1209329841938643e-7,
+          "pcmDb": 2.821707155697782e-7
+        }
+      ]
+    },
+    {
+      "label": "mid:-12",
+      "settings": {
+        "schema_version": "piano-eq.v1",
+        "profile_id": "motif-three-band-static.v1",
+        "bypass": false,
+        "low_gain_db": 0,
+        "mid_gain_db": -12,
+        "high_gain_db": 0
+      },
+      "biquads": 1,
+      "maxDifferenceToNeutral": 0.01453927019611001,
+      "response": [
+        {
+          "frequencyHz": 60,
+          "nativeDb": -0.09043637689550395,
+          "curveDb": -0.09043637186262042,
+          "pcmDb": -0.09043636804849388
+        },
+        {
+          "frequencyHz": 180,
+          "nativeDb": -0.7860232568335124,
+          "curveDb": -0.786023552048618,
+          "pcmDb": -0.7860234428940928
+        },
+        {
+          "frequencyHz": 1000,
+          "nativeDb": -11.999999222748059,
+          "curveDb": -11.999999999999986,
+          "pcmDb": -11.999998969644656
+        },
+        {
+          "frequencyHz": 6000,
+          "nativeDb": -0.6143136947349521,
+          "curveDb": -0.6143138074522996,
+          "pcmDb": -0.6143137074301652
+        },
+        {
+          "frequencyHz": 12000,
+          "nativeDb": -0.10812912323868629,
+          "curveDb": -0.10812898827062786,
+          "pcmDb": -0.10812898389918517
+        }
+      ]
+    },
+    {
+      "label": "mid:-6",
+      "settings": {
+        "schema_version": "piano-eq.v1",
+        "profile_id": "motif-three-band-static.v1",
+        "bypass": false,
+        "low_gain_db": 0,
+        "mid_gain_db": -6,
+        "high_gain_db": 0
+      },
+      "biquads": 1,
+      "maxDifferenceToNeutral": 0.008291085716336966,
+      "response": [
+        {
+          "frequencyHz": 60,
+          "nativeDb": -0.03640143201256081,
+          "curveDb": -0.036401274223359245,
+          "pcmDb": -0.036401282971116895
+        },
+        {
+          "frequencyHz": 180,
+          "nativeDb": -0.32792156565684283,
+          "curveDb": -0.32792165128983836,
+          "pcmDb": -0.32792168573312735
+        },
+        {
+          "frequencyHz": 1000,
+          "nativeDb": -6.0000004906757844,
+          "curveDb": -6.000000000000007,
+          "pcmDb": -6.000000555237484
+        },
+        {
+          "frequencyHz": 6000,
+          "nativeDb": -0.2540846315059537,
+          "curveDb": -0.25408465925119345,
+          "pcmDb": -0.25408467397104695
+        },
+        {
+          "frequencyHz": 12000,
+          "nativeDb": -0.04356383922470333,
+          "curveDb": -0.043563602789176314,
+          "pcmDb": -0.043563631942040264
+        }
+      ]
+    },
+    {
+      "label": "mid:6",
+      "settings": {
+        "schema_version": "piano-eq.v1",
+        "profile_id": "motif-three-band-static.v1",
+        "bypass": false,
+        "low_gain_db": 0,
+        "mid_gain_db": 6,
+        "high_gain_db": 0
+      },
+      "biquads": 1,
+      "maxDifferenceToNeutral": 0.013101808726787567,
+      "response": [
+        {
+          "frequencyHz": 60,
+          "nativeDb": 0.03640108906351574,
+          "curveDb": 0.03640127422335917,
+          "pcmDb": 0.036401259682687676
+        },
+        {
+          "frequencyHz": 180,
+          "nativeDb": 0.32792122420110126,
+          "curveDb": 0.32792165128983863,
+          "pcmDb": 0.3279216584674907
+        },
+        {
+          "frequencyHz": 1000,
+          "nativeDb": 6.00000030231538,
+          "curveDb": 6.000000000000007,
+          "pcmDb": 6.000000321327654
+        },
+        {
+          "frequencyHz": 6000,
+          "nativeDb": 0.2540848792365846,
+          "curveDb": 0.2540846592511934,
+          "pcmDb": 0.2540846474344926
+        },
+        {
+          "frequencyHz": 12000,
+          "nativeDb": 0.043563308060034514,
+          "curveDb": 0.043563602789176537,
+          "pcmDb": 0.043563565695032974
+        }
+      ]
+    },
+    {
+      "label": "mid:12",
+      "settings": {
+        "schema_version": "piano-eq.v1",
+        "profile_id": "motif-three-band-static.v1",
+        "bypass": false,
+        "low_gain_db": 0,
+        "mid_gain_db": 12,
+        "high_gain_db": 0
+      },
+      "biquads": 1,
+      "maxDifferenceToNeutral": 0.036373529583215714,
+      "response": [
+        {
+          "frequencyHz": 60,
+          "nativeDb": 0.09043597436959569,
+          "curveDb": 0.09043637186267581,
+          "pcmDb": 0.0904363498014099
+        },
+        {
+          "frequencyHz": 180,
+          "nativeDb": 0.7860232636162059,
+          "curveDb": 0.7860235520486659,
+          "pcmDb": 0.7860234267227042
+        },
+        {
+          "frequencyHz": 1000,
+          "nativeDb": 11.999999490840596,
+          "curveDb": 11.999999999999984,
+          "pcmDb": 11.999999513433563
+        },
+        {
+          "frequencyHz": 6000,
+          "nativeDb": 0.6143136050794675,
+          "curveDb": 0.6143138074522981,
+          "pcmDb": 0.614313736345363
+        },
+        {
+          "frequencyHz": 12000,
+          "nativeDb": 0.10812909597694818,
+          "curveDb": 0.10812898827062697,
+          "pcmDb": 0.10812893128908103
+        }
+      ]
+    },
+    {
+      "label": "high:-12",
+      "settings": {
+        "schema_version": "piano-eq.v1",
+        "profile_id": "motif-three-band-static.v1",
+        "bypass": false,
+        "low_gain_db": 0,
+        "mid_gain_db": 0,
+        "high_gain_db": -12
+      },
+      "biquads": 1,
+      "maxDifferenceToNeutral": 0.01740641286596656,
+      "response": [
+        {
+          "frequencyHz": 60,
+          "nativeDb": 0,
+          "curveDb": -1.3086718234835194e-7,
+          "pcmDb": -1.2197655258326802e-7
+        },
+        {
+          "frequencyHz": 180,
+          "nativeDb": -0.000010354393500402945,
+          "curveDb": -0.000010601970711783647,
+          "pcmDb": -0.000010598084515845654
+        },
+        {
+          "frequencyHz": 1000,
+          "nativeDb": -0.010141828358874326,
+          "curveDb": -0.010142014165031094,
+          "pcmDb": -0.010142034050557988
+        },
+        {
+          "frequencyHz": 6000,
+          "nativeDb": -5.999999457689846,
+          "curveDb": -6.000000000000001,
+          "pcmDb": -5.999999446806228
+        },
+        {
+          "frequencyHz": 12000,
+          "nativeDb": -11.550716547412126,
+          "curveDb": -11.550717476891402,
+          "pcmDb": -11.550716475073965
+        }
+      ]
+    },
+    {
+      "label": "high:-6",
+      "settings": {
+        "schema_version": "piano-eq.v1",
+        "profile_id": "motif-three-band-static.v1",
+        "bypass": false,
+        "low_gain_db": 0,
+        "mid_gain_db": 0,
+        "high_gain_db": -6
+      },
+      "biquads": 1,
+      "maxDifferenceToNeutral": 0.010948821436613798,
+      "response": [
+        {
+          "frequencyHz": 60,
+          "nativeDb": 0,
+          "curveDb": -5.242132307978086e-8,
+          "pcmDb": -5.04430403101979e-8
+        },
+        {
+          "frequencyHz": 180,
+          "nativeDb": -0.000004141755918952541,
+          "curveDb": -0.0000042468219521165735,
+          "pcmDb": -0.000004242325489968731
+        },
+        {
+          "frequencyHz": 1000,
+          "nativeDb": -0.00406453014980555,
+          "curveDb": -0.004064782495497122,
+          "pcmDb": -0.004064805447203736
+        },
+        {
+          "frequencyHz": 6000,
+          "nativeDb": -3.0000002493010487,
+          "curveDb": -3.0000000000000004,
+          "pcmDb": -3.000000229793277
+        },
+        {
+          "frequencyHz": 12000,
+          "nativeDb": -5.8157339641263,
+          "curveDb": -5.815733036696745,
+          "pcmDb": -5.8157335318780214
+        }
+      ]
+    },
+    {
+      "label": "high:6",
+      "settings": {
+        "schema_version": "piano-eq.v1",
+        "profile_id": "motif-three-band-static.v1",
+        "bypass": false,
+        "low_gain_db": 0,
+        "mid_gain_db": 0,
+        "high_gain_db": 6
+      },
+      "biquads": 1,
+      "maxDifferenceToNeutral": 0.016389228403568268,
+      "response": [
+        {
+          "frequencyHz": 60,
+          "nativeDb": 0,
+          "curveDb": 5.242131617890315e-8,
+          "pcmDb": 4.695178309095088e-8
+        },
+        {
+          "frequencyHz": 180,
+          "nativeDb": 0.0000041417539440098905,
+          "curveDb": 0.00000424682194686243,
+          "pcmDb": 0.000004233380332321751
+        },
+        {
+          "frequencyHz": 1000,
+          "nativeDb": 0.004065216443399022,
+          "curveDb": 0.0040647824954904085,
+          "pcmDb": 0.004064736128291376
+        },
+        {
+          "frequencyHz": 6000,
+          "nativeDb": 3.000000185367711,
+          "curveDb": 2.999999999999998,
+          "pcmDb": 3.0000001762421675
+        },
+        {
+          "frequencyHz": 12000,
+          "nativeDb": 5.815733625682223,
+          "curveDb": 5.815733036696745,
+          "pcmDb": 5.815733368062297
+        }
+      ]
+    },
+    {
+      "label": "high:12",
+      "settings": {
+        "schema_version": "piano-eq.v1",
+        "profile_id": "motif-three-band-static.v1",
+        "bypass": false,
+        "low_gain_db": 0,
+        "mid_gain_db": 0,
+        "high_gain_db": 12
+      },
+      "biquads": 1,
+      "maxDifferenceToNeutral": 0.038301799446344376,
+      "response": [
+        {
+          "frequencyHz": 60,
+          "nativeDb": 0,
+          "curveDb": 1.3086718226220403e-7,
+          "pcmDb": 1.298434580465766e-7
+        },
+        {
+          "frequencyHz": 180,
+          "nativeDb": 0.000010354381157011374,
+          "curveDb": 0.000010601970712865857,
+          "pcmDb": 0.00001051192121540752
+        },
+        {
+          "frequencyHz": 1000,
+          "nativeDb": 0.010142411128265095,
+          "curveDb": 0.010142014165029422,
+          "pcmDb": 0.010141999973143204
+        },
+        {
+          "frequencyHz": 6000,
+          "nativeDb": 5.999999783366708,
+          "curveDb": 5.999999999999997,
+          "pcmDb": 5.999999785305944
+        },
+        {
+          "frequencyHz": 12000,
+          "nativeDb": 11.550716831037954,
+          "curveDb": 11.5507174768914,
+          "pcmDb": 11.550717041137485
+        }
+      ]
+    },
+    {
+      "label": "combined",
+      "settings": {
+        "schema_version": "piano-eq.v1",
+        "profile_id": "motif-three-band-static.v1",
+        "bypass": false,
+        "low_gain_db": 3,
+        "mid_gain_db": -2.5,
+        "high_gain_db": 2
+      },
+      "biquads": 3,
+      "maxDifferenceToNeutral": 0.013163279742002487,
+      "response": [
+        {
+          "frequencyHz": 60,
+          "nativeDb": 2.9484798469066593,
+          "curveDb": 2.948480354371145,
+          "pcmDb": 2.94847983485023
+        },
+        {
+          "frequencyHz": 180,
+          "nativeDb": 1.3706069726082017,
+          "curveDb": 1.370607548107749,
+          "pcmDb": 1.3706072463657828
+        },
+        {
+          "frequencyHz": 1000,
+          "nativeDb": -2.4955459633746497,
+          "curveDb": -2.4955448258633943,
+          "pcmDb": -2.4955454739075886
+        },
+        {
+          "frequencyHz": 6000,
+          "nativeDb": 0.8999644866279657,
+          "curveDb": 0.8999646388272848,
+          "pcmDb": 0.8999646266054069
+        },
+        {
+          "frequencyHz": 12000,
+          "nativeDb": 1.9253042964484848,
+          "curveDb": 1.925304783504426,
+          "pcmDb": 1.9253047813174167
+        }
+      ]
+    }
+  ],
+  "timings": [
+    {
+      "mode": "m1-legacy",
+      "runs": [
+        {
+          "milliseconds": 39.10000014305115,
+          "extraBiquads": 0
+        },
+        {
+          "milliseconds": 34.299999952316284,
+          "extraBiquads": 0
+        },
+        {
+          "milliseconds": 34.09999990463257,
+          "extraBiquads": 0
+        },
+        {
+          "milliseconds": 32.40000009536743,
+          "extraBiquads": 0
+        },
+        {
+          "milliseconds": 31.799999952316284,
+          "extraBiquads": 0
+        }
+      ],
+      "warmMedianMilliseconds": 33.25
+    },
+    {
+      "mode": "eq-active",
+      "runs": [
+        {
+          "milliseconds": 37.40000009536743,
+          "extraBiquads": 3
+        },
+        {
+          "milliseconds": 36.799999952316284,
+          "extraBiquads": 3
+        },
+        {
+          "milliseconds": 36.09999990463257,
+          "extraBiquads": 3
+        },
+        {
+          "milliseconds": 37.30000019073486,
+          "extraBiquads": 3
+        },
+        {
+          "milliseconds": 36.39999985694885,
+          "extraBiquads": 3
+        }
+      ],
+      "warmMedianMilliseconds": 36.59999990463257
+    },
+    {
+      "mode": "eq-bypassed",
+      "runs": [
+        {
+          "milliseconds": 32.799999952316284,
+          "extraBiquads": 0
+        },
+        {
+          "milliseconds": 32.30000019073486,
+          "extraBiquads": 0
+        },
+        {
+          "milliseconds": 31.699999809265137,
+          "extraBiquads": 0
+        },
+        {
+          "milliseconds": 33.10000014305115,
+          "extraBiquads": 0
+        },
+        {
+          "milliseconds": 31.899999856948853,
+          "extraBiquads": 0
+        }
+      ],
+      "warmMedianMilliseconds": 32.10000002384186
+    }
+  ],
+  "source": "Production piano-eq.ts; actual 2-second PCM, 1-second steady-state frequency bins, native getFrequencyResponse oracle; shared curve function.",
+  "limits": "Single host Chromium and bounded synthetic signals. Timing is not CPU/RSS/P95 or whole-score latency. Does not replace production Job/UI/PG verification."
+}

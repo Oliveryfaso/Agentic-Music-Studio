@@ -1,0 +1,1612 @@
+{
+  "isolatedDatabaseOnly": true,
+  "migrationHead": "20261019_0029",
+  "allAttemptsJobCount": 25,
+  "allAttemptsAIRunCount": 0,
+  "finalProjectJobCount": 15,
+  "plans": [
+    {
+      "version": "export-plan.v6",
+      "count": 3
+    }
+  ],
+  "bundles": [
+    {
+      "schema_version": "export-bundle-artifact.v6",
+      "engine_version": "motif-forge-audio-engine.v5",
+      "count": 3
+    }
+  ],
+  "finalJobs": [
+    {
+      "jobId": "90b30f25-b35d-4746-be23-7c55dc2f0c4d",
+      "requestSchema": "candidate-preview-job.v5",
+      "revisionId": null,
+      "candidateSnapshotId": "9871b8e9-7516-44d1-85d5-337cd6c6427f",
+      "arrangementHash": null,
+      "graphHash": "89fe98f39eecae6ec83123c3797b69521f29aa24ce98b806b043fc867032a2fa",
+      "engine": "motif-forge-audio-engine.v5",
+      "scope": "master",
+      "graph": {
+        "tracks": [
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": false,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 6.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u539f\u65cb\u5f8b\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 72,
+                "noteId": "0c09ee17-6b66-556a-a7df-304e08a288ac",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 72,
+                "noteId": "9a9df06a-10ba-5f87-8e2b-87c9da62de7e",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 72,
+                "noteId": "91b75ca8-3994-5358-a0b1-f299d68f18f1",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 72,
+                "noteId": "1d2a85f9-4efe-54c8-bc52-06fa7d791a4a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -12.0,
+            "audible": true,
+            "trackId": "00000000-0000-0000-0000-000000000001",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          },
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": false,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 0.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u65b0\u589e\u4f34\u594f\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 48,
+                "noteId": "6eab4ba7-54f1-5bc4-8925-c4c7421d527f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 48,
+                "noteId": "98cda81d-fdd5-5b6a-8dd4-54e67e9d245a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 48,
+                "noteId": "62a6c307-5ef8-52c7-b9ab-90580107a75f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 48,
+                "noteId": "a4106fa8-b1e9-5470-b705-f859b68292c4",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -10.0,
+            "audible": true,
+            "trackId": "00000000-0000-0000-0000-000000000002",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          }
+        ],
+        "channels": 2,
+        "eqProfile": {
+          "mid_q": 0.8,
+          "profile_id": "motif-three-band-static.v1",
+          "shelf_slope": 1.0,
+          "sample_rate_hz": 48000,
+          "schema_version": "three-band-eq-profile.v1",
+          "low_frequency_hz": 180,
+          "mid_frequency_hz": 1000,
+          "high_frequency_hz": 6000
+        },
+        "sampleRate": 48000,
+        "masterGainDb": -5.0,
+        "engineVersion": "motif-forge-audio-engine.v5",
+        "schemaVersion": "audio-graph-spec.v5",
+        "durationSeconds": 4.0,
+        "expectedSilence": false,
+        "reverbDecaySeconds": 2.4
+      }
+    },
+    {
+      "jobId": "7ba92f21-bd79-467d-a0d5-bcaed5e98b9f",
+      "requestSchema": "canonical-render-job.v5",
+      "revisionId": "1727ac9a-13a4-487c-a6e9-682cae14c2a3",
+      "candidateSnapshotId": null,
+      "arrangementHash": "4f531d0f03804c4ac88312b1e15146499b68a79bbb47133aed2eaa4ac79b8e59",
+      "graphHash": "89fe98f39eecae6ec83123c3797b69521f29aa24ce98b806b043fc867032a2fa",
+      "engine": "motif-forge-audio-engine.v5",
+      "scope": "master",
+      "graph": {
+        "tracks": [
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": false,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 6.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u539f\u65cb\u5f8b\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 72,
+                "noteId": "0c09ee17-6b66-556a-a7df-304e08a288ac",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 72,
+                "noteId": "9a9df06a-10ba-5f87-8e2b-87c9da62de7e",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 72,
+                "noteId": "91b75ca8-3994-5358-a0b1-f299d68f18f1",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 72,
+                "noteId": "1d2a85f9-4efe-54c8-bc52-06fa7d791a4a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -12.0,
+            "audible": true,
+            "trackId": "00000000-0000-0000-0000-000000000001",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          },
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": false,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 0.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u65b0\u589e\u4f34\u594f\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 48,
+                "noteId": "6eab4ba7-54f1-5bc4-8925-c4c7421d527f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 48,
+                "noteId": "98cda81d-fdd5-5b6a-8dd4-54e67e9d245a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 48,
+                "noteId": "62a6c307-5ef8-52c7-b9ab-90580107a75f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 48,
+                "noteId": "a4106fa8-b1e9-5470-b705-f859b68292c4",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -10.0,
+            "audible": true,
+            "trackId": "00000000-0000-0000-0000-000000000002",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          }
+        ],
+        "channels": 2,
+        "eqProfile": {
+          "mid_q": 0.8,
+          "profile_id": "motif-three-band-static.v1",
+          "shelf_slope": 1.0,
+          "sample_rate_hz": 48000,
+          "schema_version": "three-band-eq-profile.v1",
+          "low_frequency_hz": 180,
+          "mid_frequency_hz": 1000,
+          "high_frequency_hz": 6000
+        },
+        "sampleRate": 48000,
+        "masterGainDb": -5.0,
+        "engineVersion": "motif-forge-audio-engine.v5",
+        "schemaVersion": "audio-graph-spec.v5",
+        "durationSeconds": 4.0,
+        "expectedSilence": false,
+        "reverbDecaySeconds": 2.4
+      }
+    },
+    {
+      "jobId": "fb77a905-fa40-449e-86f0-882b0a4d82ca",
+      "requestSchema": "canonical-render-job.v5",
+      "revisionId": "f721f15d-8c7b-4ed8-96f2-5a4551f4fda1",
+      "candidateSnapshotId": null,
+      "arrangementHash": "fced9a7f71b880517a6cd7ceb6b98c4b3b5f9059b14f6aba31c1b1aa3eb4b72f",
+      "graphHash": "b2ab5feb9543d231616bfcce153a8cf2f09301e7188d712f1f43e7bb23b1e856",
+      "engine": "motif-forge-audio-engine.v5",
+      "scope": "master",
+      "graph": {
+        "tracks": [
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": true,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 6.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u539f\u65cb\u5f8b\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 72,
+                "noteId": "0c09ee17-6b66-556a-a7df-304e08a288ac",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 72,
+                "noteId": "9a9df06a-10ba-5f87-8e2b-87c9da62de7e",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 72,
+                "noteId": "91b75ca8-3994-5358-a0b1-f299d68f18f1",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 72,
+                "noteId": "1d2a85f9-4efe-54c8-bc52-06fa7d791a4a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -12.0,
+            "audible": true,
+            "trackId": "00000000-0000-0000-0000-000000000001",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          },
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": false,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 0.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u65b0\u589e\u4f34\u594f\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 48,
+                "noteId": "6eab4ba7-54f1-5bc4-8925-c4c7421d527f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 48,
+                "noteId": "98cda81d-fdd5-5b6a-8dd4-54e67e9d245a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 48,
+                "noteId": "62a6c307-5ef8-52c7-b9ab-90580107a75f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 48,
+                "noteId": "a4106fa8-b1e9-5470-b705-f859b68292c4",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -10.0,
+            "audible": true,
+            "trackId": "00000000-0000-0000-0000-000000000002",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          }
+        ],
+        "channels": 2,
+        "eqProfile": {
+          "mid_q": 0.8,
+          "profile_id": "motif-three-band-static.v1",
+          "shelf_slope": 1.0,
+          "sample_rate_hz": 48000,
+          "schema_version": "three-band-eq-profile.v1",
+          "low_frequency_hz": 180,
+          "mid_frequency_hz": 1000,
+          "high_frequency_hz": 6000
+        },
+        "sampleRate": 48000,
+        "masterGainDb": -5.0,
+        "engineVersion": "motif-forge-audio-engine.v5",
+        "schemaVersion": "audio-graph-spec.v5",
+        "durationSeconds": 4.0,
+        "expectedSilence": false,
+        "reverbDecaySeconds": 2.4
+      }
+    },
+    {
+      "jobId": "9991b258-8c1f-4a00-bdd3-a41a6099e56f",
+      "requestSchema": "canonical-render-job.v5",
+      "revisionId": "6e9d5c99-a1da-448a-9439-0b442b078305",
+      "candidateSnapshotId": null,
+      "arrangementHash": "7733f331efac0d795152a7d7ea1ac3b89da6a5e3a5a74cf33da24e6e256fd2cc",
+      "graphHash": "66537b4ba424e4f6aab1c637fb9b0cc211bfea8400c3920f6ca495064f283301",
+      "engine": "motif-forge-audio-engine.v5",
+      "scope": "master",
+      "graph": {
+        "tracks": [
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": false,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 0.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u539f\u65cb\u5f8b\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 72,
+                "noteId": "0c09ee17-6b66-556a-a7df-304e08a288ac",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 72,
+                "noteId": "9a9df06a-10ba-5f87-8e2b-87c9da62de7e",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 72,
+                "noteId": "91b75ca8-3994-5358-a0b1-f299d68f18f1",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 72,
+                "noteId": "1d2a85f9-4efe-54c8-bc52-06fa7d791a4a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -12.0,
+            "audible": true,
+            "trackId": "00000000-0000-0000-0000-000000000001",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          },
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": false,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 0.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u65b0\u589e\u4f34\u594f\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 48,
+                "noteId": "6eab4ba7-54f1-5bc4-8925-c4c7421d527f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 48,
+                "noteId": "98cda81d-fdd5-5b6a-8dd4-54e67e9d245a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 48,
+                "noteId": "62a6c307-5ef8-52c7-b9ab-90580107a75f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 48,
+                "noteId": "a4106fa8-b1e9-5470-b705-f859b68292c4",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -10.0,
+            "audible": true,
+            "trackId": "00000000-0000-0000-0000-000000000002",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          }
+        ],
+        "channels": 2,
+        "eqProfile": {
+          "mid_q": 0.8,
+          "profile_id": "motif-three-band-static.v1",
+          "shelf_slope": 1.0,
+          "sample_rate_hz": 48000,
+          "schema_version": "three-band-eq-profile.v1",
+          "low_frequency_hz": 180,
+          "mid_frequency_hz": 1000,
+          "high_frequency_hz": 6000
+        },
+        "sampleRate": 48000,
+        "masterGainDb": -5.0,
+        "engineVersion": "motif-forge-audio-engine.v5",
+        "schemaVersion": "audio-graph-spec.v5",
+        "durationSeconds": 4.0,
+        "expectedSilence": false,
+        "reverbDecaySeconds": 2.4
+      }
+    },
+    {
+      "jobId": "262507df-5f1e-4f07-acff-31788b5ff6c7",
+      "requestSchema": "canonical-render-job.v5",
+      "revisionId": "802370a6-8e49-4a43-8711-4cf0367d226c",
+      "candidateSnapshotId": null,
+      "arrangementHash": "dd35ebe26acff1365d0b680e90ff2dd57f5f6f839ce3e4215a2df8979eadca5f",
+      "graphHash": "efb19dfed3ada21a6487fa46bbce191204b5e1cd09685e9de52c94acef4c8f32",
+      "engine": "motif-forge-audio-engine.v5",
+      "scope": "master",
+      "graph": {
+        "tracks": [
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": true,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 6.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u539f\u65cb\u5f8b\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 72,
+                "noteId": "0c09ee17-6b66-556a-a7df-304e08a288ac",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 72,
+                "noteId": "9a9df06a-10ba-5f87-8e2b-87c9da62de7e",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 72,
+                "noteId": "91b75ca8-3994-5358-a0b1-f299d68f18f1",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 72,
+                "noteId": "1d2a85f9-4efe-54c8-bc52-06fa7d791a4a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -12.0,
+            "audible": false,
+            "trackId": "00000000-0000-0000-0000-000000000001",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          },
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": false,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 0.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u65b0\u589e\u4f34\u594f\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 48,
+                "noteId": "6eab4ba7-54f1-5bc4-8925-c4c7421d527f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 48,
+                "noteId": "98cda81d-fdd5-5b6a-8dd4-54e67e9d245a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 48,
+                "noteId": "62a6c307-5ef8-52c7-b9ab-90580107a75f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 48,
+                "noteId": "a4106fa8-b1e9-5470-b705-f859b68292c4",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -10.0,
+            "audible": false,
+            "trackId": "00000000-0000-0000-0000-000000000002",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          }
+        ],
+        "channels": 2,
+        "eqProfile": {
+          "mid_q": 0.8,
+          "profile_id": "motif-three-band-static.v1",
+          "shelf_slope": 1.0,
+          "sample_rate_hz": 48000,
+          "schema_version": "three-band-eq-profile.v1",
+          "low_frequency_hz": 180,
+          "mid_frequency_hz": 1000,
+          "high_frequency_hz": 6000
+        },
+        "sampleRate": 48000,
+        "masterGainDb": -5.0,
+        "engineVersion": "motif-forge-audio-engine.v5",
+        "schemaVersion": "audio-graph-spec.v5",
+        "durationSeconds": 4.0,
+        "expectedSilence": true,
+        "reverbDecaySeconds": 2.4
+      }
+    },
+    {
+      "jobId": "8aa2e82d-8a66-4e35-936c-7b6f12391524",
+      "requestSchema": "candidate-preview-job.v5",
+      "revisionId": null,
+      "candidateSnapshotId": "6e64e415-26d1-4fde-86e8-f9643bd4f71b",
+      "arrangementHash": null,
+      "graphHash": "efb19dfed3ada21a6487fa46bbce191204b5e1cd09685e9de52c94acef4c8f32",
+      "engine": "motif-forge-audio-engine.v5",
+      "scope": "master",
+      "graph": {
+        "tracks": [
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": true,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 6.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u539f\u65cb\u5f8b\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 72,
+                "noteId": "0c09ee17-6b66-556a-a7df-304e08a288ac",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 72,
+                "noteId": "9a9df06a-10ba-5f87-8e2b-87c9da62de7e",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 72,
+                "noteId": "91b75ca8-3994-5358-a0b1-f299d68f18f1",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 72,
+                "noteId": "1d2a85f9-4efe-54c8-bc52-06fa7d791a4a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -12.0,
+            "audible": false,
+            "trackId": "00000000-0000-0000-0000-000000000001",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          },
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": false,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 0.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u65b0\u589e\u4f34\u594f\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 48,
+                "noteId": "6eab4ba7-54f1-5bc4-8925-c4c7421d527f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 48,
+                "noteId": "98cda81d-fdd5-5b6a-8dd4-54e67e9d245a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 48,
+                "noteId": "62a6c307-5ef8-52c7-b9ab-90580107a75f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 48,
+                "noteId": "a4106fa8-b1e9-5470-b705-f859b68292c4",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -10.0,
+            "audible": false,
+            "trackId": "00000000-0000-0000-0000-000000000002",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          }
+        ],
+        "channels": 2,
+        "eqProfile": {
+          "mid_q": 0.8,
+          "profile_id": "motif-three-band-static.v1",
+          "shelf_slope": 1.0,
+          "sample_rate_hz": 48000,
+          "schema_version": "three-band-eq-profile.v1",
+          "low_frequency_hz": 180,
+          "mid_frequency_hz": 1000,
+          "high_frequency_hz": 6000
+        },
+        "sampleRate": 48000,
+        "masterGainDb": -5.0,
+        "engineVersion": "motif-forge-audio-engine.v5",
+        "schemaVersion": "audio-graph-spec.v5",
+        "durationSeconds": 4.0,
+        "expectedSilence": true,
+        "reverbDecaySeconds": 2.4
+      }
+    },
+    {
+      "jobId": "3edff0ed-5645-4952-9b51-fee245da0033",
+      "requestSchema": "canonical-render-job.v4",
+      "revisionId": "1e6a31f5-7e90-48b1-8e0f-630f82722048",
+      "candidateSnapshotId": null,
+      "arrangementHash": "bd5c78b6bdedb799f70bb64db59e4bb5ac4a7a46c32af7fccfb51e3a37bc2146",
+      "graphHash": "07f93c4830d68934e1763b1c0146fe3aea613ab5cc272d000a3e8cc1c0e78927",
+      "engine": "motif-forge-audio-engine.v4",
+      "scope": "master",
+      "graph": {
+        "tracks": [
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u539f\u65cb\u5f8b\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 72,
+                "noteId": "0c09ee17-6b66-556a-a7df-304e08a288ac",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 72,
+                "noteId": "9a9df06a-10ba-5f87-8e2b-87c9da62de7e",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 72,
+                "noteId": "91b75ca8-3994-5358-a0b1-f299d68f18f1",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 72,
+                "noteId": "1d2a85f9-4efe-54c8-bc52-06fa7d791a4a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -12.0,
+            "audible": true,
+            "trackId": "00000000-0000-0000-0000-000000000001",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          },
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u65b0\u589e\u4f34\u594f\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 48,
+                "noteId": "6eab4ba7-54f1-5bc4-8925-c4c7421d527f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 48,
+                "noteId": "98cda81d-fdd5-5b6a-8dd4-54e67e9d245a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 48,
+                "noteId": "62a6c307-5ef8-52c7-b9ab-90580107a75f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 48,
+                "noteId": "a4106fa8-b1e9-5470-b705-f859b68292c4",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -10.0,
+            "audible": true,
+            "trackId": "00000000-0000-0000-0000-000000000002",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          }
+        ],
+        "channels": 2,
+        "sampleRate": 48000,
+        "masterGainDb": -5.0,
+        "engineVersion": "motif-forge-audio-engine.v4",
+        "schemaVersion": "audio-graph-spec.v4",
+        "durationSeconds": 4.0,
+        "expectedSilence": false,
+        "reverbDecaySeconds": 2.4
+      }
+    },
+    {
+      "jobId": "db0d7d5c-c238-43f9-b60c-3dfafd9ec118",
+      "requestSchema": "canonical-render-job.v5",
+      "revisionId": "1727ac9a-13a4-487c-a6e9-682cae14c2a3",
+      "candidateSnapshotId": null,
+      "arrangementHash": "4f531d0f03804c4ac88312b1e15146499b68a79bbb47133aed2eaa4ac79b8e59",
+      "graphHash": "89fe98f39eecae6ec83123c3797b69521f29aa24ce98b806b043fc867032a2fa",
+      "engine": "motif-forge-audio-engine.v5",
+      "scope": "master",
+      "graph": {
+        "tracks": [
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": false,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 6.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u539f\u65cb\u5f8b\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 72,
+                "noteId": "0c09ee17-6b66-556a-a7df-304e08a288ac",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 72,
+                "noteId": "9a9df06a-10ba-5f87-8e2b-87c9da62de7e",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 72,
+                "noteId": "91b75ca8-3994-5358-a0b1-f299d68f18f1",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 72,
+                "noteId": "1d2a85f9-4efe-54c8-bc52-06fa7d791a4a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -12.0,
+            "audible": true,
+            "trackId": "00000000-0000-0000-0000-000000000001",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          },
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": false,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 0.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u65b0\u589e\u4f34\u594f\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 48,
+                "noteId": "6eab4ba7-54f1-5bc4-8925-c4c7421d527f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 48,
+                "noteId": "98cda81d-fdd5-5b6a-8dd4-54e67e9d245a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 48,
+                "noteId": "62a6c307-5ef8-52c7-b9ab-90580107a75f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 48,
+                "noteId": "a4106fa8-b1e9-5470-b705-f859b68292c4",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -10.0,
+            "audible": true,
+            "trackId": "00000000-0000-0000-0000-000000000002",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          }
+        ],
+        "channels": 2,
+        "eqProfile": {
+          "mid_q": 0.8,
+          "profile_id": "motif-three-band-static.v1",
+          "shelf_slope": 1.0,
+          "sample_rate_hz": 48000,
+          "schema_version": "three-band-eq-profile.v1",
+          "low_frequency_hz": 180,
+          "mid_frequency_hz": 1000,
+          "high_frequency_hz": 6000
+        },
+        "sampleRate": 48000,
+        "masterGainDb": -5.0,
+        "engineVersion": "motif-forge-audio-engine.v5",
+        "schemaVersion": "audio-graph-spec.v5",
+        "durationSeconds": 4.0,
+        "expectedSilence": false,
+        "reverbDecaySeconds": 2.4
+      }
+    },
+    {
+      "jobId": "0be4683d-dd5c-41cf-bbeb-5b1ba4dcfe81",
+      "requestSchema": "canonical-render-job.v5",
+      "revisionId": "1727ac9a-13a4-487c-a6e9-682cae14c2a3",
+      "candidateSnapshotId": null,
+      "arrangementHash": "4f531d0f03804c4ac88312b1e15146499b68a79bbb47133aed2eaa4ac79b8e59",
+      "graphHash": "5ff674b99a6f27caf850d57206b2409bc7ce61c0f1ff1a0982f31eab6c443e1c",
+      "engine": "motif-forge-audio-engine.v5",
+      "scope": "stem",
+      "graph": {
+        "tracks": [
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": false,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 6.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u539f\u65cb\u5f8b\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 72,
+                "noteId": "0c09ee17-6b66-556a-a7df-304e08a288ac",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 72,
+                "noteId": "9a9df06a-10ba-5f87-8e2b-87c9da62de7e",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 72,
+                "noteId": "91b75ca8-3994-5358-a0b1-f299d68f18f1",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 72,
+                "noteId": "1d2a85f9-4efe-54c8-bc52-06fa7d791a4a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -12.0,
+            "audible": true,
+            "trackId": "00000000-0000-0000-0000-000000000001",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          }
+        ],
+        "channels": 2,
+        "eqProfile": {
+          "mid_q": 0.8,
+          "profile_id": "motif-three-band-static.v1",
+          "shelf_slope": 1.0,
+          "sample_rate_hz": 48000,
+          "schema_version": "three-band-eq-profile.v1",
+          "low_frequency_hz": 180,
+          "mid_frequency_hz": 1000,
+          "high_frequency_hz": 6000
+        },
+        "sampleRate": 48000,
+        "masterGainDb": -5.0,
+        "engineVersion": "motif-forge-audio-engine.v5",
+        "schemaVersion": "audio-graph-spec.v5",
+        "durationSeconds": 4.0,
+        "expectedSilence": false,
+        "reverbDecaySeconds": 2.4
+      }
+    },
+    {
+      "jobId": "47cd8dc5-3ae2-462c-a2df-f86af55efd30",
+      "requestSchema": "export-bundle-job.v2",
+      "revisionId": null,
+      "candidateSnapshotId": null,
+      "arrangementHash": null,
+      "graphHash": null,
+      "engine": null,
+      "scope": null,
+      "graph": null
+    },
+    {
+      "jobId": "8cc804dd-46fa-4bea-aa69-1ee58eb6bbff",
+      "requestSchema": "canonical-render-job.v5",
+      "revisionId": "1727ac9a-13a4-487c-a6e9-682cae14c2a3",
+      "candidateSnapshotId": null,
+      "arrangementHash": "4f531d0f03804c4ac88312b1e15146499b68a79bbb47133aed2eaa4ac79b8e59",
+      "graphHash": "c06afca3cd668ebfe738bbb8c9ee8e35a3a4f456c20bba30a4cb391e3d7cc739",
+      "engine": "motif-forge-audio-engine.v5",
+      "scope": "stem",
+      "graph": {
+        "tracks": [
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": false,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 0.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u65b0\u589e\u4f34\u594f\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 48,
+                "noteId": "6eab4ba7-54f1-5bc4-8925-c4c7421d527f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 48,
+                "noteId": "98cda81d-fdd5-5b6a-8dd4-54e67e9d245a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 48,
+                "noteId": "62a6c307-5ef8-52c7-b9ab-90580107a75f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 48,
+                "noteId": "a4106fa8-b1e9-5470-b705-f859b68292c4",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -10.0,
+            "audible": true,
+            "trackId": "00000000-0000-0000-0000-000000000002",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          }
+        ],
+        "channels": 2,
+        "eqProfile": {
+          "mid_q": 0.8,
+          "profile_id": "motif-three-band-static.v1",
+          "shelf_slope": 1.0,
+          "sample_rate_hz": 48000,
+          "schema_version": "three-band-eq-profile.v1",
+          "low_frequency_hz": 180,
+          "mid_frequency_hz": 1000,
+          "high_frequency_hz": 6000
+        },
+        "sampleRate": 48000,
+        "masterGainDb": -5.0,
+        "engineVersion": "motif-forge-audio-engine.v5",
+        "schemaVersion": "audio-graph-spec.v5",
+        "durationSeconds": 4.0,
+        "expectedSilence": false,
+        "reverbDecaySeconds": 2.4
+      }
+    },
+    {
+      "jobId": "12321be6-0e94-4bc5-9fd3-9e6c3babcdda",
+      "requestSchema": "export-mp3-job.v1",
+      "revisionId": "1727ac9a-13a4-487c-a6e9-682cae14c2a3",
+      "candidateSnapshotId": null,
+      "arrangementHash": null,
+      "graphHash": null,
+      "engine": null,
+      "scope": null,
+      "graph": null
+    },
+    {
+      "jobId": "b300ab80-d660-4152-a06d-0eb7d4d9158f",
+      "requestSchema": "canonical-render-job.v5",
+      "revisionId": "802370a6-8e49-4a43-8711-4cf0367d226c",
+      "candidateSnapshotId": null,
+      "arrangementHash": "dd35ebe26acff1365d0b680e90ff2dd57f5f6f839ce3e4215a2df8979eadca5f",
+      "graphHash": "efb19dfed3ada21a6487fa46bbce191204b5e1cd09685e9de52c94acef4c8f32",
+      "engine": "motif-forge-audio-engine.v5",
+      "scope": "master",
+      "graph": {
+        "tracks": [
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": true,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 6.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u539f\u65cb\u5f8b\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 72,
+                "noteId": "0c09ee17-6b66-556a-a7df-304e08a288ac",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 72,
+                "noteId": "9a9df06a-10ba-5f87-8e2b-87c9da62de7e",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 72,
+                "noteId": "91b75ca8-3994-5358-a0b1-f299d68f18f1",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 72,
+                "noteId": "1d2a85f9-4efe-54c8-bc52-06fa7d791a4a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -12.0,
+            "audible": false,
+            "trackId": "00000000-0000-0000-0000-000000000001",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          },
+          {
+            "eq": {
+              "lowDb": 0.0,
+              "midDb": 0.0,
+              "highDb": 0.0
+            },
+            "eq3": {
+              "bypass": false,
+              "profile_id": "motif-three-band-static.v1",
+              "low_gain_db": 0.0,
+              "mid_gain_db": 0.0,
+              "high_gain_db": 0.0,
+              "schema_version": "piano-eq.v1"
+            },
+            "pan": 0.0,
+            "kind": "multisample",
+            "name": "\u65b0\u589e\u4f34\u594f\u6d4b\u8bd5\u8f68",
+            "notes": [
+              {
+                "midi": 48,
+                "noteId": "6eab4ba7-54f1-5bc4-8925-c4c7421d527f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 0.0
+              },
+              {
+                "midi": 48,
+                "noteId": "98cda81d-fdd5-5b6a-8dd4-54e67e9d245a",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 1.0
+              },
+              {
+                "midi": 48,
+                "noteId": "62a6c307-5ef8-52c7-b9ab-90580107a75f",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 2.0
+              },
+              {
+                "midi": 48,
+                "noteId": "a4106fa8-b1e9-5470-b705-f859b68292c4",
+                "velocity": 60,
+                "detuneCents": 0.0,
+                "gateSeconds": 0.25,
+                "startSeconds": 3.0
+              }
+            ],
+            "gainDb": -10.0,
+            "audible": false,
+            "trackId": "00000000-0000-0000-0000-000000000002",
+            "reverbSend": 0.0,
+            "instrumentPack": {
+              "packId": "freepats:upright-kw-small",
+              "packVersion": "2019-07-03.motif1",
+              "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+            }
+          }
+        ],
+        "channels": 2,
+        "eqProfile": {
+          "mid_q": 0.8,
+          "profile_id": "motif-three-band-static.v1",
+          "shelf_slope": 1.0,
+          "sample_rate_hz": 48000,
+          "schema_version": "three-band-eq-profile.v1",
+          "low_frequency_hz": 180,
+          "mid_frequency_hz": 1000,
+          "high_frequency_hz": 6000
+        },
+        "sampleRate": 48000,
+        "masterGainDb": -5.0,
+        "engineVersion": "motif-forge-audio-engine.v5",
+        "schemaVersion": "audio-graph-spec.v5",
+        "durationSeconds": 4.0,
+        "expectedSilence": true,
+        "reverbDecaySeconds": 2.4
+      }
+    },
+    {
+      "jobId": "9ab5e735-175d-4ff2-a3f0-0675de6ce3cc",
+      "requestSchema": "export-mp3-job.v1",
+      "revisionId": "802370a6-8e49-4a43-8711-4cf0367d226c",
+      "candidateSnapshotId": null,
+      "arrangementHash": null,
+      "graphHash": null,
+      "engine": null,
+      "scope": null,
+      "graph": null
+    },
+    {
+      "jobId": "a53c1aa8-4ea6-490f-ac56-dd046ec52ed9",
+      "requestSchema": "export-bundle-job.v2",
+      "revisionId": null,
+      "candidateSnapshotId": null,
+      "arrangementHash": null,
+      "graphHash": null,
+      "engine": null,
+      "scope": null,
+      "graph": null
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import type { InstrumentPack, PianoNote } from "./instruments.js";
+import type { PianoEqProfile, PianoEqSettings } from "./piano-eq.js";
 
 export const AUDIO_GRAPH_SCHEMA_VERSION = "audio-graph-spec.v1" as const;
 export const AUDIO_ENGINE_VERSION = "motif-forge-audio-engine.v1" as const;
@@ -83,7 +84,16 @@ export type AudioGraphSpecV4 = Omit<AudioGraphSpecV3, "schemaVersion" | "engineV
   tracks: readonly PianoMixTrackSpec[];
   expectedSilence: boolean;
 }>;
-export type AudioGraphSpec = AudioGraphSpecV1 | AudioGraphSpecV2 | AudioGraphSpecV3 | AudioGraphSpecV4;
+export const AUDIO_GRAPH_SCHEMA_VERSION_V5 = "audio-graph-spec.v5" as const;
+export const AUDIO_ENGINE_VERSION_V5 = "motif-forge-audio-engine.v5" as const;
+export type PianoEqTrackSpec = PianoMixTrackSpec & Readonly<{ eq3: PianoEqSettings }>;
+export type AudioGraphSpecV5 = Omit<AudioGraphSpecV4, "schemaVersion" | "engineVersion" | "tracks"> & Readonly<{
+  schemaVersion: typeof AUDIO_GRAPH_SCHEMA_VERSION_V5;
+  engineVersion: typeof AUDIO_ENGINE_VERSION_V5;
+  tracks: readonly PianoEqTrackSpec[];
+  eqProfile: PianoEqProfile;
+}>;
+export type AudioGraphSpec = AudioGraphSpecV1 | AudioGraphSpecV2 | AudioGraphSpecV3 | AudioGraphSpecV4 | AudioGraphSpecV5;
 /** Runtime binding supplied only by the reviewed host catalog, never stored in IR. */
 export type InstrumentBinding = Readonly<{manifest:InstrumentPack;manifestSha256:string;baseUrl:string}>;
 

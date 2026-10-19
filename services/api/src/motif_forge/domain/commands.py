@@ -14,18 +14,22 @@ from motif_forge.domain.ir import (
     ArrangementIRV2,
     ArrangementIRV3,
     ArrangementIRV4,
+    ArrangementIRV5,
     Articulation,
     AudioClip,
     AudioSourceKind,
     Clip,
     DomainModel,
     EnsemblePianoRenderProfile,
+    EqPianoRenderProfile,
     KeyPoint,
     MeterPoint,
     MixPianoRenderProfile,
     NoteClip,
     NoteEvent,
     PerformancePlan,
+    PianoEqProfile,
+    PianoEqState,
     PianoMixState,
     PianoRenderProfile,
     ProvenanceRef,
@@ -383,9 +387,20 @@ class SetPianoMixCommand(CommandEnvelope):
     payload: SetPianoMixPayload
 
 
+class SetPianoEqPayload(DomainModel):
+    eq: PianoEqState | None
+
+
+class SetPianoEqCommand(CommandEnvelope):
+    command_type: Literal["set_piano_eq"] = "set_piano_eq"
+    actor_kind: Literal["human"] = "human"
+    payload: SetPianoEqPayload
+
+
 EditorCommand = Annotated[
     InitializeCompositionCommand
     | SetPianoMixCommand
+    | SetPianoEqCommand
     | AppendPianoTrackCommand
     | AgentAppendPianoTrackCommand
     | ReplacePianoRangeCommand
@@ -595,6 +610,34 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
     # The discriminated command model guarantees the payload pairing at parse time. Pydantic's
     # plugin does not currently preserve that relationship when narrowing the union below.
     payload: Any = command.payload
+    if isinstance(command, SetPianoEqCommand):
+        if not isinstance(arrangement, ArrangementIRV4):
+            raise issue("PIANO_EQ_PROFILE_UNSUPPORTED", "piano_eq", "save a two-piano mix first")
+        if (
+            set(command.selection.track_ids) != {t.track_id for t in arrangement.tracks}
+            or len(command.selection.track_ids) != 2
+            or command.selection.start_tick is not None
+        ):
+            raise issue(
+                "PIANO_EQ_SELECTION_INVALID", "piano_eq", "select both complete piano tracks"
+            )
+        data = arrangement.model_dump(mode="python")
+        if payload.eq is None:
+            if not isinstance(arrangement, ArrangementIRV5):
+                raise issue("PIANO_EQ_PROFILE_UNSUPPORTED", "piano_eq", "EQ mode is not active")
+            data.pop("piano_eq")
+            data.update(schema_version="arrangement-ir.v4", render_profile=MixPianoRenderProfile())
+            return ArrangementIRV4.model_validate(data)
+        if {item.track_id for item in payload.eq.tracks} != {
+            t.track_id for t in arrangement.tracks
+        }:
+            raise issue("PIANO_EQ_TRACKS_INVALID", "piano_eq", "EQ must cover both piano tracks")
+        data.update(
+            schema_version="arrangement-ir.v5",
+            render_profile=EqPianoRenderProfile(eq_profile=PianoEqProfile()),
+            piano_eq=payload.eq,
+        )
+        return ArrangementIRV5.model_validate(data)
     if isinstance(command, SetPianoMixCommand):
         if not isinstance(arrangement, ArrangementIRV3) or len(arrangement.tracks) != 2:
             raise issue(
@@ -614,6 +657,8 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
             )
         data = arrangement.model_dump(mode="python")
         if payload.mix is None:
+            if isinstance(arrangement, ArrangementIRV5):
+                raise issue("PIANO_EQ_ACTIVE", "piano_eq", "leave EQ before leaving mix mode")
             if not isinstance(arrangement, ArrangementIRV4):
                 raise issue(
                     "PIANO_MIX_PROFILE_UNSUPPORTED",
@@ -643,12 +688,21 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
                 "piano_mix",
                 "the mix must preserve the finite two-track contract",
             )
+        if isinstance(arrangement, ArrangementIRV5):
+            data["piano_mix"] = payload.mix
+            return ArrangementIRV5.model_validate(data)
         data.update(
             schema_version="arrangement-ir.v4",
             render_profile=MixPianoRenderProfile(),
             piano_mix=payload.mix,
         )
         return ArrangementIRV4.model_validate(data)
+    if (
+        isinstance(arrangement, ArrangementIRV5)
+        and isinstance(command, SetTrackParamCommand)
+        and payload.parameter in {"eq_low_db", "eq_mid_db", "eq_high_db"}
+    ):
+        raise issue("PIANO_EQ_PARAMETER_CONFLICT", "piano_eq", "use the versioned EQ command")
     if isinstance(arrangement, ArrangementIRV4):
         if isinstance(
             command,

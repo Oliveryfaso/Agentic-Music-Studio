@@ -63,41 +63,63 @@ class ProjectRow(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
-def old_music_check(column: str) -> str:
-    return f"""(({column}->>'schema_version' = 'arrangement-ir.v1' AND NOT ({column} ? 'piano_mix')
- AND NOT ({column} ? 'render_profile') AND NOT ({column} ? 'performance_plan')) OR
- ({column}->>'schema_version' = 'arrangement-ir.v2' AND NOT ({column} ? 'piano_mix')
- AND {column}->'render_profile'->>'schema_version' = 'render-profile.v1'
- AND {column}->'performance_plan'->>'schema_version' = 'performance-plan.v1'
- AND {column}->'render_profile'->>'engine_version' = 'motif-forge-audio-engine.v2'
+def _music_ir_version_check(column: str) -> str:
+    return """((COLUMN_NAME->>'schema_version' = 'arrangement-ir.v1'
+ AND NOT (COLUMN_NAME ? 'piano_eq')
+ AND NOT (COLUMN_NAME ? 'piano_mix')
+ AND NOT (COLUMN_NAME ? 'render_profile') AND NOT (COLUMN_NAME ? 'performance_plan')) OR
+ (COLUMN_NAME->>'schema_version' = 'arrangement-ir.v2'
+ AND NOT (COLUMN_NAME ? 'piano_eq') AND NOT (COLUMN_NAME ? 'piano_mix')
+ AND COLUMN_NAME->'render_profile'->>'schema_version' = 'render-profile.v1'
+ AND COLUMN_NAME->'performance_plan'->>'schema_version' = 'performance-plan.v1'
+ AND COLUMN_NAME->'render_profile'->>'engine_version' = 'motif-forge-audio-engine.v2'
+ AND NOT (COLUMN_NAME->'render_profile' ? 'eq_profile')
  AND versions->>'domain_schema' = 'arrangement-ir.v2'
  AND versions->>'audio_engine' = 'motif-forge-audio-engine.v2'
- AND versions->>'assets' = {column}->'render_profile'->>'manifest_sha256')) IS TRUE"""
-
-
-def _music_ir_version_check(column: str) -> str:
-    previous = old_music_check(column).removesuffix(") IS TRUE")
-    return (
-        previous
-        + f""" OR
- ({column}->>'schema_version' = 'arrangement-ir.v3' AND NOT ({column} ? 'piano_mix')
- AND {column}->'render_profile'->>'schema_version' = 'render-profile.v1'
- AND {column}->'performance_plan'->>'schema_version' = 'performance-plan.v1'
- AND {column}->'render_profile'->>'engine_version' = 'motif-forge-audio-engine.v3'
+ AND versions->>'assets' = COLUMN_NAME->'render_profile'->>'manifest_sha256') OR
+ (COLUMN_NAME->>'schema_version' = 'arrangement-ir.v3'
+ AND NOT (COLUMN_NAME ? 'piano_eq') AND NOT (COLUMN_NAME ? 'piano_mix')
+ AND COLUMN_NAME->'render_profile'->>'schema_version' = 'render-profile.v1'
+ AND COLUMN_NAME->'performance_plan'->>'schema_version' = 'performance-plan.v1'
+ AND COLUMN_NAME->'render_profile'->>'engine_version' = 'motif-forge-audio-engine.v3'
+ AND NOT (COLUMN_NAME->'render_profile' ? 'eq_profile')
  AND versions->>'domain_schema' = 'arrangement-ir.v3'
  AND versions->>'audio_engine' = 'motif-forge-audio-engine.v3'
- AND versions->>'assets' = {column}->'render_profile'->>'manifest_sha256') OR
- ({column}->>'schema_version' = 'arrangement-ir.v4'
- AND {column}->'render_profile'->>'schema_version' = 'render-profile.v1'
- AND {column}->'performance_plan'->>'schema_version' = 'performance-plan.v1'
- AND {column}->'render_profile'->>'engine_version' = 'motif-forge-audio-engine.v4'
- AND {column}->'piano_mix'->>'schema_version' = 'piano-mix.v1'
- AND jsonb_typeof({column}->'piano_mix'->'tracks') = 'array'
- AND jsonb_array_length({column}->'piano_mix'->'tracks') = 2
+ AND versions->>'assets' = COLUMN_NAME->'render_profile'->>'manifest_sha256') OR
+ (COLUMN_NAME->>'schema_version' = 'arrangement-ir.v4'
+ AND NOT (COLUMN_NAME ? 'piano_eq')
+ AND COLUMN_NAME->'render_profile'->>'schema_version' = 'render-profile.v1'
+ AND COLUMN_NAME->'performance_plan'->>'schema_version' = 'performance-plan.v1'
+ AND COLUMN_NAME->'render_profile'->>'engine_version' = 'motif-forge-audio-engine.v4'
+ AND NOT (COLUMN_NAME->'render_profile' ? 'eq_profile')
+ AND COLUMN_NAME->'piano_mix'->>'schema_version' = 'piano-mix.v1'
+ AND jsonb_typeof(COLUMN_NAME->'piano_mix'->'tracks') = 'array'
+ AND jsonb_array_length(COLUMN_NAME->'piano_mix'->'tracks') = 2
  AND versions->>'domain_schema' = 'arrangement-ir.v4'
  AND versions->>'audio_engine' = 'motif-forge-audio-engine.v4'
  AND versions->>'compiler' = 'audio-graph-spec.v4'
- AND versions->>'assets' = {column}->'render_profile'->>'manifest_sha256')) IS TRUE"""
+ AND versions->>'assets' = COLUMN_NAME->'render_profile'->>'manifest_sha256') OR
+ (COLUMN_NAME->>'schema_version' = 'arrangement-ir.v5'
+ AND COLUMN_NAME->'render_profile'->>'schema_version' = 'render-profile.v1'
+ AND COLUMN_NAME->'performance_plan'->>'schema_version' = 'performance-plan.v1'
+ AND COLUMN_NAME->'render_profile'->>'engine_version' = 'motif-forge-audio-engine.v5'
+ AND COLUMN_NAME->'render_profile'->'eq_profile' = '{
+"schema_version": "three-band-eq-profile.v1",
+ "profile_id": "motif-three-band-static.v1",
+ "sample_rate_hz": 48000,"low_frequency_hz": 180,
+ "mid_frequency_hz": 1000,"mid_q": 0.8,
+ "high_frequency_hz": 6000,"shelf_slope": 1.0}'::jsonb
+ AND COLUMN_NAME->'piano_mix'->>'schema_version' = 'piano-mix.v1'
+ AND jsonb_typeof(COLUMN_NAME->'piano_mix'->'tracks') = 'array'
+ AND jsonb_array_length(COLUMN_NAME->'piano_mix'->'tracks') = 2
+ AND COLUMN_NAME->'piano_eq'->>'schema_version' = 'piano-eq-state.v1'
+ AND jsonb_typeof(COLUMN_NAME->'piano_eq'->'tracks') = 'array'
+ AND jsonb_array_length(COLUMN_NAME->'piano_eq'->'tracks') = 2
+ AND versions->>'domain_schema' = 'arrangement-ir.v5'
+ AND versions->>'audio_engine' = 'motif-forge-audio-engine.v5'
+ AND versions->>'compiler' = 'audio-graph-spec.v5'
+ AND versions->>'assets' = COLUMN_NAME->'render_profile'->>'manifest_sha256')) IS TRUE""".replace(
+        "COLUMN_NAME", column
     )
 
 
@@ -395,7 +417,12 @@ class MediaRunRow(Base):
  export_plan->'render_profile'->>'engine_version'='motif-forge-audio-engine.v3') OR
  (export_plan->>'schema_version'='export-plan.v5' AND
  export_plan->>'engine_version'='motif-forge-audio-engine.v4' AND
- export_plan->'render_profile'->>'engine_version'='motif-forge-audio-engine.v4')))) IS TRUE""",
+ export_plan->'render_profile'->>'engine_version'='motif-forge-audio-engine.v4') OR
+ (export_plan->>'schema_version'='export-plan.v6' AND
+ export_plan->>'engine_version'='motif-forge-audio-engine.v5' AND
+ export_plan->'render_profile'->>'engine_version'='motif-forge-audio-engine.v5' AND
+ export_plan->'render_profile'->'eq_profile'->>'profile_id'='motif-three-band-static.v1'
+ )))) IS TRUE""",
             name="run_versioned_export_plan",
         ),
     )
@@ -987,7 +1014,13 @@ class ExportBundleArtifactRow(Base):
  engine_version='motif-forge-audio-engine.v3') OR
  (schema_version='export-bundle-artifact.v5' AND
  export_plan->>'schema_version'='export-plan.v5' AND
- engine_version='motif-forge-audio-engine.v4')))) IS TRUE""",
+ engine_version='motif-forge-audio-engine.v4') OR
+ (schema_version='export-bundle-artifact.v6' AND
+ export_plan->>'schema_version'='export-plan.v6' AND
+ engine_version='motif-forge-audio-engine.v5' AND
+ export_plan->'render_profile'->>'engine_version'='motif-forge-audio-engine.v5' AND
+ export_plan->'render_profile'->'eq_profile'->>'profile_id'='motif-three-band-static.v1'
+ )))) IS TRUE""",
             name="export_bundle_versioned_plan",
         ),
     )

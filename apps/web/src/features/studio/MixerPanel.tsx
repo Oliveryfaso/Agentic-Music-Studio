@@ -1,3 +1,4 @@
+import { PianoEqPanel } from "./PianoEqPanel";
 import { useEffect, useRef, useState } from "react";
 import type { ArrangementIR, EditorCommand } from "../../shared/openapi";
 import { makePianoMixCommand, readPianoMix } from "./pianoMix";
@@ -13,7 +14,7 @@ export function MixerPanel({ tracks, pianoArrangement, savedArrangement, disable
     return <section className="mixer-panel" aria-label="混音器"><p>此旧版本保留未锁轨道的音量编辑。静音、独奏与声像需在双钢琴混音模式中使用。</p>{tracks.map(track => <article key={track.track_id}><strong>{track.name}</strong><RangeControl label={`${track.name} gain`} title="音量" value={track.gain_db} min={-60} max={6} step={0.5} disabled={disabled || Boolean(track.locked_ranges?.length)} onCommit={value => onCommand({ command_id: crypto.randomUUID(), command_type: "set_track_param", schema_version: "editor-command.v1", actor_kind: "human", client_sequence: 0, selection: { track_ids: [track.track_id] }, payload: { track_id: track.track_id, parameter: "gain_db", value } })}/></article>)}</section>;
   }
   const anySolo = mix.tracks.some(track => track.solo);
-  return <section className="mixer-panel" aria-label="混音器"><p>保存这些调整会启用双钢琴混音模式。修改先记入草稿，保存后生成新版试听；原谱音符保持锁定，本阶段不提供实时混音。</p>{mix.tracks.map(value => {
+  return <><section className="mixer-panel" aria-label="混音器"><p>保存这些调整会启用双钢琴混音模式。修改先记入草稿，保存后生成新版试听；原谱音符保持锁定，本阶段不提供实时混音。</p>{mix.tracks.map(value => {
     const track = tracks.find(item => item.track_id === value.track_id)!;
     const saved = savedMix?.tracks.find(item => item.track_id === value.track_id);
     const audible = !value.mute && (!anySolo || value.solo);
@@ -26,7 +27,7 @@ export function MixerPanel({ tracks, pianoArrangement, savedArrangement, disable
       <button type="button" aria-label={`${track.name} 独奏`} aria-pressed={value.solo} disabled={disabled} onClick={() => patch({solo: !value.solo})}>独奏</button>
       <button type="button" aria-label={`${track.name} 恢复当前保存值`} disabled={disabled || !resetAvailable} onClick={() => { if(saved) patch({gain_db:saved.gain_db,pan:saved.pan,mute:saved.mute,solo:saved.solo}); }}>恢复当前保存值</button>
     </article>;
-  })}<small>多个独奏可同时发声；静音优先。全部静音会生成合法的静音音频。</small></section>;
+  })}<small>多个独奏可同时发声；静音优先。全部静音会生成合法的静音音频。</small></section>{pianoArrangement && <PianoEqPanel arrangement={pianoArrangement} savedArrangement={savedArrangement ?? pianoArrangement} disabled={disabled} onCommand={onCommand}/>}</>;
 }
 
 function RangeControl({ label, title, value, min, max, step, disabled, onCommit }: { label: string; title: string; value: number; min: number; max: number; step: number; disabled: boolean; onCommit: (value: number) => void }) {

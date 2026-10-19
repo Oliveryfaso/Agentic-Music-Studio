@@ -4,6 +4,7 @@ import type { AudioGraphSpec, InstrumentBinding } from "./contracts.js";
 import { preparePiano, type PreparedPiano } from "./piano-runtime.js";
 import { planPianoVoices, schedulePianoVoices } from "./instruments.js";
 import { BUILTIN_SYNTH_PRESETS } from "./presets.js";
+import { connectPianoEq } from "./piano-eq.js";
 import { validateAudioGraphSpec, validateAudioRenderScope } from "./validation.js";
 
 function dbToGain(db: number): number {
@@ -33,10 +34,10 @@ export async function renderAudioGraphOffline(
 ): Promise<AudioBuffer> {
   const spec = validateAudioGraphSpec(uncheckedSpec);
   const selected = validateAudioRenderScope(spec, trackIds);
-  const tracks = spec.schemaVersion === "audio-graph-spec.v4"
+  const tracks = (spec.schemaVersion === "audio-graph-spec.v4" || spec.schemaVersion === "audio-graph-spec.v5")
     ? selected.filter(track => "audible" in track && track.audible === true)
     : selected;
-  if (spec.schemaVersion === "audio-graph-spec.v4" && spec.expectedSilence) {
+  if ((spec.schemaVersion === "audio-graph-spec.v4" || spec.schemaVersion === "audio-graph-spec.v5") && spec.expectedSilence) {
     // Native AudioBuffer storage starts at exact digital zero. No pack decode,
     // voice scheduling, convolution or Tone graph is needed for an all-muted mix.
     return new AudioBuffer({ length: Math.ceil(spec.durationSeconds * spec.sampleRate),
@@ -72,7 +73,12 @@ export async function renderAudioGraphOffline(
         const panner = new Tone.Panner(track.pan);
         const trackGain = new Tone.Gain(dbToGain(track.gainDb));
         const send = new Tone.Gain(track.reverbSend).connect(reverb);
-        eq.connect(panner);
+        if (spec.schemaVersion === "audio-graph-spec.v5" && "eq3" in track) {
+          connectPianoEq(Tone.getContext().rawContext as unknown as BaseAudioContext,
+            eq.output.output, panner.input, track.eq3, spec.eqProfile);
+        } else {
+          eq.connect(panner);
+        }
         panner.connect(trackGain);
         trackGain.connect(master);
         trackGain.connect(send);

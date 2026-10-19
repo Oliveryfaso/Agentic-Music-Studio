@@ -313,3 +313,8 @@ Compare 页面始终基于完整 Candidate Snapshot/IR；A/B 音频使用完整�
 ## 2026-10-19 M1 保存版音频语义
 
 双钢琴 Mixer 修改草稿，显式保存后生成新版音频；标明当前播放为保存版，提供该 Revision 的试听/导出入口。reset 回当前保存值，原谱音符继续锁定。本门无实时混音、EQ 或主题/整页重排。详见[版本合同](BASIC_PIANO_MIX_CONTRACT.md)和[实测边界](evidence/2026-10-19-m1-basic-mixing.md)。
+
+
+## 2026-10-19 M2 三段 EQ 增补
+
+只在已保存M1 v4/v5双钢琴提供三段旋钮/数值/旁路/归零/恢复，一手势一草稿命令；保存→显式生成保存版音频。共用生产参数响应，不是频谱，无常驻分析循环；新配色未定。详见[版本合同](PIANO_EQ_CONTRACT.md)和[验收证据](evidence/2026-10-19-m2-three-band-eq.md)。

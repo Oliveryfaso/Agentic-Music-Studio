@@ -493,15 +493,81 @@ class ArrangementIRV4(ArrangementIRV3):
         return self
 
 
+class PianoEqProfile(DomainModel):
+    schema_version: Literal["three-band-eq-profile.v1"] = "three-band-eq-profile.v1"
+    profile_id: Literal["motif-three-band-static.v1"] = "motif-three-band-static.v1"
+    sample_rate_hz: Literal[48000] = 48000
+    low_frequency_hz: Literal[180] = 180
+    mid_frequency_hz: Literal[1000] = 1000
+    mid_q: Literal[0.8] = 0.8  # type: ignore[valid-type]
+    high_frequency_hz: Literal[6000] = 6000
+    shelf_slope: Literal[1.0] = 1.0  # type: ignore[valid-type]
+
+    @model_validator(mode="before")
+    @classmethod
+    def strict_profile_numbers(cls, value: Any) -> Any:
+        if isinstance(value, dict) and any(
+            key in value and type(value[key]) not in (int, float)
+            for key in (
+                "sample_rate_hz",
+                "low_frequency_hz",
+                "mid_frequency_hz",
+                "mid_q",
+                "high_frequency_hz",
+                "shelf_slope",
+            )
+        ):
+            raise ValueError("PIANO_EQ_PROFILE_INVALID")
+        return value
+
+
+class PianoTrackEq(DomainModel):
+    track_id: UUID
+    schema_version: Literal["piano-eq.v1"] = "piano-eq.v1"
+    profile_id: Literal["motif-three-band-static.v1"] = "motif-three-band-static.v1"
+    bypass: bool = False
+    low_gain_db: float = Field(default=0.0, ge=-12.0, le=12.0, allow_inf_nan=False)
+    mid_gain_db: float = Field(default=0.0, ge=-12.0, le=12.0, allow_inf_nan=False)
+    high_gain_db: float = Field(default=0.0, ge=-12.0, le=12.0, allow_inf_nan=False)
+
+
+class PianoEqState(DomainModel):
+    schema_version: Literal["piano-eq-state.v1"] = "piano-eq-state.v1"
+    tracks: tuple[PianoTrackEq, ...] = Field(min_length=2, max_length=2)
+
+    @model_validator(mode="after")
+    def unique_tracks(self) -> Self:
+        if len({item.track_id for item in self.tracks}) != 2:
+            raise ValueError("PIANO_EQ_TRACKS_INVALID")
+        return self
+
+
+class EqPianoRenderProfile(MixPianoRenderProfile):
+    engine_version: Literal["motif-forge-audio-engine.v5"] = "motif-forge-audio-engine.v5"  # type: ignore[assignment]
+    eq_profile: PianoEqProfile
+
+
+class ArrangementIRV5(ArrangementIRV4):
+    schema_version: Literal["arrangement-ir.v5"] = "arrangement-ir.v5"  # type: ignore[assignment]
+    render_profile: EqPianoRenderProfile
+    piano_eq: PianoEqState
+
+    @model_validator(mode="after")
+    def validate_eq(self) -> Self:
+        if {item.track_id for item in self.piano_eq.tracks} != {t.track_id for t in self.tracks}:
+            raise ValueError("PIANO_EQ_TRACKS_INVALID")
+        return self
+
+
 ArrangementValue = Annotated[
-    ArrangementIR | ArrangementIRV2 | ArrangementIRV3 | ArrangementIRV4,
+    ArrangementIR | ArrangementIRV2 | ArrangementIRV3 | ArrangementIRV4 | ArrangementIRV5,
     Field(discriminator="schema_version"),
 ]
 
 
 def read_arrangement_json(
     value: str | bytes, *, strict: Literal[True] = True
-) -> ArrangementIR | ArrangementIRV2 | ArrangementIRV3 | ArrangementIRV4:
+) -> ArrangementIR | ArrangementIRV2 | ArrangementIRV3 | ArrangementIRV4 | ArrangementIRV5:
     data: Any = json.loads(value)
     version = data.get("schema_version") if isinstance(data, dict) else None
     if version == "arrangement-ir.v1":
@@ -512,6 +578,8 @@ def read_arrangement_json(
         return ArrangementIRV3.model_validate_json(value, strict=strict)
     if version == "arrangement-ir.v4":
         return ArrangementIRV4.model_validate_json(value, strict=strict)
+    if version == "arrangement-ir.v5":
+        return ArrangementIRV5.model_validate_json(value, strict=strict)
     raise ValueError("IR_SCHEMA_VERSION_UNSUPPORTED")
 
 

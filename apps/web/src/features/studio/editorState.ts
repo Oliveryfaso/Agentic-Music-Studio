@@ -1,3 +1,4 @@
+import { PIANO_EQ_PROFILE } from "../../../../../packages/audio-engine/src/piano-eq";
 import type { ArrangementIR, EditorCommand } from "../../shared/openapi";
 
 export interface EditorSelection {
@@ -62,13 +63,25 @@ export function projectDraft(state: EditorState): ArrangementIR {
 function applyDraftCommand(ir: ArrangementIR, command: EditorCommand): ArrangementIR {
   const draft = structuredClone(ir);
   const payload = command.payload as Record<string, unknown>;
+  if (command.command_type === "set_piano_eq") {
+    if (draft.schema_version !== "arrangement-ir.v4" && draft.schema_version !== "arrangement-ir.v5") throw new Error("EQ requires a saved two-piano mix");
+    if (command.payload.eq === null) {
+      if (draft.schema_version !== "arrangement-ir.v5") throw new Error("No EQ profile to restore");
+      const { piano_eq: _eq, ...mix } = draft;
+      const { eq_profile: _profile, ...profile } = draft.render_profile;
+      return { ...mix, schema_version: "arrangement-ir.v4", render_profile: { ...profile, engine_version: "motif-forge-audio-engine.v4" } };
+    }
+    return { ...draft, schema_version: "arrangement-ir.v5", render_profile: { ...draft.render_profile, engine_version: "motif-forge-audio-engine.v5", eq_profile: { ...PIANO_EQ_PROFILE } }, piano_eq: structuredClone(command.payload.eq) };
+  }
   if (command.command_type === "set_piano_mix") {
-    if (draft.schema_version !== "arrangement-ir.v3" && draft.schema_version !== "arrangement-ir.v4") throw new Error("Piano mix requires the saved two-part piano version");
+    if (draft.schema_version !== "arrangement-ir.v3" && draft.schema_version !== "arrangement-ir.v4" && draft.schema_version !== "arrangement-ir.v5") throw new Error("Piano mix requires the saved two-part piano version");
     if (command.payload.mix === null) {
+      if (draft.schema_version === "arrangement-ir.v5") throw new Error("Leave EQ mode before leaving piano mix mode");
       if (draft.schema_version !== "arrangement-ir.v4") throw new Error("No piano mix profile to restore");
       const { piano_mix: _mix, ...legacy } = draft;
       return { ...legacy, schema_version: "arrangement-ir.v3", render_profile: { ...draft.render_profile, engine_version: "motif-forge-audio-engine.v3" } };
     }
+    if (draft.schema_version === "arrangement-ir.v5") return { ...draft, piano_mix: structuredClone(command.payload.mix) };
     return { ...draft, schema_version: "arrangement-ir.v4", render_profile: { ...draft.render_profile, engine_version: "motif-forge-audio-engine.v4" }, piano_mix: structuredClone(command.payload.mix) };
   }
   const trackId = String(payload.track_id ?? "");

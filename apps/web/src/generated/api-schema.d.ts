@@ -1293,6 +1293,65 @@ export interface components {
              */
             tracks: components["schemas"]["Track"][];
         };
+        /** ArrangementIRV5 */
+        ArrangementIRV5: {
+            /**
+             * Key Map
+             * @default []
+             */
+            key_map: components["schemas"]["KeyPoint"][];
+            /**
+             * Markers
+             * @default []
+             */
+            markers: components["schemas"]["Marker"][];
+            performance_plan?: components["schemas"]["PerformancePlan"];
+            piano_eq: components["schemas"]["PianoEqState"];
+            piano_mix: components["schemas"]["PianoMixState"];
+            /**
+             * Ppq
+             * @default 480
+             * @constant
+             */
+            ppq: 480;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /**
+             * Provenance
+             * @default []
+             */
+            provenance: components["schemas"]["ProvenanceRef"][];
+            render_profile: components["schemas"]["EqPianoRenderProfile"];
+            routing?: components["schemas"]["RoutingSpec"];
+            /**
+             * Sample Rate
+             * @default 48000
+             * @enum {integer}
+             */
+            sample_rate: 44100 | 48000 | 96000;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            schema_version: "arrangement-ir.v5";
+            /**
+             * Sections
+             * @default []
+             */
+            sections: components["schemas"]["Section"][];
+            /** Tempo Map */
+            tempo_map?: components["schemas"]["TempoPoint"][];
+            /** Time Signature Map */
+            time_signature_map?: components["schemas"]["MeterPoint"][];
+            /**
+             * Tracks
+             * @default []
+             */
+            tracks: components["schemas"]["Track"][];
+        };
         /**
          * Articulation
          * @enum {string}
@@ -1634,7 +1693,7 @@ export interface components {
             /** Client Sequence */
             client_sequence: number;
             /** Commands */
-            commands: (components["schemas"]["InitializeCompositionCommand"] | components["schemas"]["SetPianoMixCommand"] | components["schemas"]["AppendPianoTrackCommand"] | components["schemas"]["AgentAppendPianoTrackCommand"] | components["schemas"]["ReplacePianoRangeCommand"] | components["schemas"]["RemoveAddedPianoTrackCommand"] | components["schemas"]["SetPianoProfileCommand"] | components["schemas"]["AddTrackCommand"] | components["schemas"]["ImportAudioCommand"] | components["schemas"]["DeleteTrackCommand"] | components["schemas"]["AddClipCommand"] | components["schemas"]["DeleteClipCommand"] | components["schemas"]["DuplicateClipCommand"] | components["schemas"]["MoveClipCommand"] | components["schemas"]["TrimClipCommand"] | components["schemas"]["SplitClipCommand"] | components["schemas"]["SetTrackParamCommand"] | components["schemas"]["SetClipParamCommand"] | components["schemas"]["AddNotesCommand"] | components["schemas"]["UpdateNotesCommand"] | components["schemas"]["DeleteNotesCommand"])[];
+            commands: (components["schemas"]["InitializeCompositionCommand"] | components["schemas"]["SetPianoMixCommand"] | components["schemas"]["SetPianoEqCommand"] | components["schemas"]["AppendPianoTrackCommand"] | components["schemas"]["AgentAppendPianoTrackCommand"] | components["schemas"]["ReplacePianoRangeCommand"] | components["schemas"]["RemoveAddedPianoTrackCommand"] | components["schemas"]["SetPianoProfileCommand"] | components["schemas"]["AddTrackCommand"] | components["schemas"]["ImportAudioCommand"] | components["schemas"]["DeleteTrackCommand"] | components["schemas"]["AddClipCommand"] | components["schemas"]["DeleteClipCommand"] | components["schemas"]["DuplicateClipCommand"] | components["schemas"]["MoveClipCommand"] | components["schemas"]["TrimClipCommand"] | components["schemas"]["SplitClipCommand"] | components["schemas"]["SetTrackParamCommand"] | components["schemas"]["SetClipParamCommand"] | components["schemas"]["AddNotesCommand"] | components["schemas"]["UpdateNotesCommand"] | components["schemas"]["DeleteNotesCommand"])[];
             /** Reason */
             reason: string;
         };
@@ -2179,6 +2238,83 @@ export interface components {
              */
             schema_version: "render-profile.v1";
         };
+        /** EqExportPlanV6 */
+        EqExportPlanV6: {
+            /** Arrangement Hash */
+            arrangement_hash: string;
+            /**
+             * Engine Version
+             * @default motif-forge-audio-engine.v5
+             * @constant
+             */
+            engine_version: "motif-forge-audio-engine.v5";
+            /**
+             * Include Mp3
+             * @default true
+             */
+            include_mp3: boolean;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            render_profile: components["schemas"]["EqPianoRenderProfile"];
+            /** Request Id */
+            request_id?: string | null;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            schema_version: "export-plan.v6";
+            /** Seed */
+            seed: number;
+            /**
+             * Stem Track Ids
+             * @default []
+             */
+            stem_track_ids: string[];
+            /** Track Ids */
+            track_ids: string[];
+        };
+        /** EqPianoRenderProfile */
+        EqPianoRenderProfile: {
+            /**
+             * Engine Version
+             * @default motif-forge-audio-engine.v5
+             * @constant
+             */
+            engine_version: "motif-forge-audio-engine.v5";
+            eq_profile: components["schemas"]["PianoEqProfile"];
+            /**
+             * Instrument Pack Id
+             * @default freepats:upright-kw-small
+             * @constant
+             */
+            instrument_pack_id: "freepats:upright-kw-small";
+            /**
+             * Instrument Pack Version
+             * @default 2019-07-03.motif1
+             * @constant
+             */
+            instrument_pack_version: "2019-07-03.motif1";
+            /**
+             * Manifest Sha256
+             * @default 264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813
+             * @constant
+             */
+            manifest_sha256: "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813";
+            /**
+             * Schema Version
+             * @default render-profile.v1
+             * @constant
+             */
+            schema_version: "render-profile.v1";
+        };
         /** Equalizer3Band */
         Equalizer3Band: {
             /**
@@ -2212,7 +2348,7 @@ export interface components {
             /** Content Hash */
             content_hash: string;
             /** Export Plan */
-            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"] | components["schemas"]["EnsembleExportPlanV4"] | components["schemas"]["MixExportPlanV5"]) | null;
+            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"] | components["schemas"]["EnsembleExportPlanV4"] | components["schemas"]["MixExportPlanV5"] | components["schemas"]["EqExportPlanV6"]) | null;
             /** File Count */
             file_count: number;
             /** Plan Hash */
@@ -3051,6 +3187,68 @@ export interface components {
         PianoCapabilityResponse: {
             data: components["schemas"]["PianoCapability"];
         };
+        /** PianoEqProfile */
+        PianoEqProfile: {
+            /**
+             * High Frequency Hz
+             * @default 6000
+             * @constant
+             */
+            high_frequency_hz: 6000;
+            /**
+             * Low Frequency Hz
+             * @default 180
+             * @constant
+             */
+            low_frequency_hz: 180;
+            /**
+             * Mid Frequency Hz
+             * @default 1000
+             * @constant
+             */
+            mid_frequency_hz: 1000;
+            /**
+             * Mid Q
+             * @default 0.8
+             * @constant
+             */
+            mid_q: 0.8;
+            /**
+             * Profile Id
+             * @default motif-three-band-static.v1
+             * @constant
+             */
+            profile_id: "motif-three-band-static.v1";
+            /**
+             * Sample Rate Hz
+             * @default 48000
+             * @constant
+             */
+            sample_rate_hz: 48000;
+            /**
+             * Schema Version
+             * @default three-band-eq-profile.v1
+             * @constant
+             */
+            schema_version: "three-band-eq-profile.v1";
+            /**
+             * Shelf Slope
+             * @default 1
+             * @constant
+             */
+            shelf_slope: 1;
+        };
+        /** PianoEqState */
+        PianoEqState: {
+            /**
+             * Schema Version
+             * @default piano-eq-state.v1
+             * @constant
+             */
+            schema_version: "piano-eq-state.v1";
+            /** Tracks */
+            tracks: components["schemas"]["PianoTrackEq"][];
+        };
         /** PianoExportPlanV3 */
         PianoExportPlanV3: {
             /** Arrangement Hash */
@@ -3281,6 +3479,46 @@ export interface components {
              * Format: uuid
              */
             revision_id: string;
+        };
+        /** PianoTrackEq */
+        PianoTrackEq: {
+            /**
+             * Bypass
+             * @default false
+             */
+            bypass: boolean;
+            /**
+             * High Gain Db
+             * @default 0
+             */
+            high_gain_db: number;
+            /**
+             * Low Gain Db
+             * @default 0
+             */
+            low_gain_db: number;
+            /**
+             * Mid Gain Db
+             * @default 0
+             */
+            mid_gain_db: number;
+            /**
+             * Profile Id
+             * @default motif-three-band-static.v1
+             * @constant
+             */
+            profile_id: "motif-three-band-static.v1";
+            /**
+             * Schema Version
+             * @default piano-eq.v1
+             * @constant
+             */
+            schema_version: "piano-eq.v1";
+            /**
+             * Track Id
+             * Format: uuid
+             */
+            track_id: string;
         };
         /** PianoTrackMix */
         PianoTrackMix: {
@@ -3636,7 +3874,7 @@ export interface components {
             /** Error Code */
             error_code?: string | null;
             /** Export Plan */
-            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"] | components["schemas"]["EnsembleExportPlanV4"] | components["schemas"]["MixExportPlanV5"]) | null;
+            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"] | components["schemas"]["EnsembleExportPlanV4"] | components["schemas"]["MixExportPlanV5"] | components["schemas"]["EqExportPlanV6"]) | null;
             /** Export Thread Id */
             export_thread_id?: string | null;
             /** Files */
@@ -3674,7 +3912,7 @@ export interface components {
             /** Error Code */
             error_code?: string | null;
             /** Export Plan */
-            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"] | components["schemas"]["EnsembleExportPlanV4"] | components["schemas"]["MixExportPlanV5"]) | null;
+            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"] | components["schemas"]["EnsembleExportPlanV4"] | components["schemas"]["MixExportPlanV5"] | components["schemas"]["EqExportPlanV6"]) | null;
             /** Media Run Id */
             media_run_id?: string | null;
             /** Pending Job Id */
@@ -3698,7 +3936,7 @@ export interface components {
         /** RevisionStudioData */
         RevisionStudioData: {
             /** Arrangement Ir */
-            arrangement_ir: components["schemas"]["ArrangementIR"] | components["schemas"]["ArrangementIRV2"] | components["schemas"]["ArrangementIRV3"] | components["schemas"]["ArrangementIRV4"];
+            arrangement_ir: components["schemas"]["ArrangementIR"] | components["schemas"]["ArrangementIRV2"] | components["schemas"]["ArrangementIRV3"] | components["schemas"]["ArrangementIRV4"] | components["schemas"]["ArrangementIRV5"];
             /** Author Kind */
             author_kind: string;
             /** Bundle Id */
@@ -4108,6 +4346,39 @@ export interface components {
             track_id: string;
             /** Value */
             value: boolean | number;
+        };
+        /** SetPianoEqCommand */
+        SetPianoEqCommand: {
+            /**
+             * Actor Kind
+             * @default human
+             * @constant
+             */
+            actor_kind: "human";
+            /** Client Sequence */
+            client_sequence: number;
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            command_type: "set_piano_eq";
+            payload: components["schemas"]["SetPianoEqPayload"];
+            /**
+             * Schema Version
+             * @default editor-command.v1
+             * @constant
+             */
+            schema_version: "editor-command.v1";
+            selection?: components["schemas"]["Selection"];
+        };
+        /** SetPianoEqPayload */
+        SetPianoEqPayload: {
+            eq: components["schemas"]["PianoEqState"] | null;
         };
         /** SetPianoMixCommand */
         SetPianoMixCommand: {

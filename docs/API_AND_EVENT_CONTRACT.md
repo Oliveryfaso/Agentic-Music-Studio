@@ -292,3 +292,8 @@ Worker 从 Artifact Repository 获得受控输入流和一次性输出 sink；�
 ## 2026-10-19 M1 混音 HTTP 边界
 
 既有 command-batches 接受 human-only set_piano_mix；新命令使用 strict JSON 校验，伪布尔/字符串数值/越界值在事务前422，旧命令兼容性保留。无新 Graph/模型端点。详见[版本合同](BASIC_PIANO_MIX_CONTRACT.md)和[实测边界](evidence/2026-10-19-m1-basic-mixing.md)。
+
+
+## 2026-10-19 M2 三段 EQ 增补
+
+新 set_piano_eq 使用 strict JSON（有限数值/严格bool/profile），非法请求在事务前422；完整两轨snapshot、human-only。显式保存后由既有Parent请求同Revision音频，无滑杆自动Job。详见[版本合同](PIANO_EQ_CONTRACT.md)和[验收证据](evidence/2026-10-19-m2-three-band-eq.md)。

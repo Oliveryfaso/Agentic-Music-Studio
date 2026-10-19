@@ -18,7 +18,7 @@ from motif_forge.domain.exporting import (
     ExportBundleRequestV2,
     ExportBundleResult,
 )
-from motif_forge.domain.ir import ArrangementIRV4
+from motif_forge.domain.ir import ArrangementIRV4, ArrangementIRV5
 
 
 class _ManifestEntry(TypedDict, total=False):
@@ -104,6 +104,13 @@ def write_export_bundle(
     if isinstance(request.arrangement, ArrangementIRV4):
         provenance = json.loads(files["provenance.json"])
         provenance["piano_mix"] = request.arrangement.piano_mix.model_dump(mode="json")
+        files["provenance.json"] = _json_bytes(provenance)
+    if isinstance(request.arrangement, ArrangementIRV5):
+        provenance = json.loads(files["provenance.json"])
+        provenance["piano_eq"] = request.arrangement.piano_eq.model_dump(mode="json")
+        provenance["eq_profile"] = request.arrangement.render_profile.eq_profile.model_dump(
+            mode="json"
+        )
         files["provenance.json"] = _json_bytes(provenance)
     if isinstance(request, ExportBundleRequestV2) and isinstance(request.plan, PianoExportPlanV3):
         profile = request.plan.render_profile

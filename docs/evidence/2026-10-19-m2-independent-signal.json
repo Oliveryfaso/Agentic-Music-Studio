@@ -1,0 +1,315 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "name": "retained-file-identity:m1-baseline.wav",
+      "passed": true
+    },
+    {
+      "name": "wav-format:m1-baseline.wav",
+      "passed": true,
+      "format": [
+        2,
+        3,
+        48000,
+        192000
+      ]
+    },
+    {
+      "name": "wav-measurement:m1-baseline.wav",
+      "passed": true,
+      "peak": 0.05637025833129883,
+      "rms": 0.009476541339569988
+    },
+    {
+      "name": "retained-file-identity:eq-mid.wav",
+      "passed": true
+    },
+    {
+      "name": "wav-format:eq-mid.wav",
+      "passed": true,
+      "format": [
+        2,
+        3,
+        48000,
+        192000
+      ]
+    },
+    {
+      "name": "wav-measurement:eq-mid.wav",
+      "passed": true,
+      "peak": 0.06492447853088379,
+      "rms": 0.010407857817983633
+    },
+    {
+      "name": "retained-file-identity:eq-audition.mp3",
+      "passed": true
+    },
+    {
+      "name": "retained-file-identity:eq-bypassed.wav",
+      "passed": true
+    },
+    {
+      "name": "wav-format:eq-bypassed.wav",
+      "passed": true,
+      "format": [
+        2,
+        3,
+        48000,
+        192000
+      ]
+    },
+    {
+      "name": "wav-measurement:eq-bypassed.wav",
+      "passed": true,
+      "peak": 0.05637025833129883,
+      "rms": 0.009476541269379902
+    },
+    {
+      "name": "retained-file-identity:eq-neutral.wav",
+      "passed": true
+    },
+    {
+      "name": "wav-format:eq-neutral.wav",
+      "passed": true,
+      "format": [
+        2,
+        3,
+        48000,
+        192000
+      ]
+    },
+    {
+      "name": "wav-measurement:eq-neutral.wav",
+      "passed": true,
+      "peak": 0.05637025833129883,
+      "rms": 0.009476541328501559
+    },
+    {
+      "name": "retained-file-identity:all-muted.wav",
+      "passed": true
+    },
+    {
+      "name": "wav-format:all-muted.wav",
+      "passed": true,
+      "format": [
+        2,
+        3,
+        48000,
+        192000
+      ]
+    },
+    {
+      "name": "wav-measurement:all-muted.wav",
+      "passed": true,
+      "peak": 0.0,
+      "rms": 0.0
+    },
+    {
+      "name": "retained-file-identity:silent-eq-audition.mp3",
+      "passed": true
+    },
+    {
+      "name": "retained-file-identity:eq-export-master.mp3",
+      "passed": true
+    },
+    {
+      "name": "retained-file-identity:eq-export-master.wav",
+      "passed": true
+    },
+    {
+      "name": "wav-format:eq-export-master.wav",
+      "passed": true,
+      "format": [
+        2,
+        3,
+        48000,
+        192000
+      ]
+    },
+    {
+      "name": "wav-measurement:eq-export-master.wav",
+      "passed": true,
+      "peak": 0.06492447853088379,
+      "rms": 0.010407857828545492
+    },
+    {
+      "name": "retained-file-identity:eq-export-stem-00000000-0000-0000-0000-000000000001.wav",
+      "passed": true
+    },
+    {
+      "name": "wav-format:eq-export-stem-00000000-0000-0000-0000-000000000001.wav",
+      "passed": true,
+      "format": [
+        2,
+        3,
+        48000,
+        192000
+      ]
+    },
+    {
+      "name": "wav-measurement:eq-export-stem-00000000-0000-0000-0000-000000000001.wav",
+      "passed": true,
+      "peak": 0.035614609718322754,
+      "rms": 0.0072749338764554455
+    },
+    {
+      "name": "retained-file-identity:eq-export-stem-00000000-0000-0000-0000-000000000002.wav",
+      "passed": true
+    },
+    {
+      "name": "wav-format:eq-export-stem-00000000-0000-0000-0000-000000000002.wav",
+      "passed": true,
+      "format": [
+        2,
+        3,
+        48000,
+        192000
+      ]
+    },
+    {
+      "name": "wav-measurement:eq-export-stem-00000000-0000-0000-0000-000000000002.wav",
+      "passed": true,
+      "peak": 0.04445922374725342,
+      "rms": 0.008629489185214704
+    },
+    {
+      "name": "retained-file-identity:silent-eq-export-master.mp3",
+      "passed": true
+    },
+    {
+      "name": "retained-file-identity:silent-eq-export-master.wav",
+      "passed": true
+    },
+    {
+      "name": "wav-format:silent-eq-export-master.wav",
+      "passed": true,
+      "format": [
+        2,
+        3,
+        48000,
+        192000
+      ]
+    },
+    {
+      "name": "wav-measurement:silent-eq-export-master.wav",
+      "passed": true,
+      "peak": 0.0,
+      "rms": 0.0
+    },
+    {
+      "name": "m1-equivalence:eq-bypassed.wav",
+      "passed": true,
+      "maxPcm24Lsb": 1
+    },
+    {
+      "name": "m1-equivalence:eq-neutral.wav",
+      "passed": true,
+      "maxPcm24Lsb": 1
+    },
+    {
+      "name": "active-EQ-changes-signal",
+      "passed": true,
+      "maxPcm24Lsb": 119846
+    },
+    {
+      "name": "canonical-export-agreement",
+      "passed": true,
+      "maxPcm24Lsb": 1
+    },
+    {
+      "name": "master-stem-sum",
+      "passed": true,
+      "maxPcm24Lsb": 1
+    },
+    {
+      "name": "digital-silence:all-muted.wav",
+      "passed": true
+    },
+    {
+      "name": "digital-silence:silent-eq-export-master.wav",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:eq-export-composition.mid",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:eq-export-credits.json",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:eq-export-license.json",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:eq-export-master.mp3",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:eq-export-master.wav",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:eq-export-project.json",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:eq-export-provenance.json",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:eq-export-stem-00000000-0000-0000-0000-000000000001.wav",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:eq-export-stem-00000000-0000-0000-0000-000000000002.wav",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:eq-export-trace.json",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:eq-export-export-manifest.json",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:silent-eq-export-composition.mid",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:silent-eq-export-credits.json",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:silent-eq-export-license.json",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:silent-eq-export-master.mp3",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:silent-eq-export-master.wav",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:silent-eq-export-project.json",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:silent-eq-export-provenance.json",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:silent-eq-export-trace.json",
+      "passed": true
+    },
+    {
+      "name": "public-export-identity:silent-eq-export-export-manifest.json",
+      "passed": true
+    }
+  ],
+  "limits": "Retained generated fixtures only; no rerender, database, browser, MP3 decode, or subjective quality assessment."
+}
