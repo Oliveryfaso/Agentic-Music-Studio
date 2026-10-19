@@ -5,6 +5,7 @@ import { navigate } from "../../app/routes";
 import { MotifScore } from "../../app/MotifScore";
 import { ApiError } from "../../shared/api";
 import {createPianoStudy} from "../studio/pianoApi";
+import {ClassicalScoreEntry} from "./ClassicalScoreEntry";
 import { createProject, listProjects } from "./projectApi";
 import { ProjectFilters } from "./ProjectFilters";
 import { RecentProjectList } from "./RecentProjectList";
@@ -81,6 +82,7 @@ export function ProjectHomePage() {
         <button type="button" className="secondary-inline" disabled={study.isPending} onClick={()=>study.mutate()}>{study.isPending?"正在创建练习谱…":study.isError?"重试新建练习谱":"新建钢琴练习谱"}</button>
         {study.error&&<p className="field-error" role="alert">{errorMessage(study.error)}</p>}
       </section>
+      <ClassicalScoreEntry/>
       {projects.isPending && <ProjectLoading />}
       {projects.isError && (
         <section className="error-state" role="alert">

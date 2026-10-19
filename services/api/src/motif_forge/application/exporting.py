@@ -142,6 +142,45 @@ def write_export_bundle(
                 ],
             }
         )
+    score_refs = [p for p in request.arrangement.provenance if p.ref.startswith("score:")]
+    if score_refs:
+        from motif_forge.application.classical_import import SOURCE_REF, reviewed_score
+
+        score_source, _ = reviewed_score()
+        if (
+            len(score_refs) != 1
+            or score_refs[0].ref != SOURCE_REF
+            or score_refs[0].version != score_source["musicxml_sha256"]
+        ):
+            raise ValueError("CLASSICAL_SOURCE_HASH_MISMATCH")
+        score_credit = {
+            "score_id": score_source["score_id"],
+            "title": score_source["title"],
+            "composer": score_source["composer"],
+            "digital_editor": score_source["digital_editor"],
+            "source_url": score_source["url"],
+            "source_page": score_source["page"],
+            "source_date": score_source["source_date"],
+            "source_sha256": score_source["sha256"],
+            "musicxml_sha256": score_source["musicxml_sha256"],
+            "conversion": score_source["conversion"],
+        }
+        credits = json.loads(files["credits.json"])
+        credits["credits"].append(score_credit)
+        files["credits.json"] = _json_bytes(credits)
+        licenses = json.loads(files["license.json"])
+        licenses["policy"] = "builtin-and-reviewed-sources.v1"
+        licenses["assets"].append(
+            {
+                **score_credit,
+                "license": score_source["license"],
+                "license_url": "https://www.mutopiaproject.org/legal.html",
+            }
+        )
+        files["license.json"] = _json_bytes(licenses)
+        provenance = json.loads(files["provenance.json"])
+        provenance["score_source"] = score_credit
+        files["provenance.json"] = _json_bytes(provenance)
     entries: list[_ManifestEntry] = []
     for audio in request.audio_exports:
         if cancel_event is not None and cancel_event.is_set():

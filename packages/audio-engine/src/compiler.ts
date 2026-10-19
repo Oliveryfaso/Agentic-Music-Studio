@@ -2,7 +2,7 @@ import * as Tone from "tone";
 
 import type { AudioGraphSpec, AudioTrackSpec, InstrumentBinding } from "./contracts.js";
 import { preparePiano, type PreparedPiano } from "./piano-runtime.js";
-import { schedulePianoVoices } from "./instruments.js";
+import { planPianoVoices, schedulePianoVoices } from "./instruments.js";
 import { BUILTIN_SYNTH_PRESETS } from "./presets.js";
 import { validateAudioGraphSpec } from "./validation.js";
 
@@ -48,10 +48,16 @@ export async function renderAudioGraphOffline(
     spec.reverbDecaySeconds,
     spec.sampleRate,
   );
+  const pianoTracks=tracks.filter(track=>track.kind === "multisample");
+  if(pianoTracks.length && instrumentBinding){
+    // The pack's polyphony budget applies to the complete performance, across parts.
+    planPianoVoices(instrumentBinding.manifest,pianoTracks.flatMap(track=>track.notes),spec.durationSeconds);
+  }
+  const renderBuffers=new Map<string,AudioBuffer>();
   const pianos = new Map<string,PreparedPiano>();
   const sampleBuffers = new Map<string, Tone.ToneAudioBuffer>();
   for (const track of tracks) {
-    if(track.kind === "multisample") pianos.set(track.trackId,await preparePiano(track,instrumentBinding,spec.durationSeconds,spec.sampleRate));
+    if(track.kind === "multisample") pianos.set(track.trackId,await preparePiano(track,instrumentBinding,spec.durationSeconds,spec.sampleRate,renderBuffers));
     if (track.kind === "sampler" && !sampleBuffers.has(track.sampleUrl)) {
       sampleBuffers.set(track.sampleUrl, await Tone.ToneAudioBuffer.fromUrl(track.sampleUrl));
     }

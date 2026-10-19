@@ -517,3 +517,8 @@ footer { font-size: 12px; letter-spacing: 0; padding-block: 22px; }
 .piano-confirm { display:flex; align-items:flex-start; gap:8px; margin:14px 0; font-size:12px; }
 .piano-confirm input { margin-top:4px; accent-color:var(--accent); }
 .piano-actions { display:flex; flex-wrap:wrap; gap:8px; }
+
+.classical-score-entry { margin-block:20px; }
+.classical-score-entry details p { overflow-wrap:anywhere; }
+.piano-expression-fields .piano-chord-field { display:grid; gap:8px; }
+.piano-expression-fields .piano-chord-field input { width:100%; box-sizing:border-box; }

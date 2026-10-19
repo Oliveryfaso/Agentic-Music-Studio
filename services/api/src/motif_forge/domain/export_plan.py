@@ -13,7 +13,9 @@ from motif_forge.domain.canonical import arrangement_content_hash
 from motif_forge.domain.ir import (
     ArrangementIR,
     ArrangementIRV2,
+    ArrangementIRV3,
     DomainModel,
+    EnsemblePianoRenderProfile,
     NoteClip,
     PianoRenderProfile,
     TrackType,
@@ -115,18 +117,28 @@ class PianoExportPlanV3(ExportPlanV2):
     render_profile: PianoRenderProfile
 
 
-ExportPlanValue = Annotated[ExportPlanV2 | PianoExportPlanV3, Field(discriminator="schema_version")]
+class EnsembleExportPlanV4(PianoExportPlanV3):
+    schema_version: Literal["export-plan.v4"] = "export-plan.v4"  # type: ignore[assignment]
+    engine_version: Literal["motif-forge-audio-engine.v3"] = "motif-forge-audio-engine.v3"  # type: ignore[assignment]
+    render_profile: EnsemblePianoRenderProfile
+
+
+ExportPlanValue = Annotated[
+    ExportPlanV2 | PianoExportPlanV3 | EnsembleExportPlanV4, Field(discriminator="schema_version")
+]
 
 
 def read_export_plan_json(
     value: str | bytes, *, strict: Literal[True] = True
-) -> ExportPlanV2 | PianoExportPlanV3:
+) -> ExportPlanV2 | PianoExportPlanV3 | EnsembleExportPlanV4:
     data = json.loads(value)
     version = data.get("schema_version") if isinstance(data, dict) else None
     if version == "export-plan.v2":
         return ExportPlanV2.model_validate_json(value, strict=strict)
     if version == "export-plan.v3":
         return PianoExportPlanV3.model_validate_json(value, strict=strict)
+    if version == "export-plan.v4":
+        return EnsembleExportPlanV4.model_validate_json(value, strict=strict)
     raise ValueError("EXPORT_PLAN_VERSION_UNSUPPORTED")
 
 
@@ -168,7 +180,9 @@ def plan_export(
         request_id=request_id,
     )
     plan = (
-        PianoExportPlanV3(**values, render_profile=revision.arrangement_ir.render_profile)
+        EnsembleExportPlanV4(**values, render_profile=revision.arrangement_ir.render_profile)
+        if isinstance(revision.arrangement_ir, ArrangementIRV3)
+        else PianoExportPlanV3(**values, render_profile=revision.arrangement_ir.render_profile)
         if isinstance(revision.arrangement_ir, ArrangementIRV2)
         else ExportPlanV2(**values)
     )
@@ -179,7 +193,7 @@ def plan_export(
 def export_key_v2(plan: ExportPlanValue, step: str) -> str:
     if step not in plan.steps:
         raise ValueError("EXPORT_STEP_NOT_IN_PLAN")
-    version = "v3" if isinstance(plan, PianoExportPlanV3) else "v2"
+    version = plan.schema_version.rsplit(".", 1)[1]
     digest = hashlib.sha256(
         f"complete-export.{version}:{plan.content_hash}:{step}".encode()
     ).hexdigest()

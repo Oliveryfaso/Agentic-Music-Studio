@@ -63,7 +63,7 @@ class ProjectRow(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
-def _music_ir_version_check(column: str) -> str:
+def old_music_check(column: str) -> str:
     return f"""(({column}->>'schema_version' = 'arrangement-ir.v1'
  AND NOT ({column} ? 'render_profile') AND NOT ({column} ? 'performance_plan')) OR
  ({column}->>'schema_version' = 'arrangement-ir.v2'
@@ -73,6 +73,21 @@ def _music_ir_version_check(column: str) -> str:
  AND versions->>'domain_schema' = 'arrangement-ir.v2'
  AND versions->>'audio_engine' = 'motif-forge-audio-engine.v2'
  AND versions->>'assets' = {column}->'render_profile'->>'manifest_sha256')) IS TRUE"""
+
+
+def _music_ir_version_check(column: str) -> str:
+    previous = old_music_check(column).removesuffix(") IS TRUE")
+    return (
+        previous
+        + f""" OR
+ ({column}->>'schema_version' = 'arrangement-ir.v3'
+ AND {column}->'render_profile'->>'schema_version' = 'render-profile.v1'
+ AND {column}->'performance_plan'->>'schema_version' = 'performance-plan.v1'
+ AND {column}->'render_profile'->>'engine_version' = 'motif-forge-audio-engine.v3'
+ AND versions->>'domain_schema' = 'arrangement-ir.v3'
+ AND versions->>'audio_engine' = 'motif-forge-audio-engine.v3'
+ AND versions->>'assets' = {column}->'render_profile'->>'manifest_sha256')) IS TRUE"""
+    )
 
 
 class RevisionRow(Base):
@@ -361,10 +376,12 @@ class MediaRunRow(Base):
  AND export_plan->>'project_id'=project_id::text AND
  ((export_plan->>'schema_version'='export-plan.v2' AND
  export_plan->>'engine_version'='motif-forge-audio-engine.v1') OR
-  (export_plan->>'schema_version'='export-plan.v3' AND
- export_plan->>'engine_version'='motif-forge-audio-engine.v2'
-   AND export_plan->'render_profile'->>'engine_version'='motif-forge-audio-engine.v2')))) IS
- TRUE""",
+ (export_plan->>'schema_version'='export-plan.v3' AND
+ export_plan->>'engine_version'='motif-forge-audio-engine.v2' AND
+ export_plan->'render_profile'->>'engine_version'='motif-forge-audio-engine.v2') OR
+ (export_plan->>'schema_version'='export-plan.v4' AND
+ export_plan->>'engine_version'='motif-forge-audio-engine.v3' AND
+ export_plan->'render_profile'->>'engine_version'='motif-forge-audio-engine.v3')))) IS TRUE""",
             name="run_versioned_export_plan",
         ),
     )
@@ -919,16 +936,22 @@ class ExportBundleArtifactRow(Base):
         ),
         Index("ix_export_bundles_project_created", "project_id", "created_at"),
         CheckConstraint(
-            """((schema_version='export-bundle-artifact.v1' AND export_plan IS NULL AND
- plan_hash IS NULL) OR
+            """((schema_version='export-bundle-artifact.v1'
+ AND export_plan IS NULL AND plan_hash IS NULL) OR
  (export_plan IS NOT NULL AND plan_hash ~ '^[0-9a-f]{64}$'
-  AND export_plan->>'project_id'=project_id::text AND export_plan->>'revision_id'=revision_id::text
-  AND export_plan->>'arrangement_hash'=arrangement_hash AND file_count>=8
-  AND export_plan->>'engine_version'=engine_version AND
-  ((schema_version='export-bundle-artifact.v2' AND export_plan->>'schema_version'='export-plan.v2'
-    AND engine_version='motif-forge-audio-engine.v1') OR
-   (schema_version='export-bundle-artifact.v3' AND export_plan->>'schema_version'='export-plan.v3'
-    AND engine_version='motif-forge-audio-engine.v2')))) IS TRUE""",
+ AND export_plan->>'project_id'=project_id::text AND
+ export_plan->>'revision_id'=revision_id::text AND
+ export_plan->>'arrangement_hash'=arrangement_hash AND file_count>=8 AND
+ export_plan->>'engine_version'=engine_version AND
+ ((schema_version='export-bundle-artifact.v2' AND
+ export_plan->>'schema_version'='export-plan.v2' AND
+ engine_version='motif-forge-audio-engine.v1') OR
+ (schema_version='export-bundle-artifact.v3' AND
+ export_plan->>'schema_version'='export-plan.v3' AND
+ engine_version='motif-forge-audio-engine.v2') OR
+ (schema_version='export-bundle-artifact.v4' AND
+ export_plan->>'schema_version'='export-plan.v4' AND
+ engine_version='motif-forge-audio-engine.v3')))) IS TRUE""",
             name="export_bundle_versioned_plan",
         ),
     )

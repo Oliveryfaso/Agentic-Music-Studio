@@ -18,7 +18,12 @@ from motif_forge.application.errors import (
 )
 from motif_forge.application.ports import ProjectTransaction, UnitOfWorkFactory
 from motif_forge.domain.canonical import arrangement_content_hash
-from motif_forge.domain.commands import EditorCommand, SetPianoProfileCommand, apply_commands
+from motif_forge.domain.commands import (
+    AppendPianoTrackCommand,
+    EditorCommand,
+    SetPianoProfileCommand,
+    apply_commands,
+)
 from motif_forge.domain.ir import DomainModel
 from motif_forge.domain.policies import compute_change_impact
 from motif_forge.domain.revisions import (
@@ -57,7 +62,8 @@ class CreateCommandPreviewRequest(DomainModel):
     @model_validator(mode="after")
     def require_agent_commands(self) -> CreateCommandPreviewRequest:
         explicit_piano = all(
-            isinstance(command, SetPianoProfileCommand) for command in self.commands
+            isinstance(command, (SetPianoProfileCommand, AppendPianoTrackCommand))
+            for command in self.commands
         )
         if not explicit_piano and any(
             command.actor_kind != AuthorKind.AGENT.value for command in self.commands

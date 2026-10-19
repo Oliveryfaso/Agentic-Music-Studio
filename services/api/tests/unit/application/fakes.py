@@ -78,6 +78,16 @@ class FakeTransaction:
         branch = self.branches.get(branch_id)
         return branch if branch is not None and branch.project_id == project_id else None
 
+    async def fork_active_branch(
+        self, *, branch: ProjectBranch, expected_active_branch_id: UUID
+    ) -> None:
+        original = self.branches[expected_active_branch_id]
+        assert (
+            original.project_id == branch.project_id
+            and original.head_revision_id == branch.created_from_revision_id
+        )
+        self.branches[branch.branch_id] = branch
+
     async def get_revision(self, revision_id: UUID) -> Revision | None:
         return self.revisions.get(revision_id)
 

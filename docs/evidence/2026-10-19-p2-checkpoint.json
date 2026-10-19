@@ -1,0 +1,50 @@
+[
+  {
+    "check": "web",
+    "exit": 0,
+    "wallSeconds": 7.776,
+    "log": "checkpoint-web.txt"
+  },
+  {
+    "check": "audio",
+    "exit": 0,
+    "wallSeconds": 1.491,
+    "log": "checkpoint-audio.txt"
+  },
+  {
+    "check": "audio-build",
+    "exit": 0,
+    "wallSeconds": 1.918,
+    "log": "checkpoint-audio-build.txt"
+  },
+  {
+    "check": "web-build",
+    "exit": 0,
+    "wallSeconds": 2.255,
+    "log": "checkpoint-web-build.txt"
+  },
+  {
+    "check": "python",
+    "exit": 0,
+    "wallSeconds": 17.966,
+    "log": "checkpoint-python.txt"
+  },
+  {
+    "check": "types",
+    "exit": 0,
+    "wallSeconds": 0.637,
+    "log": "checkpoint-types.txt"
+  },
+  {
+    "check": "lint",
+    "exit": 0,
+    "wallSeconds": 0.089,
+    "log": "checkpoint-lint.txt"
+  },
+  {
+    "check": "diff",
+    "exit": 0,
+    "wallSeconds": 0.025,
+    "log": "checkpoint-diff.txt"
+  }
+]

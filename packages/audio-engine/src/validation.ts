@@ -2,6 +2,8 @@ import { estimateRenderCapacity } from "./capacity.js";
 import {
   AUDIO_ENGINE_VERSION,
   AUDIO_ENGINE_VERSION_V2,
+  AUDIO_ENGINE_VERSION_V3,
+  AUDIO_GRAPH_SCHEMA_VERSION_V3,
   AUDIO_GRAPH_SCHEMA_VERSION_V2,
   AUDIO_GRAPH_SCHEMA_VERSION,
   type AudioGraphSpec,
@@ -16,10 +18,10 @@ function bounded(value: number, minimum: number, maximum: number, field: string)
 
 export function validateAudioGraphSpec(spec: AudioGraphSpec): AudioGraphSpec {
   estimateRenderCapacity(spec);
-  if (spec.schemaVersion !== AUDIO_GRAPH_SCHEMA_VERSION && spec.schemaVersion !== AUDIO_GRAPH_SCHEMA_VERSION_V2) {
+  if (spec.schemaVersion !== AUDIO_GRAPH_SCHEMA_VERSION && spec.schemaVersion !== AUDIO_GRAPH_SCHEMA_VERSION_V2 && spec.schemaVersion !== AUDIO_GRAPH_SCHEMA_VERSION_V3) {
     throw new Error("AUDIO_GRAPH_SCHEMA_UNSUPPORTED");
   }
-  if (spec.engineVersion !== (spec.schemaVersion === AUDIO_GRAPH_SCHEMA_VERSION_V2 ? AUDIO_ENGINE_VERSION_V2 : AUDIO_ENGINE_VERSION)) {
+  if (spec.engineVersion !== (spec.schemaVersion === AUDIO_GRAPH_SCHEMA_VERSION_V3 ? AUDIO_ENGINE_VERSION_V3 : spec.schemaVersion === AUDIO_GRAPH_SCHEMA_VERSION_V2 ? AUDIO_ENGINE_VERSION_V2 : AUDIO_ENGINE_VERSION)) {
     throw new Error("AUDIO_ENGINE_VERSION_UNSUPPORTED");
   }
   bounded(spec.durationSeconds, 0.1, 300, "durationSeconds");
@@ -47,7 +49,7 @@ export function validateAudioGraphSpec(spec: AudioGraphSpec): AudioGraphSpec {
     bounded(track.eq.midDb, -12, 12, `${track.trackId}.eq.midDb`);
     bounded(track.eq.highDb, -12, 12, `${track.trackId}.eq.highDb`);
     if (track.kind === "multisample") {
-      if(spec.schemaVersion !== AUDIO_GRAPH_SCHEMA_VERSION_V2 || spec.sampleRate !== 48000 || spec.tracks.length !== 1)
+      if((spec.schemaVersion !== AUDIO_GRAPH_SCHEMA_VERSION_V2 && spec.schemaVersion !== AUDIO_GRAPH_SCHEMA_VERSION_V3) || spec.sampleRate !== 48000 || spec.tracks.length > (spec.schemaVersion === AUDIO_GRAPH_SCHEMA_VERSION_V3 ? 2 : 1))
         throw new Error("AUDIO_GRAPH_INVALID:pianoProfile");
       const ref=track.instrumentPack;
       if(!ref || !/^[A-Za-z0-9:._-]{1,100}$/.test(ref.packId) || !/^[A-Za-z0-9:._-]{1,100}$/.test(ref.packVersion) || !/^[a-f0-9]{64}$/.test(ref.manifestSha256))
@@ -87,7 +89,7 @@ export function validateAudioGraphSpec(spec: AudioGraphSpec): AudioGraphSpec {
     } else {
       throw new Error("AUDIO_GRAPH_INVALID:trackKind");
     }
-    if(spec.schemaVersion === AUDIO_GRAPH_SCHEMA_VERSION_V2 && track.kind !== "multisample")
+    if(spec.schemaVersion !== AUDIO_GRAPH_SCHEMA_VERSION && track.kind !== "multisample")
       throw new Error("AUDIO_GRAPH_INVALID:pianoProfile");
   }
   return spec;

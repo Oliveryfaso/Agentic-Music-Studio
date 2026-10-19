@@ -1,0 +1,73 @@
+{
+  "audio": {
+    "original-preview.mp3": {
+      "sha256": "499d611d2239f8ff8d6e2cf8952f39a1d75efbb80531a6c2b703baab8b2db344",
+      "bytes": 817005,
+      "seconds": 40.79997916666667,
+      "sampleRate": "48000",
+      "channels": 2,
+      "codec": "mp3",
+      "bitsPerRawSample": null,
+      "samplePeakDbFS": -14.019296296706758,
+      "rmsDbFS": -31.367183921559057,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "accompaniment-preview.mp3": {
+      "sha256": "29e3a4ba913b3487517b5c28fd99754fd868b8af61dba795250a0b294c767a10",
+      "bytes": 817005,
+      "seconds": 40.79997916666667,
+      "sampleRate": "48000",
+      "channels": 2,
+      "codec": "mp3",
+      "bitsPerRawSample": null,
+      "samplePeakDbFS": -13.624733629381184,
+      "rmsDbFS": -30.91232595613842,
+      "samplesAtOrAboveFullScale": 0
+    },
+    "accompaniment-master.wav": {
+      "sha256": "1d5cf66073ba7ecb31ee5515441bcd59d49b63815fca45c16b779d06be3c7811",
+      "bytes": 11750438,
+      "seconds": 40.79997916666667,
+      "sampleRate": "48000",
+      "channels": 2,
+      "codec": "pcm_s24le",
+      "bitsPerRawSample": "24",
+      "samplePeakDbFS": -13.184539494676219,
+      "rmsDbFS": -30.466966746474846,
+      "samplesAtOrAboveFullScale": 0
+    }
+  },
+  "previewRmsDifferenceDb": 0.4548579654206364,
+  "comparisonCopies": "Unchanged MP3 originals. Delivery HTML player attenuates B by measured 0.45486dB using volume; no second lossy encode retained. RMS matching is not LUFS/perceptual equalization or a quality preference test. Master unchanged.",
+  "resources": {
+    "packFiles": 26,
+    "newPackDownloadBytes": 0,
+    "sampleIDsByTrack": [
+      [
+        "kw-root-63",
+        "kw-root-66",
+        "kw-root-69",
+        "kw-root-72",
+        "kw-root-75"
+      ],
+      [
+        "kw-root-35",
+        "kw-root-39",
+        "kw-root-42",
+        "kw-root-47",
+        "kw-root-51"
+      ]
+    ],
+    "overlappingSampleIDs": [],
+    "uniqueDecodedSamples": 10,
+    "selectedEncodedBytes": 5133100,
+    "estimated48kFloatDecodedBytes": 11173160,
+    "scope": "Manifest-derived decoded-buffer estimate, not measured RSS. Cache overlap benefit proved by focused test; this score has distinct low/melody zones."
+  },
+  "claimsExcluded": [
+    "subjective timbre improvement",
+    "production peak RSS",
+    "steady-state latency/P95",
+    "entire P2 complete"
+  ]
+}

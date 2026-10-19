@@ -1,0 +1,3 @@
+# Preserve hash-pinned score bytes; upstream LilyPond whitespace is intentional.
+services/api/src/motif_forge/resources/scores/ode-original.ly -text -whitespace
+services/api/src/motif_forge/resources/scores/ode-melody.musicxml -text

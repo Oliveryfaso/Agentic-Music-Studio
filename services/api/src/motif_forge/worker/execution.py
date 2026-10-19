@@ -47,7 +47,11 @@ from motif_forge.audio.transcode import (
     transcode_master_to_mp3,
 )
 from motif_forge.config import Settings
-from motif_forge.domain.export_plan import PianoExportPlanV3, verify_export_plan_revision
+from motif_forge.domain.export_plan import (
+    EnsembleExportPlanV4,
+    PianoExportPlanV3,
+    verify_export_plan_revision,
+)
 from motif_forge.domain.exporting import AudioExportRef, ExportBundleRequest, ExportBundleRequestV2
 from motif_forge.domain.media_jobs import (
     ArtifactAvailability,
@@ -57,8 +61,11 @@ from motif_forge.domain.media_jobs import (
     BundleAudioInput,
     CandidatePreviewJobPayload,
     CandidatePreviewJobPayloadV2,
+    CandidatePreviewJobPayloadV3,
     CanonicalRenderJobPayload,
     CanonicalRenderJobPayloadV2,
+    CanonicalRenderJobPayloadV3,
+    EnsembleExportBundleArtifactV4,
     ExportBundleArtifact,
     ExportBundleArtifactV2,
     ExportBundleArtifactValue,
@@ -1104,7 +1111,9 @@ def _parse_ingest_payload(job: MediaJob) -> IngestJobPayload:
 
 def _parse_canonical_render_payload(job: MediaJob) -> CanonicalRenderJobPayload:
     model = (
-        CanonicalRenderJobPayloadV2
+        CanonicalRenderJobPayloadV3
+        if job.input_payload.get("schema_version") == "canonical-render-job.v3"
+        else CanonicalRenderJobPayloadV2
         if job.input_payload.get("schema_version") == "canonical-render-job.v2"
         else CanonicalRenderJobPayload
     )
@@ -1113,7 +1122,9 @@ def _parse_canonical_render_payload(job: MediaJob) -> CanonicalRenderJobPayload:
 
 def _parse_candidate_preview_payload(job: MediaJob) -> CandidatePreviewJobPayload:
     model = (
-        CandidatePreviewJobPayloadV2
+        CandidatePreviewJobPayloadV3
+        if job.input_payload.get("schema_version") == "candidate-preview-job.v3"
+        else CandidatePreviewJobPayloadV2
         if job.input_payload.get("schema_version") == "candidate-preview-job.v2"
         else CandidatePreviewJobPayload
     )
@@ -1237,7 +1248,9 @@ async def _execute_export_bundle(
     if isinstance(payload, ExportBundleJobPayloadV2):
         receipt_values.update(plan=payload.plan, plan_hash=payload.plan_hash)
         receipt_type = (
-            PianoExportBundleArtifactV3
+            EnsembleExportBundleArtifactV4
+            if isinstance(payload.plan, EnsembleExportPlanV4)
+            else PianoExportBundleArtifactV3
             if isinstance(payload.plan, PianoExportPlanV3)
             else ExportBundleArtifactV2
         )

@@ -12,6 +12,7 @@ from pydantic import Field
 from motif_forge.domain.ir import (
     ArrangementIR,
     ArrangementIRV2,
+    ArrangementIRV3,
     DomainModel,
     NoteClip,
     Track,
@@ -20,8 +21,10 @@ from motif_forge.domain.ir import (
 from motif_forge.domain.media_jobs import (
     CandidatePreviewJobPayload,
     CandidatePreviewJobPayloadV2,
+    CandidatePreviewJobPayloadV3,
     CanonicalRenderJobPayload,
     CanonicalRenderJobPayloadV2,
+    CanonicalRenderJobPayloadV3,
     MediaQualityProfile,
     RenderScope,
 )
@@ -166,9 +169,36 @@ def _compile_piano_graph(
 ) -> AudioGraphProjection:
     from motif_forge.domain.canonical import arrangement_content_hash
 
-    track = arrangement.tracks[0]
-    if render_track_ids is not None and render_track_ids != (track.track_id,):
+    all_ids = tuple(track.track_id for track in arrangement.tracks)
+    selected = all_ids if render_track_ids is None else render_track_ids
+    if not selected or len(set(selected)) != len(selected) or not set(selected) <= set(all_ids):
         raise ValueError("RENDER_SCOPE_INVALID")
+    version = "v3" if isinstance(arrangement, ArrangementIRV3) else "v2"
+    graph = {
+        "schemaVersion": "audio-graph-spec." + version,
+        "engineVersion": "motif-forge-audio-engine." + version,
+        "durationSeconds": _seconds(
+            arrangement.duration_tick, arrangement.tempo_map[0].bpm, arrangement.ppq
+        ),
+        "sampleRate": 48000,
+        "channels": 2,
+        "masterGainDb": -5.0,
+        "reverbDecaySeconds": 2.4,
+        "tracks": [
+            _piano_track_spec(arrangement, track)
+            for track in sorted(arrangement.tracks, key=lambda t: str(t.track_id))
+            if track.track_id in selected
+        ],
+    }
+    return AudioGraphProjection(
+        arrangement_hash=arrangement_content_hash(arrangement),
+        graph_hash=_canonical_hash(graph),
+        render_track_ids=selected,
+        graph=graph,
+    )
+
+
+def _piano_track_spec(arrangement: ArrangementIRV2, track: Track) -> dict[str, Any]:
     bpm, ppq = arrangement.tempo_map[0].bpm, arrangement.ppq
     overrides = {(p.track_id, p.clip_id, p.note_id): p for p in arrangement.performance_plan.notes}
     values = []
@@ -211,42 +241,25 @@ def _compile_piano_graph(
                 )
             )
     profile = arrangement.render_profile
-    graph = {
-        "schemaVersion": "audio-graph-spec.v2",
-        "engineVersion": "motif-forge-audio-engine.v2",
-        "durationSeconds": _seconds(arrangement.duration_tick, bpm, ppq),
-        "sampleRate": 48000,
-        "channels": 2,
-        "masterGainDb": -5.0,
-        "reverbDecaySeconds": 2.4,
-        "tracks": [
-            {
-                "trackId": str(track.track_id),
-                "name": track.name,
-                "kind": "multisample",
-                "gainDb": -60.0 if track.mute else track.gain_db,
-                "pan": track.pan,
-                "eq": {
-                    "lowDb": track.eq.low_db,
-                    "midDb": track.eq.mid_db,
-                    "highDb": track.eq.high_db,
-                },
-                "reverbSend": 0.0,
-                "instrumentPack": {
-                    "packId": profile.instrument_pack_id,
-                    "packVersion": profile.instrument_pack_version,
-                    "manifestSha256": profile.manifest_sha256,
-                },
-                "notes": [item[-1] for item in sorted(values, key=lambda v: v[:4])],
-            }
-        ],
+    return {
+        "trackId": str(track.track_id),
+        "name": track.name,
+        "kind": "multisample",
+        "gainDb": -60.0 if track.mute else track.gain_db,
+        "pan": track.pan,
+        "eq": {
+            "lowDb": track.eq.low_db,
+            "midDb": track.eq.mid_db,
+            "highDb": track.eq.high_db,
+        },
+        "reverbSend": 0.0,
+        "instrumentPack": {
+            "packId": profile.instrument_pack_id,
+            "packVersion": profile.instrument_pack_version,
+            "manifestSha256": profile.manifest_sha256,
+        },
+        "notes": [item[-1] for item in sorted(values, key=lambda v: v[:4])],
     }
-    return AudioGraphProjection(
-        arrangement_hash=arrangement_content_hash(arrangement),
-        graph_hash=_canonical_hash(graph),
-        render_track_ids=(track.track_id,),
-        graph=graph,
-    )
 
 
 def build_canonical_render_payload(
@@ -273,7 +286,9 @@ def build_canonical_render_payload(
     if projection.arrangement_hash != revision.content_hash:
         raise ValueError("REVISION_ARRANGEMENT_HASH_MISMATCH")
     payload_type = (
-        CanonicalRenderJobPayloadV2
+        CanonicalRenderJobPayloadV3
+        if isinstance(revision.arrangement_ir, ArrangementIRV3)
+        else CanonicalRenderJobPayloadV2
         if isinstance(revision.arrangement_ir, ArrangementIRV2)
         else CanonicalRenderJobPayload
     )
@@ -302,7 +317,9 @@ def build_candidate_preview_payload(
     if projection.arrangement_hash != snapshot.candidate_content_hash:
         raise ValueError("CANDIDATE_ARRANGEMENT_HASH_MISMATCH")
     payload_type = (
-        CandidatePreviewJobPayloadV2
+        CandidatePreviewJobPayloadV3
+        if isinstance(snapshot.candidate_ir, ArrangementIRV3)
+        else CandidatePreviewJobPayloadV2
         if isinstance(snapshot.candidate_ir, ArrangementIRV2)
         else CandidatePreviewJobPayload
     )

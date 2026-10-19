@@ -28,6 +28,7 @@ from motif_forge.agent.parent_graph import (
 )
 from motif_forge.agent.piano_preview import PianoPreviewNodes
 from motif_forge.api.ai_runs import build_ai_run_router
+from motif_forge.api.classical import build_classical_router
 from motif_forge.api.exports import build_export_router
 from motif_forge.api.piano import build_piano_router
 from motif_forge.api.project_reads import build_project_read_router
@@ -323,6 +324,7 @@ def _application_status(error: ApplicationError) -> int:
         "EXPORT_BUNDLE_NOT_FOUND",
         "EXPORT_RUN_NOT_FOUND",
         "PIANO_PREVIEW_NOT_FOUND",
+        "CLASSICAL_SOURCE_NOT_FOUND",
         "EXPORT_PLAN_NOT_FOUND",
         "AI_RUN_NOT_FOUND",
     }:
@@ -519,6 +521,12 @@ def create_app(
     app.state.upload_workspace = LocalUploadWorkspace(runtime_settings.artifact_root)
     app.state.parent_graph = None
     app.include_router(build_sound_catalog_router())
+    app.include_router(
+        build_classical_router(
+            runtime_uow,
+            capability=ReadPianoCapability(service_url=runtime_settings.render_service_url),
+        )
+    )
     app.include_router(
         build_piano_router(
             runtime_uow,

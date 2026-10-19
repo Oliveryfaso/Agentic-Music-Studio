@@ -14,6 +14,7 @@ from motif_forge.domain.commands import EditorCommand
 from motif_forge.domain.ir import (
     ArrangementIR,
     ArrangementIRV2,
+    ArrangementIRV3,
     ArrangementValue,
     DomainModel,
     create_empty_arrangement,
@@ -69,9 +70,11 @@ def versions_for_arrangement(
     if isinstance(arrangement, ArrangementIRV2):
         return current.model_copy(
             update={
-                "domain_schema": "arrangement-ir.v2",
-                "audio_engine": "motif-forge-audio-engine.v2",
-                "compiler": "audio-graph-spec.v2",
+                "domain_schema": arrangement.schema_version,
+                "audio_engine": arrangement.render_profile.engine_version,
+                "compiler": "audio-graph-spec.v3"
+                if isinstance(arrangement, ArrangementIRV3)
+                else "audio-graph-spec.v2",
                 "assets": arrangement.render_profile.manifest_sha256,
             }
         )
@@ -80,8 +83,8 @@ def versions_for_arrangement(
 
 def _validate_version_refs(arrangement: ArrangementIR, versions: VersionRefs) -> None:
     if isinstance(arrangement, ArrangementIRV2) and (
-        versions.domain_schema != "arrangement-ir.v2"
-        or versions.audio_engine != "motif-forge-audio-engine.v2"
+        versions.domain_schema != arrangement.schema_version
+        or versions.audio_engine != arrangement.render_profile.engine_version
         or versions.assets != arrangement.render_profile.manifest_sha256
     ):
         raise ValueError("IR_VERSION_REFS_MISMATCH")

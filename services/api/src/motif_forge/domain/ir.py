@@ -374,73 +374,98 @@ class ArrangementIRV2(ArrangementIR):
 
     @model_validator(mode="after")
     def validate_piano_performance(self) -> Self:
-        if len(self.tracks) != 1 or self.tracks[0].track_type is not TrackType.INSTRUMENT:
-            raise ValueError("PIANO_SINGLE_TRACK_REQUIRED")
-        if self.sample_rate != 48000:
-            raise ValueError("PIANO_SAMPLE_RATE_UNSUPPORTED")
-        facts = {}
-        for track in self.tracks:
-            for clip in track.clips:
-                if not isinstance(clip, NoteClip):
-                    raise ValueError("PIANO_NOTE_CLIP_REQUIRED")
-                if (
-                    clip.loop
-                    or clip.gain_db != 0
-                    or clip.pan != 0
-                    or clip.fade_in_tick
-                    or clip.fade_out_tick
-                ):
-                    raise ValueError("PIANO_CLIP_PARAMETERS_UNSUPPORTED")
-                for note in clip.notes:
-                    if note.articulation is not Articulation.NORMAL:
-                        raise ValueError("PIANO_ARTICULATION_UNSUPPORTED")
-                    if not 21 <= note.pitch <= 108:
-                        raise ValueError("PIANO_KEY_RANGE_UNSUPPORTED")
-                    facts[track.track_id, clip.clip_id, note.note_id] = (clip, note)
-        if len(facts) > 2000:
-            raise ValueError("PIANO_NOTE_BUDGET_EXCEEDED")
-        overrides = {
-            (item.track_id, item.clip_id, item.note_id): item
-            for item in self.performance_plan.notes
-        }
-        if not overrides.keys() <= facts.keys():
-            raise ValueError("PERFORMANCE_NOTE_NOT_FOUND")
-        seconds_per_tick = 60 / self.tempo_map[0].bpm / self.ppq
-        for identity, (clip, note) in facts.items():
-            performance = overrides.get(identity)
-            start = (
-                clip.start_tick
-                + note.start_tick
-                + (performance.onset_offset_tick if performance else 0)
-            )
-            if start < 0 or start >= self.duration_tick:
-                raise ValueError("PERFORMANCE_ONSET_OUT_OF_BOUNDS")
-            gate = (
-                performance.gate_duration_tick
-                if performance and performance.gate_duration_tick is not None
-                else note.duration_tick
-            )
+        return _validate_piano_performance(self, maximum_tracks=1)
+
+
+class EnsemblePianoRenderProfile(PianoRenderProfile):
+    engine_version: Literal["motif-forge-audio-engine.v3"] = "motif-forge-audio-engine.v3"  # type: ignore[assignment]
+
+
+class ArrangementIRV3(ArrangementIRV2):
+    """Explicit two-part piano arrangement; v2 keeps its single-track contract."""
+
+    schema_version: Literal["arrangement-ir.v3"] = "arrangement-ir.v3"  # type: ignore[assignment]
+    render_profile: EnsemblePianoRenderProfile
+
+    @model_validator(mode="after")
+    def validate_piano_performance(self) -> Self:
+        return _validate_piano_performance(self, maximum_tracks=2)
+
+
+def _validate_piano_performance[T: ArrangementIRV2](arrangement: T, *, maximum_tracks: int) -> T:
+    if not 1 <= len(arrangement.tracks) <= maximum_tracks or any(
+        t.track_type is not TrackType.INSTRUMENT for t in arrangement.tracks
+    ):
+        raise ValueError("PIANO_SINGLE_TRACK_REQUIRED")
+    if arrangement.sample_rate != 48000:
+        raise ValueError("PIANO_SAMPLE_RATE_UNSUPPORTED")
+    facts = {}
+    for track in arrangement.tracks:
+        for clip in track.clips:
+            if not isinstance(clip, NoteClip):
+                raise ValueError("PIANO_NOTE_CLIP_REQUIRED")
             if (
-                not 0.005 <= gate * seconds_per_tick <= 30
-                or (start + gate) * seconds_per_tick + 0.6
-                > self.duration_tick * seconds_per_tick + 1e-6
+                clip.loop
+                or clip.gain_db != 0
+                or clip.pan != 0
+                or clip.fade_in_tick
+                or clip.fade_out_tick
             ):
-                raise ValueError("PERFORMANCE_GATE_OUT_OF_BOUNDS")
-        return self
+                raise ValueError("PIANO_CLIP_PARAMETERS_UNSUPPORTED")
+            for note in clip.notes:
+                if note.articulation is not Articulation.NORMAL:
+                    raise ValueError("PIANO_ARTICULATION_UNSUPPORTED")
+                if not 21 <= note.pitch <= 108:
+                    raise ValueError("PIANO_KEY_RANGE_UNSUPPORTED")
+                facts[track.track_id, clip.clip_id, note.note_id] = (clip, note)
+    if len(facts) > 2000:
+        raise ValueError("PIANO_NOTE_BUDGET_EXCEEDED")
+    overrides = {
+        (item.track_id, item.clip_id, item.note_id): item
+        for item in arrangement.performance_plan.notes
+    }
+    if not overrides.keys() <= facts.keys():
+        raise ValueError("PERFORMANCE_NOTE_NOT_FOUND")
+    seconds_per_tick = 60 / arrangement.tempo_map[0].bpm / arrangement.ppq
+    for identity, (clip, note) in facts.items():
+        performance = overrides.get(identity)
+        start = (
+            clip.start_tick
+            + note.start_tick
+            + (performance.onset_offset_tick if performance else 0)
+        )
+        if start < 0 or start >= arrangement.duration_tick:
+            raise ValueError("PERFORMANCE_ONSET_OUT_OF_BOUNDS")
+        gate = (
+            performance.gate_duration_tick
+            if performance and performance.gate_duration_tick is not None
+            else note.duration_tick
+        )
+        if (
+            not 0.005 <= gate * seconds_per_tick <= 30
+            or (start + gate) * seconds_per_tick + 0.6
+            > arrangement.duration_tick * seconds_per_tick + 1e-6
+        ):
+            raise ValueError("PERFORMANCE_GATE_OUT_OF_BOUNDS")
+    return arrangement
 
 
-ArrangementValue = Annotated[ArrangementIR | ArrangementIRV2, Field(discriminator="schema_version")]
+ArrangementValue = Annotated[
+    ArrangementIR | ArrangementIRV2 | ArrangementIRV3, Field(discriminator="schema_version")
+]
 
 
 def read_arrangement_json(
     value: str | bytes, *, strict: Literal[True] = True
-) -> ArrangementIR | ArrangementIRV2:
+) -> ArrangementIR | ArrangementIRV2 | ArrangementIRV3:
     data: Any = json.loads(value)
     version = data.get("schema_version") if isinstance(data, dict) else None
     if version == "arrangement-ir.v1":
         return ArrangementIR.model_validate_json(value, strict=strict)
     if version == "arrangement-ir.v2":
         return ArrangementIRV2.model_validate_json(value, strict=strict)
+    if version == "arrangement-ir.v3":
+        return ArrangementIRV3.model_validate_json(value, strict=strict)
     raise ValueError("IR_SCHEMA_VERSION_UNSUPPORTED")
 
 

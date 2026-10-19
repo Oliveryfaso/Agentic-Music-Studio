@@ -1,0 +1,20 @@
+import {afterEach,expect,it,vi} from 'vitest';
+import {preparePiano} from '../src/piano-runtime.js';
+import type {PianoTrackSpec} from '../src/contracts.js';
+import {fixture} from './fixtures/instrument-fixture.js';
+afterEach(()=>vi.unstubAllGlobals());
+it('two parts reuse one verified decode inside a render but never share across renders',async()=>{
+  const {pack,bytes}=await fixture();
+  const decode=vi.fn(async()=>({length:3840,numberOfChannels:1,sampleRate:48000,duration:.08} as AudioBuffer));
+  vi.stubGlobal('OfflineAudioContext',class {decodeAudioData=decode;});
+  const fetcher=vi.fn(async()=>new Response(new Uint8Array(bytes).buffer));vi.stubGlobal('fetch',fetcher);
+  const binding={manifest:pack,manifestSha256:'a'.repeat(64),baseUrl:'/instrument-packs/'+'b'.repeat(32)};
+  const track:PianoTrackSpec={trackId:'original',name:'original',kind:'multisample',gainDb:0,pan:0,eq:{lowDb:0,midDb:0,highDb:0},reverbSend:0,instrumentPack:{packId:pack.packId,packVersion:pack.packVersion,manifestSha256:binding.manifestSha256},notes:[{noteId:'original-note',midi:60,velocity:72,startSeconds:.01,gateSeconds:.1,detuneCents:0}]};
+  const cache=new Map<string,AudioBuffer>();
+  const first=await preparePiano(track,binding,2,48000,cache);
+  const second=await preparePiano({...track,trackId:'added',notes:[{...track.notes[0]!,noteId:'added-note'}]},binding,2,48000,cache);
+  expect(fetcher).toHaveBeenCalledTimes(1);expect(decode).toHaveBeenCalledTimes(1);
+  expect(first.buffers.get('loud')).toBe(second.buffers.get('loud'));
+  await preparePiano(track,binding,2,48000,new Map());
+  expect(decode).toHaveBeenCalledTimes(2);
+});

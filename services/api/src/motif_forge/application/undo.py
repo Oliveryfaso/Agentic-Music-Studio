@@ -25,6 +25,7 @@ from motif_forge.domain.commands import (
     AddNotesPayload,
     AddTrackCommand,
     AddTrackPayload,
+    AppendPianoTrackCommand,
     DeleteClipCommand,
     DeleteNotesCommand,
     DeleteNotesPayload,
@@ -37,6 +38,8 @@ from motif_forge.domain.commands import (
     MoveClipCommand,
     MoveClipPayload,
     NoteUpdate,
+    RemoveAddedPianoTrackCommand,
+    RemoveAddedPianoTrackPayload,
     SetClipParamCommand,
     SetClipParamPayload,
     SetPianoProfileCommand,
@@ -53,6 +56,7 @@ from motif_forge.domain.commands import (
 from motif_forge.domain.ir import (
     ArrangementIR,
     ArrangementIRV2,
+    ArrangementIRV3,
     DomainModel,
     NoteClip,
     PerformancePlan,
@@ -133,7 +137,19 @@ def _inverse_for(
             )
         )
 
-    if isinstance(command, SetPianoProfileCommand):
+    if isinstance(command, AppendPianoTrackCommand):
+        add(
+            RemoveAddedPianoTrackCommand,
+            RemoveAddedPianoTrackPayload(
+                track_id=payload.track.track_id,
+                restore_schema_version="arrangement-ir.v3"
+                if isinstance(before, ArrangementIRV3)
+                else "arrangement-ir.v2",
+            ),
+        )
+    elif isinstance(command, RemoveAddedPianoTrackCommand):
+        add(AppendPianoTrackCommand, {"track": _track(before, payload.track_id)})
+    elif isinstance(command, SetPianoProfileCommand):
         add(
             SetPianoProfileCommand,
             SetPianoProfilePayload(
@@ -333,7 +349,17 @@ class UndoCommittedRevision:
             impact = compute_change_impact(inverse)
             piano_parent_restore = (
                 request.target_revision_id == request.base_revision_id
-                and all(isinstance(command, SetPianoProfileCommand) for command in commands)
+                and all(
+                    isinstance(
+                        command,
+                        (
+                            SetPianoProfileCommand,
+                            AppendPianoTrackCommand,
+                            RemoveAddedPianoTrackCommand,
+                        ),
+                    )
+                    for command in commands
+                )
                 and candidate == parent.arrangement_ir
             )
             if impact >= ChangeImpact.L2 and not piano_parent_restore:

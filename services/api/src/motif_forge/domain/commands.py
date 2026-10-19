@@ -12,11 +12,13 @@ from motif_forge.domain.ir import (
     MAX_TRACKS,
     ArrangementIR,
     ArrangementIRV2,
+    ArrangementIRV3,
     Articulation,
     AudioClip,
     AudioSourceKind,
     Clip,
     DomainModel,
+    EnsemblePianoRenderProfile,
     KeyPoint,
     MeterPoint,
     NoteClip,
@@ -321,8 +323,31 @@ class SetPianoProfileCommand(CommandEnvelope):
     payload: SetPianoProfilePayload
 
 
+class AppendPianoTrackPayload(DomainModel):
+    track: Track
+
+
+class AppendPianoTrackCommand(CommandEnvelope):
+    command_type: Literal["append_piano_track"] = "append_piano_track"
+    actor_kind: Literal["human"] = "human"
+    payload: AppendPianoTrackPayload
+
+
+class RemoveAddedPianoTrackPayload(DomainModel):
+    track_id: UUID
+    restore_schema_version: Literal["arrangement-ir.v2", "arrangement-ir.v3"]
+
+
+class RemoveAddedPianoTrackCommand(CommandEnvelope):
+    command_type: Literal["remove_added_piano_track"] = "remove_added_piano_track"
+    actor_kind: Literal["human"] = "human"
+    payload: RemoveAddedPianoTrackPayload
+
+
 EditorCommand = Annotated[
     InitializeCompositionCommand
+    | AppendPianoTrackCommand
+    | RemoveAddedPianoTrackCommand
     | SetPianoProfileCommand
     | AddTrackCommand
     | ImportAudioCommand
@@ -528,6 +553,47 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
     # The discriminated command model guarantees the payload pairing at parse time. Pydantic's
     # plugin does not currently preserve that relationship when narrowing the union below.
     payload: Any = command.payload
+    if isinstance(command, AppendPianoTrackCommand):
+        if not isinstance(arrangement, ArrangementIRV2) or len(arrangement.tracks) != 1:
+            raise issue(
+                "PIANO_TRACK_LIMIT_EXCEEDED", "tracks", "add one part to the original melody"
+            )
+        if not any(
+            p.kind == "asset" and p.ref == "score:mutopia-528-melody.v1"
+            for p in arrangement.provenance
+        ):
+            raise issue(
+                "CLASSICAL_SOURCE_REQUIRED", "provenance", "an approved original score is required"
+            )
+        original = arrangement.tracks[0]
+        if (
+            not original.locked_ranges
+            or payload.track.track_id == original.track_id
+            or payload.track.locked_ranges
+        ):
+            raise issue(
+                "CLASSICAL_ORIGINAL_REQUIRED", "tracks", "the locked original must be preserved"
+            )
+        data = arrangement.model_dump(mode="python")
+        data.update(
+            schema_version="arrangement-ir.v3",
+            tracks=(*arrangement.tracks, payload.track),
+            render_profile=EnsemblePianoRenderProfile(),
+        )
+        return ArrangementIRV3.model_validate(data)
+    if isinstance(command, RemoveAddedPianoTrackCommand):
+        if not isinstance(arrangement, ArrangementIRV3):
+            raise issue("UNDO_NOT_AVAILABLE", "tracks", "a versioned added part is required")
+        target = next((t for t in arrangement.tracks if t.track_id == payload.track_id), None)
+        if target is None or target.locked_ranges:
+            raise issue("LOCKED_RANGE_VIOLATION", "tracks", "the original cannot be removed")
+        tracks = tuple(t for t in arrangement.tracks if t.track_id != payload.track_id)
+        data = arrangement.model_dump(mode="python")
+        data.update(schema_version=payload.restore_schema_version, tracks=tracks)
+        if payload.restore_schema_version == "arrangement-ir.v2":
+            data["render_profile"] = PianoRenderProfile()
+            return ArrangementIRV2.model_validate(data)
+        return ArrangementIRV3.model_validate(data)
     if isinstance(command, SetPianoProfileCommand):
         if len(arrangement.tracks) != 1:
             raise issue(

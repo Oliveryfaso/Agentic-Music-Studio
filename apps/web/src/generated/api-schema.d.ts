@@ -55,6 +55,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/classical-score-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create */
+        post: operations["create_api_v1_classical_score_imports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/classical-scores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Catalog */
+        get: operations["catalog_api_v1_classical_scores_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/classical-scores/{score_id}/musicxml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Musicxml */
+        get: operations["musicxml_api_v1_classical_scores__score_id__musicxml_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/export-bundles/{bundle_id}/files/{filename}": {
         parameters: {
             query?: never;
@@ -203,6 +254,23 @@ export interface paths {
         put?: never;
         /** Create Run */
         post: operations["create_run_api_v1_projects__project_id__ai_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/classical-source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Source */
+        get: operations["source_api_v1_projects__project_id__classical_source_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -796,6 +864,27 @@ export interface components {
          * @enum {string}
          */
         AIRunType: "generate" | "edit";
+        /** AccompanimentIntent */
+        AccompanimentIntent: {
+            /** Chords */
+            chords: ("G" | "C" | "D" | "Em" | "Am" | "Bm")[];
+            /**
+             * Octave
+             * @default 2
+             * @enum {integer}
+             */
+            octave: 2 | 3;
+            /**
+             * Pattern
+             * @enum {string}
+             */
+            pattern: "roots" | "broken";
+            /**
+             * Velocity
+             * @default 54
+             */
+            velocity: number;
+        };
         /** AddClipCommand */
         AddClipCommand: {
             /**
@@ -909,6 +998,39 @@ export interface components {
         AddTrackPayload: {
             track: components["schemas"]["Track"];
         };
+        /** AppendPianoTrackCommand */
+        AppendPianoTrackCommand: {
+            /**
+             * Actor Kind
+             * @default human
+             * @constant
+             */
+            actor_kind: "human";
+            /** Client Sequence */
+            client_sequence: number;
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            command_type: "append_piano_track";
+            payload: components["schemas"]["AppendPianoTrackPayload"];
+            /**
+             * Schema Version
+             * @default editor-command.v1
+             * @constant
+             */
+            schema_version: "editor-command.v1";
+            selection?: components["schemas"]["Selection"];
+        };
+        /** AppendPianoTrackPayload */
+        AppendPianoTrackPayload: {
+            track: components["schemas"]["Track"];
+        };
         /** ArrangementIR */
         ArrangementIR: {
             /**
@@ -1006,6 +1128,66 @@ export interface components {
              * @enum {string}
              */
             schema_version: "arrangement-ir.v2";
+            /**
+             * Sections
+             * @default []
+             */
+            sections: components["schemas"]["Section"][];
+            /** Tempo Map */
+            tempo_map?: components["schemas"]["TempoPoint"][];
+            /** Time Signature Map */
+            time_signature_map?: components["schemas"]["MeterPoint"][];
+            /**
+             * Tracks
+             * @default []
+             */
+            tracks: components["schemas"]["Track"][];
+        };
+        /**
+         * ArrangementIRV3
+         * @description Explicit two-part piano arrangement; v2 keeps its single-track contract.
+         */
+        ArrangementIRV3: {
+            /**
+             * Key Map
+             * @default []
+             */
+            key_map: components["schemas"]["KeyPoint"][];
+            /**
+             * Markers
+             * @default []
+             */
+            markers: components["schemas"]["Marker"][];
+            performance_plan?: components["schemas"]["PerformancePlan"];
+            /**
+             * Ppq
+             * @default 480
+             * @constant
+             */
+            ppq: 480;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /**
+             * Provenance
+             * @default []
+             */
+            provenance: components["schemas"]["ProvenanceRef"][];
+            render_profile: components["schemas"]["EnsemblePianoRenderProfile"];
+            routing?: components["schemas"]["RoutingSpec"];
+            /**
+             * Sample Rate
+             * @default 48000
+             * @enum {integer}
+             */
+            sample_rate: 44100 | 48000 | 96000;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            schema_version: "arrangement-ir.v3";
             /**
              * Sections
              * @default []
@@ -1211,6 +1393,129 @@ export interface components {
          * @enum {string}
          */
         CandidateLabel: "a" | "b";
+        /** ClassicalCatalogResponse */
+        ClassicalCatalogResponse: {
+            /** Data */
+            data: components["schemas"]["ClassicalScoreDescription"][];
+        };
+        /** ClassicalCreateResponse */
+        ClassicalCreateResponse: {
+            data: components["schemas"]["ClassicalScoreResult"];
+        };
+        /** ClassicalImportReport */
+        ClassicalImportReport: {
+            /** Beats */
+            beats: number;
+            /** Bpm */
+            bpm: number;
+            /** Measure Count */
+            measure_count: number;
+            /** Note Count */
+            note_count: number;
+            /** Note Map */
+            note_map: components["schemas"]["ScoreNote"][];
+            /** Rest Tail Bars */
+            rest_tail_bars: number;
+            /** Tonic */
+            tonic: string;
+        };
+        /** ClassicalScoreDescription */
+        ClassicalScoreDescription: {
+            /** Composer */
+            composer: string;
+            /** Conversion */
+            conversion: string;
+            /** Default Chords */
+            default_chords: string[];
+            /** Digital Editor */
+            digital_editor: string;
+            /** License */
+            license: string;
+            /** Measure Count */
+            measure_count: number;
+            /** Musicxml Sha256 */
+            musicxml_sha256: string;
+            /** Note Count */
+            note_count: number;
+            /** Original Sha256 */
+            original_sha256: string;
+            /** Page Url */
+            page_url: string;
+            /** Score Id */
+            score_id: string;
+            /** Source Url */
+            source_url: string;
+            /** Title */
+            title: string;
+        };
+        /** ClassicalScoreRequest */
+        ClassicalScoreRequest: {
+            /**
+             * Name
+             * @default 欢乐颂 · 我的改编
+             */
+            name: string;
+            /**
+             * Score Id
+             * @default mutopia-528-melody.v1
+             * @constant
+             */
+            score_id: "mutopia-528-melody.v1";
+        };
+        /** ClassicalScoreResult */
+        ClassicalScoreResult: {
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Content Hash */
+            content_hash: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /**
+             * Replayed
+             * @default false
+             */
+            replayed: boolean;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+            /**
+             * Source Branch Id
+             * Format: uuid
+             */
+            source_branch_id: string;
+        };
+        /** ClassicalSourceData */
+        ClassicalSourceData: {
+            import_report: components["schemas"]["ClassicalImportReport"];
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+            source: components["schemas"]["ClassicalScoreDescription"];
+            /**
+             * Source Branch Id
+             * Format: uuid
+             */
+            source_branch_id: string;
+        };
+        /** ClassicalSourceResponse */
+        ClassicalSourceResponse: {
+            data: components["schemas"]["ClassicalSourceData"];
+        };
         /** ClipTargetPayload */
         ClipTargetPayload: {
             /**
@@ -1239,7 +1544,7 @@ export interface components {
             /** Client Sequence */
             client_sequence: number;
             /** Commands */
-            commands: (components["schemas"]["InitializeCompositionCommand"] | components["schemas"]["SetPianoProfileCommand"] | components["schemas"]["AddTrackCommand"] | components["schemas"]["ImportAudioCommand"] | components["schemas"]["DeleteTrackCommand"] | components["schemas"]["AddClipCommand"] | components["schemas"]["DeleteClipCommand"] | components["schemas"]["DuplicateClipCommand"] | components["schemas"]["MoveClipCommand"] | components["schemas"]["TrimClipCommand"] | components["schemas"]["SplitClipCommand"] | components["schemas"]["SetTrackParamCommand"] | components["schemas"]["SetClipParamCommand"] | components["schemas"]["AddNotesCommand"] | components["schemas"]["UpdateNotesCommand"] | components["schemas"]["DeleteNotesCommand"])[];
+            commands: (components["schemas"]["InitializeCompositionCommand"] | components["schemas"]["AppendPianoTrackCommand"] | components["schemas"]["RemoveAddedPianoTrackCommand"] | components["schemas"]["SetPianoProfileCommand"] | components["schemas"]["AddTrackCommand"] | components["schemas"]["ImportAudioCommand"] | components["schemas"]["DeleteTrackCommand"] | components["schemas"]["AddClipCommand"] | components["schemas"]["DeleteClipCommand"] | components["schemas"]["DuplicateClipCommand"] | components["schemas"]["MoveClipCommand"] | components["schemas"]["TrimClipCommand"] | components["schemas"]["SplitClipCommand"] | components["schemas"]["SetTrackParamCommand"] | components["schemas"]["SetClipParamCommand"] | components["schemas"]["AddNotesCommand"] | components["schemas"]["UpdateNotesCommand"] | components["schemas"]["DeleteNotesCommand"])[];
             /** Reason */
             reason: string;
         };
@@ -1707,6 +2012,82 @@ export interface components {
             seed: number;
             selection: components["schemas"]["Selection"];
         };
+        /** EnsembleExportPlanV4 */
+        EnsembleExportPlanV4: {
+            /** Arrangement Hash */
+            arrangement_hash: string;
+            /**
+             * Engine Version
+             * @default motif-forge-audio-engine.v3
+             * @constant
+             */
+            engine_version: "motif-forge-audio-engine.v3";
+            /**
+             * Include Mp3
+             * @default true
+             */
+            include_mp3: boolean;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            render_profile: components["schemas"]["EnsemblePianoRenderProfile"];
+            /** Request Id */
+            request_id?: string | null;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            schema_version: "export-plan.v4";
+            /** Seed */
+            seed: number;
+            /**
+             * Stem Track Ids
+             * @default []
+             */
+            stem_track_ids: string[];
+            /** Track Ids */
+            track_ids: string[];
+        };
+        /** EnsemblePianoRenderProfile */
+        EnsemblePianoRenderProfile: {
+            /**
+             * Engine Version
+             * @default motif-forge-audio-engine.v3
+             * @constant
+             */
+            engine_version: "motif-forge-audio-engine.v3";
+            /**
+             * Instrument Pack Id
+             * @default freepats:upright-kw-small
+             * @constant
+             */
+            instrument_pack_id: "freepats:upright-kw-small";
+            /**
+             * Instrument Pack Version
+             * @default 2019-07-03.motif1
+             * @constant
+             */
+            instrument_pack_version: "2019-07-03.motif1";
+            /**
+             * Manifest Sha256
+             * @default 264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813
+             * @constant
+             */
+            manifest_sha256: "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813";
+            /**
+             * Schema Version
+             * @default render-profile.v1
+             * @constant
+             */
+            schema_version: "render-profile.v1";
+        };
         /** Equalizer3Band */
         Equalizer3Band: {
             /**
@@ -1740,7 +2121,7 @@ export interface components {
             /** Content Hash */
             content_hash: string;
             /** Export Plan */
-            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"]) | null;
+            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"] | components["schemas"]["EnsembleExportPlanV4"]) | null;
             /** File Count */
             file_count: number;
             /** Plan Hash */
@@ -2586,6 +2967,7 @@ export interface components {
         };
         /** PianoPreviewOptions */
         PianoPreviewOptions: {
+            accompaniment?: components["schemas"]["AccompanimentIntent"] | null;
             /**
              * Base Revision Id
              * Format: uuid
@@ -2847,6 +3229,48 @@ export interface components {
             /** Thread Id */
             thread_id: string;
         };
+        /** RemoveAddedPianoTrackCommand */
+        RemoveAddedPianoTrackCommand: {
+            /**
+             * Actor Kind
+             * @default human
+             * @constant
+             */
+            actor_kind: "human";
+            /** Client Sequence */
+            client_sequence: number;
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            command_type: "remove_added_piano_track";
+            payload: components["schemas"]["RemoveAddedPianoTrackPayload"];
+            /**
+             * Schema Version
+             * @default editor-command.v1
+             * @constant
+             */
+            schema_version: "editor-command.v1";
+            selection?: components["schemas"]["Selection"];
+        };
+        /** RemoveAddedPianoTrackPayload */
+        RemoveAddedPianoTrackPayload: {
+            /**
+             * Restore Schema Version
+             * @enum {string}
+             */
+            restore_schema_version: "arrangement-ir.v2" | "arrangement-ir.v3";
+            /**
+             * Track Id
+             * Format: uuid
+             */
+            track_id: string;
+        };
         /** RepairProposal */
         RepairProposal: {
             /**
@@ -2929,7 +3353,7 @@ export interface components {
             /** Error Code */
             error_code?: string | null;
             /** Export Plan */
-            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"]) | null;
+            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"] | components["schemas"]["EnsembleExportPlanV4"]) | null;
             /** Export Thread Id */
             export_thread_id?: string | null;
             /** Files */
@@ -2967,7 +3391,7 @@ export interface components {
             /** Error Code */
             error_code?: string | null;
             /** Export Plan */
-            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"]) | null;
+            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"] | components["schemas"]["EnsembleExportPlanV4"]) | null;
             /** Media Run Id */
             media_run_id?: string | null;
             /** Pending Job Id */
@@ -2991,7 +3415,7 @@ export interface components {
         /** RevisionStudioData */
         RevisionStudioData: {
             /** Arrangement Ir */
-            arrangement_ir: components["schemas"]["ArrangementIR"] | components["schemas"]["ArrangementIRV2"];
+            arrangement_ir: components["schemas"]["ArrangementIR"] | components["schemas"]["ArrangementIRV2"] | components["schemas"]["ArrangementIRV3"];
             /** Author Kind */
             author_kind: string;
             /** Bundle Id */
@@ -3259,6 +3683,24 @@ export interface components {
             state_schema_version: string;
         };
         SafeValue: string | number | boolean | null;
+        /** ScoreNote */
+        ScoreNote: {
+            /** Duration Tick */
+            duration_tick: number;
+            /** Measure Id */
+            measure_id: string;
+            /**
+             * Note Id
+             * Format: uuid
+             */
+            note_id: string;
+            /** Pitch */
+            pitch: number;
+            /** Source Note Id */
+            source_note_id: string;
+            /** Start Tick */
+            start_tick: number;
+        };
         /** Section */
         Section: {
             /** End Tick */
@@ -3946,6 +4388,92 @@ export interface operations {
             };
         };
     };
+    create_api_v1_classical_score_imports_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassicalScoreRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassicalCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    catalog_api_v1_classical_scores_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassicalCatalogResponse"];
+                };
+            };
+        };
+    };
+    musicxml_api_v1_classical_scores__score_id__musicxml_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                score_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_bundle_file_api_v1_export_bundles__bundle_id__files__filename__get: {
         parameters: {
             query?: never;
@@ -4249,6 +4777,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CreateAIRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    source_api_v1_projects__project_id__classical_source_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassicalSourceResponse"];
                 };
             };
             /** @description Validation Error */

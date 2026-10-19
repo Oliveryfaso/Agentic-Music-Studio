@@ -19,6 +19,7 @@ from motif_forge.application.export_reads import (
 )
 from motif_forge.application.generation import EXPORT_STEPS
 from motif_forge.domain.export_plan import (
+    EnsembleExportPlanV4,
     ExportPlanValue,
     PianoExportPlanV3,
     export_key_v2,
@@ -169,7 +170,11 @@ class PostgresExportProjectionStore:
             if (
                 bundle_row is not None
                 and bundle_row.schema_version
-                in {"export-bundle-artifact.v2", "export-bundle-artifact.v3"}
+                in {
+                    "export-bundle-artifact.v2",
+                    "export-bundle-artifact.v3",
+                    "export-bundle-artifact.v4",
+                }
                 and plan is None
             ):
                 raise ValueError("v2 bundle has no v2 Run")
@@ -257,7 +262,12 @@ class PostgresExportProjectionStore:
         manifest = json.loads(raw)
         version = (
             "export-manifest.v2"
-            if bundle.schema_version in {"export-bundle-artifact.v2", "export-bundle-artifact.v3"}
+            if bundle.schema_version
+            in {
+                "export-bundle-artifact.v2",
+                "export-bundle-artifact.v3",
+                "export-bundle-artifact.v4",
+            }
             else "export-manifest.v1"
         )
         if (
@@ -392,7 +402,9 @@ def _lineage_error_v2(
         or bundle.source_job_id != jobs[-1].id
         or bundle.schema_version
         != (
-            "export-bundle-artifact.v3"
+            "export-bundle-artifact.v4"
+            if isinstance(plan, EnsembleExportPlanV4)
+            else "export-bundle-artifact.v3"
             if isinstance(plan, PianoExportPlanV3)
             else "export-bundle-artifact.v2"
         )
@@ -413,7 +425,8 @@ def _public_bundle(row: ExportBundleArtifactRow) -> ExportBundleSummary:
         byte_size=row.byte_size,
         file_count=row.file_count,
         export_plan=read_export_plan_json(json.dumps(row.export_plan), strict=True)
-        if row.schema_version in {"export-bundle-artifact.v2", "export-bundle-artifact.v3"}
+        if row.schema_version
+        in {"export-bundle-artifact.v2", "export-bundle-artifact.v3", "export-bundle-artifact.v4"}
         else None,
         plan_hash=row.plan_hash,
     )

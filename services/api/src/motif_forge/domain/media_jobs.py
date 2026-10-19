@@ -11,7 +11,7 @@ from uuid import UUID
 
 from pydantic import Field, SerializerFunctionWrapHandler, model_serializer, model_validator
 
-from motif_forge.domain.export_plan import ExportPlanValue, PianoExportPlanV3
+from motif_forge.domain.export_plan import EnsembleExportPlanV4, ExportPlanValue, PianoExportPlanV3
 from motif_forge.domain.ir import DomainModel
 
 
@@ -196,6 +196,28 @@ class CandidatePreviewJobPayloadV2(CandidatePreviewJobPayload):
     @model_validator(mode="after")
     def validate_piano_graph(self) -> Self:
         if self.audio_graph.get("schemaVersion") != "audio-graph-spec.v2":
+            raise ValueError("AUDIO_GRAPH_SCHEMA_UNSUPPORTED")
+        return self
+
+
+class CanonicalRenderJobPayloadV3(CanonicalRenderJobPayload):
+    schema_version: Literal["canonical-render-job.v3"] = "canonical-render-job.v3"  # type: ignore[assignment]
+    audio_engine_version: Literal["motif-forge-audio-engine.v3"]  # type: ignore[assignment]
+
+    @model_validator(mode="after")
+    def validate_piano_graph(self) -> Self:
+        if self.audio_graph.get("schemaVersion") != "audio-graph-spec.v3":
+            raise ValueError("AUDIO_GRAPH_SCHEMA_UNSUPPORTED")
+        return self
+
+
+class CandidatePreviewJobPayloadV3(CandidatePreviewJobPayload):
+    schema_version: Literal["candidate-preview-job.v3"] = "candidate-preview-job.v3"  # type: ignore[assignment]
+    audio_engine_version: Literal["motif-forge-audio-engine.v3"]  # type: ignore[assignment]
+
+    @model_validator(mode="after")
+    def validate_piano_graph(self) -> Self:
+        if self.audio_graph.get("schemaVersion") != "audio-graph-spec.v3":
             raise ValueError("AUDIO_GRAPH_SCHEMA_UNSUPPORTED")
         return self
 
@@ -776,8 +798,17 @@ class PianoExportBundleArtifactV3(ExportBundleArtifactV2):
     plan: PianoExportPlanV3
 
 
+class EnsembleExportBundleArtifactV4(PianoExportBundleArtifactV3):
+    schema_version: Literal["export-bundle-artifact.v4"] = "export-bundle-artifact.v4"  # type: ignore[assignment]
+    engine_version: Literal["motif-forge-audio-engine.v3"]  # type: ignore[assignment]
+    plan: EnsembleExportPlanV4
+
+
 ExportBundleArtifactValue = (
-    ExportBundleArtifact | ExportBundleArtifactV2 | PianoExportBundleArtifactV3
+    ExportBundleArtifact
+    | ExportBundleArtifactV2
+    | PianoExportBundleArtifactV3
+    | EnsembleExportBundleArtifactV4
 )
 
 

@@ -1,0 +1,11 @@
+{
+  "error": "injected stop before score transaction",
+  "successful_transaction_exits": 1,
+  "projects": 1,
+  "branches": 1,
+  "revisions": 1,
+  "score_revisions": 0,
+  "import_receipts": 0,
+  "projects_after_fresh_ui_key": 2,
+  "score_revisions_after_fresh_ui_key": 1
+}

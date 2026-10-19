@@ -274,3 +274,90 @@ def test_explicit_export_request_ids_separate_retry_jobs_without_changing_revisi
     assert first.arrangement_hash == retried.arrangement_hash == revision.content_hash
     old = contract.plan_export(revision, seed=7)
     assert "request_id" not in old.model_dump(mode="json")
+
+
+def test_classical_two_part_export_binds_new_job_plan_and_score_rights(tmp_path):
+    from uuid import uuid4
+
+    from motif_forge.application.classical_import import SOURCE_REF, reviewed_score
+    from motif_forge.application.rendering import build_canonical_render_payload
+    from motif_forge.domain.accompaniment import AccompanimentIntent, accompaniment_command
+    from motif_forge.domain.classical_score import parse_musicxml, score_to_arrangement
+    from motif_forge.domain.commands import apply_commands
+    from motif_forge.domain.revisions import versions_for_arrangement
+
+    project = uuid4()
+    source, xml = reviewed_score()
+    original = score_to_arrangement(
+        parse_musicxml(xml, namespace=project), project_id=project, source_ref=SOURCE_REF
+    )
+    candidate = apply_commands(
+        original,
+        (
+            accompaniment_command(
+                original,
+                AccompanimentIntent(pattern="roots", chords=("G",) * 16, octave=2, velocity=54),
+                request_id=uuid4(),
+            ),
+        ),
+    )
+    revision = create_root_state(project, created_by="test").revision.model_copy(
+        update={
+            "arrangement_ir": candidate,
+            "content_hash": arrangement_content_hash(candidate),
+            "versions": versions_for_arrangement(candidate),
+        }
+    )
+    job = build_canonical_render_payload(revision, seed=0)
+    assert job.schema_version == "canonical-render-job.v3" and len(job.audio_graph["tracks"]) == 2
+    plan = contract.plan_export(revision, seed=0, include_mp3=False)
+    assert plan.schema_version == "export-plan.v4" and len(plan.track_ids) == 2
+    request = contract.ExportBundleRequestV2(
+        plan=plan,
+        plan_hash=plan.content_hash,
+        arrangement=candidate,
+        audio_exports=audio_refs(plan, tmp_path),
+        trace_refs=("test:classical-source",),
+    )
+    result = write_export_bundle(artifact_root=tmp_path, request=request)
+    credits = json.loads((tmp_path / result.storage_prefix / "credits.json").read_text())
+    score_credit = next(c for c in credits["credits"] if c.get("score_id") == source["score_id"])
+    assert (
+        score_credit["source_sha256"] == source["sha256"]
+        and score_credit["musicxml_sha256"] == source["musicxml_sha256"]
+    )
+    license = json.loads((tmp_path / result.storage_prefix / "license.json").read_text())
+    assert any(
+        item.get("license") == "Public Domain" and item.get("score_id") == source["score_id"]
+        for item in license["assets"]
+    )
+
+
+def test_ensemble_bundle_public_read_keeps_versioned_plan():
+    from types import SimpleNamespace
+
+    from motif_forge.domain.export_plan import EnsembleExportPlanV4
+    from motif_forge.domain.ir import EnsemblePianoRenderProfile
+    from motif_forge.infrastructure.persistence.export_reads import _public_bundle
+
+    plan = EnsembleExportPlanV4(
+        project_id=UUID(int=1),
+        revision_id=UUID(int=2),
+        arrangement_hash="a" * 64,
+        seed=0,
+        track_ids=(UUID(int=3),),
+        render_profile=EnsemblePianoRenderProfile(),
+    )
+    row = SimpleNamespace(
+        id=UUID(int=4),
+        project_id=plan.project_id,
+        revision_id=plan.revision_id,
+        availability="available",
+        content_hash="b" * 64,
+        byte_size=100,
+        file_count=8,
+        schema_version="export-bundle-artifact.v4",
+        export_plan=plan.model_dump(mode="json"),
+        plan_hash=plan.content_hash,
+    )
+    assert _public_bundle(row).export_plan == plan

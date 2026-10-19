@@ -3,7 +3,7 @@ import type { InstrumentBinding, PianoTrackSpec } from './contracts.js';
 import { planPianoVoices, verifyInstrumentSample, type InstrumentPack, type PianoVoice } from './instruments.js';
 
 export type PreparedPiano = Readonly<{pack:InstrumentPack;voices:readonly PianoVoice[];buffers:ReadonlyMap<string,AudioBuffer>}>;
-export async function preparePiano(track:PianoTrackSpec,binding:InstrumentBinding|undefined,durationSeconds:number,sampleRate:number):Promise<PreparedPiano>{
+export async function preparePiano(track:PianoTrackSpec,binding:InstrumentBinding|undefined,durationSeconds:number,sampleRate:number,renderBuffers:Map<string,AudioBuffer>=new Map()):Promise<PreparedPiano>{
   const ref=track.instrumentPack;
   if(!binding) throw new Error('INSTRUMENT_PACK_UNAVAILABLE');
   if(binding.manifestSha256!==ref.manifestSha256 || binding.manifest.packId!==ref.packId || binding.manifest.packVersion!==ref.packVersion)
@@ -14,11 +14,17 @@ export async function preparePiano(track:PianoTrackSpec,binding:InstrumentBindin
   const context=new OfflineAudioContext(1,1,sampleRate);
   const buffers=new Map<string,AudioBuffer>();
   for(const id of new Set(voices.map(v=>v.sampleId))){
-    const response=await fetch(`${binding.baseUrl}/${encodeURIComponent(id)}.wav`,{redirect:'error'});
-    if(!response.ok) throw new Error('INSTRUMENT_PACK_UNAVAILABLE');
-    const bytes=new Uint8Array(await response.arrayBuffer());
-    await verifyInstrumentSample(pack,id,bytes);
-    buffers.set(id,await context.decodeAudioData(new Uint8Array(bytes).buffer));
+    const key=`${binding.manifestSha256}:${sampleRate}:${id}`;
+    let buffer=renderBuffers.get(key);
+    if(!buffer){
+      const response=await fetch(`${binding.baseUrl}/${encodeURIComponent(id)}.wav`,{redirect:'error'});
+      if(!response.ok) throw new Error('INSTRUMENT_PACK_UNAVAILABLE');
+      const bytes=new Uint8Array(await response.arrayBuffer());
+      await verifyInstrumentSample(pack,id,bytes);
+      buffer=await context.decodeAudioData(new Uint8Array(bytes).buffer);
+      renderBuffers.set(key,buffer);
+    }
+    buffers.set(id,buffer);
   }
   return {pack,voices,buffers};
 }

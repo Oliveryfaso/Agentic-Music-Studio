@@ -22,6 +22,7 @@ from motif_forge.application.piano_study import (
     PianoStudyResult,
 )
 from motif_forge.application.ports import UnitOfWorkFactory
+from motif_forge.domain.accompaniment import AccompanimentIntent
 from motif_forge.domain.ir import PerformancePlan, PianoRenderProfile
 
 
@@ -43,6 +44,14 @@ class PianoPreviewOptions(ApiModel):
     render_profile: PianoRenderProfile = Field(default_factory=PianoRenderProfile)
     performance_plan: PerformancePlan = Field(default_factory=PerformancePlan)
     seed: int = Field(default=0, ge=0, le=2**31 - 1)
+    accompaniment: AccompanimentIntent | None = None
+
+    @field_validator("accompaniment", mode="before")
+    @classmethod
+    def read_accompaniment(cls, value: Any) -> AccompanimentIntent | None:
+        if value is None or isinstance(value, AccompanimentIntent):
+            return value
+        return AccompanimentIntent.model_validate_json(json.dumps(value), strict=True)
 
     @field_validator("performance_plan", mode="before")
     @classmethod

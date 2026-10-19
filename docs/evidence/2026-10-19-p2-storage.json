@@ -1,0 +1,379 @@
+{
+  "keep": [
+    "accepted P2 original/accompaniment MP3 and unchanged PCM24 WAV master, MIDI/project/manifests, screenshots and logs",
+    "reviewed pack and original licenses/source fixtures; all earlier accepted outputs",
+    "web dist/Worker host bundle/dependencies/lockfiles",
+    "shared Colima, historical services, images, all non-P2 databases/volumes/caches"
+  ],
+  "before": {
+    "ownedFiles": [
+      {
+        "path": "._artifacts",
+        "bytes": 4096
+      },
+      {
+        "path": "._temp",
+        "bytes": 4096
+      },
+      {
+        "path": "renderer-stderr.log",
+        "bytes": 0
+      },
+      {
+        "path": "._renderer-stderr.log",
+        "bytes": 4096
+      },
+      {
+        "path": "renderer.mjs",
+        "bytes": 33230
+      },
+      {
+        "path": "._renderer.mjs",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/._rebuildable",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/._protected",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/rebuildable/._candidate-previews",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/rebuildable/candidate-previews/._26684a25-7f34-4c41-a389-07b65710c292",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/rebuildable/candidate-previews/26684a25-7f34-4c41-a389-07b65710c292/._977888f0-453a-5815-b2b1-d6a88698e360",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/rebuildable/candidate-previews/26684a25-7f34-4c41-a389-07b65710c292/._bd7ae538-05ad-4f96-b97c-6ec4e7b30d2d",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/rebuildable/candidate-previews/26684a25-7f34-4c41-a389-07b65710c292/977888f0-453a-5815-b2b1-d6a88698e360/._499d611d2239f8ff8d6e2cf8952f39a1d75efbb80531a6c2b703baab8b2db344-preview.mp3",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/rebuildable/candidate-previews/26684a25-7f34-4c41-a389-07b65710c292/977888f0-453a-5815-b2b1-d6a88698e360/499d611d2239f8ff8d6e2cf8952f39a1d75efbb80531a6c2b703baab8b2db344-preview.mp3",
+        "bytes": 817005
+      },
+      {
+        "path": "artifacts/rebuildable/candidate-previews/26684a25-7f34-4c41-a389-07b65710c292/bd7ae538-05ad-4f96-b97c-6ec4e7b30d2d/._29e3a4ba913b3487517b5c28fd99754fd868b8af61dba795250a0b294c767a10-preview.mp3",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/rebuildable/candidate-previews/26684a25-7f34-4c41-a389-07b65710c292/bd7ae538-05ad-4f96-b97c-6ec4e7b30d2d/29e3a4ba913b3487517b5c28fd99754fd868b8af61dba795250a0b294c767a10-preview.mp3",
+        "bytes": 817005
+      },
+      {
+        "path": "artifacts/protected/._exports",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/._26684a25-7f34-4c41-a389-07b65710c292",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/._491c6c55-9449-4e92-a46d-ba274b35fec6",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/._audio",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/._bundles",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/audio/._1d5cf66073ba7ecb31ee5515441bcd59d49b63815fca45c16b779d06be3c7811-master.wav",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/audio/1d5cf66073ba7ecb31ee5515441bcd59d49b63815fca45c16b779d06be3c7811-master.wav",
+        "bytes": 11750438
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/._bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/._project.json",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/._composition.mid",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/project.json",
+        "bytes": 21013
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/._credits.json",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/composition.mid",
+        "bytes": 1199
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/._license.json",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/credits.json",
+        "bytes": 1088
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/._provenance.json",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/license.json",
+        "bytes": 1426
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/._trace.json",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/provenance.json",
+        "bytes": 1026
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/._export-manifest.json",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/trace.json",
+        "bytes": 139
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/export-manifest.json",
+        "bytes": 1348
+      },
+      {
+        "path": "temp/._jobs",
+        "bytes": 4096
+      }
+    ],
+    "ownedLogicalBytes": 13555509,
+    "partialFiles": [],
+    "dockerContainers": {
+      "exit": 0,
+      "stdout": "0e602b2303e8 motif-p2-it-f77aadc79de4 Up 12 minutes\nbbe2f6347a2f s6-lightweight-daw-ai-edit-api-1 Exited (255) 7 weeks ago\n9a5754bcea61 s6-lightweight-daw-ai-edit-resume-dispatcher-1 Restarting (1) 51 seconds ago\n8f706678074f s6-lightweight-daw-ai-edit-dispatcher-1 Restarting (1) 27 seconds ago\ndfbce60a040e s6-lightweight-daw-ai-edit-migrate-1 Exited (0) 7 weeks ago\n2a8546fe6edd s6-lightweight-daw-ai-edit-media-worker-1 Up About a minute\n2d5fcaff61b3 s6-lightweight-daw-ai-edit-storage-init-1 Exited (0) 7 weeks ago\n02ad9b30a905 s6-lightweight-daw-ai-edit-render-worker-1 Exited (0) 7 weeks ago\nb50fdf7d9522 s6-lightweight-daw-ai-edit-postgres-1 Exited (255) 7 weeks ago\n54c4aded2b8b s6-lightweight-daw-ai-edit-redis-1 Exited (255) 7 weeks ago\na17fac602b9a motif-forge-s4-api-1 Exited (255) 7 weeks ago\n5c7b6790b33f motif-forge-s4-resume-dispatcher-1 Restarting (1) 51 seconds ago\ne3241a082595 motif-forge-s4-dispatcher-1 Restarting (1) 6 seconds ago\nef4a64677a76 motif-forge-s4-storage-init-1 Exited (0) 8 weeks ago\ndbd5d9ecad45 motif-forge-s4-migrate-1 Exited (0) 8 weeks ago\ne0004c3b42a2 motif-forge-s4-media-worker-1 Up About a minute\nbe28c8bf62c6 motif-forge-s4-render-worker-1 Up 5 hours\nf08770205967 motif-forge-s4-postgres-1 Exited (255) 7 weeks ago\n3853c937f6ae motif-forge-s4-redis-1 Exited (255) 7 weeks ago\n4d296c9cacaf agentic-music-workbench-s3-task-1-resume-dispatcher-1 Restarting (1) 2 seconds ago\n40f420cbcdc7 agentic-music-workbench-s3-task-1-render-worker-1 Exited (0) 7 weeks ago\n8ee15d302b41 agentic-music-workbench-s3-task-1-media-worker-1 Up About a minute\n3ca1b577bb7f agentic-music-workbench-s3-task-1-dispatcher-1 Restarting (1) 6 seconds ago\neecf1a238b59 agentic-music-workbench-s3-task-1-api-1 Exited (255) 7 weeks ago\n3678fa439d00 agentic-music-workbench-s3-task-1-redis-1 Exited (255) 7 weeks ago\n8ff9e56fe7ec agentic-music-workbench-s3-task-1-storage-init-1 Exited (0) 2 months ago\n48bc8f25e6f0 agentic-music-workbench-s3-task-1-migrate-1 Exited (0) 2 months ago\nd39662b0bb8b agentic-music-workbench-s3-task-1-postgres-1 Exited (255) 7 weeks ago\n",
+      "stderr": ""
+    },
+    "images": {
+      "exit": 0,
+      "stdout": "e3371a34a46a motif-forge-api:local 368MB\n818851c1b2c6 motif-forge-media-worker:local 1.08GB\ne931488db69d motif-forge-render-worker:local 1.58GB\n229a2c5bfa27 python:3.12-slim 205MB\n235600a8101a node:24.18.1-bookworm-slim 349MB\ne7723ff73d96 redis:7.4-alpine 58.7MB\n742f40ea20b9 postgres:17-alpine 415MB\n",
+      "stderr": ""
+    },
+    "dockerDisk": {
+      "exit": 0,
+      "stdout": "TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE\nImages          7         3         9.045GB   1.044GB (11%)\nContainers      28        11        1.851MB   958.5kB (51%)\nLocal Volumes   13        6         385.6MB   107.1MB (27%)\nBuild Cache     60        0         4.612GB   4.488GB\n",
+      "stderr": ""
+    },
+    "buildCache": {
+      "exit": 0,
+      "stdout": "ID                          RECLAIMABLE   SIZE       LAST ACCESSED\n797h5kd63jys15rf76ui0xd24   true          248B*      2 months ago\nl5yd6ih5msgjbb8c4iipd9bo1   true          449B*      3 weeks ago\nmap5q3zzn8mszmfz4i06yfrcp   true          3.314kB*   2 months ago\n1yrb7ra20f0kmo04bj99cewcl   true          8.285kB    2 months ago\n4aets07mubgjbw2k2u61am317   true          8.285kB    2 months ago\n86pdbsfea38e8sxk0spj12wha   true          8.285kB    2 months ago\nbfbn5rh58wo2co62vmhzwnl9k   true          8.285kB    2 months ago\nhep3uukwj41p31pdkkepyqh0c   true          8.285kB    2 months ago\nk6jrrqnkyhly7gwwro5fxhd6h   true          8.285kB    2 months ago\nld7cfhwk0sfdbfbj3na18bbmp   true          8.285kB    3 weeks ago\novhx4a80qvrguddif7ti8l11g   true          8.285kB    2 months ago\n6qbcw73h1tlo1sr58b4ifog1o   true          12.76kB    3 weeks ago\n2nugolmzm7g3gq26tgead8xv5   true          12.76kB    3 weeks ago\ns51erow7aulb13ep2zmvw80us   true          12.76kB    3 weeks ago\nwpqocmy5tu9g3psqt48r6nevf   true          24.58kB    8 weeks ago\nuwzhdt1hzx8pusa1gzenlq0k5   true          28.67kB    3 weeks ago\nr1p0v983zt9tian85a9r6rh64   true          32.77kB    6 weeks ago\nsm8a8kxjbmdjc6byrivq2gwbf   true          54.44kB    2 months ago\n8w3okiap6komvhrvg2x17lzvu   true          245.8kB    2 months ago\nsu1hux5yvgam41xo1b4drbges   true          245.8kB    3 weeks ago\ntk4ugmm0cmxo6oogxxoveq2ux   true          245.8kB    3 weeks ago\nv6hkwnbzifsxmfn7y9bxhpt97   true          245.8kB    6 weeks ago\nvgqobgqckbg0tthsnwe38d01l   true          245.8kB    3 weeks ago\nwnktvo3v4n1lxrsnpt4hj12n0   true          245.8kB    2 months ago\nlhj6d9ifqzaltx4mkk73j3v2e   true          1.274MB*   2 months ago\nww6iak9xchpnl3lwo891ipsdh   true          1.626MB    3 weeks ago\nrtoeo2v06l56pszg7cwzl7t83   true          1.638MB    3 weeks ago\nvofwo1l98oql62vizls3uz3la   true          1.638MB    3 weeks ago\n3bux1ko3856o4fba7qlyafzxp   true          1.713MB*   2 months ago\nsxdqg7fmd9p67pgnzec42xtzz   true          12.05MB*   2 months ago\n17bpx9aehzotjy67y2mi0xau9   true          28.12MB*   2 months ago\nown2xsqz0rxwfoavf86zrrpec   true          30.14MB*   2 months ago\n4i3ds1k6mxpr9bsxbazn8z9oi   true          48.82MB    2 months ago\nf1dxvl16gtg3311iw6yw10330   true          48.82MB    3 weeks ago\ngafjucd0056e68mc75bd9vsna   true          48.82MB    2 months ago\nn8xy3may2idiceqlk5nb8pwhn   true          48.82MB    2 months ago\np9xvvr31v5fjgpg0u4f36cejw   true          48.82MB    2 months ago\nty9slexypeb9k99opcyasle86   true          48.82MB    2 months ago\nx363azuapo1v5u9y9800xva9m   true          48.82MB    3 weeks ago\n1rc6srt0cdtm313mkwbpexmbn   true          50.34MB*   2 months ago\nkez4a3rcgol0bt6k4p671b1fl   true          164.9MB    3 weeks ago\ndyhlihgueqfm5dg800lgminwb   true          164.9MB    3 weeks ago\nb1iqz3m87btdva4njdlikmf7k   true          164.9MB    3 weeks ago\nugu431wh9047x641uxzmdxcjw   true          164.9MB    3 weeks ago\nmxl0qxss7xfmf4g177vney5xe   true          164.9MB    3 weeks ago\nvfzjmkk83dgejwce2vm97fr0z   true          164.9MB    3 weeks ago\nacx2wrfkwkn8qpzjv8y2i07tz   true          164.9MB    3 weeks ago\no1r2daekg0wcfd0h6f8idnur7   true          164.9MB    7 weeks ago\nmu3p7zdjrz8rz3r6xr35e3cir   true          164.9MB    3 weeks ago\nt2g82diq2cywljmmi2evpj92r   true          164.9MB    3 weeks ago\n8ac9kdzkcfunh4tpwls8bimpm   true          164.9MB    3 weeks ago\nkxafd6pfsth8lkd368i774whp   true          164.9MB    3 weeks ago\ndcbh6qfyv26urj3mla3zr97ap   true          164.9MB    3 weeks ago\n3tv8xr6dv28skrvbmmqpxhtgz   true          165MB      3 weeks ago\nqf8g22tphuil488q3bk43k64n   true          165MB      6 weeks ago\n1savusdy34n5njxckd8wbz1sk   true          165MB      6 weeks ago\n19b6g1rew6hl8yseltdihu3n3   true          264.2MB    3 weeks ago\nb0mw4s4xu8d14u34p92x1mt6i   true          264.2MB    2 months ago\ngn9r5a89pu1s6usdep8qkd2fm   true          264.2MB    6 weeks ago\n7f7ws71cocevozeffqu140tp7   true          708.5MB    2 months ago\nShared:\t\t123.6MB\nPrivate:\t4.488GB\nReclaimable:\t4.612GB\nTotal:\t\t4.612GB\n",
+      "stderr": ""
+    },
+    "externalFreeBytes": 127365677056
+  },
+  "after": {
+    "ownedFiles": [
+      {
+        "path": "._artifacts",
+        "bytes": 4096
+      },
+      {
+        "path": "._temp",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/._rebuildable",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/._protected",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/rebuildable/._candidate-previews",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/rebuildable/candidate-previews/._26684a25-7f34-4c41-a389-07b65710c292",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/rebuildable/candidate-previews/26684a25-7f34-4c41-a389-07b65710c292/._977888f0-453a-5815-b2b1-d6a88698e360",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/rebuildable/candidate-previews/26684a25-7f34-4c41-a389-07b65710c292/._bd7ae538-05ad-4f96-b97c-6ec4e7b30d2d",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/rebuildable/candidate-previews/26684a25-7f34-4c41-a389-07b65710c292/977888f0-453a-5815-b2b1-d6a88698e360/._499d611d2239f8ff8d6e2cf8952f39a1d75efbb80531a6c2b703baab8b2db344-preview.mp3",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/rebuildable/candidate-previews/26684a25-7f34-4c41-a389-07b65710c292/977888f0-453a-5815-b2b1-d6a88698e360/499d611d2239f8ff8d6e2cf8952f39a1d75efbb80531a6c2b703baab8b2db344-preview.mp3",
+        "bytes": 817005
+      },
+      {
+        "path": "artifacts/rebuildable/candidate-previews/26684a25-7f34-4c41-a389-07b65710c292/bd7ae538-05ad-4f96-b97c-6ec4e7b30d2d/._29e3a4ba913b3487517b5c28fd99754fd868b8af61dba795250a0b294c767a10-preview.mp3",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/rebuildable/candidate-previews/26684a25-7f34-4c41-a389-07b65710c292/bd7ae538-05ad-4f96-b97c-6ec4e7b30d2d/29e3a4ba913b3487517b5c28fd99754fd868b8af61dba795250a0b294c767a10-preview.mp3",
+        "bytes": 817005
+      },
+      {
+        "path": "artifacts/protected/._exports",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/._26684a25-7f34-4c41-a389-07b65710c292",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/._491c6c55-9449-4e92-a46d-ba274b35fec6",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/._audio",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/._bundles",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/audio/._1d5cf66073ba7ecb31ee5515441bcd59d49b63815fca45c16b779d06be3c7811-master.wav",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/audio/1d5cf66073ba7ecb31ee5515441bcd59d49b63815fca45c16b779d06be3c7811-master.wav",
+        "bytes": 11750438
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/._bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/._project.json",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/._composition.mid",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/project.json",
+        "bytes": 21013
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/._credits.json",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/composition.mid",
+        "bytes": 1199
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/._license.json",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/credits.json",
+        "bytes": 1088
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/._provenance.json",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/license.json",
+        "bytes": 1426
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/._trace.json",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/provenance.json",
+        "bytes": 1026
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/._export-manifest.json",
+        "bytes": 4096
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/trace.json",
+        "bytes": 139
+      },
+      {
+        "path": "artifacts/protected/exports/26684a25-7f34-4c41-a389-07b65710c292/491c6c55-9449-4e92-a46d-ba274b35fec6/bundles/bddfc91a65d5bf8cade06103cef22085b54ef9b34c73e9e1e7b31e165c7b40bd/export-manifest.json",
+        "bytes": 1348
+      },
+      {
+        "path": "temp/._jobs",
+        "bytes": 4096
+      }
+    ],
+    "ownedLogicalBytes": 13514087,
+    "partialFiles": [],
+    "dockerContainers": {
+      "exit": 0,
+      "stdout": "bbe2f6347a2f s6-lightweight-daw-ai-edit-api-1 Exited (255) 7 weeks ago\n9a5754bcea61 s6-lightweight-daw-ai-edit-resume-dispatcher-1 Restarting (1) 31 seconds ago\n8f706678074f s6-lightweight-daw-ai-edit-dispatcher-1 Restarting (1) 8 seconds ago\ndfbce60a040e s6-lightweight-daw-ai-edit-migrate-1 Exited (0) 7 weeks ago\n2a8546fe6edd s6-lightweight-daw-ai-edit-media-worker-1 Up 10 minutes\n2d5fcaff61b3 s6-lightweight-daw-ai-edit-storage-init-1 Exited (0) 7 weeks ago\n02ad9b30a905 s6-lightweight-daw-ai-edit-render-worker-1 Exited (0) 7 weeks ago\nb50fdf7d9522 s6-lightweight-daw-ai-edit-postgres-1 Exited (255) 7 weeks ago\n54c4aded2b8b s6-lightweight-daw-ai-edit-redis-1 Exited (255) 7 weeks ago\na17fac602b9a motif-forge-s4-api-1 Exited (255) 7 weeks ago\n5c7b6790b33f motif-forge-s4-resume-dispatcher-1 Restarting (1) 31 seconds ago\ne3241a082595 motif-forge-s4-dispatcher-1 Restarting (1) 48 seconds ago\nef4a64677a76 motif-forge-s4-storage-init-1 Exited (0) 8 weeks ago\ndbd5d9ecad45 motif-forge-s4-migrate-1 Exited (0) 8 weeks ago\ne0004c3b42a2 motif-forge-s4-media-worker-1 Up 10 minutes\nbe28c8bf62c6 motif-forge-s4-render-worker-1 Up 5 hours\nf08770205967 motif-forge-s4-postgres-1 Exited (255) 7 weeks ago\n3853c937f6ae motif-forge-s4-redis-1 Exited (255) 7 weeks ago\n4d296c9cacaf agentic-music-workbench-s3-task-1-resume-dispatcher-1 Restarting (1) 46 seconds ago\n40f420cbcdc7 agentic-music-workbench-s3-task-1-render-worker-1 Exited (0) 7 weeks ago\n8ee15d302b41 agentic-music-workbench-s3-task-1-media-worker-1 Up 10 minutes\n3ca1b577bb7f agentic-music-workbench-s3-task-1-dispatcher-1 Restarting (1) 48 seconds ago\neecf1a238b59 agentic-music-workbench-s3-task-1-api-1 Exited (255) 7 weeks ago\n3678fa439d00 agentic-music-workbench-s3-task-1-redis-1 Exited (255) 7 weeks ago\n8ff9e56fe7ec agentic-music-workbench-s3-task-1-storage-init-1 Exited (0) 2 months ago\n48bc8f25e6f0 agentic-music-workbench-s3-task-1-migrate-1 Exited (0) 2 months ago\nd39662b0bb8b agentic-music-workbench-s3-task-1-postgres-1 Exited (255) 7 weeks ago\n",
+      "stderr": ""
+    },
+    "images": {
+      "exit": 0,
+      "stdout": "e3371a34a46a motif-forge-api:local 368MB\n818851c1b2c6 motif-forge-media-worker:local 1.08GB\ne931488db69d motif-forge-render-worker:local 1.58GB\n229a2c5bfa27 python:3.12-slim 205MB\n235600a8101a node:24.18.1-bookworm-slim 349MB\ne7723ff73d96 redis:7.4-alpine 58.7MB\n742f40ea20b9 postgres:17-alpine 415MB\n",
+      "stderr": ""
+    },
+    "dockerDisk": {
+      "exit": 0,
+      "stdout": "TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE\nImages          7         3         9.044GB   1.044GB (11%)\nContainers      27        10        1.831MB   958.5kB (52%)\nLocal Volumes   13        6         385.6MB   107.1MB (27%)\nBuild Cache     60        0         4.612GB   4.488GB\n",
+      "stderr": ""
+    },
+    "buildCache": {
+      "exit": 0,
+      "stdout": "ID                          RECLAIMABLE   SIZE       LAST ACCESSED\n797h5kd63jys15rf76ui0xd24   true          248B*      2 months ago\nl5yd6ih5msgjbb8c4iipd9bo1   true          449B*      3 weeks ago\nmap5q3zzn8mszmfz4i06yfrcp   true          3.314kB*   2 months ago\n1yrb7ra20f0kmo04bj99cewcl   true          8.285kB    2 months ago\n4aets07mubgjbw2k2u61am317   true          8.285kB    2 months ago\n86pdbsfea38e8sxk0spj12wha   true          8.285kB    2 months ago\nbfbn5rh58wo2co62vmhzwnl9k   true          8.285kB    2 months ago\nhep3uukwj41p31pdkkepyqh0c   true          8.285kB    2 months ago\nk6jrrqnkyhly7gwwro5fxhd6h   true          8.285kB    2 months ago\nld7cfhwk0sfdbfbj3na18bbmp   true          8.285kB    3 weeks ago\novhx4a80qvrguddif7ti8l11g   true          8.285kB    2 months ago\n6qbcw73h1tlo1sr58b4ifog1o   true          12.76kB    3 weeks ago\n2nugolmzm7g3gq26tgead8xv5   true          12.76kB    3 weeks ago\ns51erow7aulb13ep2zmvw80us   true          12.76kB    3 weeks ago\nwpqocmy5tu9g3psqt48r6nevf   true          24.58kB    8 weeks ago\nuwzhdt1hzx8pusa1gzenlq0k5   true          28.67kB    3 weeks ago\nr1p0v983zt9tian85a9r6rh64   true          32.77kB    6 weeks ago\nsm8a8kxjbmdjc6byrivq2gwbf   true          54.44kB    2 months ago\n8w3okiap6komvhrvg2x17lzvu   true          245.8kB    2 months ago\nsu1hux5yvgam41xo1b4drbges   true          245.8kB    3 weeks ago\ntk4ugmm0cmxo6oogxxoveq2ux   true          245.8kB    3 weeks ago\nv6hkwnbzifsxmfn7y9bxhpt97   true          245.8kB    6 weeks ago\nvgqobgqckbg0tthsnwe38d01l   true          245.8kB    3 weeks ago\nwnktvo3v4n1lxrsnpt4hj12n0   true          245.8kB    2 months ago\nlhj6d9ifqzaltx4mkk73j3v2e   true          1.274MB*   2 months ago\nww6iak9xchpnl3lwo891ipsdh   true          1.626MB    3 weeks ago\nrtoeo2v06l56pszg7cwzl7t83   true          1.638MB    3 weeks ago\nvofwo1l98oql62vizls3uz3la   true          1.638MB    3 weeks ago\n3bux1ko3856o4fba7qlyafzxp   true          1.713MB*   2 months ago\nsxdqg7fmd9p67pgnzec42xtzz   true          12.05MB*   2 months ago\n17bpx9aehzotjy67y2mi0xau9   true          28.12MB*   2 months ago\nown2xsqz0rxwfoavf86zrrpec   true          30.14MB*   2 months ago\n4i3ds1k6mxpr9bsxbazn8z9oi   true          48.82MB    2 months ago\nf1dxvl16gtg3311iw6yw10330   true          48.82MB    3 weeks ago\ngafjucd0056e68mc75bd9vsna   true          48.82MB    2 months ago\nn8xy3may2idiceqlk5nb8pwhn   true          48.82MB    2 months ago\np9xvvr31v5fjgpg0u4f36cejw   true          48.82MB    2 months ago\nty9slexypeb9k99opcyasle86   true          48.82MB    2 months ago\nx363azuapo1v5u9y9800xva9m   true          48.82MB    3 weeks ago\n1rc6srt0cdtm313mkwbpexmbn   true          50.34MB*   2 months ago\nkez4a3rcgol0bt6k4p671b1fl   true          164.9MB    3 weeks ago\ndyhlihgueqfm5dg800lgminwb   true          164.9MB    3 weeks ago\nb1iqz3m87btdva4njdlikmf7k   true          164.9MB    3 weeks ago\nugu431wh9047x641uxzmdxcjw   true          164.9MB    3 weeks ago\nmxl0qxss7xfmf4g177vney5xe   true          164.9MB    3 weeks ago\nvfzjmkk83dgejwce2vm97fr0z   true          164.9MB    3 weeks ago\nacx2wrfkwkn8qpzjv8y2i07tz   true          164.9MB    3 weeks ago\no1r2daekg0wcfd0h6f8idnur7   true          164.9MB    7 weeks ago\nmu3p7zdjrz8rz3r6xr35e3cir   true          164.9MB    3 weeks ago\nt2g82diq2cywljmmi2evpj92r   true          164.9MB    3 weeks ago\n8ac9kdzkcfunh4tpwls8bimpm   true          164.9MB    3 weeks ago\nkxafd6pfsth8lkd368i774whp   true          164.9MB    3 weeks ago\ndcbh6qfyv26urj3mla3zr97ap   true          164.9MB    3 weeks ago\n3tv8xr6dv28skrvbmmqpxhtgz   true          165MB      3 weeks ago\nqf8g22tphuil488q3bk43k64n   true          165MB      6 weeks ago\n1savusdy34n5njxckd8wbz1sk   true          165MB      6 weeks ago\n19b6g1rew6hl8yseltdihu3n3   true          264.2MB    3 weeks ago\nb0mw4s4xu8d14u34p92x1mt6i   true          264.2MB    2 months ago\ngn9r5a89pu1s6usdep8qkd2fm   true          264.2MB    6 weeks ago\n7f7ws71cocevozeffqu140tp7   true          708.5MB    2 months ago\nShared:\t\t123.6MB\nPrivate:\t4.488GB\nReclaimable:\t4.612GB\nTotal:\t\t4.612GB\n",
+      "stderr": ""
+    },
+    "externalFreeBytes": 127366201344
+  },
+  "removedOwnedFiles": [
+    {
+      "path": "renderer.mjs",
+      "bytes": 33230
+    },
+    {
+      "path": "renderer-stderr.log",
+      "bytes": 0
+    }
+  ],
+  "reclaimedLogicalFileBytes": 33230,
+  "removedOwnTypeCacheBytes": 34074848,
+  "ownContainerRemoved": true,
+  "ownTmpfsDatabaseRemoved": true,
+  "generatedCredentialsRemoved": true,
+  "acceptedFilesRehashed": 15,
+  "sharedContainersUnchanged": true,
+  "sharedBuilderPruned": false,
+  "noDockerBuildThisSlice": true,
+  "rationale": "Host source/strict type builds and live isolated renderer/API/PG boundary. No Dockerfile/system-dependency/lockfile change; no speculative image rebuild or shared cache cleanup.",
+  "runtime": "Owned loopback app and Chromium renderer stopped in finally after successful browser test; no task-owned listener kept."
+}

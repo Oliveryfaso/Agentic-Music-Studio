@@ -2,7 +2,7 @@
 
 > 产品工作名：**Motif Forge**（音乐动机锻造台）
 > 文档状态：**架构基线已批准，详细合同已拆分**
-> 当前阶段（2026-10-19）：**P1-A2.2 与 B/C2/D/E 单钢琴生产纵切已验收**。真实钢琴可显式试听审批、保存/重开、导出与精确父版本 Undo；旧声音与四个 legacy StylePack 保留。当前限一条钢琴轨与审核小包，踏板/release-trigger 不支持；MF-P09 默认古典/爵士入口整理亦已验收（新建两项、默认古典，legacy 兼容），不把本轮当作整个 P1 或 P2–P5 完成。最新事实见 `IMPLEMENTATION_STATUS.md`、`docs/evidence/2026-10-19-p1-piano-production.md` 与 `docs/evidence/2026-10-19-mf-p09-entry.md`。
+> 当前阶段（2026-10-19）：**P2.1 一首审核经典旋律导入与新增伴奏闭环已验收**。固定16小节《欢乐颂》旋律、锁定原谱/独立分支，选择和弦与织体后真实A/B、显式保留/放弃、重开、精确Undo和导出。仅此路径使用新IR/Graph/engine/Job v3、Plan/Bundle v4，最多两条同审核小钢琴包声部；旧v1/v2和四legacy StylePack兼容，MF-P09古典/爵士入口保留。不是通用导谱、自由编曲、真实多乐器、全P2或音质达标；踏板/release-trigger未支持。最新事实见 `IMPLEMENTATION_STATUS.md` 与 `docs/evidence/2026-10-19-p2-classical-accompaniment.md`。
 
 ---
 

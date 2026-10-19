@@ -1,0 +1,21 @@
+import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
+import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {afterEach,expect,it,vi} from 'vitest';
+import {ClassicalScoreEntry} from './ClassicalScoreEntry';
+import * as api from './classicalApi';
+vi.mock('./classicalApi',()=>({listClassicalScores:vi.fn(),importClassicalScore:vi.fn()}));
+afterEach(()=>{cleanup();vi.resetAllMocks();window.history.replaceState({},'','/');});
+it('reviews the exact source conversion before import and opens its saved project',async()=>{
+  vi.mocked(api.listClassicalScores).mockResolvedValue([{score_id:'mutopia-528-melody.v1',title:'欢乐颂 · 16 小节旋律',license:'Public Domain',composer:'Beethoven',digital_editor:'Mutopia 528',page_url:'https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=528',conversion:'仅提取旋律，省略另外三个声部与slur。',measure_count:16,note_count:62}] as never);
+  vi.mocked(api.importClassicalScore).mockResolvedValue({project_id:'11111111-1111-4111-8111-111111111111',revision_id:'22222222-2222-4222-8222-222222222222'} as never);
+  render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}})}><ClassicalScoreEntry/></QueryClientProvider>);
+  expect(api.listClassicalScores).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button',{name:'查看经典谱'}));
+  await screen.findByText('欢乐颂 · 16 小节旋律');
+  const submit=screen.getByRole('button',{name:'导入这份旋律谱'});expect(submit).toBeDisabled();
+  expect(screen.getByText(/省略另外三个声部/)).toBeInTheDocument();
+  fireEvent.click(screen.getByLabelText('我已了解来源与转换范围，保留原谱并创建改编副本'));
+  fireEvent.click(submit);
+  await waitFor(()=>expect(api.importClassicalScore).toHaveBeenCalledWith('mutopia-528-melody.v1',expect.any(String)));
+  await waitFor(()=>expect(window.location.pathname).toContain('/studio/22222222-2222-4222-8222-222222222222'));
+});

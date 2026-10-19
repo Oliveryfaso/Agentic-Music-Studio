@@ -493,3 +493,12 @@ MF-P09；关联MF-P10/P13/P15/P16/P18/P21。沿ADR-019/P1 Task D.4，BriefForm�
 RED3→focused21/Web93，原四风格domain/Eval与render19、tsc/Vitebuild、diff通过；一次独立审查无findings，另行UI25/风格渲染14/tsc通过，无作者修复回合。built UI隔离Chromium/API fixtures验证两种实际body及原预算、旧v1打开/既有MP3播放/七步导出/WAV下载bytes+SHA、390px无溢出；503为主动fixture拒绝，非live后台生成。模型0/新渲染0，无PG/队列/共享服务/Docker操作，不重复上一门音乐长链。
 
 冻结accepted音源/音频/许可、当前webdist、依赖/锁文件与共享资源；本轮浏览器JSON/两截图314,668logicalbytes前后相同，回收0，无过期大型输出。自己的ignored计划workspace在审查/完成日志归档后清理；probe finally关闭浏览器/server且exit0。Guide从a44bbf3/clean开始，仅同步原批准入口的当前实施事实，不改架构合同。Brief未自动升级真实钢琴/IRv2，无音质达标、用户库迁移、常驻应用/公开push或P2+声明。[报告](evidence/2026-10-19-mf-p09-entry.md)、[原始审查](evidence/2026-10-19-mf-p09-review.md)、[浏览器](evidence/2026-10-19-mf-p09-browser.json)、[存储](evidence/2026-10-19-mf-p09-storage.json)。
+
+
+## 2026-10-19 — P2.1 审核经典旋律导入与新增伴奏
+
+MF-P01/P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20/P21。Mutopia528原SATB谱PD固定来源/hash，明确只转写16小节/62notes soprano；保留原谱锁定Revision/分支。显式用户和弦/织体/八度/力度确定性新增同包钢琴低音，复用同一Parent两版试听/精确hash人工审批/Revision/恢复/Undo/正式导出。新IR/Graph/engine/Job v3、Plan/Bundle v4及0026迁移，旧v1/v2仍严格兼容；同render已核验buffer共享，非跨render缓存，无模型/新包。
+
+真实隔离PG+Chromium+built UI4Jobs/8下载文件SHA、刷新恢复/同位置播放/错误hash409/重开/390px/Undo原hash播放/取消；每Worker后fresh app与重复Outbox Publisher安全，非Redis/Celery/Compose验收。首次导出读遗漏v4报500已窄测RED→GREEN并恢复既有DB完成，不重复渲染。独立初审1Important（两事务导入残留空项目）一次作者修复为单事务，PG后半写故障RED五表+1→GREEN不变/原key精确重试；限定复核关闭，无剩余阻塞。最终Python679/Web96/Audio61/PG4、Mypy127源/两build/Ruff/diff通过。
+
+Master40.79998s/48k stereo PCM24=11,750,438bytes、samplepeak−13.18dBFS/满幅0，A/B RMS差0.455dB；不以时长/文件大小推断音质。10zone推导解码11,173,160bytes，非RSS；本曲音区不重叠，不宣称实曲cache减半。原保真度审计无已证实削波/loop/单位转换缺陷，保留单力度层/无踏板等限制。自有PG/tmpfs/凭据/启动器清理并rehash保留accepted媒体；共享VM/历史容器/混合缓存不动。只完成一首/两轨有限路径，整个P2、通用谱面/自然语言/真实多乐器/审美质量/长负载仍未验。用户库未迁移，无main合并/部署。[证据](evidence/2026-10-19-p2-classical-accompaniment.md)。

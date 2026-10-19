@@ -239,7 +239,9 @@ def initial_piano_preview_state(
         operation="piano_preview",
         graph_topology_version=PARENT_GRAPH_TOPOLOGY_VERSION,
         state_schema_version=PARENT_STATE_SCHEMA_VERSION,
-        request_payload=request.model_dump(mode="json"),
+        request_payload=request.model_dump(
+            mode="json", exclude={"accompaniment"} if request.accompaniment is None else set()
+        ),
         phase="received",
     )
 

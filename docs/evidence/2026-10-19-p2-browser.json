@@ -1,0 +1,717 @@
+{
+  "status": "passed",
+  "steps": [
+    {
+      "jobId": "770c6af0-57a4-4d43-a7f8-39039ad8a3d8",
+      "status": "succeeded",
+      "wallSeconds": 2.223,
+      "freshAppAfterWorker": true,
+      "duplicateResume": true
+    },
+    {
+      "jobId": "4fd11629-3102-4d58-9fd5-c865d32ce721",
+      "status": "succeeded",
+      "wallSeconds": 2.641,
+      "freshAppAfterWorker": true,
+      "duplicateResume": true
+    },
+    {
+      "jobId": "37a68eaf-3a6a-4b6e-8235-60e99813861a",
+      "status": "succeeded",
+      "wallSeconds": 2.479,
+      "freshAppAfterWorker": true,
+      "duplicateResume": true
+    },
+    {
+      "jobId": "f81ff52b-77f1-41ab-8f59-7da6712ac3e4",
+      "status": "succeeded",
+      "wallSeconds": 0.183,
+      "freshAppAfterWorker": true,
+      "duplicateResume": true
+    }
+  ],
+  "pageErrors": [],
+  "modelCalls": 0,
+  "projectId": "26684a25-7f34-4c41-a389-07b65710c292",
+  "branchId": "ef326f09-995b-5037-b84b-4a5fc7c9cbba",
+  "sourceBranchId": "a46e13f9-ae8c-4d46-8452-79fc7293095e",
+  "sourceRevision": "e3d8cea9-b3bc-55c3-a52c-ab045d448eec",
+  "sourceHash": "9cb9ea2cd91b27276f8ca4b0ea3e0b6a4a5ed27fd63a9644d6edacd8375e8152",
+  "sourceTrack": {
+    "track_id": "1ef00c93-6c11-505e-bb24-6b1530fd6d22",
+    "track_type": "instrument",
+    "name": "\u539f\u8c31\u65cb\u5f8b",
+    "role": "melody",
+    "mute": false,
+    "solo": false,
+    "gain_db": 0,
+    "pan": 0,
+    "eq": {
+      "low_db": 0,
+      "mid_db": 0,
+      "high_db": 0
+    },
+    "instrument_ref": "builtin:jazz-piano",
+    "clips": [
+      {
+        "clip_type": "note",
+        "clip_id": "acf94972-5db3-555d-8ae5-73a8cc5415da",
+        "start_tick": 0,
+        "duration_tick": 32640,
+        "loop": false,
+        "gain_db": 0,
+        "pan": 0,
+        "fade_in_tick": 0,
+        "fade_out_tick": 0,
+        "notes": [
+          {
+            "note_id": "910e5ef9-92ca-55c6-bc37-6faca84f4e15",
+            "pitch": 71,
+            "start_tick": 0,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "1498e4d1-9165-5845-9cbf-3b6d3e423c40",
+            "pitch": 71,
+            "start_tick": 480,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "7761e555-6a06-519b-ada6-88c4aa88ade0",
+            "pitch": 72,
+            "start_tick": 960,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "1dafc7cc-5227-5f4c-9b7d-55b1f4340a3d",
+            "pitch": 74,
+            "start_tick": 1440,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "f10f1157-4914-5589-8167-a5bf50b94db6",
+            "pitch": 74,
+            "start_tick": 1920,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "2b522fd5-2831-5d7d-aad8-54990bcfb056",
+            "pitch": 72,
+            "start_tick": 2400,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "d34a0c69-42be-56a5-a31c-0b7cacf91dc5",
+            "pitch": 71,
+            "start_tick": 2880,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "b8b6628d-0b88-5b79-a3a7-058280aff43e",
+            "pitch": 69,
+            "start_tick": 3360,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "ebee2289-ef34-5884-b924-a09cd09adf49",
+            "pitch": 67,
+            "start_tick": 3840,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "bee1d51b-0fc2-54f9-9c96-7d0f3db8082b",
+            "pitch": 67,
+            "start_tick": 4320,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "74943371-f0da-5eba-907b-10888e346f94",
+            "pitch": 69,
+            "start_tick": 4800,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "12b9a987-4f8f-54c0-915f-ea392976603f",
+            "pitch": 71,
+            "start_tick": 5280,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "7b3fe297-0aa1-532a-8259-92c8bfd97e88",
+            "pitch": 71,
+            "start_tick": 5760,
+            "duration_tick": 720,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "ed0205b7-eeb1-54f6-831e-05acc5616648",
+            "pitch": 69,
+            "start_tick": 6480,
+            "duration_tick": 240,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "e6329fbb-84a4-57d1-b7e5-17d194faace3",
+            "pitch": 69,
+            "start_tick": 6720,
+            "duration_tick": 960,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "9632d1fc-8425-517c-a9f6-722a32f361f7",
+            "pitch": 71,
+            "start_tick": 7680,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "503ae98b-a89e-5ae0-a7ec-4c4d68d7d7a5",
+            "pitch": 71,
+            "start_tick": 8160,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "f8b5ca59-0a49-57e2-a1b7-a6eafde5dc32",
+            "pitch": 72,
+            "start_tick": 8640,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "a906475c-74c7-5549-a7ff-1dd111f5309e",
+            "pitch": 74,
+            "start_tick": 9120,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "97d85396-d4c1-518f-811f-f684aece6f20",
+            "pitch": 74,
+            "start_tick": 9600,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "569f82b9-9d71-5e32-9d10-440b13e77a03",
+            "pitch": 72,
+            "start_tick": 10080,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "0268d254-24d3-5dce-9500-d80aade046b9",
+            "pitch": 71,
+            "start_tick": 10560,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "37238e77-edba-5ca1-b840-fefe5d8f40d5",
+            "pitch": 69,
+            "start_tick": 11040,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "aeba0331-880f-5dc4-a08f-65ec92697c8b",
+            "pitch": 67,
+            "start_tick": 11520,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "98330d73-75be-50cd-a010-1502d7479030",
+            "pitch": 67,
+            "start_tick": 12000,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "7ae7dd45-9600-54b6-bf35-e79e27310fba",
+            "pitch": 69,
+            "start_tick": 12480,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "b4816153-735c-5d7e-b5a4-27aa8b542890",
+            "pitch": 71,
+            "start_tick": 12960,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "eb493f63-2765-59c8-b120-002dac8fe462",
+            "pitch": 69,
+            "start_tick": 13440,
+            "duration_tick": 720,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "b2cb2609-e647-57df-b645-25977863a9db",
+            "pitch": 67,
+            "start_tick": 14160,
+            "duration_tick": 240,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "682fabb6-33aa-5354-9092-98e6b0b2533b",
+            "pitch": 67,
+            "start_tick": 14400,
+            "duration_tick": 960,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "f80c067d-6cd7-5f55-a860-5f2354b0a49f",
+            "pitch": 69,
+            "start_tick": 15360,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "5166cc01-6c23-5518-8c25-dbe884b968a2",
+            "pitch": 69,
+            "start_tick": 15840,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "8c90ddeb-ba56-5272-8b73-96276dc32e88",
+            "pitch": 71,
+            "start_tick": 16320,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "3c8f2378-26f0-5a58-b967-8c466685511a",
+            "pitch": 67,
+            "start_tick": 16800,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "eef5eb7e-191a-55a8-b072-d7ebeded8229",
+            "pitch": 69,
+            "start_tick": 17280,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "40b1c767-5459-511f-bb7a-b65fd0845f17",
+            "pitch": 71,
+            "start_tick": 17760,
+            "duration_tick": 240,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "596637d1-3db9-5efa-833c-3ab0cfdb5f0e",
+            "pitch": 72,
+            "start_tick": 18000,
+            "duration_tick": 240,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "49120649-eb35-5034-9c68-d6f4598a9527",
+            "pitch": 71,
+            "start_tick": 18240,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "c32610a8-f490-5393-8ebb-62baf896b1a3",
+            "pitch": 67,
+            "start_tick": 18720,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "58c01a6b-4a18-58de-9aeb-d18d948012aa",
+            "pitch": 69,
+            "start_tick": 19200,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "1a1b1729-da38-5416-9657-d2bcf1f627d2",
+            "pitch": 71,
+            "start_tick": 19680,
+            "duration_tick": 240,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "7412c14a-c28a-50b9-9bc7-4ad0792bea7e",
+            "pitch": 72,
+            "start_tick": 19920,
+            "duration_tick": 240,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "78b6adcb-c623-50b4-b8f0-2815eb16c7b9",
+            "pitch": 71,
+            "start_tick": 20160,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "02e54550-1b55-5ffa-87fc-384d27361744",
+            "pitch": 69,
+            "start_tick": 20640,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "642f420f-33ad-5567-8d84-b265875a408d",
+            "pitch": 67,
+            "start_tick": 21120,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "82ccff42-2c34-51b8-8677-50301ab01fcd",
+            "pitch": 69,
+            "start_tick": 21600,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "dfc969c1-30dc-58a9-85a0-f647b88cd4f4",
+            "pitch": 62,
+            "start_tick": 22080,
+            "duration_tick": 960,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "83a98948-4b5d-5a20-af03-9c9ded750cf0",
+            "pitch": 71,
+            "start_tick": 23040,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "5495580b-04c6-56f4-880e-9d6af482fe10",
+            "pitch": 71,
+            "start_tick": 23520,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "2b559493-ba4e-5924-a606-4dac11df02d5",
+            "pitch": 72,
+            "start_tick": 24000,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "fbd1776e-9814-554e-b151-ee3e98ed427d",
+            "pitch": 74,
+            "start_tick": 24480,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "380fe132-8a9a-5fe3-a490-f198b0d31139",
+            "pitch": 74,
+            "start_tick": 24960,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "758686a4-32ab-59c0-9381-5a3cace32262",
+            "pitch": 72,
+            "start_tick": 25440,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "2bacce74-0ac3-5f6d-bb57-f268403f45f0",
+            "pitch": 71,
+            "start_tick": 25920,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "c39f46d3-9fef-50ff-b5a1-317ddd929dac",
+            "pitch": 69,
+            "start_tick": 26400,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "fd967d4c-812a-5d1e-9bcd-c14623f2830f",
+            "pitch": 67,
+            "start_tick": 26880,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "9c24fc8a-3417-5bde-ae03-66ef908abcea",
+            "pitch": 67,
+            "start_tick": 27360,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "a0ae673a-ab76-531e-9d06-243125ffeb4c",
+            "pitch": 69,
+            "start_tick": 27840,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "859dbd33-0037-5fd8-aad1-8144565ce7cc",
+            "pitch": 71,
+            "start_tick": 28320,
+            "duration_tick": 480,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "903f916a-c2e3-57aa-bd97-cbc1c21d88ad",
+            "pitch": 69,
+            "start_tick": 28800,
+            "duration_tick": 720,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "cc6a0032-d6be-593d-bbc0-e8f6c56cf30e",
+            "pitch": 67,
+            "start_tick": 29520,
+            "duration_tick": 240,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          },
+          {
+            "note_id": "523f3614-7dbd-55d9-9aff-420c48ffe87c",
+            "pitch": 67,
+            "start_tick": 29760,
+            "duration_tick": 960,
+            "velocity": 76,
+            "articulation": "normal",
+            "cents": 0
+          }
+        ]
+      }
+    ],
+    "locked_ranges": [
+      {
+        "start_tick": 0,
+        "end_tick": 32640
+      }
+    ]
+  },
+  "sourceImport": true,
+  "thread": "piano-317b02824ff669710cfb72b514a9802b",
+  "refreshWhileQueued": true,
+  "audition": {
+    "thread_id": "piano-317b02824ff669710cfb72b514a9802b",
+    "phase": "waiting_piano_approval",
+    "base_revision_id": "e3d8cea9-b3bc-55c3-a52c-ab045d448eec",
+    "candidate_content_hash": "092e185131dd3c39138f6597df83f6053971954f782e77373b08220dfa50f8a5",
+    "baseline_artifact_id": "9a838cba-b201-4655-ae41-601fbef04f04",
+    "piano_artifact_id": "0d031db3-9499-4a8a-9c7e-c21ba067c787",
+    "revision_id": null,
+    "pending_job_id": null,
+    "error_code": null,
+    "replayed": false
+  },
+  "abPlayback": true,
+  "samePositionSwitch": true,
+  "hashGuard": true,
+  "savedRevision": "491c6c55-9449-4e92-a46d-ba274b35fec6",
+  "reopen": true,
+  "mobileNoOverflow": true,
+  "export": {
+    "planHash": "23936f8a1a4349824711f554c6930371bd133dafc66a20765b5796d89eeaaf23",
+    "schema": "export-plan.v4",
+    "files": [
+      {
+        "name": "composition.mid",
+        "bytes": 1199,
+        "sha256": "0980cdd11a880823313949d3fed1616bb02388328cd43c326678e596e632e9bd"
+      },
+      {
+        "name": "credits.json",
+        "bytes": 1088,
+        "sha256": "ea06ee21cd6859303223d9a1628a0b399b477cd786e016b4c3ec9c903fd50b64"
+      },
+      {
+        "name": "license.json",
+        "bytes": 1426,
+        "sha256": "8cbd7547e079cc68bcb26070ef0cc03aa5c59234726308e995133f377a90df5c"
+      },
+      {
+        "name": "master.wav",
+        "bytes": 11750438,
+        "sha256": "1d5cf66073ba7ecb31ee5515441bcd59d49b63815fca45c16b779d06be3c7811"
+      },
+      {
+        "name": "project.json",
+        "bytes": 21013,
+        "sha256": "092e185131dd3c39138f6597df83f6053971954f782e77373b08220dfa50f8a5"
+      },
+      {
+        "name": "provenance.json",
+        "bytes": 1026,
+        "sha256": "a2ed367f0d6fa5e4eb227aebbb7c15640f41e04b021e35723180add7df40f067"
+      },
+      {
+        "name": "trace.json",
+        "bytes": 139,
+        "sha256": "fa74ad04eae7ddd02650d3986a87d80a6da83d1e34e4daee9df79e79d92887a5"
+      },
+      {
+        "name": "export-manifest.json",
+        "bytes": 1348,
+        "sha256": "1755b470e2d5655999a026ca2127f9c7ada6ddeb56bc94d0c6b164d4e6883e5b"
+      }
+    ]
+  },
+  "undoRevision": "077acc35-f806-438f-ae9e-d958d8400970",
+  "undoExact": true,
+  "undoPlayback": true,
+  "cancelAfterRefresh": true,
+  "persistentProof": {
+    "actualPostgres": true,
+    "activeWorkingBranch": true,
+    "originalBranchUnchanged": true,
+    "freshAppAfterEveryWorker": true,
+    "duplicateResumeSafe": true,
+    "redisCeleryTransportTested": false,
+    "aiRuns": 0,
+    "completedJobs": 4,
+    "resumedForExportReaderFix": true
+  }
+}

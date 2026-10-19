@@ -224,6 +224,42 @@ class PostgresTransaction:
             created_by=row.created_by,
         )
 
+    async def fork_active_branch(
+        self, *, branch: ProjectBranch, expected_active_branch_id: UUID
+    ) -> None:
+        original = await self.lock_branch(
+            project_id=branch.project_id, branch_id=expected_active_branch_id
+        )
+        if (
+            original is None
+            or original.head_revision_id != branch.created_from_revision_id
+            or branch.head_revision_id != branch.created_from_revision_id
+        ):
+            raise ValueError("BRANCH_FORK_BASE_MISMATCH")
+        await self._session.execute(
+            insert(BranchRow).values(
+                id=branch.branch_id,
+                project_id=branch.project_id,
+                name=branch.name,
+                head_revision_id=branch.head_revision_id,
+                base_revision_id=branch.created_from_revision_id,
+                created_at=branch.created_at,
+                updated_at=branch.created_at,
+                created_by=branch.created_by,
+            )
+        )
+        changed = await self._session.execute(
+            update(ProjectRow)
+            .where(
+                ProjectRow.id == branch.project_id,
+                ProjectRow.active_branch_id == expected_active_branch_id,
+            )
+            .values(active_branch_id=branch.branch_id, updated_at=branch.created_at)
+            .returning(ProjectRow.id)
+        )
+        if changed.scalar_one_or_none() != branch.project_id:
+            raise ValueError("BRANCH_FORK_ACTIVE_CONFLICT")
+
     async def get_revision(self, revision_id: UUID) -> Revision | None:
         row = (
             await self._session.execute(select(RevisionRow).where(RevisionRow.id == revision_id))

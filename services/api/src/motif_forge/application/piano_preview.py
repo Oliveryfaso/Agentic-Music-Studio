@@ -27,7 +27,13 @@ from motif_forge.application.previews import (
     DecidePreviewResult,
     PreviewDecision,
 )
-from motif_forge.domain.commands import Selection, SetPianoProfileCommand, SetPianoProfilePayload
+from motif_forge.domain.accompaniment import AccompanimentIntent, accompaniment_command
+from motif_forge.domain.commands import (
+    EditorCommand,
+    Selection,
+    SetPianoProfileCommand,
+    SetPianoProfilePayload,
+)
 from motif_forge.domain.ir import DomainModel, PerformancePlan, PianoRenderProfile
 from motif_forge.domain.revisions import CandidateSnapshot
 
@@ -42,6 +48,7 @@ class PianoPreviewRequest(DomainModel):
     render_profile: PianoRenderProfile = Field(default_factory=PianoRenderProfile)
     performance_plan: PerformancePlan = Field(default_factory=PerformancePlan)
     seed: int = Field(default=0, ge=0, le=2**31 - 1)
+    accompaniment: AccompanimentIntent | None = None
 
 
 class PianoPrepared(DomainModel):
@@ -90,14 +97,32 @@ class PianoPreviewWorkflow:
             base = await tx.get_revision(request.base_revision_id)
         if base is None or base.project_id != request.project_id:
             raise ApplicationError("REVISION_NOT_FOUND", "The base revision does not exist.")
-        command = SetPianoProfileCommand(
-            command_id=uuid5(request.request_id, "profile"),
-            client_sequence=0,
-            selection=Selection(track_ids=tuple(t.track_id for t in base.arrangement_ir.tracks)),
-            payload=SetPianoProfilePayload(
-                render_profile=request.render_profile, performance_plan=request.performance_plan
-            ),
-        )
+        command: EditorCommand
+        if request.accompaniment is not None:
+            from motif_forge.domain.ir import ArrangementIRV2
+
+            if (
+                not isinstance(base.arrangement_ir, ArrangementIRV2)
+                or request.performance_plan.notes
+            ):
+                raise ApplicationError(
+                    "ACCOMPANIMENT_SOURCE_INVALID",
+                    "Choose the saved original melody without expression overrides.",
+                )
+            command = accompaniment_command(
+                base.arrangement_ir, request.accompaniment, request_id=request.request_id
+            )
+        else:
+            command = SetPianoProfileCommand(
+                command_id=uuid5(request.request_id, "profile"),
+                client_sequence=0,
+                selection=Selection(
+                    track_ids=tuple(t.track_id for t in base.arrangement_ir.tracks)
+                ),
+                payload=SetPianoProfilePayload(
+                    render_profile=request.render_profile, performance_plan=request.performance_plan
+                ),
+            )
         preview = await self._create(
             CreateCommandPreviewRequest(
                 project_id=request.project_id,

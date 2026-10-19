@@ -28,3 +28,12 @@ it('rejects mixed engine/schema and malformed or excessive piano events',()=>{
   large.tracks[0].notes=Array.from({length:2001},(_,i)=>({...large.tracks[0].notes[0],noteId:`note-${i}`}));
   expect(()=>validateAudioGraphSpec(large)).toThrow('PIANO_NOTE_BUDGET_EXCEEDED');
 });
+
+it('admits explicit two-part v3 while rejecting two tracks under legacy v2',()=>{
+  const original=graph() as any;
+  const pair={...original,tracks:[original.tracks[0],{...original.tracks[0],trackId:'bass',notes:[{...original.tracks[0].notes[0],noteId:'bass-note',midi:43}]}]};
+  expect(()=>validateAudioGraphSpec(pair)).toThrow('AUDIO_GRAPH_INVALID:pianoProfile');
+  const current={...pair,schemaVersion:'audio-graph-spec.v3',engineVersion:'motif-forge-audio-engine.v3'};
+  expect(validateAudioGraphSpec(current)).toBe(current);
+  expect(()=>validateAudioGraphSpec({...current,tracks:[...current.tracks,{...pair.tracks[1],trackId:'third'}]})).toThrow('AUDIO_GRAPH_INVALID:pianoProfile');
+});
