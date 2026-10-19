@@ -42,7 +42,7 @@ export function App() {
           {route.name === "evaluation" && <EvaluationPage />}
           {route.name === "brief" && <BriefPage projectId={route.projectId} />}
           {route.name === "run" && <RunPage runId={route.runId} />}
-          {route.name === "studio" && <StudioPage projectId={route.projectId} revisionId={route.revisionId} />}
+          {route.name === "studio" && <StudioPage key={`${route.projectId}:${route.revisionId}`} projectId={route.projectId} revisionId={route.revisionId} />}
           {route.name === "export" && <ExportPage projectId={route.projectId} revisionId={route.revisionId} />}
           {route.name === "inspect" && <RunInspectorPage runId={route.runId} />}
           {route.name === "not_found" && (

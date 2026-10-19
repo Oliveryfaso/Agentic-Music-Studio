@@ -24,10 +24,10 @@ export function estimateRenderCapacity(
   }
   let events = 0;
   for (const track of graph.tracks) {
-    if (!track || (track.kind !== "synth" && track.kind !== "sampler")) {
+    if (!track || (track.kind !== "synth" && track.kind !== "sampler" && track.kind !== "multisample")) {
       throw new Error("RENDER_CAPACITY_INVALID");
     }
-    const values = track.kind === "synth" ? track.notes : track.triggers;
+    const values = track.kind !== "sampler" ? track.notes : track.triggers;
     if (!Array.isArray(values)) throw new Error("RENDER_CAPACITY_INVALID");
     events += values.length;
   }

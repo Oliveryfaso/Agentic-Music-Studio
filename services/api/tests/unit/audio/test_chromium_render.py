@@ -406,3 +406,22 @@ async def test_client_rejects_oversized_temp_before_checksum_and_cleans_it(tmp_p
             transport=httpx.MockTransport(handler),
         ).render(job_id=JOB_ID, payload=_payload())
     assert not list((tmp_path / "temp").rglob("*.wav*"))
+
+
+@pytest.mark.asyncio
+async def test_client_preserves_explicit_missing_instrument_without_retry(tmp_path: Path) -> None:
+    (tmp_path / "temp").mkdir()
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(400, json={"errorCode": "INSTRUMENT_PACK_UNAVAILABLE"})
+
+    client = ChromiumRenderClient(
+        artifact_root=tmp_path,
+        temp_root=tmp_path / "temp",
+        service_url="http://local-test",
+        transport=httpx.MockTransport(handler),
+        minimum_free_bytes=0,
+    )
+    with pytest.raises(ChromiumRenderError, match="INSTRUMENT_PACK_UNAVAILABLE") as caught:
+        await client.render(job_id=JOB_ID, payload=_payload())
+    assert not caught.value.retryable

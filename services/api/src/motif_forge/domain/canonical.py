@@ -7,7 +7,7 @@ import json
 import math
 from typing import Any
 
-from motif_forge.domain.ir import ArrangementIR
+from motif_forge.domain.ir import ArrangementIR, ArrangementIRV2
 
 FLOAT_PRECISION = 6
 
@@ -39,12 +39,18 @@ def _list_sort_key(item: Any) -> tuple[str, ...]:
     return (json.dumps(item, sort_keys=True, separators=(",", ":")),)
 
 
-def _normalize(value: Any) -> Any:
+def _v2_sort_key(item: Any) -> tuple[str, ...]:
+    if isinstance(item, dict) and all(key in item for key in ("track_id", "clip_id", "note_id")):
+        return ("performance", str(item["track_id"]), str(item["clip_id"]), str(item["note_id"]))
+    return _list_sort_key(item)
+
+
+def _normalize(value: Any, *, v2: bool = False) -> Any:
     if isinstance(value, dict):
-        return {key: _normalize(value[key]) for key in sorted(value)}
+        return {key: _normalize(value[key], v2=v2) for key in sorted(value)}
     if isinstance(value, list):
-        normalized = [_normalize(item) for item in value]
-        return sorted(normalized, key=_list_sort_key)
+        normalized = [_normalize(item, v2=v2) for item in value]
+        return sorted(normalized, key=_v2_sort_key if v2 else _list_sort_key)
     if isinstance(value, float):
         if not math.isfinite(value):
             raise ValueError("canonical JSON cannot contain NaN or Infinity")
@@ -57,7 +63,7 @@ def canonical_dict(arrangement: ArrangementIR) -> dict[str, Any]:
     """Return a recursively normalized JSON-compatible representation."""
 
     dumped = arrangement.model_dump(mode="json", exclude_none=False)
-    normalized = _normalize(dumped)
+    normalized = _normalize(dumped, v2=isinstance(arrangement, ArrangementIRV2))
     if not isinstance(normalized, dict):  # pragma: no cover - defensive invariant
         raise TypeError("ArrangementIR must serialize to an object")
     return normalized

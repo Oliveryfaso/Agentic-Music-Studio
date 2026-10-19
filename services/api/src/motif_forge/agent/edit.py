@@ -39,7 +39,7 @@ from motif_forge.domain.editing import (
     simulate_edit_patch,
 )
 from motif_forge.domain.errors import DomainValidationError
-from motif_forge.domain.ir import ArrangementIR, DomainModel, Section, Track
+from motif_forge.domain.ir import ArrangementIR, ArrangementValue, DomainModel, Section, Track
 from motif_forge.domain.media_jobs import WorkerResumePayload
 from motif_forge.domain.revisions import ChangeImpact
 
@@ -54,7 +54,7 @@ class BoundedEditContext(DomainModel):
     adjacent_sections: tuple[Section, ...] = ()
     locked_ranges: tuple[LockedRangeRef, ...] = ()
     contains_full_arrangement: bool = False
-    base_arrangement: ArrangementIR = Field(exclude=True)
+    base_arrangement: ArrangementValue = Field(exclude=True)
 
     @classmethod
     def from_arrangement(
@@ -98,9 +98,7 @@ class EditDecisionHandler(Protocol):
 
 
 class CandidatePreviewEnqueuer(Protocol):
-    async def __call__(
-        self, request: EnqueueCandidatePreviewRequest
-    ) -> CandidatePreviewCursor: ...
+    async def __call__(self, request: EnqueueCandidatePreviewRequest) -> CandidatePreviewCursor: ...
 
 
 class CandidatePreviewCollector(Protocol):
@@ -122,11 +120,21 @@ class FallbackEditPlanner:
     _PRESET = re.compile(r"\b(builtin:[a-z0-9-]+)\b", re.I)
     _REVIEWED_PRESETS = frozenset(
         {
-            "builtin:warm-pad", "builtin:glass-pluck", "builtin:sub-bass",
-            "builtin:soft-pulse", "builtin:poly-synth", "builtin:short-pluck",
-            "builtin:mono-bass", "builtin:drum-machine", "builtin:viola",
-            "builtin:violin", "builtin:cello", "builtin:pizz-cello",
-            "builtin:jazz-piano", "builtin:tenor-lead", "builtin:upright-bass",
+            "builtin:warm-pad",
+            "builtin:glass-pluck",
+            "builtin:sub-bass",
+            "builtin:soft-pulse",
+            "builtin:poly-synth",
+            "builtin:short-pluck",
+            "builtin:mono-bass",
+            "builtin:drum-machine",
+            "builtin:viola",
+            "builtin:violin",
+            "builtin:cello",
+            "builtin:pizz-cello",
+            "builtin:jazz-piano",
+            "builtin:tenor-lead",
+            "builtin:upright-bass",
             "builtin:brush-kit",
         }
     )
@@ -295,9 +303,7 @@ def build_edit_subgraph(
     async def auto_commit(state: EditGraphState) -> EditGraphState:
         if dependencies.auto_commit is None:
             return EditGraphState(phase="simulated")
-        proposal = EditPatchProposal.model_validate_json(
-            json.dumps(state["proposal"]), strict=True
-        )
+        proposal = EditPatchProposal.model_validate_json(json.dumps(state["proposal"]), strict=True)
         result = await dependencies.auto_commit(proposal, state["simulation"], dict(state))
         return cast(
             EditGraphState,
@@ -307,9 +313,7 @@ def build_edit_subgraph(
     async def create_preview(state: EditGraphState) -> EditGraphState:
         if dependencies.create_preview is None:
             return EditGraphState(phase="simulated")
-        proposal = EditPatchProposal.model_validate_json(
-            json.dumps(state["proposal"]), strict=True
-        )
+        proposal = EditPatchProposal.model_validate_json(json.dumps(state["proposal"]), strict=True)
         result = await dependencies.create_preview(proposal, state["simulation"], dict(state))
         return cast(EditGraphState, {"phase": "preview_created", **result})
 

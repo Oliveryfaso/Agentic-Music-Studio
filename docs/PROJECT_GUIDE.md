@@ -2,7 +2,7 @@
 
 > 产品工作名：**Motif Forge**（音乐动机锻造台）
 > 文档状态：**架构基线已批准，详细合同已拆分**
-> 当前阶段（2026-10-19）：**S1–S7 历史作品集已封板，现进入用户批准的 P0 产品基线与 P1 最小钢琴准备**。产品主线收敛到古典/爵士，电子风格作为 legacy 保留。P0 未改运行时音乐/Schema/界面；当前 UI 仍支持四风格。P1 的真实钢琴与表达为待实施目标。当前证据见 `IMPLEMENTATION_STATUS.md` / `docs/evidence/2026-10-19-p0-baseline.md`，执行入口见 `NEXT_DEVELOPMENT_ROADMAP.md`。
+> 当前阶段（2026-10-19）：**P1-A2.2 与 B/C2/D/E 单钢琴生产纵切已验收**。真实钢琴可显式试听审批、保存/重开、导出与精确父版本 Undo；旧声音与四个 legacy StylePack 保留。当前限一条钢琴轨与审核小包，踏板/release-trigger 不支持；MF-P09 默认古典/爵士入口调整仍是单独 UI Task，不把本轮当作整个 P1 或 P2–P5 完成。最新事实见 `IMPLEMENTATION_STATUS.md` 与 `docs/evidence/2026-10-19-p1-piano-production.md`。
 
 ---
 
@@ -87,7 +87,7 @@
 - 新产品默认创作主线为古典与爵士；`Synth Ambient`、`Minimal Electronic` 保留 legacy 读写/回放/导出兼容。新建入口过滤是待实施 UI Task，当前四个 StylePack ID 不删除。
 - 一个明确的推理模型：DeepSeek V4 Flash；保留 Provider 接口，但不把“支持多模型”当首版目标。
 - 支持导入 WAV、MP3、FLAC；单个混音文件作为一条 Audio Track，多文件 Stem 可分别导入多轨。首版不自动做 stem separation。
-- 当前 v1 音色仍为占位合成器/click；P1 先审核一个约 4.3 MiB 下载/10 MiB 展开的小型 CC0 钢琴候选，未来音源按需扩充。原 0.5–1 GiB Lite 是历史容量目标，未等同已内置资源。所有新包必须有具体版本、许可、文件哈希与资源证据。
+- v1 音色仍保留原占位合成器/click；显式批准的 v2 单钢琴使用已审核的小型 CC0 音源（约4.3 MiB原归档），未来按证据扩充。原 0.5–1 GiB Lite 是历史容量目标，未等同已内置资源。所有新包必须有具体版本、许可、文件哈希与资源证据。
 - DeepSeek 可以生成受约束的合成器音色、旋律和伴奏，也可以把自然语言音色描述转换成检索条件，从本地或许可 Allowlist 音源中寻找候选。
 - 基础钢琴卷帘、多轨时间线、混音与效果；不追求专业 DAW 的全部能力。
 - 首版具备 Master WAV、MP3、逐轨 Stem、MIDI、可继续编辑的项目文件、credits/license manifest 和 trace manifest 的完整导出能力；Master WAV 与 Stem 按需渲染，不为每个候选预先永久保存。

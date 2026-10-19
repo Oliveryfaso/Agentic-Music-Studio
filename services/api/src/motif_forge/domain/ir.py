@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from enum import StrEnum
 from itertools import pairwise
-from typing import Annotated, Literal, Self
+from typing import Annotated, Any, Literal, Self
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -323,6 +324,124 @@ class ArrangementIR(DomainModel):
             if not sections or marker.tick > self.duration_tick:
                 raise ValueError("markers require sections and must remain within project bounds")
         return self
+
+
+class PianoRenderProfile(DomainModel):
+    """One approved, immutable C1 source; no paths or arbitrary URLs in project data."""
+
+    schema_version: Literal["render-profile.v1"] = "render-profile.v1"
+    engine_version: Literal["motif-forge-audio-engine.v2"] = "motif-forge-audio-engine.v2"
+    instrument_pack_id: Literal["freepats:upright-kw-small"] = "freepats:upright-kw-small"
+    instrument_pack_version: Literal["2019-07-03.motif1"] = "2019-07-03.motif1"
+    manifest_sha256: Literal["264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"] = (
+        "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+    )
+
+
+class NotePerformance(DomainModel):
+    track_id: UUID
+    clip_id: UUID
+    note_id: UUID
+    onset_offset_tick: int = Field(default=0, ge=-60, le=60)
+    velocity_override: int | None = Field(default=None, ge=1, le=127)
+    gate_duration_tick: int | None = Field(default=None, ge=1, le=9600)
+
+
+class PedalEvent(DomainModel):
+    tick: int = Field(ge=0)
+    value: Literal[0, 127]
+
+
+class PerformancePlan(DomainModel):
+    schema_version: Literal["performance-plan.v1"] = "performance-plan.v1"
+    notes: tuple[NotePerformance, ...] = Field(default=(), max_length=2000)
+    pedal_events: tuple[PedalEvent, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_events(self) -> Self:
+        if self.pedal_events:
+            raise ValueError("PIANO_PEDAL_UNSUPPORTED")
+        ids = [(item.track_id, item.clip_id, item.note_id) for item in self.notes]
+        if len(ids) != len(set(ids)):
+            raise ValueError("PERFORMANCE_NOTE_DUPLICATE")
+        return self
+
+
+class ArrangementIRV2(ArrangementIR):
+    schema_version: Literal["arrangement-ir.v2"] = "arrangement-ir.v2"  # type: ignore[assignment]
+    render_profile: PianoRenderProfile
+    performance_plan: PerformancePlan = Field(default_factory=PerformancePlan)
+
+    @model_validator(mode="after")
+    def validate_piano_performance(self) -> Self:
+        if len(self.tracks) != 1 or self.tracks[0].track_type is not TrackType.INSTRUMENT:
+            raise ValueError("PIANO_SINGLE_TRACK_REQUIRED")
+        if self.sample_rate != 48000:
+            raise ValueError("PIANO_SAMPLE_RATE_UNSUPPORTED")
+        facts = {}
+        for track in self.tracks:
+            for clip in track.clips:
+                if not isinstance(clip, NoteClip):
+                    raise ValueError("PIANO_NOTE_CLIP_REQUIRED")
+                if (
+                    clip.loop
+                    or clip.gain_db != 0
+                    or clip.pan != 0
+                    or clip.fade_in_tick
+                    or clip.fade_out_tick
+                ):
+                    raise ValueError("PIANO_CLIP_PARAMETERS_UNSUPPORTED")
+                for note in clip.notes:
+                    if note.articulation is not Articulation.NORMAL:
+                        raise ValueError("PIANO_ARTICULATION_UNSUPPORTED")
+                    if not 21 <= note.pitch <= 108:
+                        raise ValueError("PIANO_KEY_RANGE_UNSUPPORTED")
+                    facts[track.track_id, clip.clip_id, note.note_id] = (clip, note)
+        if len(facts) > 2000:
+            raise ValueError("PIANO_NOTE_BUDGET_EXCEEDED")
+        overrides = {
+            (item.track_id, item.clip_id, item.note_id): item
+            for item in self.performance_plan.notes
+        }
+        if not overrides.keys() <= facts.keys():
+            raise ValueError("PERFORMANCE_NOTE_NOT_FOUND")
+        seconds_per_tick = 60 / self.tempo_map[0].bpm / self.ppq
+        for identity, (clip, note) in facts.items():
+            performance = overrides.get(identity)
+            start = (
+                clip.start_tick
+                + note.start_tick
+                + (performance.onset_offset_tick if performance else 0)
+            )
+            if start < 0 or start >= self.duration_tick:
+                raise ValueError("PERFORMANCE_ONSET_OUT_OF_BOUNDS")
+            gate = (
+                performance.gate_duration_tick
+                if performance and performance.gate_duration_tick is not None
+                else note.duration_tick
+            )
+            if (
+                not 0.005 <= gate * seconds_per_tick <= 30
+                or (start + gate) * seconds_per_tick + 0.6
+                > self.duration_tick * seconds_per_tick + 1e-6
+            ):
+                raise ValueError("PERFORMANCE_GATE_OUT_OF_BOUNDS")
+        return self
+
+
+ArrangementValue = Annotated[ArrangementIR | ArrangementIRV2, Field(discriminator="schema_version")]
+
+
+def read_arrangement_json(
+    value: str | bytes, *, strict: Literal[True] = True
+) -> ArrangementIR | ArrangementIRV2:
+    data: Any = json.loads(value)
+    version = data.get("schema_version") if isinstance(data, dict) else None
+    if version == "arrangement-ir.v1":
+        return ArrangementIR.model_validate_json(value, strict=strict)
+    if version == "arrangement-ir.v2":
+        return ArrangementIRV2.model_validate_json(value, strict=strict)
+    raise ValueError("IR_SCHEMA_VERSION_UNSUPPORTED")
 
 
 def create_empty_arrangement(project_id: UUID) -> ArrangementIR:

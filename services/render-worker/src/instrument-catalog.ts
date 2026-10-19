@@ -7,6 +7,7 @@ import { validateInstrumentPack, verifyInstrumentSample, type InstrumentPack } f
 
 export type ReviewedInstrumentCatalog = Readonly<{
   manifest: InstrumentPack;
+  manifestSha256: string;
   sample: (sampleId: string) => Uint8Array | undefined;
 }>;
 const sha = (bytes: Uint8Array): string => createHash("sha256").update(bytes).digest("hex");
@@ -57,7 +58,7 @@ export async function loadReviewedInstrumentCatalog(config: Readonly<{
     await verifyInstrumentSample(pack, sample.sampleId, source);
     samples.set(sample.sampleId, source);
   }
-  return Object.freeze({manifest: freezeManifest(pack), sample: (sampleId: string) => {
+  return Object.freeze({manifest: freezeManifest(pack), manifestSha256: config.manifestSha256, sample: (sampleId: string) => {
     const source = samples.get(sampleId);
     return source === undefined ? undefined : new Uint8Array(source);
   }});

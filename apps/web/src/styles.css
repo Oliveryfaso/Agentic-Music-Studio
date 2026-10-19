@@ -496,3 +496,24 @@ footer { font-size: 12px; letter-spacing: 0; padding-block: 22px; }
   .portfolio-card { padding: 22px; }.evidence-metrics article { padding: 18px; }.evidence-metrics strong { font-size: 30px; }.evidence-version { font-size: 11px; }.portfolio-hero { flex-direction: column; align-items: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+
+/* Piano audition uses the existing quiet Studio palette; A/B is the primary gesture. */
+.piano-study-entry { display:flex; align-items:center; flex-wrap:wrap; gap:16px; padding:18px 0; margin-bottom:20px; border-bottom:1px solid var(--line); }
+.piano-study-entry > div { flex:1; min-width:220px; }
+.piano-study-entry p { margin:3px 0 0; color:var(--muted); font-size:13px; }
+.piano-expression { min-width:0; }
+.piano-expression h3 { margin:0; }
+.piano-source { color:var(--muted); font-size:11px; }
+.piano-expression-fields { border:0; padding:0; margin:16px 0; display:grid; gap:10px; min-width:0; }
+.piano-expression-fields label { display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:12px; }
+.piano-expression-fields input { width:82px; min-width:0; border:1px solid var(--line-strong); border-radius:6px; padding:6px; background:var(--surface); color:var(--text); font-variant-numeric:tabular-nums; }
+.piano-audition { margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
+.piano-ab-switch { display:flex; gap:0; margin-bottom:12px; }
+.piano-ab-switch button { flex:1; border-radius:0; font-size:12px; }
+.piano-ab-switch button:first-child { border-radius:8px 0 0 8px; }
+.piano-ab-switch button:last-child { border-radius:0 8px 8px 0; margin-left:-1px; }
+.piano-ab-switch button[aria-pressed="true"] { background:var(--accent); color:var(--surface); border-color:var(--accent); position:relative; }
+.piano-comparison audio { display:block; width:100%; min-width:0; height:36px; }
+.piano-confirm { display:flex; align-items:flex-start; gap:8px; margin:14px 0; font-size:12px; }
+.piano-confirm input { margin-top:4px; accent-color:var(--accent); }
+.piano-actions { display:flex; flex-wrap:wrap; gap:8px; }

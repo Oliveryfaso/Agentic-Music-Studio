@@ -10,7 +10,7 @@ from pydantic import Field, model_validator
 from motif_forge.domain.canonical import arrangement_content_hash
 from motif_forge.domain.commands import EditorCommand, Selection, apply_commands
 from motif_forge.domain.errors import issue
-from motif_forge.domain.ir import ArrangementIR, DomainModel
+from motif_forge.domain.ir import ArrangementIR, ArrangementValue, DomainModel
 from motif_forge.domain.policies import compute_change_impact
 from motif_forge.domain.revisions import ChangeImpact, StructuralDiffEntry
 
@@ -70,7 +70,7 @@ class AffectedRange(DomainModel):
 
 
 class EditSimulationResult(DomainModel):
-    candidate_ir: ArrangementIR
+    candidate_ir: ArrangementValue
     candidate_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     structural_diff: tuple[StructuralDiffEntry, ...]
     affected_ranges: tuple[AffectedRange, ...]
@@ -128,10 +128,7 @@ def _assert_scope(arrangement: ArrangementIR, proposal: EditPatchProposal) -> No
         if (
             command_selection.start_tick is not None
             and command_selection.end_tick is not None
-            and (
-                command_selection.start_tick < start_tick
-                or command_selection.end_tick > end_tick
-            )
+            and (command_selection.start_tick < start_tick or command_selection.end_tick > end_tick)
         ):
             raise issue(
                 "EDIT_SCOPE_VIOLATION",
@@ -144,9 +141,7 @@ def _non_target_projection(arrangement: ArrangementIR, selection: Selection) -> 
     selected = set(selection.track_ids)
     return arrangement.model_copy(
         update={
-            "tracks": tuple(
-                track for track in arrangement.tracks if track.track_id not in selected
-            )
+            "tracks": tuple(track for track in arrangement.tracks if track.track_id not in selected)
         }
     )
 
@@ -169,9 +164,7 @@ def _structural_diff(
     return tuple(entries)
 
 
-def simulate_edit_patch(
-    base: ArrangementIR, proposal: EditPatchProposal
-) -> EditSimulationResult:
+def simulate_edit_patch(base: ArrangementIR, proposal: EditPatchProposal) -> EditSimulationResult:
     """Apply an agent proposal in memory and prove it stayed inside its declared scope."""
 
     if base.project_id != proposal.project_id:

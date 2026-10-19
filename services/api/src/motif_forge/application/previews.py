@@ -18,7 +18,7 @@ from motif_forge.application.errors import (
 )
 from motif_forge.application.ports import ProjectTransaction, UnitOfWorkFactory
 from motif_forge.domain.canonical import arrangement_content_hash
-from motif_forge.domain.commands import EditorCommand, apply_commands
+from motif_forge.domain.commands import EditorCommand, SetPianoProfileCommand, apply_commands
 from motif_forge.domain.ir import DomainModel
 from motif_forge.domain.policies import compute_change_impact
 from motif_forge.domain.revisions import (
@@ -56,8 +56,16 @@ class CreateCommandPreviewRequest(DomainModel):
 
     @model_validator(mode="after")
     def require_agent_commands(self) -> CreateCommandPreviewRequest:
-        if any(command.actor_kind != AuthorKind.AGENT.value for command in self.commands):
-            raise ValueError("candidate preview creation only accepts agent commands")
+        explicit_piano = all(
+            isinstance(command, SetPianoProfileCommand) for command in self.commands
+        )
+        if not explicit_piano and any(
+            command.actor_kind != AuthorKind.AGENT.value for command in self.commands
+        ):
+            raise ValueError(
+                "candidate preview creation only accepts agent commands "
+                "or explicit human piano changes"
+            )
         sequences = tuple(command.client_sequence for command in self.commands)
         if sequences != tuple(sorted(sequences)):
             raise ValueError("commands must be ordered by client_sequence")

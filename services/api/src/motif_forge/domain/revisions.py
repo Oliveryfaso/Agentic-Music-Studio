@@ -11,7 +11,13 @@ from pydantic import Field, model_validator
 
 from motif_forge.domain.canonical import arrangement_content_hash
 from motif_forge.domain.commands import EditorCommand
-from motif_forge.domain.ir import ArrangementIR, DomainModel, create_empty_arrangement
+from motif_forge.domain.ir import (
+    ArrangementIR,
+    ArrangementIRV2,
+    ArrangementValue,
+    DomainModel,
+    create_empty_arrangement,
+)
 
 REVISION_SCHEMA_VERSION = "revision.v1"
 CANDIDATE_SCHEMA_VERSION = "candidate-snapshot.v1"
@@ -56,6 +62,31 @@ class VersionRefs(DomainModel):
     compiler: str | None = None
 
 
+def versions_for_arrangement(
+    arrangement: ArrangementIR, versions: VersionRefs | None = None
+) -> VersionRefs:
+    current = versions or VersionRefs()
+    if isinstance(arrangement, ArrangementIRV2):
+        return current.model_copy(
+            update={
+                "domain_schema": "arrangement-ir.v2",
+                "audio_engine": "motif-forge-audio-engine.v2",
+                "compiler": "audio-graph-spec.v2",
+                "assets": arrangement.render_profile.manifest_sha256,
+            }
+        )
+    return current
+
+
+def _validate_version_refs(arrangement: ArrangementIR, versions: VersionRefs) -> None:
+    if isinstance(arrangement, ArrangementIRV2) and (
+        versions.domain_schema != "arrangement-ir.v2"
+        or versions.audio_engine != "motif-forge-audio-engine.v2"
+        or versions.assets != arrangement.render_profile.manifest_sha256
+    ):
+        raise ValueError("IR_VERSION_REFS_MISMATCH")
+
+
 class StructuralDiffEntry(DomainModel):
     operation: Literal["add", "remove", "replace", "move"]
     path: str = Field(min_length=1, max_length=400)
@@ -68,7 +99,7 @@ class Revision(DomainModel):
     project_id: UUID
     parent_revision_id: UUID | None
     created_on_branch_id: UUID
-    arrangement_ir: ArrangementIR
+    arrangement_ir: ArrangementValue
     content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     command_batch_id: UUID | None = None
     change_impact_predicted: ChangeImpact
@@ -83,6 +114,7 @@ class Revision(DomainModel):
     @model_validator(mode="after")
     def validate_revision(self) -> Self:
         _require_aware(self.created_at, "created_at")
+        _validate_version_refs(self.arrangement_ir, self.versions)
         if self.arrangement_ir.project_id != self.project_id:
             raise ValueError("revision arrangement must belong to the same project")
         if arrangement_content_hash(self.arrangement_ir) != self.content_hash:
@@ -123,7 +155,7 @@ class CandidateSnapshot(DomainModel):
     base_revision_id: UUID
     source_run_id: UUID | None = None
     parent_candidate_snapshot_id: UUID | None = None
-    candidate_ir: ArrangementIR
+    candidate_ir: ArrangementValue
     candidate_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     commands: tuple[EditorCommand, ...] = ()
     command_batch_id: UUID | None = None
@@ -136,6 +168,7 @@ class CandidateSnapshot(DomainModel):
     @model_validator(mode="after")
     def validate_candidate(self) -> Self:
         _require_aware(self.created_at, "created_at")
+        _validate_version_refs(self.candidate_ir, self.versions)
         if self.candidate_ir.project_id != self.project_id:
             raise ValueError("candidate arrangement must belong to the same project")
         if arrangement_content_hash(self.candidate_ir) != self.candidate_content_hash:
@@ -282,7 +315,7 @@ def create_candidate_snapshot(
         candidate_content_hash=arrangement_content_hash(candidate_ir),
         commands=commands,
         structural_diff=structural_diff,
-        versions=versions or VersionRefs(),
+        versions=versions_for_arrangement(candidate_ir, versions),
         created_at=created_at,
     )
 

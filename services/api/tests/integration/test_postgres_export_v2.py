@@ -253,7 +253,10 @@ async def test_real_pg_v2_bundle_worker_preserves_plan_and_resume_identity(
                     Config(Path(__file__).resolve().parents[4] / "alembic.ini"), "20260824_0021"
                 )
 
-        with pytest.raises(RuntimeError, match=r"EXPORT_(V2|REQUEST_IDENTITY)_DOWNGRADE_BLOCKED"):
+        with pytest.raises(
+            RuntimeError,
+            match=r"(EXPORT_(V2|REQUEST_IDENTITY)|IR_V2|PIANO_EXPORT)_DOWNGRADE_BLOCKED",
+        ):
             await asyncio.to_thread(downgrade_legacy_reader)
         async with engine.connect() as connection:
             stored = (

@@ -23,7 +23,10 @@ from motif_forge.application.export_reads import (
     RevisionExportProjection,
 )
 from motif_forge.application.revision_exports import RevisionExportRequest
-from motif_forge.domain.export_plan import ExportPlanV2
+from motif_forge.domain.export_plan import (
+    ExportPlanValue,
+    read_export_plan_json,
+)
 
 
 class ApiModel(BaseModel):
@@ -53,7 +56,7 @@ class RevisionExportRunData(ApiModel):
     thread_id: str
     phase: str
     plan_hash: str | None = None
-    export_plan: ExportPlanV2 | None = None
+    export_plan: ExportPlanValue | None = None
     media_run_id: UUID | None = None
     pending_job_id: UUID | None = None
     bundle_artifact_id: UUID | None = None
@@ -74,7 +77,7 @@ def _run_data(
             thread_id=thread_id,
             phase=values["phase"],
             plan_hash=values.get("plan_hash"),
-            export_plan=ExportPlanV2.model_validate_json(json.dumps(cursor["plan"]), strict=True)
+            export_plan=read_export_plan_json(json.dumps(cursor["plan"]), strict=True)
             if cursor.get("plan")
             else None,
             media_run_id=values.get("media_run_id"),

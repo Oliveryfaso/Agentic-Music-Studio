@@ -18,7 +18,13 @@ from motif_forge.application.export_reads import (
     _manifest_member,
 )
 from motif_forge.application.generation import EXPORT_STEPS
-from motif_forge.domain.export_plan import ExportPlanV2, export_key_v2, verify_export_plan_revision
+from motif_forge.domain.export_plan import (
+    ExportPlanValue,
+    PianoExportPlanV3,
+    export_key_v2,
+    read_export_plan_json,
+    verify_export_plan_revision,
+)
 from motif_forge.domain.media_jobs import ArtifactAvailability, MediaQualityProfile
 from motif_forge.infrastructure.persistence.database import SessionFactory, _revision_from_row
 from motif_forge.infrastructure.persistence.tables import (
@@ -150,21 +156,20 @@ class PostgresExportProjectionStore:
         bundle_row: ExportBundleArtifactRow | None,
         media_runs: dict[UUID, MediaRunRow],
     ) -> RevisionExportProjection:
-        plan: ExportPlanV2 | None = None
+        plan: ExportPlanValue | None = None
         plan_error: str | None = None
         try:
             if len(media_runs) == 1:
                 run = next(iter(media_runs.values()))
                 if run.schema_version == "media-run.v2":
-                    plan = ExportPlanV2.model_validate_json(
-                        json.dumps(run.export_plan), strict=True
-                    )
+                    plan = read_export_plan_json(json.dumps(run.export_plan), strict=True)
                     if run.plan_hash != plan.content_hash:
                         raise ValueError("plan pin mismatch")
                     verify_export_plan_revision(plan, _revision_from_row(revision))
             if (
                 bundle_row is not None
-                and bundle_row.schema_version == "export-bundle-artifact.v2"
+                and bundle_row.schema_version
+                in {"export-bundle-artifact.v2", "export-bundle-artifact.v3"}
                 and plan is None
             ):
                 raise ValueError("v2 bundle has no v2 Run")
@@ -252,7 +257,7 @@ class PostgresExportProjectionStore:
         manifest = json.loads(raw)
         version = (
             "export-manifest.v2"
-            if bundle.schema_version == "export-bundle-artifact.v2"
+            if bundle.schema_version in {"export-bundle-artifact.v2", "export-bundle-artifact.v3"}
             else "export-manifest.v1"
         )
         if (
@@ -339,7 +344,7 @@ def _lineage_error_v2(
     artifacts: tuple[AudioArtifactRow, ...],
     bundle: ExportBundleArtifactRow | None,
     media_runs: dict[UUID, MediaRunRow],
-    plan: ExportPlanV2,
+    plan: ExportPlanValue,
 ) -> str | None:
     if len(media_runs) != 1 or len(jobs) > len(plan.steps):
         return "EXPORT_LINEAGE_INVALID"
@@ -371,7 +376,12 @@ def _lineage_error_v2(
         step = plan.steps[index]
         expected_tracks = [step[5:]] if step.startswith("stem:") else []
         if (
-            artifact.quality_profile != plan.audio_files[index][1].value
+            (
+                isinstance(plan, PianoExportPlanV3)
+                and step != "mp3"
+                and artifact.encoder_version != plan.engine_version
+            )
+            or artifact.quality_profile != plan.audio_files[index][1].value
             or artifact.arrangement_hash != plan.arrangement_hash
             or artifact.render_track_ids != expected_tracks
             or artifact.render_scope != ("stem" if expected_tracks else "master")
@@ -380,7 +390,12 @@ def _lineage_error_v2(
     if bundle is not None and (
         len(jobs) != len(plan.steps)
         or bundle.source_job_id != jobs[-1].id
-        or bundle.schema_version != "export-bundle-artifact.v2"
+        or bundle.schema_version
+        != (
+            "export-bundle-artifact.v3"
+            if isinstance(plan, PianoExportPlanV3)
+            else "export-bundle-artifact.v2"
+        )
         or bundle.plan_hash != plan.content_hash
         or set(bundle.input_artifact_ids) != {str(a.id) for a in artifacts}
     ):
@@ -397,8 +412,8 @@ def _public_bundle(row: ExportBundleArtifactRow) -> ExportBundleSummary:
         content_hash=row.content_hash,
         byte_size=row.byte_size,
         file_count=row.file_count,
-        export_plan=ExportPlanV2.model_validate_json(json.dumps(row.export_plan), strict=True)
-        if row.schema_version == "export-bundle-artifact.v2"
+        export_plan=read_export_plan_json(json.dumps(row.export_plan), strict=True)
+        if row.schema_version in {"export-bundle-artifact.v2", "export-bundle-artifact.v3"}
         else None,
         plan_hash=row.plan_hash,
     )

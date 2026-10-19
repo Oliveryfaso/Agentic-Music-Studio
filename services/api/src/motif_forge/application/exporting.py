@@ -12,6 +12,7 @@ from typing import TypedDict
 
 from motif_forge.audio.midi import arrangement_to_midi
 from motif_forge.domain.canonical import canonical_json_bytes
+from motif_forge.domain.export_plan import PianoExportPlanV3
 from motif_forge.domain.exporting import (
     ExportBundleRequest,
     ExportBundleRequestV2,
@@ -99,6 +100,48 @@ def write_export_bundle(
             {"schema_version": "trace-manifest.v1", "trace_refs": list(request.trace_refs)}
         ),
     }
+    if isinstance(request, ExportBundleRequestV2) and isinstance(request.plan, PianoExportPlanV3):
+        profile = request.plan.render_profile
+        source_url = (
+            "https://freepats.zenvoid.org/Piano/UprightPianoKW/UprightPianoKW-small-SFZ-20190703.7z"
+        )
+        files["credits.json"] = _json_bytes(
+            {
+                "schema_version": "credits.v1",
+                "credits": [
+                    {
+                        "asset_id": profile.instrument_pack_id,
+                        "pack_version": profile.instrument_pack_version,
+                        "recorded_by": ["Gonzalo", "Roberto"],
+                        "processed_by": "Roberto",
+                        "source_url": source_url,
+                        "manifest_sha256": profile.manifest_sha256,
+                    }
+                ],
+            }
+        )
+        files["license.json"] = _json_bytes(
+            {
+                "schema_version": "license-manifest.v1",
+                "policy": "builtin-and-reviewed-cc0.v1",
+                "assets": [
+                    {
+                        "asset_id": profile.instrument_pack_id,
+                        "pack_version": profile.instrument_pack_version,
+                        "spdx": "CC0-1.0",
+                        "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+                        "license_text_sha256": (
+                            "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+                        ),
+                        "source_url": source_url,
+                        "source_archive_sha256": (
+                            "ffb547fceb91eeb93d78cf8d220d1d5f726dcac891afc15e517805ac48abb39d"
+                        ),
+                        "manifest_sha256": profile.manifest_sha256,
+                    }
+                ],
+            }
+        )
     entries: list[_ManifestEntry] = []
     for audio in request.audio_exports:
         if cancel_event is not None and cancel_event.is_set():

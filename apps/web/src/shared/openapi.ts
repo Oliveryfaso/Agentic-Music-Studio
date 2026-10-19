@@ -2,7 +2,7 @@ import type { components } from "../generated/api-schema";
 
 type Schemas = components["schemas"];
 
-export type ArrangementIR = Schemas["ArrangementIR"];
+export type ArrangementIR = Schemas["ArrangementIR"] | Schemas["ArrangementIRV2"];
 export type EditorCommand = Schemas["CommandBatchBody"]["commands"][number];
 export type CommitCommandBatchInput = Schemas["CommandBatchBody"];
 export type CommandBatchData = Schemas["CommandBatchData"];
@@ -35,3 +35,10 @@ export type GraphEdgeView = Schemas["GraphEdgeView"];
 
 export type RevisionExportOptions = Schemas["RevisionExportOptions"];
 export type RevisionExportRun = Schemas["RevisionExportRunData"];
+
+export type PianoCapability = Schemas["PianoCapability"];
+export type PianoPreviewOptions = Schemas["PianoPreviewOptions"];
+export type PianoPreviewData = Schemas["PianoPreviewData"];
+export type PianoPreviewDecision = Schemas["PianoPreviewDecision"];
+export type PianoStudyResult = Schemas["PianoStudyResult"];
+export type PerformancePlan = Schemas["PerformancePlan"];

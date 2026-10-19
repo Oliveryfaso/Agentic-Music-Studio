@@ -4,13 +4,20 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 from uuid import UUID
 
 from pydantic import Field, SerializerFunctionWrapHandler, model_serializer, model_validator
 
 from motif_forge.domain.canonical import arrangement_content_hash
-from motif_forge.domain.ir import ArrangementIR, DomainModel, NoteClip, TrackType
+from motif_forge.domain.ir import (
+    ArrangementIR,
+    ArrangementIRV2,
+    DomainModel,
+    NoteClip,
+    PianoRenderProfile,
+    TrackType,
+)
 
 if TYPE_CHECKING:
     from motif_forge.domain.media_jobs import MediaQualityProfile
@@ -23,6 +30,8 @@ def _sorted_ids(ids: tuple[UUID, ...]) -> tuple[UUID, ...]:
 
 def verify_v1_export_source(arrangement: ArrangementIR) -> None:
     """This preparation has no approved external-asset credits/pack reader yet."""
+    if isinstance(arrangement, ArrangementIRV2):
+        raise ValueError("EXPORT_SOURCE_PROFILE_UNSUPPORTED")
     if any(
         track.track_type is not TrackType.INSTRUMENT
         or not (track.instrument_ref or "").startswith("builtin:")
@@ -100,8 +109,36 @@ class ExportPlanV2(DomainModel):
         ).hexdigest()
 
 
-def verify_export_plan_revision(plan: ExportPlanV2, revision: Revision) -> None:
-    verify_v1_export_source(revision.arrangement_ir)
+class PianoExportPlanV3(ExportPlanV2):
+    schema_version: Literal["export-plan.v3"] = "export-plan.v3"  # type: ignore[assignment]
+    engine_version: Literal["motif-forge-audio-engine.v2"] = "motif-forge-audio-engine.v2"  # type: ignore[assignment]
+    render_profile: PianoRenderProfile
+
+
+ExportPlanValue = Annotated[ExportPlanV2 | PianoExportPlanV3, Field(discriminator="schema_version")]
+
+
+def read_export_plan_json(
+    value: str | bytes, *, strict: Literal[True] = True
+) -> ExportPlanV2 | PianoExportPlanV3:
+    data = json.loads(value)
+    version = data.get("schema_version") if isinstance(data, dict) else None
+    if version == "export-plan.v2":
+        return ExportPlanV2.model_validate_json(value, strict=strict)
+    if version == "export-plan.v3":
+        return PianoExportPlanV3.model_validate_json(value, strict=strict)
+    raise ValueError("EXPORT_PLAN_VERSION_UNSUPPORTED")
+
+
+def verify_export_plan_revision(plan: ExportPlanValue, revision: Revision) -> None:
+    if isinstance(plan, PianoExportPlanV3):
+        if (
+            not isinstance(revision.arrangement_ir, ArrangementIRV2)
+            or plan.render_profile != revision.arrangement_ir.render_profile
+        ):
+            raise ValueError("EXPORT_SOURCE_PROFILE_UNSUPPORTED")
+    else:
+        verify_v1_export_source(revision.arrangement_ir)
     if (
         revision.project_id != plan.project_id
         or revision.revision_id != plan.revision_id
@@ -119,8 +156,8 @@ def plan_export(
     include_mp3: bool = True,
     stem_track_ids: tuple[UUID, ...] = (),
     request_id: UUID | None = None,
-) -> ExportPlanV2:
-    plan = ExportPlanV2(
+) -> ExportPlanValue:
+    values: dict[str, Any] = dict(
         project_id=revision.project_id,
         revision_id=revision.revision_id,
         arrangement_hash=revision.content_hash,
@@ -130,20 +167,28 @@ def plan_export(
         include_mp3=include_mp3,
         request_id=request_id,
     )
+    plan = (
+        PianoExportPlanV3(**values, render_profile=revision.arrangement_ir.render_profile)
+        if isinstance(revision.arrangement_ir, ArrangementIRV2)
+        else ExportPlanV2(**values)
+    )
     verify_export_plan_revision(plan, revision)
     return plan
 
 
-def export_key_v2(plan: ExportPlanV2, step: str) -> str:
+def export_key_v2(plan: ExportPlanValue, step: str) -> str:
     if step not in plan.steps:
         raise ValueError("EXPORT_STEP_NOT_IN_PLAN")
-    digest = hashlib.sha256(f"complete-export.v2:{plan.content_hash}:{step}".encode()).hexdigest()
-    return f"complete-export:v2:{digest}"
+    version = "v3" if isinstance(plan, PianoExportPlanV3) else "v2"
+    digest = hashlib.sha256(
+        f"complete-export.{version}:{plan.content_hash}:{step}".encode()
+    ).hexdigest()
+    return f"complete-export:{version}:{digest}"
 
 
 class CompleteExportCursorV2(DomainModel):
     schema_version: Literal["complete-export-cursor.v2"] = "complete-export-cursor.v2"
-    plan: ExportPlanV2
+    plan: ExportPlanValue
     plan_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     thread_id: str = Field(min_length=1, max_length=160)
     run_type: Literal["complete_song_export.v2", "parent.export.v1"] = "complete_song_export.v2"

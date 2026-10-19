@@ -52,9 +52,13 @@ def estimate_render_capacity(
         raise ValueError("RENDER_RESOURCE_LIMIT_EXCEEDED")
     events = 0
     for track in tracks:
-        if not isinstance(track, dict) or track.get("kind") not in {"synth", "sampler"}:
+        if not isinstance(track, dict) or track.get("kind") not in {
+            "synth",
+            "sampler",
+            "multisample",
+        }:
             raise ValueError("RENDER_CAPACITY_INVALID")
-        values = track.get("notes" if track["kind"] == "synth" else "triggers")
+        values = track.get("notes" if track["kind"] in {"synth", "multisample"} else "triggers")
         if not isinstance(values, (list, tuple)):
             raise ValueError("RENDER_CAPACITY_INVALID")
         events += len(values)

@@ -26,8 +26,10 @@ from motif_forge.agent.parent_graph import (
     initial_artifact_rehydrate_state,
     initial_import_state,
 )
+from motif_forge.agent.piano_preview import PianoPreviewNodes
 from motif_forge.api.ai_runs import build_ai_run_router
 from motif_forge.api.exports import build_export_router
+from motif_forge.api.piano import build_piano_router
 from motif_forge.api.project_reads import build_project_read_router
 from motif_forge.api.run_graph import build_run_graph_router
 from motif_forge.api.run_inspection import build_run_inspection_router
@@ -47,6 +49,8 @@ from motif_forge.application.media_jobs import (
     LoadArtifactRehydration,
     StartArtifactRehydration,
 )
+from motif_forge.application.piano_capability import ReadPianoCapability
+from motif_forge.application.piano_preview import PianoPreviewWorkflow
 from motif_forge.application.ports import (
     AIRunUnitOfWorkFactory,
     UnitOfWorkFactory,
@@ -318,12 +322,15 @@ def _application_status(error: ApplicationError) -> int:
         "IMPORT_RUN_NOT_FOUND",
         "EXPORT_BUNDLE_NOT_FOUND",
         "EXPORT_RUN_NOT_FOUND",
+        "PIANO_PREVIEW_NOT_FOUND",
         "EXPORT_PLAN_NOT_FOUND",
         "AI_RUN_NOT_FOUND",
     }:
         return 404
     if error.code in {
         "EXPORT_RUN_STATE_CONFLICT",
+        "PIANO_PREVIEW_STATE_CONFLICT",
+        "PIANO_CANDIDATE_HASH_MISMATCH",
         "REVISION_CONFLICT",
         "IDEMPOTENCY_KEY_REUSED",
         "CHANGE_IMPACT_ESCALATED",
@@ -361,6 +368,7 @@ def _application_status(error: ApplicationError) -> int:
         "PLAN_ADJUSTMENT_TOO_LARGE",
         "EXPORT_FILE_NAME_INVALID",
         "EXPORT_REQUEST_INVALID",
+        "PIANO_REQUEST_INVALID",
         "RUN_GRAPH_UNSUPPORTED",
     }:
         return 422
@@ -368,6 +376,8 @@ def _application_status(error: ApplicationError) -> int:
         "PERSISTENCE_NOT_CONFIGURED",
         "ARTIFACT_ROOT_UNAVAILABLE",
         "CHECKPOINT_HISTORY_READ_FAILED",
+        "INSTRUMENT_PACK_UNAVAILABLE",
+        "RENDER_SERVICE_UNAVAILABLE",
     }:
         return 503
     if error.code == "STORAGE_QUOTA_EXCEEDED":
@@ -471,6 +481,13 @@ def create_app(
             lifespan_app.state.parent_graph = build_parent_graph(
                 EnqueueMediaJob(runtime_media_uow),
                 checkpointer=saver,
+                piano_preview_nodes=PianoPreviewNodes(
+                    PianoPreviewWorkflow(
+                        project_uow,
+                        runtime_media_uow,
+                        ReadPianoCapability(service_url=runtime_settings.render_service_url),
+                    )
+                ),
                 materialize_import=MaterializeImport(project_uow, runtime_media_uow),
                 load_import_context=LoadImportAnalysisContext(project_uow, runtime_media_uow),
                 enqueue_followup_media_job=EnqueueFollowupMediaJob(runtime_media_uow),
@@ -502,6 +519,13 @@ def create_app(
     app.state.upload_workspace = LocalUploadWorkspace(runtime_settings.artifact_root)
     app.state.parent_graph = None
     app.include_router(build_sound_catalog_router())
+    app.include_router(
+        build_piano_router(
+            runtime_uow,
+            capability=ReadPianoCapability(service_url=runtime_settings.render_service_url),
+            graph_getter=lambda: app.state.parent_graph,
+        )
+    )
     if runtime_ai_run_uow is not None:
         app.include_router(build_ai_run_router(runtime_ai_run_uow, project_uow=runtime_uow))
     if runtime_project_reads is not None:

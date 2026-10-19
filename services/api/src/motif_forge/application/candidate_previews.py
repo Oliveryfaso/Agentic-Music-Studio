@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import Field
@@ -23,6 +24,9 @@ from motif_forge.domain.media_jobs import (
 
 
 class EnqueueCandidatePreviewRequest(DomainModel):
+    run_type: Literal["parent.candidate_preview.v1", "parent.piano_preview.v1"] = (
+        "parent.candidate_preview.v1"
+    )
     project_id: UUID
     candidate_snapshot_id: UUID
     expected_candidate_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
@@ -69,7 +73,7 @@ class EnqueueCandidatePreview:
             EnqueueMediaJobRequest(
                 project_id=request.project_id,
                 thread_id=request.thread_id,
-                run_type="parent.candidate_preview.v1",
+                run_type=request.run_type,
                 job_type=MediaJobType.RENDER_PREVIEW,
                 input_payload=payload.model_dump(mode="json"),
                 output_quality_profile=MediaQualityProfile.CANDIDATE_PREVIEW_V1,

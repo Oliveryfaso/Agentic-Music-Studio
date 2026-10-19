@@ -47,7 +47,7 @@ from motif_forge.audio.transcode import (
     transcode_master_to_mp3,
 )
 from motif_forge.config import Settings
-from motif_forge.domain.export_plan import verify_export_plan_revision
+from motif_forge.domain.export_plan import PianoExportPlanV3, verify_export_plan_revision
 from motif_forge.domain.exporting import AudioExportRef, ExportBundleRequest, ExportBundleRequestV2
 from motif_forge.domain.media_jobs import (
     ArtifactAvailability,
@@ -56,7 +56,9 @@ from motif_forge.domain.media_jobs import (
     AudioArtifact,
     BundleAudioInput,
     CandidatePreviewJobPayload,
+    CandidatePreviewJobPayloadV2,
     CanonicalRenderJobPayload,
+    CanonicalRenderJobPayloadV2,
     ExportBundleArtifact,
     ExportBundleArtifactV2,
     ExportBundleArtifactValue,
@@ -71,6 +73,7 @@ from motif_forge.domain.media_jobs import (
     MediaJob,
     MediaJobType,
     MediaQualityProfile,
+    PianoExportBundleArtifactV3,
     RebuildInputArtifact,
     RebuildRecipe,
     RehydrateJobPayload,
@@ -139,7 +142,9 @@ def _candidate_preview_rebuild_recipe(payload: CandidatePreviewJobPayload) -> Re
         },
         engine="motif-forge-chromium-renderer+ffmpeg-libmp3lame",
         engine_version=payload.audio_engine_version,
-        policy_version="candidate-preview-render.v1",
+        policy_version="candidate-preview-render.v2"
+        if isinstance(payload, CandidatePreviewJobPayloadV2)
+        else "candidate-preview-render.v1",
         output_quality_profile=MediaQualityProfile.CANDIDATE_PREVIEW_V1,
         expected_container="mp3",
         expected_codec="mp3",
@@ -1098,13 +1103,21 @@ def _parse_ingest_payload(job: MediaJob) -> IngestJobPayload:
 
 
 def _parse_canonical_render_payload(job: MediaJob) -> CanonicalRenderJobPayload:
-    return CanonicalRenderJobPayload.model_validate_json(json.dumps(job.input_payload), strict=True)
+    model = (
+        CanonicalRenderJobPayloadV2
+        if job.input_payload.get("schema_version") == "canonical-render-job.v2"
+        else CanonicalRenderJobPayload
+    )
+    return model.model_validate_json(json.dumps(job.input_payload), strict=True)
 
 
 def _parse_candidate_preview_payload(job: MediaJob) -> CandidatePreviewJobPayload:
-    return CandidatePreviewJobPayload.model_validate_json(
-        json.dumps(job.input_payload), strict=True
+    model = (
+        CandidatePreviewJobPayloadV2
+        if job.input_payload.get("schema_version") == "candidate-preview-job.v2"
+        else CandidatePreviewJobPayload
     )
+    return model.model_validate_json(json.dumps(job.input_payload), strict=True)
 
 
 def _parse_export_mp3_payload(job: MediaJob) -> ExportMp3JobPayload:
@@ -1223,7 +1236,12 @@ async def _execute_export_bundle(
     bundle_artifact: ExportBundleArtifactValue
     if isinstance(payload, ExportBundleJobPayloadV2):
         receipt_values.update(plan=payload.plan, plan_hash=payload.plan_hash)
-        bundle_artifact = ExportBundleArtifactV2.model_validate(receipt_values, strict=True)
+        receipt_type = (
+            PianoExportBundleArtifactV3
+            if isinstance(payload.plan, PianoExportPlanV3)
+            else ExportBundleArtifactV2
+        )
+        bundle_artifact = receipt_type.model_validate(receipt_values, strict=True)
     else:
         bundle_artifact = ExportBundleArtifact.model_validate(receipt_values, strict=True)
     return payload, bundle_artifact

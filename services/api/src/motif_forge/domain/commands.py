@@ -11,6 +11,7 @@ from motif_forge.domain.errors import DomainIssue, DomainValidationError, issue
 from motif_forge.domain.ir import (
     MAX_TRACKS,
     ArrangementIR,
+    ArrangementIRV2,
     Articulation,
     AudioClip,
     AudioSourceKind,
@@ -20,6 +21,8 @@ from motif_forge.domain.ir import (
     MeterPoint,
     NoteClip,
     NoteEvent,
+    PerformancePlan,
+    PianoRenderProfile,
     ProvenanceRef,
     Section,
     TempoPoint,
@@ -207,13 +210,17 @@ class SetTrackParamPayload(DomainModel):
         value = self.value
         if self.parameter in {"mute", "solo"} and type(value) is not bool:
             raise ValueError(f"{self.parameter} requires a boolean value")
-        if self.parameter in {
-            "gain_db",
-            "pan",
-            "eq_low_db",
-            "eq_mid_db",
-            "eq_high_db",
-        } and type(value) is not float:
+        if (
+            self.parameter
+            in {
+                "gain_db",
+                "pan",
+                "eq_low_db",
+                "eq_mid_db",
+                "eq_high_db",
+            }
+            and type(value) is not float
+        ):
             raise ValueError(f"{self.parameter} requires a float value")
         if self.parameter in {"name", "instrument_ref"} and type(value) is not str:
             raise ValueError(f"{self.parameter} requires a string value")
@@ -301,8 +308,22 @@ class DeleteNotesCommand(CommandEnvelope):
     payload: DeleteNotesPayload
 
 
+class SetPianoProfilePayload(DomainModel):
+    render_profile: PianoRenderProfile | None
+    performance_plan: PerformancePlan = Field(default_factory=PerformancePlan)
+
+
+class SetPianoProfileCommand(CommandEnvelope):
+    """Explicit human profile/interpretation choice, never an autonomous model tool."""
+
+    command_type: Literal["set_piano_profile"] = "set_piano_profile"
+    actor_kind: Literal["human"] = "human"
+    payload: SetPianoProfilePayload
+
+
 EditorCommand = Annotated[
     InitializeCompositionCommand
+    | SetPianoProfileCommand
     | AddTrackCommand
     | ImportAudioCommand
     | DeleteTrackCommand
@@ -362,7 +383,7 @@ def _replace_track(arrangement: ArrangementIR, index: int, track: Track) -> Arra
     tracks[index] = track
     data = arrangement.model_dump(mode="python")
     data["tracks"] = tuple(tracks)
-    return ArrangementIR.model_validate(data)
+    return type(arrangement).model_validate(data)
 
 
 def _replace_clip(track: Track, index: int, *clips: Clip) -> Track:
@@ -507,6 +528,43 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
     # The discriminated command model guarantees the payload pairing at parse time. Pydantic's
     # plugin does not currently preserve that relationship when narrowing the union below.
     payload: Any = command.payload
+    if isinstance(command, SetPianoProfileCommand):
+        if len(arrangement.tracks) != 1:
+            raise issue(
+                "PIANO_SINGLE_TRACK_REQUIRED", "tracks", "select a single-track piano study"
+            )
+        track = arrangement.tracks[0]
+        if command.selection.track_ids != (track.track_id,) or (
+            command.selection.start_tick is not None
+            and (
+                command.selection.start_tick != 0
+                or command.selection.end_tick != arrangement.duration_tick
+            )
+        ):
+            raise issue(
+                "PIANO_SELECTION_INVALID",
+                "selection",
+                "profile changes require the whole piano track",
+            )
+        _assert_unlocked(track, 0, arrangement.duration_tick)
+        data = arrangement.model_dump(mode="python")
+        if payload.render_profile is None:
+            if not isinstance(arrangement, ArrangementIRV2) or payload.performance_plan.notes:
+                raise issue(
+                    "PIANO_PROFILE_STATE_INVALID",
+                    "render_profile",
+                    "legacy restoration requires a piano profile without overrides",
+                )
+            data.pop("render_profile")
+            data.pop("performance_plan")
+            data["schema_version"] = "arrangement-ir.v1"
+            return ArrangementIR.model_validate(data)
+        data.update(
+            schema_version="arrangement-ir.v2",
+            render_profile=payload.render_profile,
+            performance_plan=payload.performance_plan,
+        )
+        return ArrangementIRV2.model_validate(data)
     if isinstance(command, InitializeCompositionCommand):
         if arrangement.sections or arrangement.key_map or arrangement.tracks:
             raise issue(
@@ -522,7 +580,7 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
             sections=payload.sections,
             provenance=payload.provenance,
         )
-        return ArrangementIR.model_validate(data)
+        return type(arrangement).model_validate(data)
     if isinstance(command, ImportAudioCommand):
         if len(arrangement.tracks) >= MAX_TRACKS:
             raise issue("TRACK_LIMIT_EXCEEDED", "tracks", "v1 supports at most 12 tracks")
@@ -567,13 +625,13 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
         data = arrangement.model_dump(mode="python")
         data["sections"] = sections
         data["tracks"] = (*arrangement.tracks, track)
-        return ArrangementIR.model_validate(data)
+        return type(arrangement).model_validate(data)
     if isinstance(command, AddTrackCommand):
         if len(arrangement.tracks) >= MAX_TRACKS:
             raise issue("TRACK_LIMIT_EXCEEDED", "tracks", "v1 supports at most 12 tracks")
         data = arrangement.model_dump(mode="python")
         data["tracks"] = (*arrangement.tracks, payload.track)
-        return ArrangementIR.model_validate(data)
+        return type(arrangement).model_validate(data)
 
     track_index = _track_index(arrangement, payload.track_id)
     track = arrangement.tracks[track_index]
@@ -589,7 +647,7 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
         data["tracks"] = tuple(
             item for item in arrangement.tracks if item.track_id != track.track_id
         )
-        return ArrangementIR.model_validate(data)
+        return type(arrangement).model_validate(data)
 
     if isinstance(command, AddClipCommand):
         end_tick = payload.clip.start_tick + payload.clip.duration_tick
@@ -601,6 +659,12 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
         )
 
     if isinstance(command, SetTrackParamCommand):
+        if isinstance(arrangement, ArrangementIRV2) and payload.parameter == "instrument_ref":
+            raise issue(
+                "PIANO_INSTRUMENT_CHANGE_UNSUPPORTED",
+                f"tracks.{track.track_id}.instrument_ref",
+                "the approved piano profile does not support legacy timbre changes",
+            )
         if track.locked_ranges:
             raise issue(
                 "LOCKED_RANGE_VIOLATION",

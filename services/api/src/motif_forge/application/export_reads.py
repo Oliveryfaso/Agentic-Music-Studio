@@ -20,7 +20,9 @@ from pydantic import (
 
 from motif_forge.application.errors import ApplicationError
 from motif_forge.application.generation import EXPORT_STEPS
-from motif_forge.domain.export_plan import ExportPlanV2
+from motif_forge.domain.export_plan import (
+    ExportPlanValue,
+)
 from motif_forge.domain.media_jobs import ArtifactAvailability
 
 ExportStatus = Literal["partial", "failed", "ready", "cancelled"]
@@ -70,7 +72,7 @@ class ExportBundleSummary(ExportReadModel):
     byte_size: int = Field(ge=0)
     file_count: int = Field(ge=1)
 
-    export_plan: ExportPlanV2 | None = None
+    export_plan: ExportPlanValue | None = None
     plan_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
 
     @model_validator(mode="after")
@@ -102,7 +104,7 @@ class RevisionExportProjection(ExportReadModel):
     error_code: str | None = Field(default=None, max_length=100)
 
     export_thread_id: str | None = Field(default=None, max_length=160)
-    export_plan: ExportPlanV2 | None = None
+    export_plan: ExportPlanValue | None = None
     plan_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
 
     @model_validator(mode="after")

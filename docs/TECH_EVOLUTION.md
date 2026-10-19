@@ -478,3 +478,9 @@ root before38pass/2fail8.81s，after34pass7.91s；进程总计9.852→8.819s，�
 MF-P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20/P21。显式有限export请求接同一Parent Graph，不创建AI Run；plan/Revision/hash/实际轨道固定，MP3/stem可选，Run/Job/Outbox/Worker/receipt/下载/API/UI双读。0022/0023迁移保留旧数据语义并拒绝不兼容降级，sourceJob最终元数据独立、实体音频复用、配额按storage_key去重。真实自制2秒单轨master-only/单stem共5Jobs2Bundles、8/9文件全校验，实际持久Outbox→生产Publisher、重开应用checkpoint、重复事件通过；不是Redis/Celery/Compose或钢琴音乐v2验收。
 
 独立审查两类Important经RED→GREEN关闭：请求/事件已收到但遗漏下游pending节点，及metadata身份变更导致物理音频重复计额。唯一合并复核21passed无阻塞；作者相关组合107passed/4.20s、更新配额fixture1passed、Web4、Mypy116/Ruff/TS/audio宿主build通过。未重复长压力。自有PG为连续B保留，共享VM/旧服务不动；只删除本任务可重建启动器/空log、partial0，Guide无diff，无付费/大包/新语言/公共push。[证据](evidence/2026-10-19-p1-a22-production.md)、[审查](evidence/2026-10-19-p1-a22-review.md)。
+
+## 2026-10-19 — P1 B/C2/D/E 真实钢琴生产纵切
+
+MF-P01/P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20/P21。IR/profile/performance、共享Graph/Job v2与Plan/Bundle v3双读，0024/0025版本约束；同一Parent人工作业试听/精确hash审批、保存/重开、canonical导出与受限父版本Undo。自制30秒谱与必要Studio界面，旧声音不改。真实PG/Chromium8Jobs3Bundles/5短渲染、所有下载SHA、Undo1LSB/尾2秒0；live UI新建/刷新/取消/播放/窄屏通过，缺包真失败且无fallback，模型0。
+
+一次独立审查的重试旧key卡死、固定piano下无效换音色两项Important，经一次作者RED→GREEN修复；最终Python635/Web92/Audio59/Mypy121/Ruff与build通过，无二次独立复审。已清理自身PG/凭据/probe，保留音源许可与accepted文件，共享服务未动。不是整个P1/MF-P09、踏板、主观听感、生产RSS或Compose/断电验收；用户库未迁移、未常驻应用/推送发布。[证据](evidence/2026-10-19-p1-piano-production.md)、[原始审查](evidence/2026-10-19-p1-piano-review.md)。

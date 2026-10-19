@@ -123,6 +123,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/piano-capability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Capability */
+        get: operations["read_capability_api_v1_piano_capability_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/piano-studies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Study */
+        post: operations["create_study_api_v1_piano_studies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects": {
         parameters: {
             query?: never;
@@ -203,6 +237,74 @@ export interface paths {
         put?: never;
         /** Start Import */
         post: operations["start_import_api_v1_projects__project_id__imports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/piano-previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start */
+        post: operations["start_api_v1_projects__project_id__piano_previews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/piano-previews/{thread_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read */
+        get: operations["read_api_v1_projects__project_id__piano_previews__thread_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/piano-previews/{thread_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel */
+        post: operations["cancel_api_v1_projects__project_id__piano_previews__thread_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/piano-previews/{thread_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide */
+        post: operations["decide_api_v1_projects__project_id__piano_previews__thread_id__decision_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -843,11 +945,67 @@ export interface components {
              */
             sample_rate: 44100 | 48000 | 96000;
             /**
-             * Schema Version
-             * @default arrangement-ir.v1
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
              */
             schema_version: "arrangement-ir.v1";
+            /**
+             * Sections
+             * @default []
+             */
+            sections: components["schemas"]["Section"][];
+            /** Tempo Map */
+            tempo_map?: components["schemas"]["TempoPoint"][];
+            /** Time Signature Map */
+            time_signature_map?: components["schemas"]["MeterPoint"][];
+            /**
+             * Tracks
+             * @default []
+             */
+            tracks: components["schemas"]["Track"][];
+        };
+        /** ArrangementIRV2 */
+        ArrangementIRV2: {
+            /**
+             * Key Map
+             * @default []
+             */
+            key_map: components["schemas"]["KeyPoint"][];
+            /**
+             * Markers
+             * @default []
+             */
+            markers: components["schemas"]["Marker"][];
+            performance_plan?: components["schemas"]["PerformancePlan"];
+            /**
+             * Ppq
+             * @default 480
+             * @constant
+             */
+            ppq: 480;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /**
+             * Provenance
+             * @default []
+             */
+            provenance: components["schemas"]["ProvenanceRef"][];
+            render_profile: components["schemas"]["PianoRenderProfile"];
+            routing?: components["schemas"]["RoutingSpec"];
+            /**
+             * Sample Rate
+             * @default 48000
+             * @enum {integer}
+             */
+            sample_rate: 44100 | 48000 | 96000;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            schema_version: "arrangement-ir.v2";
             /**
              * Sections
              * @default []
@@ -1081,7 +1239,7 @@ export interface components {
             /** Client Sequence */
             client_sequence: number;
             /** Commands */
-            commands: (components["schemas"]["InitializeCompositionCommand"] | components["schemas"]["AddTrackCommand"] | components["schemas"]["ImportAudioCommand"] | components["schemas"]["DeleteTrackCommand"] | components["schemas"]["AddClipCommand"] | components["schemas"]["DeleteClipCommand"] | components["schemas"]["DuplicateClipCommand"] | components["schemas"]["MoveClipCommand"] | components["schemas"]["TrimClipCommand"] | components["schemas"]["SplitClipCommand"] | components["schemas"]["SetTrackParamCommand"] | components["schemas"]["SetClipParamCommand"] | components["schemas"]["AddNotesCommand"] | components["schemas"]["UpdateNotesCommand"] | components["schemas"]["DeleteNotesCommand"])[];
+            commands: (components["schemas"]["InitializeCompositionCommand"] | components["schemas"]["SetPianoProfileCommand"] | components["schemas"]["AddTrackCommand"] | components["schemas"]["ImportAudioCommand"] | components["schemas"]["DeleteTrackCommand"] | components["schemas"]["AddClipCommand"] | components["schemas"]["DeleteClipCommand"] | components["schemas"]["DuplicateClipCommand"] | components["schemas"]["MoveClipCommand"] | components["schemas"]["TrimClipCommand"] | components["schemas"]["SplitClipCommand"] | components["schemas"]["SetTrackParamCommand"] | components["schemas"]["SetClipParamCommand"] | components["schemas"]["AddNotesCommand"] | components["schemas"]["UpdateNotesCommand"] | components["schemas"]["DeleteNotesCommand"])[];
             /** Reason */
             reason: string;
         };
@@ -1449,9 +1607,9 @@ export interface components {
             media_type: "audio/mpeg";
             /**
              * Quality Profile
-             * @constant
+             * @enum {string}
              */
-            quality_profile: "delivery-mp3.v1";
+            quality_profile: "delivery-mp3.v1" | "candidate-preview.v1";
         };
         /** DuplicateClipCommand */
         DuplicateClipCommand: {
@@ -1581,7 +1739,8 @@ export interface components {
             byte_size: number;
             /** Content Hash */
             content_hash: string;
-            export_plan?: components["schemas"]["ExportPlanV2"] | null;
+            /** Export Plan */
+            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"]) | null;
             /** File Count */
             file_count: number;
             /** Plan Hash */
@@ -1648,9 +1807,8 @@ export interface components {
              */
             revision_id: string;
             /**
-             * Schema Version
-             * @default export-plan.v2
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
              */
             schema_version: "export-plan.v2";
             /** Seed */
@@ -2246,6 +2404,33 @@ export interface components {
              */
             velocity: number;
         };
+        /** NotePerformance */
+        NotePerformance: {
+            /**
+             * Clip Id
+             * Format: uuid
+             */
+            clip_id: string;
+            /** Gate Duration Tick */
+            gate_duration_tick?: number | null;
+            /**
+             * Note Id
+             * Format: uuid
+             */
+            note_id: string;
+            /**
+             * Onset Offset Tick
+             * @default 0
+             */
+            onset_offset_tick: number;
+            /**
+             * Track Id
+             * Format: uuid
+             */
+            track_id: string;
+            /** Velocity Override */
+            velocity_override?: number | null;
+        };
         /** NoteUpdate */
         NoteUpdate: {
             articulation?: components["schemas"]["Articulation"] | null;
@@ -2264,6 +2449,237 @@ export interface components {
             start_tick?: number | null;
             /** Velocity */
             velocity?: number | null;
+        };
+        /** PedalEvent */
+        PedalEvent: {
+            /** Tick */
+            tick: number;
+            /**
+             * Value
+             * @enum {integer}
+             */
+            value: 0 | 127;
+        };
+        /** PerformancePlan */
+        PerformancePlan: {
+            /**
+             * Notes
+             * @default []
+             */
+            notes: components["schemas"]["NotePerformance"][];
+            /**
+             * Pedal Events
+             * @default []
+             */
+            pedal_events: components["schemas"]["PedalEvent"][];
+            /**
+             * Schema Version
+             * @default performance-plan.v1
+             * @constant
+             */
+            schema_version: "performance-plan.v1";
+        };
+        /** PianoCapability */
+        PianoCapability: {
+            /** Available */
+            available: boolean;
+            /** Error Code */
+            error_code?: string | null;
+            /**
+             * Pedal Supported
+             * @default false
+             * @constant
+             */
+            pedal_supported: false;
+            /**
+             * Release Triggers Supported
+             * @default false
+             * @constant
+             */
+            release_triggers_supported: false;
+            render_profile?: components["schemas"]["PianoRenderProfile"];
+        };
+        /** PianoCapabilityResponse */
+        PianoCapabilityResponse: {
+            data: components["schemas"]["PianoCapability"];
+        };
+        /** PianoExportPlanV3 */
+        PianoExportPlanV3: {
+            /** Arrangement Hash */
+            arrangement_hash: string;
+            /**
+             * Engine Version
+             * @default motif-forge-audio-engine.v2
+             * @constant
+             */
+            engine_version: "motif-forge-audio-engine.v2";
+            /**
+             * Include Mp3
+             * @default true
+             */
+            include_mp3: boolean;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            render_profile: components["schemas"]["PianoRenderProfile"];
+            /** Request Id */
+            request_id?: string | null;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            schema_version: "export-plan.v3";
+            /** Seed */
+            seed: number;
+            /**
+             * Stem Track Ids
+             * @default []
+             */
+            stem_track_ids: string[];
+            /** Track Ids */
+            track_ids: string[];
+        };
+        /** PianoPreviewData */
+        PianoPreviewData: {
+            /** Base Revision Id */
+            base_revision_id?: string | null;
+            /** Baseline Artifact Id */
+            baseline_artifact_id?: string | null;
+            /** Candidate Content Hash */
+            candidate_content_hash?: string | null;
+            /** Error Code */
+            error_code?: string | null;
+            /** Pending Job Id */
+            pending_job_id?: string | null;
+            /** Phase */
+            phase: string;
+            /** Piano Artifact Id */
+            piano_artifact_id?: string | null;
+            /**
+             * Replayed
+             * @default false
+             */
+            replayed: boolean;
+            /** Revision Id */
+            revision_id?: string | null;
+            /** Thread Id */
+            thread_id: string;
+        };
+        /** PianoPreviewDecision */
+        PianoPreviewDecision: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "approve" | "reject";
+            /** Approval Assertion */
+            approval_assertion: string;
+            /** Expected Candidate Content Hash */
+            expected_candidate_content_hash: string;
+        };
+        /** PianoPreviewOptions */
+        PianoPreviewOptions: {
+            /**
+             * Base Revision Id
+             * Format: uuid
+             */
+            base_revision_id: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            performance_plan?: components["schemas"]["PerformancePlan"];
+            render_profile?: components["schemas"]["PianoRenderProfile"];
+            /**
+             * Seed
+             * @default 0
+             */
+            seed: number;
+        };
+        /** PianoPreviewResponse */
+        PianoPreviewResponse: {
+            data: components["schemas"]["PianoPreviewData"];
+        };
+        /**
+         * PianoRenderProfile
+         * @description One approved, immutable C1 source; no paths or arbitrary URLs in project data.
+         */
+        PianoRenderProfile: {
+            /**
+             * Engine Version
+             * @default motif-forge-audio-engine.v2
+             * @constant
+             */
+            engine_version: "motif-forge-audio-engine.v2";
+            /**
+             * Instrument Pack Id
+             * @default freepats:upright-kw-small
+             * @constant
+             */
+            instrument_pack_id: "freepats:upright-kw-small";
+            /**
+             * Instrument Pack Version
+             * @default 2019-07-03.motif1
+             * @constant
+             */
+            instrument_pack_version: "2019-07-03.motif1";
+            /**
+             * Manifest Sha256
+             * @default 264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813
+             * @constant
+             */
+            manifest_sha256: "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813";
+            /**
+             * Schema Version
+             * @default render-profile.v1
+             * @constant
+             */
+            schema_version: "render-profile.v1";
+        };
+        /** PianoStudyRequest */
+        PianoStudyRequest: {
+            /**
+             * Name
+             * @default Piano study
+             */
+            name: string;
+        };
+        /** PianoStudyResponse */
+        PianoStudyResponse: {
+            data: components["schemas"]["PianoStudyResult"];
+        };
+        /** PianoStudyResult */
+        PianoStudyResult: {
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Content Hash */
+            content_hash: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /**
+             * Replayed
+             * @default false
+             */
+            replayed: boolean;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
         };
         /** ProjectListResponse */
         ProjectListResponse: {
@@ -2512,7 +2928,8 @@ export interface components {
             bundle: components["schemas"]["ExportBundleSummary"] | null;
             /** Error Code */
             error_code?: string | null;
-            export_plan?: components["schemas"]["ExportPlanV2"] | null;
+            /** Export Plan */
+            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"]) | null;
             /** Export Thread Id */
             export_thread_id?: string | null;
             /** Files */
@@ -2549,7 +2966,8 @@ export interface components {
             bundle_artifact_id?: string | null;
             /** Error Code */
             error_code?: string | null;
-            export_plan?: components["schemas"]["ExportPlanV2"] | null;
+            /** Export Plan */
+            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"]) | null;
             /** Media Run Id */
             media_run_id?: string | null;
             /** Pending Job Id */
@@ -2572,7 +2990,8 @@ export interface components {
         };
         /** RevisionStudioData */
         RevisionStudioData: {
-            arrangement_ir: components["schemas"]["ArrangementIR"];
+            /** Arrangement Ir */
+            arrangement_ir: components["schemas"]["ArrangementIR"] | components["schemas"]["ArrangementIRV2"];
             /** Author Kind */
             author_kind: string;
             /** Bundle Id */
@@ -2964,6 +3383,43 @@ export interface components {
             track_id: string;
             /** Value */
             value: boolean | number;
+        };
+        /**
+         * SetPianoProfileCommand
+         * @description Explicit human profile/interpretation choice, never an autonomous model tool.
+         */
+        SetPianoProfileCommand: {
+            /**
+             * Actor Kind
+             * @default human
+             * @constant
+             */
+            actor_kind: "human";
+            /** Client Sequence */
+            client_sequence: number;
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            command_type: "set_piano_profile";
+            payload: components["schemas"]["SetPianoProfilePayload"];
+            /**
+             * Schema Version
+             * @default editor-command.v1
+             * @constant
+             */
+            schema_version: "editor-command.v1";
+            selection?: components["schemas"]["Selection"];
+        };
+        /** SetPianoProfilePayload */
+        SetPianoProfilePayload: {
+            performance_plan?: components["schemas"]["PerformancePlan"];
+            render_profile: components["schemas"]["PianoRenderProfile"] | null;
         };
         /** SetTrackParamCommand */
         SetTrackParamCommand: {
@@ -3617,6 +4073,61 @@ export interface operations {
             };
         };
     };
+    read_capability_api_v1_piano_capability_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PianoCapabilityResponse"];
+                };
+            };
+        };
+    };
+    create_study_api_v1_piano_studies_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PianoStudyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PianoStudyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_projects_api_v1_projects_get: {
         parameters: {
             query?: {
@@ -3812,6 +4323,143 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_api_v1_projects__project_id__piano_previews_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PianoPreviewOptions"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PianoPreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_api_v1_projects__project_id__piano_previews__thread_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                thread_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PianoPreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_api_v1_projects__project_id__piano_previews__thread_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                thread_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PianoPreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_api_v1_projects__project_id__piano_previews__thread_id__decision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                thread_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PianoPreviewDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PianoPreviewResponse"];
                 };
             };
             /** @description Validation Error */

@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useRef } from "react";
 
 import { navigate } from "../../app/routes";
 import { MotifScore } from "../../app/MotifScore";
 import { ApiError } from "../../shared/api";
+import {createPianoStudy} from "../studio/pianoApi";
 import { createProject, listProjects } from "./projectApi";
 import { ProjectFilters } from "./ProjectFilters";
 import { RecentProjectList } from "./RecentProjectList";
@@ -14,6 +15,12 @@ export function ProjectHomePage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [expanded, setExpanded] = useState(false);
+  const studyKey=useRef<string|null>(null);
+  const study=useMutation({mutationFn:()=>{
+    studyKey.current??='web-piano-study:'+crypto.randomUUID();
+    return createPianoStudy(studyKey.current);
+  },onSuccess:(value)=>{studyKey.current=null;void queryClient.invalidateQueries({queryKey:["projects"]});
+    navigate({name:"studio",projectId:value.project_id,revisionId:value.revision_id});}});
   const projects = useQuery({ queryKey: ["projects"], queryFn: () => listProjects() });
   const creation = useMutation({
     mutationFn: (projectName: string) => createProject(
@@ -69,6 +76,11 @@ export function ProjectHomePage() {
         {creation.isSuccess && <div className="project-created" role="status"><span>作品已创建。接下来，告诉 Agent 你想做什么样的音乐。</span><button className="secondary-inline" type="button" onClick={() => navigate({ name: "brief", projectId: creation.data.project_id })}>开始创作 →</button></div>}
       </form>
 
+      <section className="piano-study-entry" aria-label="钢琴练习谱入口">
+        <div><strong>从一段钢琴琶音开始</strong><p>打开自制的 30 秒单轨练习谱，在 Studio 比较音色与演奏表达。</p></div>
+        <button type="button" className="secondary-inline" disabled={study.isPending} onClick={()=>study.mutate()}>{study.isPending?"正在创建练习谱…":study.isError?"重试新建练习谱":"新建钢琴练习谱"}</button>
+        {study.error&&<p className="field-error" role="alert">{errorMessage(study.error)}</p>}
+      </section>
       {projects.isPending && <ProjectLoading />}
       {projects.isError && (
         <section className="error-state" role="alert">

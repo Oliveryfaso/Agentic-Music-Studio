@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import (
 
 from motif_forge.application.ports import IdempotencyHit
 from motif_forge.domain.commands import EDITOR_COMMAND_ADAPTER, EditorCommand
-from motif_forge.domain.ir import ArrangementIR
+from motif_forge.domain.ir import read_arrangement_json
 from motif_forge.domain.revisions import (
     AuthorKind,
     CandidateSnapshot,
@@ -500,9 +500,7 @@ def _revision_from_row(row: RevisionRow) -> Revision:
         # tuples as lists). Validate through Pydantic's JSON mode so the strict
         # domain model keeps rejecting coercion at ordinary Python boundaries
         # while accepting its canonical persisted representation.
-        arrangement_ir=ArrangementIR.model_validate_json(
-            json.dumps(row.arrangement_ir), strict=True
-        ),
+        arrangement_ir=read_arrangement_json(json.dumps(row.arrangement_ir), strict=True),
         content_hash=row.content_hash,
         command_batch_id=row.command_batch_id,
         change_impact_predicted=ChangeImpact(row.change_impact_predicted),

@@ -39,6 +39,8 @@ from motif_forge.domain.commands import (
     NoteUpdate,
     SetClipParamCommand,
     SetClipParamPayload,
+    SetPianoProfileCommand,
+    SetPianoProfilePayload,
     SetTrackParamCommand,
     SetTrackParamPayload,
     SplitClipCommand,
@@ -48,9 +50,22 @@ from motif_forge.domain.commands import (
     apply_command,
     apply_commands,
 )
-from motif_forge.domain.ir import ArrangementIR, DomainModel, NoteClip, Track
+from motif_forge.domain.ir import (
+    ArrangementIR,
+    ArrangementIRV2,
+    DomainModel,
+    NoteClip,
+    PerformancePlan,
+    Track,
+)
 from motif_forge.domain.policies import compute_change_impact
-from motif_forge.domain.revisions import AuthorKind, ChangeImpact, Revision, VersionRefs
+from motif_forge.domain.revisions import (
+    AuthorKind,
+    ChangeImpact,
+    Revision,
+    VersionRefs,
+    versions_for_arrangement,
+)
 
 UNDO_REVISION_OPERATION = "revision.undo.v1"
 
@@ -118,9 +133,21 @@ def _inverse_for(
             )
         )
 
-    if isinstance(command, (InitializeCompositionCommand, ImportAudioCommand)):
+    if isinstance(command, SetPianoProfileCommand):
+        add(
+            SetPianoProfileCommand,
+            SetPianoProfilePayload(
+                render_profile=before.render_profile
+                if isinstance(before, ArrangementIRV2)
+                else None,
+                performance_plan=before.performance_plan
+                if isinstance(before, ArrangementIRV2)
+                else PerformancePlan(),
+            ),
+        )
+    elif isinstance(command, (InitializeCompositionCommand, ImportAudioCommand)):
         raise ApplicationError("UNDO_NOT_AVAILABLE", "this operation cannot be inverted")
-    if isinstance(command, AddTrackCommand):
+    elif isinstance(command, AddTrackCommand):
         add(DeleteTrackCommand, DeleteTrackPayload(track_id=payload.track.track_id))
     elif isinstance(command, DeleteTrackCommand):
         original = _track(before, payload.track_id)
@@ -214,9 +241,7 @@ def _inverse_for(
         )
         add(
             UpdateNotesCommand,
-            UpdateNotesPayload(
-                track_id=payload.track_id, clip_id=payload.clip_id, updates=updates
-            ),
+            UpdateNotesPayload(track_id=payload.track_id, clip_id=payload.clip_id, updates=updates),
         )
     else:
         raise ApplicationError("UNDO_NOT_AVAILABLE", "unsupported inverse command")
@@ -306,7 +331,12 @@ class UndoCommittedRevision:
             )
             candidate = apply_commands(target.arrangement_ir, inverse)
             impact = compute_change_impact(inverse)
-            if impact >= ChangeImpact.L2:
+            piano_parent_restore = (
+                request.target_revision_id == request.base_revision_id
+                and all(isinstance(command, SetPianoProfileCommand) for command in commands)
+                and candidate == parent.arrangement_ir
+            )
+            if impact >= ChangeImpact.L2 and not piano_parent_restore:
                 raise ApplicationError(
                     "UNDO_NOT_AVAILABLE", "inverse impact is not auto-committable"
                 )
@@ -324,7 +354,9 @@ class UndoCommittedRevision:
                 author_kind=AuthorKind.HUMAN,
                 created_by=request.actor_id,
                 reason_code="HUMAN_UNDO",
-                versions=self._versions,
+                versions=versions_for_arrangement(
+                    candidate, parent.versions if piano_parent_restore else self._versions
+                ),
                 created_at=self._clock(),
             )
             await transaction.insert_revision(

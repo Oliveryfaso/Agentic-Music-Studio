@@ -1,0 +1,397 @@
+{
+  "stage": "P1-B/C2/D/E",
+  "status": "accepted-finite-piano-vertical",
+  "base": "a099cc50893b1ee0fe714bade595af25c11a170b",
+  "requirements": [
+    "MF-P01",
+    "MF-P02",
+    "MF-P05",
+    "MF-P06",
+    "MF-P08",
+    "MF-P10",
+    "MF-P11",
+    "MF-P13",
+    "MF-P15",
+    "MF-P16",
+    "MF-P17",
+    "MF-P18",
+    "MF-P20",
+    "MF-P21"
+  ],
+  "production": {
+    "schema": "piano-production-boundary.v1",
+    "steps": [
+      {
+        "jobId": "e4bb8503-470b-46c7-9962-fc9a3a79b989",
+        "status": "succeeded",
+        "duplicateResume": true
+      },
+      {
+        "jobId": "f0d8a444-4849-4836-8572-8ceef7aa90d0",
+        "status": "succeeded",
+        "duplicateResume": true
+      },
+      {
+        "jobId": "edbea80f-18a1-4c11-8f06-16ce15dff5f3",
+        "status": "succeeded",
+        "duplicateResume": true
+      },
+      {
+        "jobId": "cfab8ade-20dd-4090-b2be-7bd14f7801b4",
+        "status": "succeeded",
+        "duplicateResume": true
+      },
+      {
+        "jobId": "5406d75d-cdf5-4c7a-84c0-a02cbe16e97e",
+        "status": "succeeded",
+        "duplicateResume": true
+      },
+      {
+        "jobId": "8a8b06bd-8fef-4a6c-8fe4-640db1d4c4c9",
+        "status": "succeeded",
+        "duplicateResume": true
+      },
+      {
+        "jobId": "dcf3c016-3315-4470-aef9-d312913d589a",
+        "status": "succeeded",
+        "duplicateResume": true
+      },
+      {
+        "jobId": "5ea31661-c111-4d03-bbca-bc0fe467eaf8",
+        "status": "succeeded",
+        "duplicateResume": true
+      }
+    ],
+    "modelCalls": 0,
+    "actualChromium": true,
+    "actualPostgres": true,
+    "newAppPerWorkerStep": true,
+    "redisCeleryBoundary": false,
+    "capability": {
+      "available": true,
+      "render_profile": {
+        "schema_version": "render-profile.v1",
+        "engine_version": "motif-forge-audio-engine.v2",
+        "instrument_pack_id": "freepats:upright-kw-small",
+        "instrument_pack_version": "2019-07-03.motif1",
+        "manifest_sha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+      },
+      "pedal_supported": false,
+      "release_triggers_supported": false,
+      "error_code": null
+    },
+    "projectId": "c29d9e5b-0a1b-4b32-b7dd-7d23ca43b91c",
+    "branchId": "7e47b62d-221a-4280-8642-c286cad53db9",
+    "originalRevisionId": "999d21a3-ffe3-5a6d-873e-0beff2e13a3c",
+    "originalHash": "f30309ec584e02391451f5c5b391c08548bcf39ece271a194496b17d238127a2",
+    "originalExport": {
+      "revisionId": "999d21a3-ffe3-5a6d-873e-0beff2e13a3c",
+      "planHash": "efb49b6893e7d07c83ca94c67e0dca6d1f185a0618c03bdd4fddc37a0608bee6",
+      "planSchema": "export-plan.v2",
+      "files": [
+        {
+          "name": "composition.mid",
+          "bytes": 917,
+          "sha256": "468ec305f8edff8be76e328bbe76c5297d1b292e57c7fbdc012e39f739aa3363"
+        },
+        {
+          "name": "credits.json",
+          "bytes": 44,
+          "sha256": "d470aef31635a5f4187e9b2df5a54890683ffe7d45db5cdd826ac891c3938988"
+        },
+        {
+          "name": "license.json",
+          "bytes": 76,
+          "sha256": "499f0c4252c7ebd984b7c6eefc9e66e1ba9cd95a2cd208ae54b65ffb64fbbfcb"
+        },
+        {
+          "name": "master.wav",
+          "bytes": 8640044,
+          "sha256": "8fdc2b192883f65f761fe374ff9bedc4f4d9f67cff8e4a948991c04a0c891560"
+        },
+        {
+          "name": "project.json",
+          "bytes": 15539,
+          "sha256": "f30309ec584e02391451f5c5b391c08548bcf39ece271a194496b17d238127a2"
+        },
+        {
+          "name": "provenance.json",
+          "bytes": 290,
+          "sha256": "3b4c547530beab5dfa41d47e6771b0db559884a4e773eac21076943024ea133c"
+        },
+        {
+          "name": "trace.json",
+          "bytes": 139,
+          "sha256": "d232686ec0d6aaec7fed965f9020881b7e3444234312eac87e91e3e6e45db090"
+        },
+        {
+          "name": "export-manifest.json",
+          "bytes": 1341,
+          "sha256": "44a90a63e987aa713bea394dd3d93edc81fdadefc92990a7394def5a0339148c"
+        }
+      ]
+    },
+    "pianoThread": "piano-55b1aa1fcffc6f41d7cecaeb478a536d",
+    "auditions": {
+      "thread_id": "piano-55b1aa1fcffc6f41d7cecaeb478a536d",
+      "phase": "waiting_piano_approval",
+      "base_revision_id": "999d21a3-ffe3-5a6d-873e-0beff2e13a3c",
+      "candidate_content_hash": "588c059336c670825b3125d655652019ec16ee61562e0cebe33a50e298fb867f",
+      "baseline_artifact_id": "cc5a4fc2-813b-4e14-8d91-3ea850033756",
+      "piano_artifact_id": "88b687fd-c8a7-4020-a557-eb4683ab2204",
+      "revision_id": null,
+      "pending_job_id": null,
+      "error_code": null,
+      "replayed": false
+    },
+    "savedRevisionId": "abee7843-499e-4ad6-a259-adc2d97a4ca7",
+    "approvalHashGuard": true,
+    "savedAudioRead": true,
+    "pianoExport": {
+      "revisionId": "abee7843-499e-4ad6-a259-adc2d97a4ca7",
+      "planHash": "2c31ffbbebde7d025fc65c6eba394e17fd76752b4c6054bde463d282a1594c80",
+      "planSchema": "export-plan.v3",
+      "files": [
+        {
+          "name": "composition.mid",
+          "bytes": 917,
+          "sha256": "468ec305f8edff8be76e328bbe76c5297d1b292e57c7fbdc012e39f739aa3363"
+        },
+        {
+          "name": "credits.json",
+          "bytes": 367,
+          "sha256": "3aa5ee5cd15bebc84be2130ccbc2a3a53d88f6d8cbf643a3aff510dc726ecee6"
+        },
+        {
+          "name": "license.json",
+          "bytes": 617,
+          "sha256": "cdc937fd445ae2f9e0709b9c4ba5da9da15cad3fe243f477c6838aae24033599"
+        },
+        {
+          "name": "master.wav",
+          "bytes": 8640044,
+          "sha256": "6e5b8d1c5125d2dbf46a89ba55fc20830aa68ef6cb03e140a61639d243108e34"
+        },
+        {
+          "name": "project.json",
+          "bytes": 37030,
+          "sha256": "588c059336c670825b3125d655652019ec16ee61562e0cebe33a50e298fb867f"
+        },
+        {
+          "name": "provenance.json",
+          "bytes": 290,
+          "sha256": "59086b3c83a03dd2bbe6d02e64d3693ea2d39ac9f1f3552cbd75dd68bf66d8eb"
+        },
+        {
+          "name": "trace.json",
+          "bytes": 139,
+          "sha256": "7de619c17cb4302547c76eba00c835bb2865881c76822e03aff4e6c87459e8fe"
+        },
+        {
+          "name": "export-manifest.json",
+          "bytes": 1343,
+          "sha256": "5e312323354999bad51f189cf07a7383e1dcfa08301486ec482889e191fcb891"
+        }
+      ]
+    },
+    "undoRevisionId": "726d04b6-5d51-4419-9491-05ebe30a4e7e",
+    "undoExport": {
+      "revisionId": "726d04b6-5d51-4419-9491-05ebe30a4e7e",
+      "planHash": "8ba42b32840703f41d4224b6731d1e9c76f40ad25e99b303e374b0ba4baf7756",
+      "planSchema": "export-plan.v2",
+      "files": [
+        {
+          "name": "composition.mid",
+          "bytes": 917,
+          "sha256": "468ec305f8edff8be76e328bbe76c5297d1b292e57c7fbdc012e39f739aa3363"
+        },
+        {
+          "name": "credits.json",
+          "bytes": 44,
+          "sha256": "d470aef31635a5f4187e9b2df5a54890683ffe7d45db5cdd826ac891c3938988"
+        },
+        {
+          "name": "license.json",
+          "bytes": 76,
+          "sha256": "499f0c4252c7ebd984b7c6eefc9e66e1ba9cd95a2cd208ae54b65ffb64fbbfcb"
+        },
+        {
+          "name": "master.wav",
+          "bytes": 8640044,
+          "sha256": "4f23838a857bf3c2edc9ed43695972c1b440a19e3baf3f75d3d38da00652cca1"
+        },
+        {
+          "name": "project.json",
+          "bytes": 15539,
+          "sha256": "f30309ec584e02391451f5c5b391c08548bcf39ece271a194496b17d238127a2"
+        },
+        {
+          "name": "provenance.json",
+          "bytes": 290,
+          "sha256": "3f1f37e8288101824cfb1b907ca86ac7c02e4d1106fe7725789ee1610126a681"
+        },
+        {
+          "name": "trace.json",
+          "bytes": 139,
+          "sha256": "e66dd9ba9319adc4b9aa21260e82902bf7187267d1f35ed4572e7669b3345495"
+        },
+        {
+          "name": "export-manifest.json",
+          "bytes": 1341,
+          "sha256": "b047ac1f714ea3c93488d01ca1970d13e10a6eaf89598904290aabbe74b19f49"
+        }
+      ]
+    },
+    "status": "passed"
+  },
+  "waveform": {
+    "original": {
+      "frames": 1440000,
+      "rate": 48000,
+      "channels": 2,
+      "width": 3,
+      "bytes": 8640044,
+      "sha256": "8fdc2b192883f65f761fe374ff9bedc4f4d9f67cff8e4a948991c04a0c891560",
+      "peak": 0.10901498794555664,
+      "rms": 0.026592148027902135,
+      "last2sPeak": 0.0
+    },
+    "piano": {
+      "frames": 1440000,
+      "rate": 48000,
+      "channels": 2,
+      "width": 3,
+      "bytes": 8640044,
+      "sha256": "6e5b8d1c5125d2dbf46a89ba55fc20830aa68ef6cb03e140a61639d243108e34",
+      "peak": 0.24193251132965088,
+      "rms": 0.048038049559550766,
+      "last2sPeak": 0.0
+    },
+    "undo": {
+      "frames": 1440000,
+      "rate": 48000,
+      "channels": 2,
+      "width": 3,
+      "bytes": 8640044,
+      "sha256": "4f23838a857bf3c2edc9ed43695972c1b440a19e3baf3f75d3d38da00652cca1",
+      "peak": 0.10901498794555664,
+      "rms": 0.026592148035062536,
+      "last2sPeak": 0.0
+    },
+    "undoMaxPcm24Lsb": 1,
+    "pianoDeltaRms": 0.054673198247014936
+  },
+  "browser": {
+    "status": "passed",
+    "liveHttp": true,
+    "actualPostgres": true,
+    "studyEntry": true,
+    "queuedPreviewRefresh": true,
+    "cancelWithoutCommit": true,
+    "savedV2Playback": true,
+    "mobileNoHorizontalOverflow": true,
+    "failureLabel": "INSTRUMENT_PACK_UNAVAILABLE",
+    "missingPackFallback": false,
+    "pendingUrl": "http://127.0.0.1:64255/projects/887c87dd-e51c-4441-8c72-904a92f59fb8/studio/74f48ba5-2677-58ea-8824-694cf68b9e4d?piano_preview=piano-809df0f18f06452aaf19c48edd5cf219",
+    "cancelledUrl": "http://127.0.0.1:64255/projects/887c87dd-e51c-4441-8c72-904a92f59fb8/studio/74f48ba5-2677-58ea-8824-694cf68b9e4d?piano_preview=piano-809df0f18f06452aaf19c48edd5cf219",
+    "screenshots": [
+      "/Users/oliver/Documents/Codex/2026-10-18/task-2/research/output/playwright/piano-production/piano-saved-desktop.png",
+      "/Users/oliver/Documents/Codex/2026-10-18/task-2/research/output/playwright/piano-production/piano-saved-mobile.png"
+    ],
+    "pageErrors": [],
+    "usedExistingPlaywrightDependency": true
+  },
+  "checks": {
+    "pythonUnitEvalSelectedPG": 635,
+    "audioWorker": 59,
+    "web": 92,
+    "strictMypySources": 121,
+    "webBuild": true,
+    "audioBuild": true,
+    "ruff": true,
+    "pythonLog": "a22-runtime-2026-10-19/1792388581499090000.txt",
+    "productionLog": "a22-runtime-2026-10-19/1792387335183807000.txt",
+    "browserLog": "a22-runtime-2026-10-19/1792387868385628000.txt"
+  },
+  "evals": [
+    {
+      "label": "PIANO_EXPRESSION_AUDIBLE",
+      "result": "pass",
+      "meaning": "real waveform difference; not listener quality ranking"
+    },
+    {
+      "label": "INSTRUMENT_PACK_UNAVAILABLE",
+      "result": "pass",
+      "meaning": "actual Chromium executor without admitted pack rejects before rendering; no legacy fallback"
+    }
+  ],
+  "limits": [
+    "single instrument track, PPQ480, global BPM, 48kHz",
+    "one reviewed CC0 pack, one effective velocity layer",
+    "pedal/release triggers unsupported",
+    "no Redis/Celery/Compose/power-loss or multi-user claim",
+    "not a whole P1/MF-P09 classical-jazz entry acceptance"
+  ],
+  "storage": {
+    "status": "closed",
+    "ownContainer": "motif-p1-it-475262a8afd3",
+    "containerId": "b1b639cc5eb78fefb496b96a626e364b08d144e5cd86ceb996eea41781c109f8",
+    "labelVerified": true,
+    "generatedCredentialsDeleted": true,
+    "sharedVmStopped": false,
+    "sharedContainersStopped": false,
+    "dockerContextUnchanged": true,
+    "before": {
+      "files": 105,
+      "logicalBytes": 54631469,
+      "partialFiles": 0
+    },
+    "after": {
+      "files": 96,
+      "logicalBytes": 54564567,
+      "partialFiles": 0
+    },
+    "removedRebuildableFiles": [
+      {
+        "name": "renderer.mjs",
+        "bytes": 32790
+      },
+      {
+        "name": "missing-pack-probe.mjs",
+        "bytes": 13632
+      },
+      {
+        "name": "renderer-stderr.log",
+        "bytes": 0
+      },
+      {
+        "name": "live-renderer-stderr.log",
+        "bytes": 0
+      },
+      {
+        "name": "temp/._jobs",
+        "bytes": 4096
+      }
+    ],
+    "samplesLicenseAcceptedAudioPreserved": true
+  },
+  "review": {
+    "freshIndependentReviews": 1,
+    "critical": 0,
+    "importantFound": 2,
+    "minorFound": 0,
+    "resolution": "one author repair pass, reproducing RED→GREEN tests and full relevant regression; no second independent review",
+    "remainingBlockers": [],
+    "fixes": [
+      "known pre-effect capability failures get a fresh retry intent; network failures retain key",
+      "fixed piano v2 rejects instrument_ref changes; chooser hidden/explained; v1 unchanged"
+    ],
+    "independentChecks": {
+      "focusedPython": 29,
+      "domainLegacy": 251,
+      "postgres": 2,
+      "audio": 59,
+      "web": 87
+    }
+  }
+}

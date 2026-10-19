@@ -341,3 +341,7 @@ Application 层将其映射为 HTTP Problem Detail、Graph route 和 Run Event�
 - 导出 Manifest 同时包含源 Revision Schema 和导出时迁移版本。
 - 不兼容迁移必须可 dry-run、可回滚 Project pointer，并有固定 fixture 测试。
 - 引入 `lifecycle_class`、`availability` 和 RebuildRecipe 时必须通过 Alembic 迁移；旧的 `ready` 记录只能在 bytes/checksum 探测后标记为 `available`，不能仅根据旧状态推断。
+
+## P1 版本补充（2026-10-19）
+
+已实现显式ArrangementIR v1/v2双读；v2固定单钢琴，render-profile.v1与performance-plan.v1一同参与内容hash，表达按track/clip/note复合ID关联且不改原谱。人工作业通过专用set_piano_profile高影响Preview/HITL；只在当前专用钢琴修改上允许逆命令精确恢复父版本。普通合法编辑保持v2，悬空表达与固定profile下instrument_ref变更拒绝。旧v1 canonical/aliases不改。踏板/release-trigger不支持；[完整版本/验收边界](evidence/2026-10-19-p1-piano-production.md)。

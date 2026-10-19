@@ -178,6 +178,23 @@ class ChromiumRenderClient:
         except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout) as exc:
             raise ChromiumRenderError("RENDER_SERVICE_UNAVAILABLE", retryable=True) from exc
         except httpx.HTTPStatusError as exc:
+            instrument_errors = {
+                "INSTRUMENT_PACK_UNAVAILABLE",
+                "INSTRUMENT_MANIFEST_HASH_MISMATCH",
+                "INSTRUMENT_SAMPLE_HASH_MISMATCH",
+                "INSTRUMENT_SAMPLE_SIZE_MISMATCH",
+                "INSTRUMENT_POLYPHONY_EXCEEDED",
+                "INSTRUMENT_NOTE_UNMAPPED",
+                "INSTRUMENT_RESOURCE_LIMIT",
+                "PIANO_RELEASE_OUT_OF_RANGE",
+                "PIANO_PEDAL_UNSUPPORTED",
+            }
+            try:
+                problem = exc.response.json()
+            except ValueError:
+                problem = None
+            if isinstance(problem, dict) and problem.get("errorCode") in instrument_errors:
+                raise ChromiumRenderError(problem["errorCode"], retryable=False) from exc
             retryable = exc.response.status_code in {408, 425, 429} or (
                 exc.response.status_code >= 500
             )

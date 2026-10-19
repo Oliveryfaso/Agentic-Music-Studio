@@ -5,14 +5,23 @@ from __future__ import annotations
 import hashlib
 import json
 from typing import Any, Literal
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from pydantic import Field
 
-from motif_forge.domain.ir import ArrangementIR, DomainModel, NoteClip, Track, TrackRole
+from motif_forge.domain.ir import (
+    ArrangementIR,
+    ArrangementIRV2,
+    DomainModel,
+    NoteClip,
+    Track,
+    TrackRole,
+)
 from motif_forge.domain.media_jobs import (
     CandidatePreviewJobPayload,
+    CandidatePreviewJobPayloadV2,
     CanonicalRenderJobPayload,
+    CanonicalRenderJobPayloadV2,
     MediaQualityProfile,
     RenderScope,
 )
@@ -120,6 +129,9 @@ def compile_audio_graph(
 
     from motif_forge.domain.canonical import arrangement_content_hash
 
+    if isinstance(arrangement, ArrangementIRV2):
+        return _compile_piano_graph(arrangement, render_track_ids=render_track_ids)
+
     all_ids = tuple(track.track_id for track in arrangement.tracks)
     selected_ids = all_ids if render_track_ids is None else render_track_ids
     if len(set(selected_ids)) != len(selected_ids) or any(
@@ -149,6 +161,94 @@ def compile_audio_graph(
     )
 
 
+def _compile_piano_graph(
+    arrangement: ArrangementIRV2, *, render_track_ids: tuple[UUID, ...] | None
+) -> AudioGraphProjection:
+    from motif_forge.domain.canonical import arrangement_content_hash
+
+    track = arrangement.tracks[0]
+    if render_track_ids is not None and render_track_ids != (track.track_id,):
+        raise ValueError("RENDER_SCOPE_INVALID")
+    bpm, ppq = arrangement.tempo_map[0].bpm, arrangement.ppq
+    overrides = {(p.track_id, p.clip_id, p.note_id): p for p in arrangement.performance_plan.notes}
+    values = []
+    for clip in track.clips:
+        assert isinstance(clip, NoteClip)
+        for note in clip.notes:
+            performance = overrides.get((track.track_id, clip.clip_id, note.note_id))
+            offset = performance.onset_offset_tick if performance else 0
+            velocity = (
+                performance.velocity_override
+                if performance and performance.velocity_override is not None
+                else note.velocity
+            )
+            gate = (
+                performance.gate_duration_tick
+                if performance and performance.gate_duration_tick is not None
+                else note.duration_tick
+            )
+            values.append(
+                (
+                    clip.start_tick + note.start_tick + offset,
+                    str(track.track_id),
+                    str(clip.clip_id),
+                    str(note.note_id),
+                    {
+                        "noteId": str(
+                            uuid5(
+                                NAMESPACE_URL,
+                                f"piano:{track.track_id}:{clip.clip_id}:{note.note_id}",
+                            )
+                        ),
+                        "midi": note.pitch,
+                        "velocity": velocity,
+                        "startSeconds": _seconds(
+                            clip.start_tick + note.start_tick + offset, bpm, ppq
+                        ),
+                        "gateSeconds": _seconds(gate, bpm, ppq),
+                        "detuneCents": note.cents,
+                    },
+                )
+            )
+    profile = arrangement.render_profile
+    graph = {
+        "schemaVersion": "audio-graph-spec.v2",
+        "engineVersion": "motif-forge-audio-engine.v2",
+        "durationSeconds": _seconds(arrangement.duration_tick, bpm, ppq),
+        "sampleRate": 48000,
+        "channels": 2,
+        "masterGainDb": -5.0,
+        "reverbDecaySeconds": 2.4,
+        "tracks": [
+            {
+                "trackId": str(track.track_id),
+                "name": track.name,
+                "kind": "multisample",
+                "gainDb": -60.0 if track.mute else track.gain_db,
+                "pan": track.pan,
+                "eq": {
+                    "lowDb": track.eq.low_db,
+                    "midDb": track.eq.mid_db,
+                    "highDb": track.eq.high_db,
+                },
+                "reverbSend": 0.0,
+                "instrumentPack": {
+                    "packId": profile.instrument_pack_id,
+                    "packVersion": profile.instrument_pack_version,
+                    "manifestSha256": profile.manifest_sha256,
+                },
+                "notes": [item[-1] for item in sorted(values, key=lambda v: v[:4])],
+            }
+        ],
+    }
+    return AudioGraphProjection(
+        arrangement_hash=arrangement_content_hash(arrangement),
+        graph_hash=_canonical_hash(graph),
+        render_track_ids=(track.track_id,),
+        graph=graph,
+    )
+
+
 def build_canonical_render_payload(
     revision: Revision,
     *,
@@ -172,7 +272,12 @@ def build_canonical_render_payload(
     )
     if projection.arrangement_hash != revision.content_hash:
         raise ValueError("REVISION_ARRANGEMENT_HASH_MISMATCH")
-    return CanonicalRenderJobPayload(
+    payload_type = (
+        CanonicalRenderJobPayloadV2
+        if isinstance(revision.arrangement_ir, ArrangementIRV2)
+        else CanonicalRenderJobPayload
+    )
+    return payload_type(
         project_id=revision.project_id,
         revision_id=revision.revision_id,
         render_scope=scope,
@@ -181,7 +286,7 @@ def build_canonical_render_payload(
         audio_graph=projection.graph,
         audio_graph_hash=projection.graph_hash,
         arrangement_hash=projection.arrangement_hash,
-        audio_engine_version=AUDIO_ENGINE_VERSION,
+        audio_engine_version=projection.graph["engineVersion"],
         seed=seed,
         timeout_seconds=240,
         maximum_output_bytes=estimate_render_capacity(projection.graph).output_limit_bytes,
@@ -196,13 +301,18 @@ def build_candidate_preview_payload(
     projection = compile_audio_graph(snapshot.candidate_ir)
     if projection.arrangement_hash != snapshot.candidate_content_hash:
         raise ValueError("CANDIDATE_ARRANGEMENT_HASH_MISMATCH")
-    return CandidatePreviewJobPayload(
+    payload_type = (
+        CandidatePreviewJobPayloadV2
+        if isinstance(snapshot.candidate_ir, ArrangementIRV2)
+        else CandidatePreviewJobPayload
+    )
+    return payload_type(
         project_id=snapshot.project_id,
         candidate_snapshot_id=snapshot.candidate_snapshot_id,
         candidate_content_hash=snapshot.candidate_content_hash,
         audio_graph=projection.graph,
         audio_graph_hash=projection.graph_hash,
-        audio_engine_version=AUDIO_ENGINE_VERSION,
+        audio_engine_version=projection.graph["engineVersion"],
         seed=seed,
         timeout_seconds=240,
         maximum_output_bytes=estimate_render_capacity(projection.graph).output_limit_bytes,

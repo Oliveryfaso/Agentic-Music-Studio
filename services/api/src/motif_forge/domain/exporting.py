@@ -12,7 +12,8 @@ from motif_forge.domain.export_plan import (
     CompleteExportCursorV2 as CompleteExportCursorV2,
 )
 from motif_forge.domain.export_plan import (
-    ExportPlanV2,
+    ExportPlanValue,
+    PianoExportPlanV3,
     verify_v1_export_source,
 )
 from motif_forge.domain.export_plan import (
@@ -21,7 +22,7 @@ from motif_forge.domain.export_plan import (
 from motif_forge.domain.export_plan import (
     verify_export_plan_revision as verify_export_plan_revision,
 )
-from motif_forge.domain.ir import ArrangementIR, DomainModel
+from motif_forge.domain.ir import ArrangementIR, ArrangementIRV2, ArrangementValue, DomainModel
 from motif_forge.domain.media_jobs import MediaQualityProfile
 
 
@@ -74,15 +75,22 @@ class ExportBundleResult(DomainModel):
 
 class ExportBundleRequestV2(DomainModel):
     schema_version: Literal["export-bundle-request.v2"] = "export-bundle-request.v2"
-    plan: ExportPlanV2
+    plan: ExportPlanValue
     plan_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
-    arrangement: ArrangementIR
+    arrangement: ArrangementValue
     audio_exports: tuple[AudioExportRef, ...] = Field(min_length=1, max_length=14)
     trace_refs: tuple[str, ...] = Field(min_length=1)
 
     @model_validator(mode="after")
     def validate_bundle(self) -> Self:
-        verify_v1_export_source(self.arrangement)
+        if isinstance(self.arrangement, ArrangementIRV2):
+            if (
+                not isinstance(self.plan, PianoExportPlanV3)
+                or self.plan.render_profile != self.arrangement.render_profile
+            ):
+                raise ValueError("EXPORT_SOURCE_PROFILE_UNSUPPORTED")
+        else:
+            verify_v1_export_source(self.arrangement)
         if self.plan_hash != self.plan.content_hash:
             raise ValueError("EXPORT_PLAN_HASH_MISMATCH")
         if (

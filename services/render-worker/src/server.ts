@@ -5,6 +5,7 @@ import { estimateRenderCapacity } from "../../../packages/audio-engine/src/capac
 import { validateAudioGraphSpec } from "../../../packages/audio-engine/src/validation.js";
 import type {
   RenderBridgeReceipt,
+  InstrumentPackRef,
   RenderBridgeRequest,
 } from "../../../packages/audio-engine/src/index.js";
 
@@ -31,6 +32,7 @@ export type RenderServiceReceipt = Readonly<{
 }>;
 
 export type RenderExecutor = Readonly<{
+  instrumentPacks?: () => readonly InstrumentPackRef[];
   render: (
     request: RenderServiceRequest,
     signal?: AbortSignal,
@@ -108,7 +110,7 @@ export function createRenderServiceServer(executor: RenderExecutor) {
   const server = createServer((request, response) => {
     void (async () => {
       if (request.method === "GET" && request.url === "/health") {
-        writeJson(response, 200, { status: "ready", concurrency: 1 });
+        writeJson(response, 200, { status: "ready", concurrency: 1, ...(executor.instrumentPacks ? {instrumentPacks:executor.instrumentPacks()} : {}) });
         return;
       }
       if (request.method !== "POST" || request.url !== "/v1/render") {
@@ -147,7 +149,7 @@ export function createRenderServiceServer(executor: RenderExecutor) {
               ? 499
             : code === "RENDER_SERVICE_NOT_READY"
               ? 503
-              : requestErrors.has(code) || code.startsWith("AUDIO_GRAPH_") || code.startsWith("AUDIO_ENGINE_")
+              : requestErrors.has(code) || code.startsWith("INSTRUMENT_") || code.startsWith("PIANO_") || code.startsWith("AUDIO_GRAPH_") || code.startsWith("AUDIO_ENGINE_")
                 ? 400
                 : 500;
         writeJson(response, status, {

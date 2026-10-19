@@ -1,6 +1,8 @@
 import { estimateRenderCapacity } from "./capacity.js";
 import {
   AUDIO_ENGINE_VERSION,
+  AUDIO_ENGINE_VERSION_V2,
+  AUDIO_GRAPH_SCHEMA_VERSION_V2,
   AUDIO_GRAPH_SCHEMA_VERSION,
   type AudioGraphSpec,
 } from "./contracts.js";
@@ -14,10 +16,10 @@ function bounded(value: number, minimum: number, maximum: number, field: string)
 
 export function validateAudioGraphSpec(spec: AudioGraphSpec): AudioGraphSpec {
   estimateRenderCapacity(spec);
-  if (spec.schemaVersion !== AUDIO_GRAPH_SCHEMA_VERSION) {
+  if (spec.schemaVersion !== AUDIO_GRAPH_SCHEMA_VERSION && spec.schemaVersion !== AUDIO_GRAPH_SCHEMA_VERSION_V2) {
     throw new Error("AUDIO_GRAPH_SCHEMA_UNSUPPORTED");
   }
-  if (spec.engineVersion !== AUDIO_ENGINE_VERSION) {
+  if (spec.engineVersion !== (spec.schemaVersion === AUDIO_GRAPH_SCHEMA_VERSION_V2 ? AUDIO_ENGINE_VERSION_V2 : AUDIO_ENGINE_VERSION)) {
     throw new Error("AUDIO_ENGINE_VERSION_UNSUPPORTED");
   }
   bounded(spec.durationSeconds, 0.1, 300, "durationSeconds");
@@ -44,7 +46,24 @@ export function validateAudioGraphSpec(spec: AudioGraphSpec): AudioGraphSpec {
     bounded(track.eq.lowDb, -12, 12, `${track.trackId}.eq.lowDb`);
     bounded(track.eq.midDb, -12, 12, `${track.trackId}.eq.midDb`);
     bounded(track.eq.highDb, -12, 12, `${track.trackId}.eq.highDb`);
-    if (track.kind === "synth") {
+    if (track.kind === "multisample") {
+      if(spec.schemaVersion !== AUDIO_GRAPH_SCHEMA_VERSION_V2 || spec.sampleRate !== 48000 || spec.tracks.length !== 1)
+        throw new Error("AUDIO_GRAPH_INVALID:pianoProfile");
+      const ref=track.instrumentPack;
+      if(!ref || !/^[A-Za-z0-9:._-]{1,100}$/.test(ref.packId) || !/^[A-Za-z0-9:._-]{1,100}$/.test(ref.packVersion) || !/^[a-f0-9]{64}$/.test(ref.manifestSha256))
+        throw new Error("AUDIO_GRAPH_INVALID:instrumentPack");
+      if(track.notes.length>2000) throw new Error("PIANO_NOTE_BUDGET_EXCEEDED");
+      const noteIds=new Set<string>();
+      for(const note of track.notes){
+        if(!note || !/^[A-Za-z0-9:._-]{1,100}$/.test(note.noteId) || noteIds.has(note.noteId) || !Number.isInteger(note.midi) || !Number.isInteger(note.velocity))
+          throw new Error("AUDIO_GRAPH_INVALID:pianoNote");
+        noteIds.add(note.noteId);
+        bounded(note.midi,0,127,"piano.midi");bounded(note.velocity,1,127,"piano.velocity");
+        bounded(note.startSeconds,0,spec.durationSeconds,"piano.start");bounded(note.gateSeconds,.005,30,"piano.gate");
+        bounded(note.detuneCents,-100,100,"piano.detune");
+        if(note.startSeconds+note.gateSeconds>spec.durationSeconds+1e-6) throw new Error("AUDIO_GRAPH_INVALID:piano.range");
+      }
+    } else if (track.kind === "synth") {
       if (!(track.presetId in BUILTIN_SYNTH_PRESETS)) {
         throw new Error("AUDIO_GRAPH_INVALID:presetId");
       }
@@ -57,7 +76,7 @@ export function validateAudioGraphSpec(spec: AudioGraphSpec): AudioGraphSpec {
           throw new Error(`AUDIO_GRAPH_INVALID:${track.trackId}.note.range`);
         }
       }
-    } else {
+    } else if (track.kind === "sampler") {
       if (track.sampleId !== "builtin:click" || !track.sampleUrl.startsWith("/assets/")) {
         throw new Error("AUDIO_GRAPH_INVALID:sample");
       }
@@ -65,7 +84,11 @@ export function validateAudioGraphSpec(spec: AudioGraphSpec): AudioGraphSpec {
         bounded(trigger.startSeconds, 0, spec.durationSeconds, `${track.trackId}.trigger.start`);
         bounded(trigger.gain, 0, 1, `${track.trackId}.trigger.gain`);
       }
+    } else {
+      throw new Error("AUDIO_GRAPH_INVALID:trackKind");
     }
+    if(spec.schemaVersion === AUDIO_GRAPH_SCHEMA_VERSION_V2 && track.kind !== "multisample")
+      throw new Error("AUDIO_GRAPH_INVALID:pianoProfile");
   }
   return spec;
 }

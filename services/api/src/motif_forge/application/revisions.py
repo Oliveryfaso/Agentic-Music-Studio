@@ -21,7 +21,13 @@ from motif_forge.domain.canonical import arrangement_content_hash
 from motif_forge.domain.commands import EditorCommand, apply_commands
 from motif_forge.domain.ir import DomainModel
 from motif_forge.domain.policies import compute_change_impact
-from motif_forge.domain.revisions import AuthorKind, ChangeImpact, Revision, VersionRefs
+from motif_forge.domain.revisions import (
+    AuthorKind,
+    ChangeImpact,
+    Revision,
+    VersionRefs,
+    versions_for_arrangement,
+)
 
 COMMIT_COMMAND_BATCH_OPERATION = "revision.commit-command-batch.v1"
 
@@ -137,7 +143,7 @@ class CommitCommandBatch:
                 author_kind=request.author_kind,
                 created_by=request.actor_id,
                 reason_code=request.reason,
-                versions=self._versions,
+                versions=versions_for_arrangement(candidate_ir, self._versions),
                 created_at=self._clock(),
             )
             await transaction.insert_revision(

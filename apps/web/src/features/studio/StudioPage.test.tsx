@@ -202,3 +202,41 @@ function project(storageRootStatus: "ready" | "disconnected") {
 function jsonResponse(value: unknown): Response {
   return new Response(JSON.stringify(value), { status: 200, headers: { "Content-Type": "application/json" } });
 }
+
+it('opens the returned Undo revision instead of pairing its ID with the previous score',async()=>{
+  const restoredId='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';let restoredReads=0;
+  vi.stubGlobal('fetch',vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{
+    const path=String(input);
+    if(path.endsWith(`/revisions/${REVISION_ID}/studio`))return jsonResponse({data:studio('available')});
+    if(path.endsWith(`/revisions/${restoredId}/studio`)){restoredReads++;const value=studio('available');value.revision_id=restoredId;return jsonResponse({data:value});}
+    if(path===`/api/v1/projects/${PROJECT_ID}`)return jsonResponse({data:project('ready')});
+    if(path.endsWith('/undo')&&init?.method==='POST')return jsonResponse({data:{revision_id:restoredId}});
+    if(path==='/api/v1/piano-capability')return jsonResponse({data:{available:false}});
+    if(path==='/api/v1/sound-catalog')return jsonResponse({data:[]});
+    throw new Error(path);
+  }));
+  renderStudio();fireEvent.click(await screen.findByRole('button',{name:'撤回已保存修改'}));
+  await waitFor(()=>expect(restoredReads).toBe(1));
+});
+
+it.each(['arrangement-ir.v1','arrangement-ir.v2'] as const)('keeps library actions truthful for %s',async(schema)=>{
+  const value=studio('available');
+  if(schema==='arrangement-ir.v2')value.arrangement_ir={...value.arrangement_ir,schema_version:schema,
+    render_profile:{schema_version:'render-profile.v1',engine_version:'motif-forge-audio-engine.v2',
+      instrument_pack_id:'freepats:upright-kw-small',instrument_pack_version:'2019-07-03.motif1',
+      manifest_sha256:'264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813'}};
+  vi.stubGlobal('fetch',vi.fn(async(input:RequestInfo|URL)=>{
+    const path=String(input);
+    if(path.endsWith(`/revisions/${REVISION_ID}/studio`))return jsonResponse({data:value});
+    if(path===`/api/v1/projects/${PROJECT_ID}`)return jsonResponse({data:project('ready')});
+    if(path==='/api/v1/sound-catalog')return jsonResponse({data:[{preset_id:'builtin:viola',style:'classical',instrument_family:'Viola',role:'harmony',low_midi:48,high_midi:84,reviewed:true,license_id:'builtin',attribution_required:false}]});
+    if(path==='/api/v1/piano-capability')return jsonResponse({data:{available:false}});
+    throw new Error(path);
+  }));
+  renderStudio();fireEvent.click(await screen.findByRole('tab',{name:'音色库'}));
+  await screen.findByLabelText('本地审核音色库');
+  if(schema==='arrangement-ir.v2'){
+    expect(screen.queryByRole('button',{name:'用于所选轨道'})).not.toBeInTheDocument();
+    expect(screen.getByText('当前版本使用已确认的钢琴音源，普通音色切换暂不支持。')).toBeInTheDocument();
+  }else expect(screen.getByRole('button',{name:'用于所选轨道'})).toBeInTheDocument();
+});

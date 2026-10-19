@@ -15,6 +15,7 @@ import { decideEditPreview } from "./editRunApi";
 import { createEditRunState, reduceEditRunState } from "./editRunState";
 import { createEditorState, editorReducer, projectDraft, type EditorState } from "./editorState";
 import { MixerPanel } from "./MixerPanel";
+import { PianoPanel } from "./PianoPanel";
 import { PianoRoll } from "./PianoRoll";
 import { SampleLibrary } from "./SampleLibrary";
 import { commitCommandBatch, listSoundCatalog, undoCommittedRevision } from "./studioApi";
@@ -39,7 +40,7 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
   const [editRunId, setEditRunId] = useState<string | null>(() =>
     sessionStorage.getItem(`motif-forge:project:${projectId}:edit-run`),
   );
-  const delivery = studio.data?.delivery_assets.find((asset) => asset.quality_profile === "delivery-mp3.v1") ?? null;
+  const delivery = studio.data?.delivery_assets.find((asset) => asset.availability === "available") ?? studio.data?.delivery_assets[0] ?? null;
   useEffect(() => {
     if (studio.data && project.data && editor === null) setEditor(createEditorState(project.data.active_branch_id, studio.data.revision_id, studio.data.arrangement_ir));
   }, [editor, project.data, studio.data]);
@@ -90,6 +91,8 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
     try {
       const result = await commitCommandBatch(projectId, { branch_id: editor.base.branchId, base_revision_id: editor.base.revisionId, commands, client_sequence: 0, reason: "HUMAN_STUDIO_EDIT" }, `web-edit-${crypto.randomUUID()}`);
       dispatch({ type: "commitSuccess", revisionId: result.revision_id, arrangement: projectDraft(editor) });
+      void queryClient.invalidateQueries({queryKey:["project",projectId]});
+      navigate({name:"studio",projectId,revisionId:result.revision_id});
     } catch (error) {
       if (error instanceof ApiError && error.code === "REVISION_CONFLICT") dispatch({ type: "conflict", serverRevisionId: project.data.head_revision_id });
       else dispatch({ type: "saveError" });
@@ -98,8 +101,10 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
   const undoRevision = async () => {
     try {
       const result = await undoCommittedRevision(projectId, { branch_id: editor.base.branchId, base_revision_id: editor.base.revisionId, target_revision_id: editor.base.revisionId }, `web-undo-${crypto.randomUUID()}`);
-      const refreshed = await studio.refetch();
-      if (refreshed.data) setEditor(createEditorState(editor.base.branchId, result.revision_id, refreshed.data.arrangement_ir));
+      const restored = await readRevisionStudio(projectId,result.revision_id);
+      setEditor(createEditorState(editor.base.branchId,result.revision_id,restored.arrangement_ir));
+      void queryClient.invalidateQueries({queryKey:["project",projectId]});
+      navigate({name:"studio",projectId,revisionId:result.revision_id});
     } catch { dispatch({ type: "saveError" }); }
   };
   const moveClip = (trackId: string, clipId: string, startTick: number) => dispatch({ type: "append", command: { command_id: crypto.randomUUID(), command_type: "move_clip", schema_version: "editor-command.v1", actor_kind: "human", client_sequence: editor.historyCursor, selection: { track_ids: [trackId], start_tick: 0, end_tick: Math.max(projection.ticksPerBar, projection.totalBars * projection.ticksPerBar) }, payload: { track_id: trackId, clip_id: clipId, start_tick: startTick } } });
@@ -159,14 +164,17 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
         piano={selectedTrack && selectedClip?.clip_type === "note" ? <PianoRoll trackId={selectedTrack.track_id} clip={selectedClip} onCommand={appendCommand} /> : <p>选择一个音符片段打开钢琴卷帘。</p>}
         mixer={<MixerPanel tracks={(draft?.tracks ?? []).map((track) => ({ track_id: track.track_id, name: track.name, gain_db: track.gain_db, pan: track.pan, mute: track.mute, solo: track.solo }))} onCommand={appendCommand} />}
         inspector={<ClipInspector trackId={selectedTrack?.track_id ?? ""} clip={selectedClip} onCommand={appendCommand} />}
-        library={<SampleLibrary entries={catalog.data ?? []} onChoose={selectedTrack ? (entry) => appendCommand({ command_id: crypto.randomUUID(), command_type: "set_track_param", schema_version: "editor-command.v1", actor_kind: "human", client_sequence: 0, selection: { track_ids: [selectedTrack.track_id] }, payload: { track_id: selectedTrack.track_id, parameter: "instrument_ref", value: entry.preset_id } }) : undefined} />}
+        library={<>{editor.base.arrangement.schema_version === "arrangement-ir.v2" && <p>当前版本使用已确认的钢琴音源，普通音色切换暂不支持。</p>}<SampleLibrary entries={catalog.data ?? []} onChoose={selectedTrack && editor.base.arrangement.schema_version === "arrangement-ir.v1" ? (entry) => appendCommand({ command_id: crypto.randomUUID(), command_type: "set_track_param", schema_version: "editor-command.v1", actor_kind: "human", client_sequence: 0, selection: { track_ids: [selectedTrack.track_id] }, payload: { track_id: selectedTrack.track_id, parameter: "instrument_ref", value: entry.preset_id } }) : undefined} /></>}
       />
         </div>
         <StudioInspector>
+          <PianoPanel projectId={projectId} branchId={editor.base.branchId} revisionId={editor.base.revisionId}
+            arrangement={editor.base.arrangement} selection={editor.selection} dirty={editor.historyCursor>0}
+            rootReady={rootReady} onSaved={(next)=>{void queryClient.invalidateQueries({queryKey:["project",projectId]});navigate({name:"studio",projectId,revisionId:next});}}/>
           <EditPanel projectId={projectId} branchId={editor.base.branchId} baseRevisionId={editor.base.revisionId} selection={editor.selection} lockedRanges={[]} rootReady={rootReady} onRunCreated={handleRunCreated} />
           {editRun.mode !== "idle" && <section className="edit-run-status" aria-live="polite"><strong>{editRunModeLabel(editRun.mode)}</strong>{editRun.errorCode && <span>{editRun.errorCode}</span>}{editRun.mode === "committed" && editRun.revisionId && <button className="primary-button" type="button" onClick={() => navigate({ name: "studio", projectId, revisionId: editRun.revisionId as string })}>打开修改后的版本</button>}</section>}
           {editRun.preview && <EditPreviewCard preview={editRun.preview} busy={editDecisionPending} rootReady={rootReady} onDecision={(action) => void decidePreview(action)} />}
-          <section className="studio-panel" aria-labelledby="transport-title"><div className="panel-heading"><div><p className="eyebrow">SAVED VERSION / MP3</p><h2 id="transport-title">作品试听</h2></div>{delivery && <span className={`status-pill ${delivery.availability}`}>{availabilityLabel(delivery.availability)}</span>}</div><p className="saved-audio-note">试听的是当前打开版本的导出音频，草稿修改不会实时反映在此处。</p><DeliveryState delivery={delivery} rootReady={rootReady} recoveryPending={recovery.isPending} recoveryFeedback={recoveryFeedback} recoveryError={recovery.isError ? errorMessage(recovery.error) : null} onRecover={(artifactId) => recovery.mutate(artifactId)} transport={transport} duration={duration} /></section>
+          <section className="studio-panel" aria-labelledby="transport-title"><div className="panel-heading"><div><p className="eyebrow">SAVED VERSION / MP3</p><h2 id="transport-title">作品试听</h2></div>{delivery && <span className={`status-pill ${delivery.availability}`}>{availabilityLabel(delivery.availability)}</span>}</div><p className="saved-audio-note">{delivery?.quality_profile === "candidate-preview.v1" ? "试听的是当前版本的已完成预览；正式 WAV 请前往导出页生成。" : "试听的是当前打开版本的导出音频，草稿修改不会实时反映在此处。"}</p><DeliveryState delivery={delivery} rootReady={rootReady} recoveryPending={recovery.isPending} recoveryFeedback={recoveryFeedback} recoveryError={recovery.isError ? errorMessage(recovery.error) : null} onRecover={(artifactId) => recovery.mutate(artifactId)} transport={transport} duration={duration} /></section>
         </StudioInspector>
       </div>
 

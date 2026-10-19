@@ -1,6 +1,8 @@
 import * as Tone from "tone";
 
-import type { AudioGraphSpec, AudioTrackSpec } from "./contracts.js";
+import type { AudioGraphSpec, AudioTrackSpec, InstrumentBinding } from "./contracts.js";
+import { preparePiano, type PreparedPiano } from "./piano-runtime.js";
+import { schedulePianoVoices } from "./instruments.js";
 import { BUILTIN_SYNTH_PRESETS } from "./presets.js";
 import { validateAudioGraphSpec } from "./validation.js";
 
@@ -38,6 +40,7 @@ function selectedTracks(spec: AudioGraphSpec, trackIds?: readonly string[]): rea
 export async function renderAudioGraphOffline(
   uncheckedSpec: AudioGraphSpec,
   trackIds?: readonly string[],
+  instrumentBinding?: InstrumentBinding,
 ): Promise<AudioBuffer> {
   const spec = validateAudioGraphSpec(uncheckedSpec);
   const tracks = selectedTracks(spec, trackIds);
@@ -45,8 +48,10 @@ export async function renderAudioGraphOffline(
     spec.reverbDecaySeconds,
     spec.sampleRate,
   );
+  const pianos = new Map<string,PreparedPiano>();
   const sampleBuffers = new Map<string, Tone.ToneAudioBuffer>();
   for (const track of tracks) {
+    if(track.kind === "multisample") pianos.set(track.trackId,await preparePiano(track,instrumentBinding,spec.durationSeconds,spec.sampleRate));
     if (track.kind === "sampler" && !sampleBuffers.has(track.sampleUrl)) {
       sampleBuffers.set(track.sampleUrl, await Tone.ToneAudioBuffer.fromUrl(track.sampleUrl));
     }
@@ -92,6 +97,12 @@ export async function renderAudioGraphOffline(
               note.velocity,
             );
           }
+        } else if(track.kind === "multisample") {
+          const piano=pianos.get(track.trackId);
+          if(!piano) throw new Error("INSTRUMENT_PACK_UNAVAILABLE");
+          const input=new Tone.Gain(1).connect(eq);
+          schedulePianoVoices(Tone.getContext().rawContext as unknown as BaseAudioContext,
+            input.input as unknown as AudioNode,piano.pack,piano.voices,piano.buffers);
         } else {
           const sample = sampleBuffers.get(track.sampleUrl);
           if (sample === undefined) {

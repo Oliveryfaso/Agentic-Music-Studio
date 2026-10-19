@@ -22,6 +22,7 @@ from motif_forge.agent.generate import (
     GenerateNodes,
     build_generate_nodes,
 )
+from motif_forge.agent.piano_preview import PianoPreviewNodes
 from motif_forge.agent.planner import CompositionPlanner
 from motif_forge.agent.revision_export import RevisionExportNodes
 from motif_forge.agent.worker_gate import wait_for_job_event
@@ -56,6 +57,7 @@ from motif_forge.application.media_jobs import (
     EnqueueMediaJobResult,
     StartArtifactRehydrationRequest,
 )
+from motif_forge.application.piano_preview import PianoPreviewRequest
 from motif_forge.application.revision_exports import RevisionExportRequest
 from motif_forge.domain.ai_runs import EDIT_RUN_STATE_SCHEMA_VERSION
 from motif_forge.domain.candidates import merge_candidate_branches
@@ -143,7 +145,13 @@ class ParentGraphState(TypedDict):
     thread_id: str
     project_id: str
     operation: Literal[
-        "generate", "edit", "time_stretch", "import_audio", "artifact_rehydrate", "export"
+        "generate",
+        "edit",
+        "time_stretch",
+        "import_audio",
+        "artifact_rehydrate",
+        "export",
+        "piano_preview",
     ]
     graph_topology_version: str
     state_schema_version: str
@@ -155,7 +163,7 @@ class ParentGraphState(TypedDict):
     pending_action: NotRequired[str]
     error_code: NotRequired[str]
     last_resume_event_id: NotRequired[str]
-    terminal_status: NotRequired[Literal["succeeded", "failed", "cancelled"]]
+    terminal_status: NotRequired[Literal["succeeded", "failed", "cancelled", "rejected"]]
     branch_id: NotRequired[str]
     base_revision_id: NotRequired[str]
     materialized_revision_id: NotRequired[str]
@@ -211,6 +219,29 @@ class ParentGraphState(TypedDict):
     proposal: NotRequired[dict[str, object]]
     simulation: NotRequired[dict[str, object]]
     edit_route: NotRequired[str]
+    piano_data: NotRequired[dict[str, Any]]
+    piano_cursor: NotRequired[dict[str, Any]]
+    piano_step: NotRequired[str]
+    piano_baseline_artifact_id: NotRequired[str]
+    piano_artifact_id: NotRequired[str]
+    piano_revision_id: NotRequired[str | None]
+    piano_decision: NotRequired[dict[str, Any]]
+
+
+def initial_piano_preview_state(
+    *, thread_id: str, request: PianoPreviewRequest
+) -> ParentGraphState:
+    if not thread_id or len(thread_id) > 160:
+        raise ValueError("thread_id must contain between 1 and 160 characters")
+    return ParentGraphState(
+        thread_id=thread_id,
+        project_id=str(request.project_id),
+        operation="piano_preview",
+        graph_topology_version=PARENT_GRAPH_TOPOLOGY_VERSION,
+        state_schema_version=PARENT_STATE_SCHEMA_VERSION,
+        request_payload=request.model_dump(mode="json"),
+        phase="received",
+    )
 
 
 def initial_export_state(*, thread_id: str, request: RevisionExportRequest) -> ParentGraphState:
@@ -350,6 +381,7 @@ def build_parent_graph(
     edit_graph: Any | None = None,
     prepare_revision_export: Any | None = None,
     cancel_revision_export: Any | None = None,
+    piano_preview_nodes: PianoPreviewNodes | None = None,
 ) -> CompiledStateGraph[ParentGraphState, None, ParentGraphState, ParentGraphState]:
     """Compile Import and standalone time-stretch inside one Parent topology."""
 
@@ -378,6 +410,10 @@ def build_parent_graph(
         if state.get("state_schema_version") != expected_state_schema:
             return {"phase": "failed", "error_code": "STATE_SCHEMA_VERSION_UNSUPPORTED"}
         try:
+            if state["operation"] == "piano_preview":
+                if piano_preview_nodes is None:
+                    return {"phase": "failed", "error_code": "PIANO_NOT_CONFIGURED"}
+                return await piano_preview_nodes.validate(state)
             if state["operation"] == "export":
                 if export_nodes is None:
                     return {"phase": "failed", "error_code": "EXPORT_NOT_CONFIGURED"}
@@ -412,7 +448,9 @@ def build_parent_graph(
 
     def validation_route(
         state: ParentGraphState,
-    ) -> Literal["generate", "edit", "export", "load", "storage", "error"]:
+    ) -> Literal["generate", "edit", "export", "piano", "load", "storage", "error"]:
+        if state.get("phase") == "piano_prepared":
+            return "piano"
         if state.get("phase") == "export_prepared":
             return "export"
         if state.get("phase") == "generate_validated":
@@ -872,6 +910,39 @@ def build_parent_graph(
                 "failed": "RouteError",
             },
         )
+    if piano_preview_nodes is not None:
+        graph.add_node("EnqueuePianoPreviewStep", piano_preview_nodes.enqueue)
+        graph.add_node("WaitForPianoPreviewJob", piano_preview_nodes.wait)
+        graph.add_node("PianoApproval", piano_preview_nodes.approve)
+        graph.add_conditional_edges(
+            "EnqueuePianoPreviewStep",
+            lambda s: s.get("phase"),
+            {
+                "waiting_piano_worker": "WaitForPianoPreviewJob",
+                "waiting_piano_approval": "PianoApproval",
+                "failed": "RouteError",
+            },
+        )
+        graph.add_conditional_edges(
+            "WaitForPianoPreviewJob",
+            lambda s: s.get("phase"),
+            {
+                "waiting_piano_worker": "WaitForPianoPreviewJob",
+                "piano_step_collected": "EnqueuePianoPreviewStep",
+                "cancelled": END,
+                "failed": "RouteError",
+            },
+        )
+        graph.add_conditional_edges(
+            "PianoApproval",
+            lambda s: s.get("phase"),
+            {
+                "waiting_piano_approval": "PianoApproval",
+                "completed": END,
+                "rejected": END,
+                "failed": "RouteError",
+            },
+        )
     graph.add_edge(START, "ValidateRequest")
     graph.add_conditional_edges(
         "ValidateRequest",
@@ -880,6 +951,7 @@ def build_parent_graph(
             "generate": "PlanInputAdapter" if generate_nodes is not None else "RouteError",
             "edit": "EditSubgraph" if edit_graph is not None else "RouteError",
             "export": "EnqueueRevisionExportStep" if export_nodes is not None else "RouteError",
+            "piano": "EnqueuePianoPreviewStep" if piano_preview_nodes is not None else "RouteError",
             "load": "LoadArtifactMetadata",
             "storage": "StoragePressureGate",
             "error": "RouteError",

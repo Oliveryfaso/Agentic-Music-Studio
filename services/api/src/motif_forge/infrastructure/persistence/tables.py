@@ -63,6 +63,18 @@ class ProjectRow(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+def _music_ir_version_check(column: str) -> str:
+    return f"""(({column}->>'schema_version' = 'arrangement-ir.v1'
+ AND NOT ({column} ? 'render_profile') AND NOT ({column} ? 'performance_plan')) OR
+ ({column}->>'schema_version' = 'arrangement-ir.v2'
+ AND {column}->'render_profile'->>'schema_version' = 'render-profile.v1'
+ AND {column}->'performance_plan'->>'schema_version' = 'performance-plan.v1'
+ AND {column}->'render_profile'->>'engine_version' = 'motif-forge-audio-engine.v2'
+ AND versions->>'domain_schema' = 'arrangement-ir.v2'
+ AND versions->>'audio_engine' = 'motif-forge-audio-engine.v2'
+ AND versions->>'assets' = {column}->'render_profile'->>'manifest_sha256')) IS TRUE"""
+
+
 class RevisionRow(Base):
     __tablename__ = "project_revisions"
     __table_args__ = (
@@ -76,6 +88,7 @@ class RevisionRow(Base):
             name="revision_actual_impact_range",
         ),
         Index("ix_project_revisions_project_created", "project_id", "created_at"),
+        CheckConstraint(_music_ir_version_check("arrangement_ir"), name="revision_music_version"),
     )
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
@@ -245,6 +258,7 @@ class CandidateSnapshotRow(Base):
     __table_args__ = (
         UniqueConstraint("candidate_id", "id", name="uq_candidate_snapshots_candidate_id_id"),
         Index("ix_candidate_snapshots_project_created", "project_id", "created_at"),
+        CheckConstraint(_music_ir_version_check("candidate_ir"), name="candidate_music_version"),
     )
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
@@ -339,15 +353,18 @@ class MediaRunRow(Base):
     __table_args__ = (
         Index("ix_runs_project_status", "project_id", "status"),
         CheckConstraint(
-            """((schema_version = 'media-run.v1'
+            """((schema_version='media-run.v1'
  AND run_type NOT IN ('complete_song_export.v2','parent.export.v1')
  AND export_plan IS NULL AND plan_hash IS NULL) OR
- (schema_version = 'media-run.v2'
- AND run_type IN ('complete_song_export.v2','parent.export.v1')
- AND export_plan IS NOT NULL AND plan_hash IS NOT NULL
- AND plan_hash ~ '^[0-9a-f]{64}$'
- AND export_plan->>'schema_version' = 'export-plan.v2'
- AND export_plan->>'project_id' = project_id::text)) IS TRUE""",
+ (schema_version='media-run.v2' AND run_type IN ('complete_song_export.v2','parent.export.v1')
+ AND export_plan IS NOT NULL AND plan_hash ~ '^[0-9a-f]{64}$'
+ AND export_plan->>'project_id'=project_id::text AND
+ ((export_plan->>'schema_version'='export-plan.v2' AND
+ export_plan->>'engine_version'='motif-forge-audio-engine.v1') OR
+  (export_plan->>'schema_version'='export-plan.v3' AND
+ export_plan->>'engine_version'='motif-forge-audio-engine.v2'
+   AND export_plan->'render_profile'->>'engine_version'='motif-forge-audio-engine.v2')))) IS
+ TRUE""",
             name="run_versioned_export_plan",
         ),
     )
@@ -902,19 +919,16 @@ class ExportBundleArtifactRow(Base):
         ),
         Index("ix_export_bundles_project_created", "project_id", "created_at"),
         CheckConstraint(
-            """(
- (schema_version = 'export-bundle-artifact.v1'
-  AND export_plan IS NULL AND plan_hash IS NULL)
- OR
- (schema_version = 'export-bundle-artifact.v2'
-  AND export_plan IS NOT NULL AND plan_hash IS NOT NULL
-  AND plan_hash ~ '^[0-9a-f]{64}$'
-  AND export_plan->>'schema_version' = 'export-plan.v2'
-  AND export_plan->>'project_id' = project_id::text
-  AND export_plan->>'revision_id' = revision_id::text
-  AND export_plan->>'arrangement_hash' = arrangement_hash
-  AND file_count >= 8)
-) IS TRUE""",
+            """((schema_version='export-bundle-artifact.v1' AND export_plan IS NULL AND
+ plan_hash IS NULL) OR
+ (export_plan IS NOT NULL AND plan_hash ~ '^[0-9a-f]{64}$'
+  AND export_plan->>'project_id'=project_id::text AND export_plan->>'revision_id'=revision_id::text
+  AND export_plan->>'arrangement_hash'=arrangement_hash AND file_count>=8
+  AND export_plan->>'engine_version'=engine_version AND
+  ((schema_version='export-bundle-artifact.v2' AND export_plan->>'schema_version'='export-plan.v2'
+    AND engine_version='motif-forge-audio-engine.v1') OR
+   (schema_version='export-bundle-artifact.v3' AND export_plan->>'schema_version'='export-plan.v3'
+    AND engine_version='motif-forge-audio-engine.v2')))) IS TRUE""",
             name="export_bundle_versioned_plan",
         ),
     )

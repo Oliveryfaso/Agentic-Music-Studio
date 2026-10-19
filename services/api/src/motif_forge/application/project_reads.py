@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from motif_forge.application.errors import ApplicationError
 from motif_forge.application.storage import StorageRootSnapshot
 from motif_forge.domain.ai_runs import AIRunStatus
-from motif_forge.domain.ir import ArrangementIR
+from motif_forge.domain.ir import ArrangementIR, ArrangementValue, read_arrangement_json
 from motif_forge.domain.media_jobs import ArtifactAvailability
 from motif_forge.domain.storage import StorageRootHealth
 
@@ -67,7 +67,7 @@ class ProjectWorkspaceData(ProjectWorkspace):
 
 class DeliveryAsset(ProjectReadModel):
     artifact_id: UUID
-    quality_profile: Literal["delivery-mp3.v1"]
+    quality_profile: Literal["delivery-mp3.v1", "candidate-preview.v1"]
     media_type: Literal["audio/mpeg"]
     availability: ArtifactAvailability
     byte_size: int = Field(ge=0)
@@ -83,7 +83,7 @@ class RevisionStudioData(ProjectReadModel):
     author_kind: str
     created_by: str
     created_at: datetime
-    arrangement_ir: ArrangementIR
+    arrangement_ir: ArrangementValue
     delivery_assets: tuple[DeliveryAsset, ...]
     bundle_id: UUID | None
 
@@ -92,7 +92,7 @@ class RevisionStudioData(ProjectReadModel):
     def validate_stored_ir(cls, value: object) -> ArrangementIR:
         if isinstance(value, ArrangementIR):
             return value
-        return ArrangementIR.model_validate_json(json.dumps(value), strict=True)
+        return read_arrangement_json(json.dumps(value), strict=True)
 
 
 ProjectRunSummary = ProjectRunSummaryData

@@ -13,8 +13,10 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from motif_forge.domain.export_plan import ExportPlanV2
-from motif_forge.domain.ir import ArrangementIR
+from motif_forge.domain.export_plan import (
+    read_export_plan_json,
+)
+from motif_forge.domain.ir import read_arrangement_json
 from motif_forge.domain.media_jobs import (
     ArtifactAvailability,
     ArtifactLifecycle,
@@ -31,6 +33,7 @@ from motif_forge.domain.media_jobs import (
     MediaJobType,
     MediaQualityProfile,
     MediaRun,
+    PianoExportBundleArtifactV3,
     RebuildRecipe,
     RenderScope,
     RunStatus,
@@ -129,9 +132,7 @@ class PostgresMediaJobTransaction:
             project_id=row.project_id,
             parent_revision_id=row.parent_id,
             created_on_branch_id=row.created_on_branch_id,
-            arrangement_ir=ArrangementIR.model_validate_json(
-                json.dumps(row.arrangement_ir), strict=True
-            ),
+            arrangement_ir=read_arrangement_json(json.dumps(row.arrangement_ir), strict=True),
             content_hash=row.content_hash,
             command_batch_id=row.command_batch_id,
             change_impact_predicted=ChangeImpact(row.change_impact_predicted),
@@ -1209,8 +1210,13 @@ def _export_bundle_from_row(row: ExportBundleArtifactRow) -> ExportBundleArtifac
     }
     if row.schema_version == "export-bundle-artifact.v1":
         return ExportBundleArtifact.model_validate(values)
-    if row.schema_version == "export-bundle-artifact.v2":
-        plan = ExportPlanV2.model_validate_json(json.dumps(row.export_plan), strict=True)
+    if row.schema_version in {"export-bundle-artifact.v2", "export-bundle-artifact.v3"}:
+        plan = read_export_plan_json(json.dumps(row.export_plan), strict=True)
         values.update(plan=plan, plan_hash=row.plan_hash)
-        return ExportBundleArtifactV2.model_validate(values)
+        model = (
+            PianoExportBundleArtifactV3
+            if row.schema_version == "export-bundle-artifact.v3"
+            else ExportBundleArtifactV2
+        )
+        return model.model_validate(values)
     raise ValueError("EXPORT_BUNDLE_VERSION_UNSUPPORTED")

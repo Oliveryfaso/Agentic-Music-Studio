@@ -340,3 +340,7 @@ Celery Task 保持 Python 边界；TypeScript 音频引擎只运行在固定的 
 - Failure injection 覆盖 Outbox 重复、Worker crash、迟到事件、Artifact mismatch、Redis 重启和 checkpoint 版本不兼容。
 - Artifact 测试还必须覆盖：Root 启动未挂载/运行中拔出、原子 rename 探测失败、软/硬配额边界、保护引用不被清理、TTL、安全驱逐→重建、missing 与 evicted 不混淆、cleanup 幂等和 symlink 拒绝。
 - 上线 Lean Storage 前必须用 Alembic 增加 lifecycle/availability/recipe 字段或表，并对旧 Artifact 做 bytes/checksum 探测后再 backfill；不在应用启动时隐式改表。
+
+## P1 生产版本补充（2026-10-19）
+
+音乐IR v2由Revision/Candidate/Studio/Worker显式双读；共享AudioGraph/Job v2固定engine2与审核manifest，独立PianoExportPlan v3/BundleArtifact v3不改变旧计划含义。迁移0024/0025加入版本CHECK与不兼容downgrade guard。人工piano_preview仍在同一Parent，run type parent.piano_preview.v1走既有Job/Outbox/resume dispatcher，无AI Run/模型。Render service仅在显式审核Root+manifest pin配置后暴露实际已装包capability；缺包不fallback，Bundle带确切CC0来源。[实测/未测边界与运行配置](evidence/2026-10-19-p1-piano-production.md)。

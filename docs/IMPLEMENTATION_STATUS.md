@@ -18,6 +18,14 @@
 
 ## 2. 当前产品形态
 
+### 当前验收：P1 B/C2/D/E 单钢琴生产链（2026-10-19）
+
+MF-P01/P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20/P21。自制30秒谱入口→同一Parent人工A/B→精确hash审批→v2保存/重开→canonical导出→受限Undo恢复v1，已在真实独立PG/Chromium和built UI/本地HTTP验证。IR/Graph/Job显式v2、Plan/Bundle显式v3；旧v1声音/aliases不改，0024/0025迁移guard保留。单琴/小包/单有效力度层；踏板与release-trigger不支持。
+
+实际8Jobs3Bundles/5次短渲染、所有文件下载SHA、错误审批409/重放/连接恢复；Undo max1LSB，last2s0。模型调用/该项目AI Run0。一次独立审查2Important经一次作者RED→GREEN修复，无剩余阻塞；Python635、Web92、Audio59、Mypy121、Ruff/两个build通过。自有PG/凭据已删、probe已停；accepted音频/CC0/manifest与证据保留，共享服务未动。[完整证据](evidence/2026-10-19-p1-piano-production.md)。
+
+这是有限钢琴生产纵切，未验主观音质、Redis/Celery/Compose重启或本轮RSS上限；未迁移用户库/常驻应用。MF-P09默认古典/爵士入口仍为下一单独UI Task，P2–P5未启动。以下子门按其验收当时事实保留，不覆盖本段最新状态。
+
 ### 2.0 产品改造 P0 与 P1 准备（2026-10-19）
 
 用户已授权古典/爵士主线和 legacy 兼容（ADR-019）。本轮新增可复现基线工具与计划，未改变音乐、Schema、API、数据库、四个风格入口或旧作品声音。真实历史验收导出包只读完整性检查、v1 JSON/投影与 headless 重新渲染结果见 [P0 实测报告](evidence/2026-10-19-p0-baseline.md)；本轮 provider requests/tokens=0/0。

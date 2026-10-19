@@ -16,13 +16,16 @@ from motif_forge.application.errors import (
     MediaJobStateConflictError,
 )
 from motif_forge.application.ports import MediaJobUnitOfWorkFactory
-from motif_forge.domain.export_plan import ExportPlanV2
+from motif_forge.domain.export_plan import (
+    ExportPlanValue,
+)
 from motif_forge.domain.ir import DomainModel
 from motif_forge.domain.media_jobs import (
     ArtifactAvailability,
     ArtifactLifecycle,
     AudioArtifact,
     CandidatePreviewJobPayload,
+    CandidatePreviewJobPayloadV2,
     ExportBundleArtifactValue,
     FeatureArtifact,
     FeatureProfile,
@@ -51,7 +54,7 @@ class EnqueueMediaJobRequest(DomainModel):
     deadline_seconds: int = Field(default=900, ge=30, le=3600)
 
     # Internal metadata is persisted separately; absence preserves the v1 fingerprint.
-    export_plan: ExportPlanV2 | None = Field(default=None, exclude=True)
+    export_plan: ExportPlanValue | None = Field(default=None, exclude=True)
 
 
 class EnqueueMediaJobResult(DomainModel):
@@ -416,7 +419,12 @@ def _compile_rehydrate_payload(
                 "candidate render rehydration requires Snapshot lineage and no source Artifact",
             )
         try:
-            return CandidatePreviewJobPayload(
+            model = (
+                CandidatePreviewJobPayloadV2
+                if parameters.get("audio_engine_version") == "motif-forge-audio-engine.v2"
+                else CandidatePreviewJobPayload
+            )
+            return model(
                 project_id=target.project_id,
                 candidate_snapshot_id=target.candidate_snapshot_id,
                 candidate_content_hash=parameters["candidate_content_hash"],

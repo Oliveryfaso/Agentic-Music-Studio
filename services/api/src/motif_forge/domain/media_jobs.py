@@ -11,7 +11,7 @@ from uuid import UUID
 
 from pydantic import Field, SerializerFunctionWrapHandler, model_serializer, model_validator
 
-from motif_forge.domain.export_plan import ExportPlanV2
+from motif_forge.domain.export_plan import ExportPlanValue, PianoExportPlanV3
 from motif_forge.domain.ir import DomainModel
 
 
@@ -178,6 +178,28 @@ class CandidatePreviewJobPayload(DomainModel):
         return self
 
 
+class CanonicalRenderJobPayloadV2(CanonicalRenderJobPayload):
+    schema_version: Literal["canonical-render-job.v2"] = "canonical-render-job.v2"  # type: ignore[assignment]
+    audio_engine_version: Literal["motif-forge-audio-engine.v2"]  # type: ignore[assignment]
+
+    @model_validator(mode="after")
+    def validate_piano_graph(self) -> Self:
+        if self.audio_graph.get("schemaVersion") != "audio-graph-spec.v2":
+            raise ValueError("AUDIO_GRAPH_SCHEMA_UNSUPPORTED")
+        return self
+
+
+class CandidatePreviewJobPayloadV2(CandidatePreviewJobPayload):
+    schema_version: Literal["candidate-preview-job.v2"] = "candidate-preview-job.v2"  # type: ignore[assignment]
+    audio_engine_version: Literal["motif-forge-audio-engine.v2"]  # type: ignore[assignment]
+
+    @model_validator(mode="after")
+    def validate_piano_graph(self) -> Self:
+        if self.audio_graph.get("schemaVersion") != "audio-graph-spec.v2":
+            raise ValueError("AUDIO_GRAPH_SCHEMA_UNSUPPORTED")
+        return self
+
+
 class ExportMp3JobPayload(DomainModel):
     schema_version: Literal["export-mp3-job.v1"] = "export-mp3-job.v1"
     project_id: UUID
@@ -259,7 +281,7 @@ class MediaRun(DomainModel):
     created_at: datetime
     updated_at: datetime
 
-    export_plan: ExportPlanV2 | None = None
+    export_plan: ExportPlanValue | None = None
 
     @model_validator(mode="after")
     def validate_export_plan(self) -> Self:
@@ -722,7 +744,7 @@ class ExportBundleArtifactV2(DomainModel):
     created_new: bool = False
     created_at: datetime
 
-    plan: ExportPlanV2
+    plan: ExportPlanValue
     plan_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
 
     @model_validator(mode="after")
@@ -748,7 +770,15 @@ class ExportBundleArtifactV2(DomainModel):
         return self
 
 
-ExportBundleArtifactValue = ExportBundleArtifact | ExportBundleArtifactV2
+class PianoExportBundleArtifactV3(ExportBundleArtifactV2):
+    schema_version: Literal["export-bundle-artifact.v3"] = "export-bundle-artifact.v3"  # type: ignore[assignment]
+    engine_version: Literal["motif-forge-audio-engine.v2"]  # type: ignore[assignment]
+    plan: PianoExportPlanV3
+
+
+ExportBundleArtifactValue = (
+    ExportBundleArtifact | ExportBundleArtifactV2 | PianoExportBundleArtifactV3
+)
 
 
 class WorkerEvent(DomainModel):
@@ -821,7 +851,7 @@ class ExportBundleJobPayloadV2(DomainModel):
     """Plan-bound dynamic Bundle Job; legacy v1 Jobs keep their original consumer."""
 
     schema_version: Literal["export-bundle-job.v2"] = "export-bundle-job.v2"
-    plan: ExportPlanV2
+    plan: ExportPlanValue
     plan_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     audio_inputs: tuple[BundleAudioInput, ...] = Field(min_length=1, max_length=14)
     trace_refs: tuple[str, ...] = Field(min_length=1)

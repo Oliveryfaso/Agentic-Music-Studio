@@ -6,7 +6,7 @@ import json
 from uuid import UUID
 
 from pydantic import ValidationError
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 
 from motif_forge.application.errors import ApplicationError
 from motif_forge.application.project_reads import (
@@ -18,7 +18,7 @@ from motif_forge.application.project_reads import (
     RevisionSummary,
 )
 from motif_forge.domain.ai_runs import AIRunStatus
-from motif_forge.domain.ir import ArrangementIR
+from motif_forge.domain.ir import read_arrangement_json
 from motif_forge.domain.media_jobs import ArtifactAvailability, MediaQualityProfile
 from motif_forge.infrastructure.persistence.database import SessionFactory
 from motif_forge.infrastructure.persistence.tables import (
@@ -185,27 +185,53 @@ class PostgresProjectReadStore:
                     select(AudioArtifactRow)
                     .where(
                         AudioArtifactRow.project_id == project_id,
-                        AudioArtifactRow.revision_id == revision_id,
-                        AudioArtifactRow.quality_profile
-                        == MediaQualityProfile.DELIVERY_MP3_V1.value,
+                        or_(
+                            and_(
+                                AudioArtifactRow.revision_id == revision_id,
+                                AudioArtifactRow.quality_profile
+                                == MediaQualityProfile.DELIVERY_MP3_V1.value,
+                            ),
+                            and_(
+                                AudioArtifactRow.arrangement_hash == revision.content_hash,
+                                AudioArtifactRow.quality_profile
+                                == MediaQualityProfile.CANDIDATE_PREVIEW_V1.value,
+                            ),
+                        ),
                     )
-                    .order_by(AudioArtifactRow.created_at.desc(), AudioArtifactRow.id.desc())
+                    .order_by(
+                        (
+                            AudioArtifactRow.availability == ArtifactAvailability.AVAILABLE.value
+                        ).desc(),
+                        (
+                            AudioArtifactRow.quality_profile
+                            == MediaQualityProfile.DELIVERY_MP3_V1.value
+                        ).desc(),
+                        AudioArtifactRow.created_at.desc(),
+                        AudioArtifactRow.id.desc(),
+                    )
                     .limit(10)
                 )
             ).scalars()
             bundle_id = (
                 await session.execute(
-                    select(ExportBundleArtifactRow.id).where(
+                    select(ExportBundleArtifactRow.id)
+                    .where(
                         ExportBundleArtifactRow.project_id == project_id,
                         ExportBundleArtifactRow.revision_id == revision_id,
                     )
+                    .order_by(
+                        ExportBundleArtifactRow.plan_hash.is_not(None),
+                        ExportBundleArtifactRow.created_at.desc(),
+                        ExportBundleArtifactRow.id.desc(),
+                    )
+                    .limit(1)
                 )
             ).scalar_one_or_none()
             try:
-                arrangement = ArrangementIR.model_validate_json(
+                arrangement = read_arrangement_json(
                     json.dumps(revision.arrangement_ir), strict=True
                 )
-            except ValidationError:
+            except (ValidationError, ValueError):
                 raise ApplicationError(
                     "REVISION_IR_INVALID", "the stored revision arrangement is invalid"
                 ) from None
@@ -222,7 +248,7 @@ class PostgresProjectReadStore:
                 delivery_assets=tuple(
                     DeliveryAsset(
                         artifact_id=asset.id,
-                        quality_profile="delivery-mp3.v1",
+                        quality_profile=asset.quality_profile,
                         media_type="audio/mpeg",
                         availability=ArtifactAvailability(asset.availability),
                         byte_size=asset.byte_size,

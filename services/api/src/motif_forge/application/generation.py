@@ -56,7 +56,7 @@ from motif_forge.domain.composition import (
 )
 from motif_forge.domain.export_plan import (
     CompleteExportCursorV2,
-    ExportPlanV2,
+    ExportPlanValue,
     export_key_v2,
     verify_export_plan_revision,
 )
@@ -350,7 +350,7 @@ def _cursor_track_id(
 
 def build_export_bundle_payload_v2(
     *,
-    plan: ExportPlanV2,
+    plan: ExportPlanValue,
     revision: Revision,
     artifacts: tuple[AudioArtifact, ...],
     trace_refs: tuple[str, ...],

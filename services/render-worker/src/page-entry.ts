@@ -21,7 +21,7 @@ window.motifForgeRender = async (request) => {
     throw new Error("RENDER_BRIDGE_VERSION_UNSUPPORTED");
   }
   validateAudioGraphSpec(request.graph);
-  const buffer = await renderAudioGraphOffline(request.graph, request.renderTrackIds);
+  const buffer = await renderAudioGraphOffline(request.graph, request.renderTrackIds, request.instrumentBinding);
   const wav =
     request.outputBitDepth === 24
       ? encodeStereoPcm24(buffer)
