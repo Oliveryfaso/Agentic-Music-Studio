@@ -74,7 +74,16 @@ export const AUDIO_ENGINE_VERSION_V3 = "motif-forge-audio-engine.v3" as const;
 export type AudioGraphSpecV3 = Omit<AudioGraphSpecV2,"schemaVersion"|"engineVersion"> & Readonly<{
   schemaVersion:typeof AUDIO_GRAPH_SCHEMA_VERSION_V3;engineVersion:typeof AUDIO_ENGINE_VERSION_V3;
 }>;
-export type AudioGraphSpec = AudioGraphSpecV1 | AudioGraphSpecV2 | AudioGraphSpecV3;
+export const AUDIO_GRAPH_SCHEMA_VERSION_V4 = "audio-graph-spec.v4" as const;
+export const AUDIO_ENGINE_VERSION_V4 = "motif-forge-audio-engine.v4" as const;
+export type PianoMixTrackSpec = PianoTrackSpec & Readonly<{ audible: boolean }>;
+export type AudioGraphSpecV4 = Omit<AudioGraphSpecV3, "schemaVersion" | "engineVersion" | "tracks"> & Readonly<{
+  schemaVersion: typeof AUDIO_GRAPH_SCHEMA_VERSION_V4;
+  engineVersion: typeof AUDIO_ENGINE_VERSION_V4;
+  tracks: readonly PianoMixTrackSpec[];
+  expectedSilence: boolean;
+}>;
+export type AudioGraphSpec = AudioGraphSpecV1 | AudioGraphSpecV2 | AudioGraphSpecV3 | AudioGraphSpecV4;
 /** Runtime binding supplied only by the reviewed host catalog, never stored in IR. */
 export type InstrumentBinding = Readonly<{manifest:InstrumentPack;manifestSha256:string;baseUrl:string}>;
 

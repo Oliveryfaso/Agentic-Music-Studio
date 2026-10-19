@@ -68,10 +68,7 @@ def test_export_transcode_uses_bounded_ffmpeg_and_promotes_result(
     assert result.created_new is True
     assert not (tmp_path / "tmp").exists()
     assert not (
-        tmp_path
-        / "explicit-temp"
-        / "jobs"
-        / "30000000-0000-4000-8000-000000000055"
+        tmp_path / "explicit-temp" / "jobs" / "30000000-0000-4000-8000-000000000055"
     ).exists()
 
 
@@ -236,3 +233,99 @@ def test_export_transcode_accepts_quiet_but_intentional_delivery(
     )
 
     assert result.sha256 == hashlib.sha256(b"quiet-music-mp3").hexdigest()
+
+
+@pytest.mark.parametrize("maximum", ["-inf", "-91.0"])
+def test_expected_silent_mp3_preserves_media_checks_but_allows_digital_silence(
+    tmp_path, monkeypatch, maximum
+):
+    source_key = "protected/source.wav"
+    source = tmp_path / source_key
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"zero-pcm")
+    (tmp_path / "temp").mkdir()
+
+    def fake_run(args, **kwargs):
+        if args[0] == "ffprobe":
+            return subprocess.CompletedProcess(
+                args,
+                0,
+                '{"streams":[{"sample_rate":"48000","channels":2,"bit_rate":"256000"}],'
+                '"format":{"duration":"0.100000","bit_rate":"256000"}}',
+                "",
+            )
+        if "volumedetect" in args:
+            return subprocess.CompletedProcess(args, 0, b"", f"max_volume: {maximum} dB".encode())
+        Path(args[-1]).write_bytes(b"silent-mp3")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    result = transcode_master_to_mp3(
+        artifact_root=tmp_path,
+        temp_root=tmp_path / "temp",
+        job_id=UUID(int=1),
+        project_id=UUID(int=2),
+        revision_id=UUID(int=3),
+        source_storage_key=source_key,
+        expected_duration_seconds=0.1,
+        timeout_seconds=10,
+        allow_expected_silence=True,
+    )
+    assert (tmp_path / result.storage_key).read_bytes() == b"silent-mp3"
+    with pytest.raises(ExportTranscodeError, match="TRANSCODE_DURATION_MISMATCH"):
+        transcode_master_to_mp3(
+            artifact_root=tmp_path,
+            temp_root=tmp_path / "temp",
+            job_id=UUID(int=4),
+            project_id=UUID(int=2),
+            revision_id=UUID(int=3),
+            source_storage_key=source_key,
+            expected_duration_seconds=1.0,
+            timeout_seconds=10,
+            allow_expected_silence=True,
+        )
+
+
+@pytest.mark.parametrize("diagnostic", ["missing", "failed"])
+def test_expected_silent_mp3_still_requires_successful_loudness_measurement(
+    tmp_path, monkeypatch, diagnostic
+):
+    source_key = "protected/source.wav"
+    source = tmp_path / source_key
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"zero-pcm")
+    (tmp_path / "temp").mkdir()
+
+    def fake_run(args, **kwargs):
+        if args[0] == "ffprobe":
+            return subprocess.CompletedProcess(
+                args,
+                0,
+                '{"streams":[{"sample_rate":"48000","channels":2,"bit_rate":"256000"}],'
+                '"format":{"duration":"0.100000","bit_rate":"256000"}}',
+                "",
+            )
+        if "volumedetect" in args:
+            return subprocess.CompletedProcess(
+                args,
+                1 if diagnostic == "failed" else 0,
+                b"",
+                b"max_volume: -inf dB" if diagnostic == "failed" else b"diagnostic missing",
+            )
+        Path(args[-1]).write_bytes(b"silent-mp3")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    with pytest.raises(ExportTranscodeError, match="TRANSCODE_SILENT_OUTPUT"):
+        transcode_master_to_mp3(
+            artifact_root=tmp_path,
+            temp_root=tmp_path / "temp",
+            job_id=UUID(int=1),
+            project_id=UUID(int=2),
+            revision_id=UUID(int=3),
+            source_storage_key=source_key,
+            expected_duration_seconds=0.1,
+            timeout_seconds=10,
+            allow_expected_silence=True,
+        )
+    assert not list((tmp_path / "protected").rglob("*.mp3"))

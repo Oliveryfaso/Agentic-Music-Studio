@@ -69,7 +69,7 @@ export class ChromiumRenderExecutor implements RenderExecutor {
       throw new Error("RENDER_CLIENT_DISCONNECTED");
     }
     let instrumentBinding:InstrumentBinding|undefined;
-    if(request.bridgeRequest.graph.schemaVersion === "audio-graph-spec.v2" || request.bridgeRequest.graph.schemaVersion === "audio-graph-spec.v3"){
+    if(request.bridgeRequest.graph.schemaVersion === "audio-graph-spec.v2" || request.bridgeRequest.graph.schemaVersion === "audio-graph-spec.v3" || request.bridgeRequest.graph.schemaVersion === "audio-graph-spec.v4"){
       const catalog=this.#catalog, packToken=this.#packToken;
       if(!catalog || !packToken) throw new Error("INSTRUMENT_PACK_UNAVAILABLE");
       for(const track of request.bridgeRequest.graph.tracks){

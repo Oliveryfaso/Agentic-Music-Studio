@@ -27,6 +27,7 @@ from motif_forge.domain.media_jobs import (
     CandidatePreviewJobPayload,
     CandidatePreviewJobPayloadV2,
     CandidatePreviewJobPayloadV3,
+    CandidatePreviewJobPayloadV4,
     ExportBundleArtifactValue,
     FeatureArtifact,
     FeatureProfile,
@@ -421,7 +422,9 @@ def _compile_rehydrate_payload(
             )
         try:
             model = (
-                CandidatePreviewJobPayloadV3
+                CandidatePreviewJobPayloadV4
+                if parameters.get("audio_engine_version") == "motif-forge-audio-engine.v4"
+                else CandidatePreviewJobPayloadV3
                 if parameters.get("audio_engine_version") == "motif-forge-audio-engine.v3"
                 else CandidatePreviewJobPayloadV2
                 if parameters.get("audio_engine_version") == "motif-forge-audio-engine.v2"

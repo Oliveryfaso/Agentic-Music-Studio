@@ -515,3 +515,12 @@ Master40.79998s/48k stereo PCM24=11,750,438bytes、samplepeak−13.18dBFS/满幅
 
 
 实际实现与费用/原始反例/唯一修复/检查统计见[本轮验收](evidence/2026-10-19-p22-semantic-piano.md)。起点5dbbc6a/Guide clean；仅顶部实际阶段更新，不改原声音合同。最终4真实调用7228tokens，公开高峰价上界0.023852CNY，未查询账单；不是首次无故障演示。747Python/102Web/61Audio/6PG/Mypy131/两build通过。新依赖/音源0；不合main、不部署。
+
+
+## 2026-10-19 M1 双钢琴基础混音
+
+MF-P05/P06/P11/P13/P15/P16/P17/P18/P21；从9e6cf15/Guide clean起步。独立 piano_mix/IR4、human L0 snapshot/精确Undo，原谱Track/音符/来源不动；v4 audible/expectedSilence 同源 compiler、Worker验证真零PCM；Job4/engine4、Plan5/Bundle5、0028历史guard。UI草稿/保存/重开/reset、保存版音频入口，无实时/EQ/主题重排。新反馈的专业调音台与三段EQ仅设计后续边界。
+
+真实HTTP负例抓到字符串false被旧宽松解析接受，窄严格JSON路径13项RED→GREEN并端到端复验。真实隔离PG/built UI/生产Worker与Parent export19Jobs、17音频；−6dB实测−5.9999994、左右方向/真零静音、同graph/hash试听导出通过。Python792、Web109单worker、Audio77、PG1、Mypy133、两build/Ruff通过；保留默认并行Web2等待超时，不称修复。独立一次63项无阻塞；Minor recipe静音规则标签延后。
+
+模型0；此前4调用7228tokens峰价保守上界0.023852CNY原账不变，非账单。Library支持helper不可用，无ID，停止重试。自有PG/tmpfs/凭据已删、36保留文件rehash，共享容器身份不变；精确回收launcher43,632+专用Mypy缓存43,352,658=43,396,290逻辑bytes，partial0。宿主builtUI/Worker加缓存PG容器验证；无Dockerfile/依赖/lockfile变更，不为形式重建无关镜像或prune混合cache。无用户库迁移/main合并/部署。见[验收](evidence/2026-10-19-m1-basic-mixing.md)、[审查](evidence/2026-10-19-m1-review.md)、[存储](evidence/2026-10-19-m1-storage.json)。

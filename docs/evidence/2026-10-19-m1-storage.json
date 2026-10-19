@@ -1,0 +1,23 @@
+{
+  "ownContainerAndTmpfsRemoved": true,
+  "generatedCredentialsRemoved": true,
+  "acceptedFilesRehashed": 36,
+  "reclaimedLauncherLogicalBytes": 43632,
+  "reclaimedOwnCacheLogicalBytes": 43352658,
+  "totalReclaimedLogicalBytes": 43396290,
+  "sharedContainersUnchanged": true,
+  "sharedBuilderPruned": false,
+  "userDatabaseMigrated": false,
+  "ownedPartialFilesBefore": 0,
+  "ownedPartialFilesAfter": 0,
+  "retainedOwnArtifactLogicalBytes": 31346816,
+  "externalFreeBytesBefore": 127153864704,
+  "externalFreeBytesAfter": 127154520064,
+  "keep": [
+    "final live MP3/Master/MIDI/project/manifests/credits/provenance and hashes, browser and review evidence, all original four-call P2.2 usage records and M1 strict-HTTP failure counterexample",
+    "reviewed piano pack, immutable source score/license and every earlier accepted output",
+    "current built Web/Worker/dependencies/lockfiles; no changes to shared game acceptance resources",
+    "shared Colima/services/images/database volumes and mixed builder cache; no global prune"
+  ],
+  "buildRationale": "Host source/runtime changes validated with current built Web/Worker + cached real PostgreSQL container; no Dockerfile/system dependency/lockfile change, no unrelated image rebuild or mixed cache prune."
+}

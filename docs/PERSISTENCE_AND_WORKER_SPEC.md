@@ -349,3 +349,8 @@ Celery Task 保持 Python 边界；TypeScript 音频引擎只运行在固定的 
 ## P2.2 有界钢琴增补（2026-10-19）
 
 本专项的新请求/state/命令/计划存储、兼容读取、预算/待回执用量和审批合同统一见 [P2_SEMANTIC_PIANO_CONTRACT.md](P2_SEMANTIC_PIANO_CONTRACT.md)。旧合同保持；不把专用双钢琴语义路径放宽成通用编辑/新Graph。
+
+
+## 2026-10-19 M1 混音执行与持久化
+
+0028 显式接 IR4、Job4/engine4、Plan5/Bundle5 并阻止历史不安全 downgrade。Worker 从 Revision/Snapshot 重编译 graph/hash，只有可信 expectedSilence 允许真正零 PCM；旧版本与预期有声 gate 不放宽。详见[版本合同](BASIC_PIANO_MIX_CONTRACT.md)和[实测边界](evidence/2026-10-19-m1-basic-mixing.md)。

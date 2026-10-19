@@ -1,0 +1,613 @@
+{
+  "status": "passed",
+  "pageErrors": [],
+  "audio": {
+    "lead-left": {
+      "jobId": "aa8678d6-1174-408f-91a3-d2286a342efb",
+      "wallSeconds": 0.291,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false,
+      "artifactId": "0e2728c2-e036-4644-9017-8cb625c0828c",
+      "filename": "lead-left.wav",
+      "sha256": "34fa43074a0e8c358f8c23e6d2744f2b0e802ffc8a31df590d008690253f4e42",
+      "bytes": 1152044
+    },
+    "both-base": {
+      "jobId": "0e15b24d-cf7c-4dac-8514-dd0f0603f8b9",
+      "wallSeconds": 0.291,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false,
+      "artifactId": "ed0c5661-f20d-4f83-aa1b-11c2ac797d82",
+      "filename": "both-base.wav",
+      "sha256": "c3076d4e0ddce65985ea0bc11f9817a42593c358fc74a63942af47f5a9326c2c",
+      "bytes": 1152044
+    },
+    "lead-solo": {
+      "jobId": "20841212-5ecb-4ce2-ae33-c6962bab7cf5",
+      "wallSeconds": 0.25,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false,
+      "artifactId": "0b07a75a-2bd9-4aef-9da5-f2ba254184b8",
+      "filename": "lead-solo.wav",
+      "sha256": "4a785ffe23897b311eeeed3de3ed8dbde641267fb588b3b0297667dc66c10792",
+      "bytes": 1152044
+    },
+    "audition": {
+      "jobId": "5b69b5fd-7c34-4c0a-bca3-9c3a729f36c9",
+      "wallSeconds": 0.39,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false,
+      "artifactId": "e103810d-1364-4096-a114-facaf5de463c",
+      "filename": "audition.mp3",
+      "sha256": "55968593b02f32d430da9219c6eb34816dae364b1387aeb5a2f852d3ee2f15ee",
+      "bytes": 81165
+    },
+    "bass-muted": {
+      "jobId": "e5cf6019-5275-4063-9632-cadc1a0ccd5a",
+      "wallSeconds": 0.236,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false,
+      "artifactId": "9bffea93-f9da-46df-9e26-8bb090be317c",
+      "filename": "bass-muted.wav",
+      "sha256": "0633dbb724e80fd48f7f88b833ef37fb83f709f0c4ee2bae7cf2e5abc4cea365",
+      "bytes": 1152044
+    },
+    "lead-quieter": {
+      "jobId": "ecf193b4-935a-4949-858a-a55b8da12be7",
+      "wallSeconds": 0.23,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false,
+      "artifactId": "182a1e00-0a2f-4f7e-87bd-b8687f319b52",
+      "filename": "lead-quieter.wav",
+      "sha256": "0f7f5908222008cc4265f44cb7494832de3052901df95fd271221c4395ba422b",
+      "bytes": 1152044
+    },
+    "lead-right": {
+      "jobId": "4aa61297-a19b-4975-812d-5095f3c9d2e6",
+      "wallSeconds": 0.24,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false,
+      "artifactId": "bdd3316c-96cf-4bdf-b924-991e3bd5894a",
+      "filename": "lead-right.wav",
+      "sha256": "8f18426416fad64d40789d71021efed864b130b2301954af2d68b80797a51ab8",
+      "bytes": 1152044
+    },
+    "both-solo": {
+      "jobId": "3248cd44-6958-40dc-9c32-2928b1382a6c",
+      "wallSeconds": 0.276,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false,
+      "artifactId": "1edf7a2e-b6be-4832-ba03-db1690aa96fc",
+      "filename": "both-solo.wav",
+      "sha256": "7c14e3fc4065c85813940a16f01afa00dd5be73659e90f228bf5cce776678c5f",
+      "bytes": 1152044
+    },
+    "solo-muted": {
+      "jobId": "9c14255e-1f5c-4c0d-9031-138b645d35c5",
+      "wallSeconds": 0.179,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false,
+      "artifactId": "9c9c7300-bab7-4ca4-8a76-e2c1695fd82c",
+      "filename": "solo-muted.wav",
+      "sha256": "5fef74d2dcdc7a08b774d6695c3683fbff7150ac3d579356ea49663ae8b428cd",
+      "bytes": 1152044
+    },
+    "silent-audition": {
+      "jobId": "da80c142-9af9-4809-9fc5-a47cc1fc746c",
+      "wallSeconds": 0.272,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false,
+      "artifactId": "a116ae95-ee4a-45f0-9b0a-bd60d935c3dd",
+      "filename": "silent-audition.mp3",
+      "sha256": "a8cf2b5e01e8a58cf0d7ffcb311013c6bf55f7e7ab39b7cf5568dd45d3974d84",
+      "bytes": 81165
+    },
+    "all-muted": {
+      "jobId": "f528d567-b9a2-454a-ab0a-e588ff1773a4",
+      "wallSeconds": 0.169,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false,
+      "artifactId": "842f9766-2f77-4917-811d-a12f6e35cb99",
+      "filename": "all-muted.wav",
+      "sha256": "5fef74d2dcdc7a08b774d6695c3683fbff7150ac3d579356ea49663ae8b428cd",
+      "bytes": 1152044
+    }
+  },
+  "exports": {
+    "audible-export": {
+      "revisionId": "45e97192-57d4-494d-a8a1-6dc4a2560a01",
+      "planHash": "366dd866b9efb720fd85fbfa202cb39daf4e12429625049aea572e8ea3591e0c",
+      "files": [
+        {
+          "name": "composition.mid",
+          "filename": "audible-export-composition.mid",
+          "bytes": 143,
+          "sha256": "f84d5d433f2337a42f0e9fd23661de686691f88b6e3f08b98a9f8357c9d558bc"
+        },
+        {
+          "name": "credits.json",
+          "filename": "audible-export-credits.json",
+          "bytes": 367,
+          "sha256": "3aa5ee5cd15bebc84be2130ccbc2a3a53d88f6d8cbf643a3aff510dc726ecee6"
+        },
+        {
+          "name": "license.json",
+          "filename": "audible-export-license.json",
+          "bytes": 617,
+          "sha256": "cdc937fd445ae2f9e0709b9c4ba5da9da15cad3fe243f477c6838aae24033599"
+        },
+        {
+          "name": "master.mp3",
+          "filename": "audible-export-master.mp3",
+          "bytes": 129837,
+          "sha256": "1a4f5bf4e218f43d505e9c1b60e58ad03c1bb59818b6a108688ce8c3cefdacfd"
+        },
+        {
+          "name": "master.wav",
+          "filename": "audible-export-master.wav",
+          "bytes": 1152044,
+          "sha256": "0633dbb724e80fd48f7f88b833ef37fb83f709f0c4ee2bae7cf2e5abc4cea365"
+        },
+        {
+          "name": "project.json",
+          "filename": "audible-export-project.json",
+          "bytes": 3256,
+          "sha256": "8a40318fc9e1a23aa58d8f4a630b13f36f7998120f44282c75dba27f87e1f014"
+        },
+        {
+          "name": "provenance.json",
+          "filename": "audible-export-provenance.json",
+          "bytes": 554,
+          "sha256": "8cf68fdb4ad82337731e4d086f686dce29f06f68087b0203ee2c6f12f0514ebc"
+        },
+        {
+          "name": "stem-00000000-0000-0000-0000-000000000001.wav",
+          "filename": "audible-export-stem-00000000-0000-0000-0000-000000000001.wav",
+          "bytes": 1152044,
+          "sha256": "4a785ffe23897b311eeeed3de3ed8dbde641267fb588b3b0297667dc66c10792"
+        },
+        {
+          "name": "stem-00000000-0000-0000-0000-000000000002.wav",
+          "filename": "audible-export-stem-00000000-0000-0000-0000-000000000002.wav",
+          "bytes": 1152044,
+          "sha256": "5fef74d2dcdc7a08b774d6695c3683fbff7150ac3d579356ea49663ae8b428cd"
+        },
+        {
+          "name": "trace.json",
+          "filename": "audible-export-trace.json",
+          "bytes": 268,
+          "sha256": "63a1f638000f561ed51e415537cd2f306569eb8418c041d78b6aac6b5dfe357f"
+        },
+        {
+          "name": "export-manifest.json",
+          "filename": "audible-export-export-manifest.json",
+          "bytes": 2676,
+          "sha256": "3477a368647a2034ed3be3263cf7284515faeae3a846720c1f7fe1969078789e"
+        }
+      ]
+    },
+    "silent-export": {
+      "revisionId": "3a119393-2d51-4f45-8383-fd47d652e1af",
+      "planHash": "bb1b864ba28f85ff5bdd1e2c5178c204c136a526fe98816d2645904685e5301b",
+      "files": [
+        {
+          "name": "composition.mid",
+          "filename": "silent-export-composition.mid",
+          "bytes": 143,
+          "sha256": "f84d5d433f2337a42f0e9fd23661de686691f88b6e3f08b98a9f8357c9d558bc"
+        },
+        {
+          "name": "credits.json",
+          "filename": "silent-export-credits.json",
+          "bytes": 367,
+          "sha256": "3aa5ee5cd15bebc84be2130ccbc2a3a53d88f6d8cbf643a3aff510dc726ecee6"
+        },
+        {
+          "name": "license.json",
+          "filename": "silent-export-license.json",
+          "bytes": 617,
+          "sha256": "cdc937fd445ae2f9e0709b9c4ba5da9da15cad3fe243f477c6838aae24033599"
+        },
+        {
+          "name": "master.mp3",
+          "filename": "silent-export-master.mp3",
+          "bytes": 129837,
+          "sha256": "db6695ae070ce84f552fb556526a707f82c1b240973e1eb28c3fc5148f54b753"
+        },
+        {
+          "name": "master.wav",
+          "filename": "silent-export-master.wav",
+          "bytes": 1152044,
+          "sha256": "5fef74d2dcdc7a08b774d6695c3683fbff7150ac3d579356ea49663ae8b428cd"
+        },
+        {
+          "name": "project.json",
+          "filename": "silent-export-project.json",
+          "bytes": 3255,
+          "sha256": "d0e8292187609277ed301b92cce85783c964329ab7ba042b44499537579d6e7b"
+        },
+        {
+          "name": "provenance.json",
+          "filename": "silent-export-provenance.json",
+          "bytes": 553,
+          "sha256": "999acc1ebd775a17e9533dd38a9eee72a9b41fa1376dac583664042650299ad1"
+        },
+        {
+          "name": "trace.json",
+          "filename": "silent-export-trace.json",
+          "bytes": 182,
+          "sha256": "5b28d18f0faaa5daad55d9d1e6e29bf74f21734f1633ec73a903d4c57dd29d78"
+        },
+        {
+          "name": "export-manifest.json",
+          "filename": "silent-export-export-manifest.json",
+          "bytes": 1738,
+          "sha256": "a01beddac290b25e2b1013126069fcc37c280222202181571ee38ad6be931d51"
+        }
+      ]
+    }
+  },
+  "checks": {
+    "resetImmediateValue": "6",
+    "resetSavedGain": true,
+    "draftOnlyBeforeSave": true,
+    "reopenTrue": true,
+    "browserSaves": 1,
+    "sourceExact": true,
+    "noStaleAudio": true,
+    "exactSavedUndo": true,
+    "undoAuthoritativeHash": "f672c4175bc7ce74001144cd5dc9db5be94fd71a67d0b077f3928993d332b063",
+    "noStaleAudioAfterPriorExport": true,
+    "invalidRejected": true,
+    "savedAudioActuallyPlays": true
+  },
+  "projectId": "c3653eef-bd3f-4767-95e3-43ca67031204",
+  "branchId": "bc7700ca-2336-488f-86b5-4d5d388b4564",
+  "revisionId": "164917f9-8260-4d0b-84ad-b30e0675a5c8",
+  "sourceHash": "f672c4175bc7ce74001144cd5dc9db5be94fd71a67d0b077f3928993d332b063",
+  "trackIds": [
+    "00000000-0000-0000-0000-000000000001",
+    "00000000-0000-0000-0000-000000000002"
+  ],
+  "fixture": "Explicit internal 2-bar/4second piano fixture, not imported or full classical-work fidelity acceptance.",
+  "original": {
+    "schema_version": "arrangement-ir.v3",
+    "project_id": "c3653eef-bd3f-4767-95e3-43ca67031204",
+    "sample_rate": 48000,
+    "ppq": 480,
+    "tempo_map": [
+      {
+        "tick": 0,
+        "bpm": 120
+      }
+    ],
+    "time_signature_map": [
+      {
+        "tick": 0,
+        "numerator": 4,
+        "denominator": 4
+      }
+    ],
+    "key_map": [],
+    "sections": [
+      {
+        "section_id": "0ee7106a-837c-4653-95d4-2f32f00915c8",
+        "start_tick": 0,
+        "end_tick": 3840,
+        "label": "2-bar mix validation",
+        "function": "unspecified",
+        "energy": 0.5
+      }
+    ],
+    "markers": [],
+    "tracks": [
+      {
+        "track_id": "00000000-0000-0000-0000-000000000001",
+        "track_type": "instrument",
+        "name": "原旋律测试轨",
+        "role": "melody",
+        "mute": false,
+        "solo": false,
+        "gain_db": -12,
+        "pan": 0,
+        "eq": {
+          "low_db": 0,
+          "mid_db": 0,
+          "high_db": 0
+        },
+        "instrument_ref": null,
+        "clips": [
+          {
+            "clip_type": "note",
+            "clip_id": "3c1cfb1e-3beb-40c6-8e98-55142bc9d91b",
+            "start_tick": 0,
+            "duration_tick": 3840,
+            "loop": false,
+            "gain_db": 0,
+            "pan": 0,
+            "fade_in_tick": 0,
+            "fade_out_tick": 0,
+            "notes": [
+              {
+                "note_id": "b991a6f2-71aa-452e-8d3e-9d537359a266",
+                "pitch": 72,
+                "start_tick": 0,
+                "duration_tick": 240,
+                "velocity": 60,
+                "articulation": "normal",
+                "cents": 0
+              },
+              {
+                "note_id": "f4d18a79-db53-4cfe-9ea8-3a5322615875",
+                "pitch": 72,
+                "start_tick": 960,
+                "duration_tick": 240,
+                "velocity": 60,
+                "articulation": "normal",
+                "cents": 0
+              },
+              {
+                "note_id": "f1c3559b-f2d5-4af5-9066-f4767487eccb",
+                "pitch": 72,
+                "start_tick": 1920,
+                "duration_tick": 240,
+                "velocity": 60,
+                "articulation": "normal",
+                "cents": 0
+              },
+              {
+                "note_id": "ad948036-3d50-4b92-a936-09d79602cec7",
+                "pitch": 72,
+                "start_tick": 2880,
+                "duration_tick": 240,
+                "velocity": 60,
+                "articulation": "normal",
+                "cents": 0
+              }
+            ]
+          }
+        ],
+        "locked_ranges": [
+          {
+            "start_tick": 0,
+            "end_tick": 3840
+          }
+        ]
+      },
+      {
+        "track_id": "00000000-0000-0000-0000-000000000002",
+        "track_type": "instrument",
+        "name": "新增伴奏测试轨",
+        "role": "bass",
+        "mute": false,
+        "solo": false,
+        "gain_db": -10,
+        "pan": 0,
+        "eq": {
+          "low_db": 0,
+          "mid_db": 0,
+          "high_db": 0
+        },
+        "instrument_ref": null,
+        "clips": [
+          {
+            "clip_type": "note",
+            "clip_id": "3bed4b9b-9760-43b2-8667-4c5d717f080a",
+            "start_tick": 0,
+            "duration_tick": 3840,
+            "loop": false,
+            "gain_db": 0,
+            "pan": 0,
+            "fade_in_tick": 0,
+            "fade_out_tick": 0,
+            "notes": [
+              {
+                "note_id": "66daf671-0708-4227-8627-eb9c999af835",
+                "pitch": 48,
+                "start_tick": 0,
+                "duration_tick": 240,
+                "velocity": 60,
+                "articulation": "normal",
+                "cents": 0
+              },
+              {
+                "note_id": "2df08740-050d-4e13-ac2e-9a30046674eb",
+                "pitch": 48,
+                "start_tick": 960,
+                "duration_tick": 240,
+                "velocity": 60,
+                "articulation": "normal",
+                "cents": 0
+              },
+              {
+                "note_id": "bed41ac8-0d49-4e81-a9f6-30b0694fd5e7",
+                "pitch": 48,
+                "start_tick": 1920,
+                "duration_tick": 240,
+                "velocity": 60,
+                "articulation": "normal",
+                "cents": 0
+              },
+              {
+                "note_id": "005293c7-f1f4-4a8c-a76d-6c967b4dfbda",
+                "pitch": 48,
+                "start_tick": 2880,
+                "duration_tick": 240,
+                "velocity": 60,
+                "articulation": "normal",
+                "cents": 0
+              }
+            ]
+          }
+        ],
+        "locked_ranges": []
+      }
+    ],
+    "routing": {
+      "master_bus": "master"
+    },
+    "provenance": [],
+    "render_profile": {
+      "schema_version": "render-profile.v1",
+      "engine_version": "motif-forge-audio-engine.v3",
+      "instrument_pack_id": "freepats:upright-kw-small",
+      "instrument_pack_version": "2019-07-03.motif1",
+      "manifest_sha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813"
+    },
+    "performance_plan": {
+      "schema_version": "performance-plan.v1",
+      "notes": [],
+      "pedal_events": []
+    }
+  },
+  "firstMixRevision": "61def10f-7e37-4a39-bce2-f28f0ef14865",
+  "jobs": [
+    {
+      "jobId": "aa8678d6-1174-408f-91a3-d2286a342efb",
+      "wallSeconds": 0.291,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false
+    },
+    {
+      "jobId": "0e15b24d-cf7c-4dac-8514-dd0f0603f8b9",
+      "wallSeconds": 0.291,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false
+    },
+    {
+      "jobId": "20841212-5ecb-4ce2-ae33-c6962bab7cf5",
+      "wallSeconds": 0.25,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false
+    },
+    {
+      "jobId": "5b69b5fd-7c34-4c0a-bca3-9c3a729f36c9",
+      "wallSeconds": 0.39,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false
+    },
+    {
+      "jobId": "277b0381-9e42-49dd-900a-f5f4fdcb689b",
+      "wallSeconds": 0.323,
+      "succeeded": true,
+      "freshParentResume": true,
+      "duplicateResume": true
+    },
+    {
+      "jobId": "77fbcacf-9d63-4005-b576-edf0e90b5617",
+      "wallSeconds": 0.311,
+      "succeeded": true,
+      "freshParentResume": true,
+      "duplicateResume": true
+    },
+    {
+      "jobId": "cc693dad-e4eb-4be4-83cf-1de24b9e10f5",
+      "wallSeconds": 0.308,
+      "succeeded": true,
+      "freshParentResume": true,
+      "duplicateResume": true
+    },
+    {
+      "jobId": "c1e0cfa1-4915-4c60-9f01-e6152404be72",
+      "wallSeconds": 0.254,
+      "succeeded": true,
+      "freshParentResume": true,
+      "duplicateResume": true
+    },
+    {
+      "jobId": "33ef709f-aecb-4b12-a999-169edcba1927",
+      "wallSeconds": 0.172,
+      "succeeded": true,
+      "freshParentResume": true,
+      "duplicateResume": true
+    },
+    {
+      "jobId": "e5cf6019-5275-4063-9632-cadc1a0ccd5a",
+      "wallSeconds": 0.236,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false
+    },
+    {
+      "jobId": "ecf193b4-935a-4949-858a-a55b8da12be7",
+      "wallSeconds": 0.23,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false
+    },
+    {
+      "jobId": "4aa61297-a19b-4975-812d-5095f3c9d2e6",
+      "wallSeconds": 0.24,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false
+    },
+    {
+      "jobId": "3248cd44-6958-40dc-9c32-2928b1382a6c",
+      "wallSeconds": 0.276,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false
+    },
+    {
+      "jobId": "9c14255e-1f5c-4c0d-9031-138b645d35c5",
+      "wallSeconds": 0.179,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false
+    },
+    {
+      "jobId": "da80c142-9af9-4809-9fc5-a47cc1fc746c",
+      "wallSeconds": 0.272,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false
+    },
+    {
+      "jobId": "f528d567-b9a2-454a-ab0a-e588ff1773a4",
+      "wallSeconds": 0.169,
+      "succeeded": true,
+      "freshParentResume": false,
+      "duplicateResume": false
+    },
+    {
+      "jobId": "692a92aa-c60d-42bc-b2c9-1e953e1880b3",
+      "wallSeconds": 0.303,
+      "succeeded": true,
+      "freshParentResume": true,
+      "duplicateResume": true
+    },
+    {
+      "jobId": "7033f1fa-6dc2-4544-ad61-e02c93f45baf",
+      "wallSeconds": 0.223,
+      "succeeded": true,
+      "freshParentResume": true,
+      "duplicateResume": true
+    },
+    {
+      "jobId": "632f156b-2db4-4c64-a380-dbfe117d7fa4",
+      "wallSeconds": 0.151,
+      "succeeded": true,
+      "freshParentResume": true,
+      "duplicateResume": true
+    }
+  ],
+  "modelCalls": 0,
+  "existingPaidLedgerUnchanged": true,
+  "redisCeleryTransportTested": false
+}

@@ -1235,6 +1235,64 @@ export interface components {
              */
             tracks: components["schemas"]["Track"][];
         };
+        /** ArrangementIRV4 */
+        ArrangementIRV4: {
+            /**
+             * Key Map
+             * @default []
+             */
+            key_map: components["schemas"]["KeyPoint"][];
+            /**
+             * Markers
+             * @default []
+             */
+            markers: components["schemas"]["Marker"][];
+            performance_plan?: components["schemas"]["PerformancePlan"];
+            piano_mix: components["schemas"]["PianoMixState"];
+            /**
+             * Ppq
+             * @default 480
+             * @constant
+             */
+            ppq: 480;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /**
+             * Provenance
+             * @default []
+             */
+            provenance: components["schemas"]["ProvenanceRef"][];
+            render_profile: components["schemas"]["MixPianoRenderProfile"];
+            routing?: components["schemas"]["RoutingSpec"];
+            /**
+             * Sample Rate
+             * @default 48000
+             * @enum {integer}
+             */
+            sample_rate: 44100 | 48000 | 96000;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            schema_version: "arrangement-ir.v4";
+            /**
+             * Sections
+             * @default []
+             */
+            sections: components["schemas"]["Section"][];
+            /** Tempo Map */
+            tempo_map?: components["schemas"]["TempoPoint"][];
+            /** Time Signature Map */
+            time_signature_map?: components["schemas"]["MeterPoint"][];
+            /**
+             * Tracks
+             * @default []
+             */
+            tracks: components["schemas"]["Track"][];
+        };
         /**
          * Articulation
          * @enum {string}
@@ -1576,7 +1634,7 @@ export interface components {
             /** Client Sequence */
             client_sequence: number;
             /** Commands */
-            commands: (components["schemas"]["InitializeCompositionCommand"] | components["schemas"]["AppendPianoTrackCommand"] | components["schemas"]["AgentAppendPianoTrackCommand"] | components["schemas"]["ReplacePianoRangeCommand"] | components["schemas"]["RemoveAddedPianoTrackCommand"] | components["schemas"]["SetPianoProfileCommand"] | components["schemas"]["AddTrackCommand"] | components["schemas"]["ImportAudioCommand"] | components["schemas"]["DeleteTrackCommand"] | components["schemas"]["AddClipCommand"] | components["schemas"]["DeleteClipCommand"] | components["schemas"]["DuplicateClipCommand"] | components["schemas"]["MoveClipCommand"] | components["schemas"]["TrimClipCommand"] | components["schemas"]["SplitClipCommand"] | components["schemas"]["SetTrackParamCommand"] | components["schemas"]["SetClipParamCommand"] | components["schemas"]["AddNotesCommand"] | components["schemas"]["UpdateNotesCommand"] | components["schemas"]["DeleteNotesCommand"])[];
+            commands: (components["schemas"]["InitializeCompositionCommand"] | components["schemas"]["SetPianoMixCommand"] | components["schemas"]["AppendPianoTrackCommand"] | components["schemas"]["AgentAppendPianoTrackCommand"] | components["schemas"]["ReplacePianoRangeCommand"] | components["schemas"]["RemoveAddedPianoTrackCommand"] | components["schemas"]["SetPianoProfileCommand"] | components["schemas"]["AddTrackCommand"] | components["schemas"]["ImportAudioCommand"] | components["schemas"]["DeleteTrackCommand"] | components["schemas"]["AddClipCommand"] | components["schemas"]["DeleteClipCommand"] | components["schemas"]["DuplicateClipCommand"] | components["schemas"]["MoveClipCommand"] | components["schemas"]["TrimClipCommand"] | components["schemas"]["SplitClipCommand"] | components["schemas"]["SetTrackParamCommand"] | components["schemas"]["SetClipParamCommand"] | components["schemas"]["AddNotesCommand"] | components["schemas"]["UpdateNotesCommand"] | components["schemas"]["DeleteNotesCommand"])[];
             /** Reason */
             reason: string;
         };
@@ -2154,7 +2212,7 @@ export interface components {
             /** Content Hash */
             content_hash: string;
             /** Export Plan */
-            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"] | components["schemas"]["EnsembleExportPlanV4"]) | null;
+            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"] | components["schemas"]["EnsembleExportPlanV4"] | components["schemas"]["MixExportPlanV5"]) | null;
             /** File Count */
             file_count: number;
             /** Plan Hash */
@@ -2695,6 +2753,82 @@ export interface components {
              */
             tick: 0;
         };
+        /** MixExportPlanV5 */
+        MixExportPlanV5: {
+            /** Arrangement Hash */
+            arrangement_hash: string;
+            /**
+             * Engine Version
+             * @default motif-forge-audio-engine.v4
+             * @constant
+             */
+            engine_version: "motif-forge-audio-engine.v4";
+            /**
+             * Include Mp3
+             * @default true
+             */
+            include_mp3: boolean;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            render_profile: components["schemas"]["MixPianoRenderProfile"];
+            /** Request Id */
+            request_id?: string | null;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            schema_version: "export-plan.v5";
+            /** Seed */
+            seed: number;
+            /**
+             * Stem Track Ids
+             * @default []
+             */
+            stem_track_ids: string[];
+            /** Track Ids */
+            track_ids: string[];
+        };
+        /** MixPianoRenderProfile */
+        MixPianoRenderProfile: {
+            /**
+             * Engine Version
+             * @default motif-forge-audio-engine.v4
+             * @constant
+             */
+            engine_version: "motif-forge-audio-engine.v4";
+            /**
+             * Instrument Pack Id
+             * @default freepats:upright-kw-small
+             * @constant
+             */
+            instrument_pack_id: "freepats:upright-kw-small";
+            /**
+             * Instrument Pack Version
+             * @default 2019-07-03.motif1
+             * @constant
+             */
+            instrument_pack_version: "2019-07-03.motif1";
+            /**
+             * Manifest Sha256
+             * @default 264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813
+             * @constant
+             */
+            manifest_sha256: "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813";
+            /**
+             * Schema Version
+             * @default render-profile.v1
+             * @constant
+             */
+            schema_version: "render-profile.v1";
+        };
         /** MoveClipCommand */
         MoveClipCommand: {
             /**
@@ -2960,6 +3094,17 @@ export interface components {
             /** Track Ids */
             track_ids: string[];
         };
+        /** PianoMixState */
+        PianoMixState: {
+            /**
+             * Schema Version
+             * @default piano-mix.v1
+             * @constant
+             */
+            schema_version: "piano-mix.v1";
+            /** Tracks */
+            tracks: components["schemas"]["PianoTrackMix"][];
+        };
         /** PianoPreviewData */
         PianoPreviewData: {
             /** Base Revision Id */
@@ -3136,6 +3281,34 @@ export interface components {
              * Format: uuid
              */
             revision_id: string;
+        };
+        /** PianoTrackMix */
+        PianoTrackMix: {
+            /**
+             * Gain Db
+             * @default 0
+             */
+            gain_db: number;
+            /**
+             * Mute
+             * @default false
+             */
+            mute: boolean;
+            /**
+             * Pan
+             * @default 0
+             */
+            pan: number;
+            /**
+             * Solo
+             * @default false
+             */
+            solo: boolean;
+            /**
+             * Track Id
+             * Format: uuid
+             */
+            track_id: string;
         };
         /** ProjectListResponse */
         ProjectListResponse: {
@@ -3463,7 +3636,7 @@ export interface components {
             /** Error Code */
             error_code?: string | null;
             /** Export Plan */
-            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"] | components["schemas"]["EnsembleExportPlanV4"]) | null;
+            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"] | components["schemas"]["EnsembleExportPlanV4"] | components["schemas"]["MixExportPlanV5"]) | null;
             /** Export Thread Id */
             export_thread_id?: string | null;
             /** Files */
@@ -3501,7 +3674,7 @@ export interface components {
             /** Error Code */
             error_code?: string | null;
             /** Export Plan */
-            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"] | components["schemas"]["EnsembleExportPlanV4"]) | null;
+            export_plan?: (components["schemas"]["ExportPlanV2"] | components["schemas"]["PianoExportPlanV3"] | components["schemas"]["EnsembleExportPlanV4"] | components["schemas"]["MixExportPlanV5"]) | null;
             /** Media Run Id */
             media_run_id?: string | null;
             /** Pending Job Id */
@@ -3525,7 +3698,7 @@ export interface components {
         /** RevisionStudioData */
         RevisionStudioData: {
             /** Arrangement Ir */
-            arrangement_ir: components["schemas"]["ArrangementIR"] | components["schemas"]["ArrangementIRV2"] | components["schemas"]["ArrangementIRV3"];
+            arrangement_ir: components["schemas"]["ArrangementIR"] | components["schemas"]["ArrangementIRV2"] | components["schemas"]["ArrangementIRV3"] | components["schemas"]["ArrangementIRV4"];
             /** Author Kind */
             author_kind: string;
             /** Bundle Id */
@@ -3935,6 +4108,39 @@ export interface components {
             track_id: string;
             /** Value */
             value: boolean | number;
+        };
+        /** SetPianoMixCommand */
+        SetPianoMixCommand: {
+            /**
+             * Actor Kind
+             * @default human
+             * @constant
+             */
+            actor_kind: "human";
+            /** Client Sequence */
+            client_sequence: number;
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            command_type: "set_piano_mix";
+            payload: components["schemas"]["SetPianoMixPayload"];
+            /**
+             * Schema Version
+             * @default editor-command.v1
+             * @constant
+             */
+            schema_version: "editor-command.v1";
+            selection?: components["schemas"]["Selection"];
+        };
+        /** SetPianoMixPayload */
+        SetPianoMixPayload: {
+            mix: components["schemas"]["PianoMixState"] | null;
         };
         /**
          * SetPianoProfileCommand

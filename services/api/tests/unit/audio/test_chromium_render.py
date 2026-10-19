@@ -425,3 +425,124 @@ async def test_client_preserves_explicit_missing_instrument_without_retry(tmp_pa
     with pytest.raises(ChromiumRenderError, match="INSTRUMENT_PACK_UNAVAILABLE") as caught:
         await client.render(job_id=JOB_ID, payload=_payload())
     assert not caught.value.retryable
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("version", "audible", "expected_silence", "peak", "accept"),
+    [
+        (4, False, True, 0.0, True),
+        (4, True, False, 0.0, False),
+        (4, True, True, 0.0, False),
+        (4, False, False, 0.0, False),
+        (4, 0, True, 0.0, False),
+        (4, False, 1, 0.0, False),
+        (4, False, True, 0.1, False),
+        (3, False, True, 0.0, False),
+    ],
+)
+async def test_expected_silence_receipt_requires_exact_v4_mix(
+    tmp_path, version, audible, expected_silence, peak, accept
+):
+    import json
+
+    payload = _payload()
+    graph = {
+        **payload.audio_graph,
+        "schemaVersion": f"audio-graph-spec.v{version}",
+        "engineVersion": f"motif-forge-audio-engine.v{version}",
+        "expectedSilence": expected_silence,
+        "tracks": [{**payload.audio_graph["tracks"][0], "audible": audible}],
+    }
+    payload = payload.model_copy(
+        update={"audio_graph": graph, "audio_engine_version": graph["engineVersion"]}
+    )
+    (tmp_path / "temp").mkdir()
+    raw = _pcm24_wav()
+    wav = raw[:44] + bytes(len(raw) - 44)
+
+    async def handler(request):
+        body = json.loads(request.content)
+        output = tmp_path / "temp" / body["outputStorageKey"]
+        output.parent.mkdir(parents=True)
+        output.write_bytes(wav)
+        return httpx.Response(
+            200,
+            json={
+                "receiptVersion": "render-service-receipt.v1",
+                "requestId": str(JOB_ID),
+                "storageKey": body["outputStorageKey"],
+                "sha256": hashlib.sha256(wav).hexdigest(),
+                "bytes": len(wav),
+                "durationSeconds": 0.1,
+                "sampleRate": 48000,
+                "channels": 2,
+                "bitDepth": 24,
+                "peak": peak,
+            },
+        )
+
+    client = ChromiumRenderClient(
+        artifact_root=tmp_path,
+        temp_root=tmp_path / "temp",
+        service_url="http://test",
+        transport=httpx.MockTransport(handler),
+        minimum_free_bytes=0,
+    )
+    if accept:
+        result = await client.render(job_id=JOB_ID, payload=payload)
+        assert result.peak == 0
+        assert (tmp_path / result.storage_key).read_bytes()[44:] == bytes(len(wav) - 44)
+    else:
+        with pytest.raises(ChromiumRenderError):
+            await client.render(job_id=JOB_ID, payload=payload)
+        assert not (tmp_path / "protected").exists()
+
+
+@pytest.mark.asyncio
+async def test_expected_silence_rejects_nonzero_pcm_even_when_receipt_says_zero(tmp_path):
+    import json
+
+    payload = _payload()
+    graph = {
+        **payload.audio_graph,
+        "schemaVersion": "audio-graph-spec.v4",
+        "engineVersion": "motif-forge-audio-engine.v4",
+        "expectedSilence": True,
+        "tracks": [{**payload.audio_graph["tracks"][0], "audible": False}],
+    }
+    payload = payload.model_copy(
+        update={"audio_graph": graph, "audio_engine_version": graph["engineVersion"]}
+    )
+    (tmp_path / "temp").mkdir()
+    wav = _pcm24_wav()
+
+    async def handler(request):
+        body = json.loads(request.content)
+        output = tmp_path / "temp" / body["outputStorageKey"]
+        output.parent.mkdir(parents=True)
+        output.write_bytes(wav)
+        return httpx.Response(
+            200,
+            json={
+                "receiptVersion": "render-service-receipt.v1",
+                "requestId": str(JOB_ID),
+                "storageKey": body["outputStorageKey"],
+                "sha256": hashlib.sha256(wav).hexdigest(),
+                "bytes": len(wav),
+                "durationSeconds": 0.1,
+                "sampleRate": 48000,
+                "channels": 2,
+                "bitDepth": 24,
+                "peak": 0.0,
+            },
+        )
+
+    with pytest.raises(ChromiumRenderError, match="RENDER_EXPECTED_SILENCE_MISMATCH"):
+        await ChromiumRenderClient(
+            artifact_root=tmp_path,
+            temp_root=tmp_path / "temp",
+            service_url="http://test",
+            transport=httpx.MockTransport(handler),
+            minimum_free_bytes=0,
+        ).render(job_id=JOB_ID, payload=payload)

@@ -62,7 +62,10 @@ def transcode_master_to_mp3(
     expected_duration_seconds: float,
     timeout_seconds: int,
     cancel_event: threading.Event | None = None,
+    allow_expected_silence: bool = False,
 ) -> Mp3TranscodeResult:
+    if type(allow_expected_silence) is not bool:
+        raise ExportTranscodeError("TRANSCODE_SILENCE_PROFILE_INVALID")
     if (revision_id is None) == (candidate_snapshot_id is None):
         raise ExportTranscodeError("TRANSCODE_LINEAGE_INVALID")
     if bitrate_kbps not in {160, 256}:
@@ -170,8 +173,13 @@ def transcode_master_to_mp3(
         if (
             loudness.returncode != 0
             or maximum is None
-            or maximum.group("value") == "-inf"
-            or float(maximum.group("value")) <= _SILENT_MAX_VOLUME_DB
+            or (
+                not allow_expected_silence
+                and (
+                    maximum.group("value") == "-inf"
+                    or float(maximum.group("value")) <= _SILENT_MAX_VOLUME_DB
+                )
+            )
         ):
             raise ExportTranscodeError("TRANSCODE_SILENT_OUTPUT")
         bytes_ = temporary.read_bytes()

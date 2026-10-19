@@ -18,7 +18,13 @@
 
 ## 2. 当前产品形态
 
-### 当前验收：P2.2 自然语言伴奏与局部修改（2026-10-19）
+### 当前验收：M1 双钢琴基础混音（2026-10-19）
+
+MF-P05/P06/P11/P13/P15/P16/P17/P18/P21。独立 piano_mix/IR4 保留原 Track/notes/来源，严格 human L0 命令与原谱锁分离；完整 IR 计算 mute/solo 后选 stem，v4 可信预期静音为真正零 PCM；Job4/engine4、Plan5/Bundle5、0028 历史降级 guard。UI 草稿→保存→显式生成保存版音频，reset/重开/精确 Undo 通过，无实时/EQ/整页改造。
+
+真实隔离 PG/built UI/生产 Worker 与 Parent export 19 Jobs、17 音频信号检查；−6dB/左右声像/多 solo/mute 优先/静音与同图同 hash 试听导出通过。HTTP 字符串布尔宽松转换反例已修复并实测复验。Python792（unit/Eval758+root34）、Web109单worker、Audio77、PG1、Mypy133、两build/Ruff/diff通过。默认并行Web2等待超时原始保留，不称已解决。一次fresh独立审查63项无阻塞，Minor recipe静音规则标签延后。自有PG/凭据已关闭，回收43,396,290逻辑bytes，共享资源未动。模型0，既有4调用/7228token公开峰价上界¥0.023852原账不变；Library未保存成功、无ID。见[合同](BASIC_PIANO_MIX_CONTRACT.md)、[验收](evidence/2026-10-19-m1-basic-mixing.md)。
+
+### 已验收：P2.2 自然语言伴奏与局部修改（2026-10-19）
 
 MF-P02/P04/P05/P06/P11/P13/P15/P16/P17/P18/P21。既有DSAPI Flash→有界逐bar计划→音乐约束/可信原和声校验→同Parent候选A/B→hash保留→第二轨1–4bar修改/重开/精确Undo/导出已通。单动作单请求；0027不可变Plan、预算/待回执unknown和Inspector一致；旧人工P2.1兼容，不新增Graph/音源/依赖。真实累计4调用/7228tokens（包括首轮和声反例），高峰保守费用上界¥0.023852，未查询账单。最终2个Run各1次、6Jobs/8文件SHA；747 Python、102 Web、61Audio、6PG/Inspector、Mypy131源/两build/lint通过。独立审查2Important经唯一修复与限定复核关闭；Minor缺失reported-model默认别名延后。原谱/选区外/所选G-Am-D-G和声exact；范围16→4音、力度57→38。仅这一首与两轨，未宣布全P2/P3/多曲/实时混音/审美质量/默认两风格旧宏观LLM完成。见[合同](P2_SEMANTIC_PIANO_CONTRACT.md)、[验收](evidence/2026-10-19-p22-semantic-piano.md)。
 

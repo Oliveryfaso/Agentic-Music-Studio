@@ -15,6 +15,7 @@ from motif_forge.domain.ir import (
     ArrangementIR,
     ArrangementIRV2,
     ArrangementIRV3,
+    ArrangementIRV4,
     ArrangementValue,
     DomainModel,
     create_empty_arrangement,
@@ -72,7 +73,9 @@ def versions_for_arrangement(
             update={
                 "domain_schema": arrangement.schema_version,
                 "audio_engine": arrangement.render_profile.engine_version,
-                "compiler": "audio-graph-spec.v3"
+                "compiler": "audio-graph-spec.v4"
+                if isinstance(arrangement, ArrangementIRV4)
+                else "audio-graph-spec.v3"
                 if isinstance(arrangement, ArrangementIRV3)
                 else "audio-graph-spec.v2",
                 "assets": arrangement.render_profile.manifest_sha256,

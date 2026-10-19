@@ -1,0 +1,54 @@
+{
+  "status": "passed",
+  "checksummedFiles": 31,
+  "wavFiles": 13,
+  "pcm24ZeroFiles": [
+    "solo-muted.wav",
+    "all-muted.wav",
+    "silent-export-master.wav",
+    "audible-export-stem-00000000-0000-0000-0000-000000000002.wav"
+  ],
+  "pcmMaxDifferenceLSB": {
+    "lead-solo.wav == bass-muted.wav": 1,
+    "both-base.wav == both-solo.wav": 1,
+    "lead-solo.wav == audible-export-master.wav": 1
+  },
+  "sourceTracksAndMixProvenancePreserved": [
+    "audible-export",
+    "silent-export"
+  ],
+  "rebuildOffline": [
+    {
+      "prefix": "audible-export",
+      "jobVersion": "candidate-preview-job.v4",
+      "engineVersion": "motif-forge-audio-engine.v4",
+      "graphHash": "530b9b212c1f36ecf80402ed5974fece40d2af3acf9135ca2bc62f5373286e0e",
+      "recipeHashPreserved": true,
+      "expectedSilence": false,
+      "validationRules": [
+        "candidate-snapshot-lineage.v1",
+        "duration-tolerance.v1",
+        "non-silence.v1"
+      ]
+    },
+    {
+      "prefix": "silent-export",
+      "jobVersion": "candidate-preview-job.v4",
+      "engineVersion": "motif-forge-audio-engine.v4",
+      "graphHash": "41c27dbad40b79335496dfe527f7add6aedae8226977f5efe901e6fb275e2075",
+      "recipeHashPreserved": true,
+      "expectedSilence": true,
+      "validationRules": [
+        "candidate-snapshot-lineage.v1",
+        "duration-tolerance.v1",
+        "non-silence.v1"
+      ]
+    }
+  ],
+  "legacyGraphsEqualReviewBase": [
+    "arrangement-ir.v1",
+    "arrangement-ir.v2",
+    "arrangement-ir.v3"
+  ],
+  "scope": "No database/service/provider access; no subjective listening or real eviction/rehydration run."
+}

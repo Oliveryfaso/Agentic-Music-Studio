@@ -3,7 +3,8 @@ import {
   renderAudioGraphOffline,
   type RenderBridgeReceipt,
   type RenderBridgeRequest,
-  validateAudioGraphSpec,
+  validateAudioRenderScope,
+  validateRenderPeak,
 } from "../../../packages/audio-engine/src/index.js";
 import {
   encodeStereoPcm16,
@@ -20,8 +21,10 @@ window.motifForgeRender = async (request) => {
   if (request.requestVersion !== "render-bridge-request.v1") {
     throw new Error("RENDER_BRIDGE_VERSION_UNSUPPORTED");
   }
-  validateAudioGraphSpec(request.graph);
+  validateAudioRenderScope(request.graph, request.renderTrackIds);
   const buffer = await renderAudioGraphOffline(request.graph, request.renderTrackIds, request.instrumentBinding);
+  const peak = peakAmplitude(buffer);
+  validateRenderPeak(request.graph, peak, request.renderTrackIds);
   const wav =
     request.outputBitDepth === 24
       ? encodeStereoPcm24(buffer)
@@ -42,6 +45,6 @@ window.motifForgeRender = async (request) => {
     sampleRate: buffer.sampleRate,
     channels: buffer.numberOfChannels,
     bitDepth: request.outputBitDepth,
-    peak: peakAmplitude(buffer),
+    peak,
   };
 };

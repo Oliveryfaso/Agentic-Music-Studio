@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
 import { estimateRenderCapacity } from "../../../packages/audio-engine/src/capacity.js";
-import { validateAudioGraphSpec } from "../../../packages/audio-engine/src/validation.js";
+import { validateAudioRenderScope, validateRenderPeak } from "../../../packages/audio-engine/src/validation.js";
 import type {
   RenderBridgeReceipt,
   InstrumentPackRef,
@@ -99,7 +99,7 @@ function parseRequest(value: unknown): RenderServiceRequest {
   }
   const parsed = input as unknown as RenderServiceRequest;
   const capacity = estimateRenderCapacity(parsed.bridgeRequest.graph, parsed.bridgeRequest.outputBitDepth);
-  validateAudioGraphSpec(parsed.bridgeRequest.graph);
+  validateAudioRenderScope(parsed.bridgeRequest.graph, parsed.bridgeRequest.renderTrackIds);
   if (parsed.maximumBytes < capacity.wavBytes) throw new Error("RENDER_OUTPUT_BUDGET_EXCEEDED");
   return { ...parsed, maximumBytes: Math.min(parsed.maximumBytes, capacity.outputLimitBytes) };
 }
@@ -191,6 +191,7 @@ export function receiptFromBridge(
   bridge: RenderBridgeReceipt,
   sha256: string,
 ): RenderServiceReceipt {
+  validateRenderPeak(request.bridgeRequest.graph, bridge.peak, request.bridgeRequest.renderTrackIds);
   return {
     receiptVersion: "render-service-receipt.v1",
     requestId: request.requestId,

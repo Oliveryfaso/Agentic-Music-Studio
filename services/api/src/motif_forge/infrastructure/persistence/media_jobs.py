@@ -34,6 +34,7 @@ from motif_forge.domain.media_jobs import (
     MediaJobType,
     MediaQualityProfile,
     MediaRun,
+    MixExportBundleArtifactV5,
     PianoExportBundleArtifactV3,
     RebuildRecipe,
     RenderScope,
@@ -1215,11 +1216,14 @@ def _export_bundle_from_row(row: ExportBundleArtifactRow) -> ExportBundleArtifac
         "export-bundle-artifact.v2",
         "export-bundle-artifact.v3",
         "export-bundle-artifact.v4",
+        "export-bundle-artifact.v5",
     }:
         plan = read_export_plan_json(json.dumps(row.export_plan), strict=True)
         values.update(plan=plan, plan_hash=row.plan_hash)
         model = (
-            EnsembleExportBundleArtifactV4
+            MixExportBundleArtifactV5
+            if row.schema_version == "export-bundle-artifact.v5"
+            else EnsembleExportBundleArtifactV4
             if row.schema_version == "export-bundle-artifact.v4"
             else PianoExportBundleArtifactV3
             if row.schema_version == "export-bundle-artifact.v3"

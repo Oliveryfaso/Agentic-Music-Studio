@@ -80,7 +80,7 @@ def test_alembic_has_single_reversible_head() -> None:
     config = Config(root / "alembic.ini")
     scripts = ScriptDirectory.from_config(config)
 
-    assert scripts.get_heads() == ["20261019_0027"]
+    assert scripts.get_heads() == ["20261019_0028"]
     migration = scripts.get_revision("20260813_0013")
     assert migration is not None
     assert callable(migration.module.upgrade)
@@ -120,8 +120,7 @@ def test_candidate_lineage_upgrade_tolerates_historical_constraint_names() -> No
         "ck_artifacts_artifacts_final_revision_lineage"
     ) in migration_sql
     assert (
-        "ALTER TABLE app.artifacts DROP CONSTRAINT IF EXISTS "
-        "artifacts_final_revision_lineage"
+        "ALTER TABLE app.artifacts DROP CONSTRAINT IF EXISTS artifacts_final_revision_lineage"
     ) in migration_sql
     historical_backfill = migration_sql.index("UPDATE app.artifacts AS artifact")
     lineage_constraint = migration_sql.index(

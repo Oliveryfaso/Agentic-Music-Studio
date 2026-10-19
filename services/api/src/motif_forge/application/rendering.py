@@ -13,6 +13,7 @@ from motif_forge.domain.ir import (
     ArrangementIR,
     ArrangementIRV2,
     ArrangementIRV3,
+    ArrangementIRV4,
     DomainModel,
     NoteClip,
     Track,
@@ -22,9 +23,11 @@ from motif_forge.domain.media_jobs import (
     CandidatePreviewJobPayload,
     CandidatePreviewJobPayloadV2,
     CandidatePreviewJobPayloadV3,
+    CandidatePreviewJobPayloadV4,
     CanonicalRenderJobPayload,
     CanonicalRenderJobPayloadV2,
     CanonicalRenderJobPayloadV3,
+    CanonicalRenderJobPayloadV4,
     MediaQualityProfile,
     RenderScope,
 )
@@ -173,8 +176,14 @@ def _compile_piano_graph(
     selected = all_ids if render_track_ids is None else render_track_ids
     if not selected or len(set(selected)) != len(selected) or not set(selected) <= set(all_ids):
         raise ValueError("RENDER_SCOPE_INVALID")
-    version = "v3" if isinstance(arrangement, ArrangementIRV3) else "v2"
-    graph = {
+    version = (
+        "v4"
+        if isinstance(arrangement, ArrangementIRV4)
+        else "v3"
+        if isinstance(arrangement, ArrangementIRV3)
+        else "v2"
+    )
+    graph: dict[str, Any] = {
         "schemaVersion": "audio-graph-spec." + version,
         "engineVersion": "motif-forge-audio-engine." + version,
         "durationSeconds": _seconds(
@@ -190,6 +199,15 @@ def _compile_piano_graph(
             if track.track_id in selected
         ],
     }
+    if isinstance(arrangement, ArrangementIRV4):
+        mixes = {item.track_id: item for item in arrangement.piano_mix.tracks}
+        any_solo = any(item.solo for item in mixes.values())
+        for track in graph["tracks"]:
+            mix = mixes[UUID(track["trackId"])]
+            track.update(
+                gainDb=mix.gain_db, pan=mix.pan, audible=not mix.mute and (not any_solo or mix.solo)
+            )
+        graph["expectedSilence"] = not any(t["audible"] for t in graph["tracks"])
     return AudioGraphProjection(
         arrangement_hash=arrangement_content_hash(arrangement),
         graph_hash=_canonical_hash(graph),
@@ -286,7 +304,9 @@ def build_canonical_render_payload(
     if projection.arrangement_hash != revision.content_hash:
         raise ValueError("REVISION_ARRANGEMENT_HASH_MISMATCH")
     payload_type = (
-        CanonicalRenderJobPayloadV3
+        CanonicalRenderJobPayloadV4
+        if isinstance(revision.arrangement_ir, ArrangementIRV4)
+        else CanonicalRenderJobPayloadV3
         if isinstance(revision.arrangement_ir, ArrangementIRV3)
         else CanonicalRenderJobPayloadV2
         if isinstance(revision.arrangement_ir, ArrangementIRV2)
@@ -317,7 +337,9 @@ def build_candidate_preview_payload(
     if projection.arrangement_hash != snapshot.candidate_content_hash:
         raise ValueError("CANDIDATE_ARRANGEMENT_HASH_MISMATCH")
     payload_type = (
-        CandidatePreviewJobPayloadV3
+        CandidatePreviewJobPayloadV4
+        if isinstance(snapshot.candidate_ir, ArrangementIRV4)
+        else CandidatePreviewJobPayloadV3
         if isinstance(snapshot.candidate_ir, ArrangementIRV3)
         else CandidatePreviewJobPayloadV2
         if isinstance(snapshot.candidate_ir, ArrangementIRV2)

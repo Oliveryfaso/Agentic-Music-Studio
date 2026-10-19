@@ -287,3 +287,8 @@ Worker 从 Artifact Repository 获得受控输入流和一次性输出 sink；�
 ## P2.2 有界钢琴增补（2026-10-19）
 
 本专项的新请求/state/命令/计划存储、兼容读取、预算/待回执用量和审批合同统一见 [P2_SEMANTIC_PIANO_CONTRACT.md](P2_SEMANTIC_PIANO_CONTRACT.md)。旧合同保持；不把专用双钢琴语义路径放宽成通用编辑/新Graph。
+
+
+## 2026-10-19 M1 混音 HTTP 边界
+
+既有 command-batches 接受 human-only set_piano_mix；新命令使用 strict JSON 校验，伪布尔/字符串数值/越界值在事务前422，旧命令兼容性保留。无新 Graph/模型端点。详见[版本合同](BASIC_PIANO_MIX_CONTRACT.md)和[实测边界](evidence/2026-10-19-m1-basic-mixing.md)。

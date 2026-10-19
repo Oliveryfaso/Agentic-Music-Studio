@@ -45,6 +45,8 @@ from motif_forge.domain.commands import (
     ReplacePianoRangePayload,
     SetClipParamCommand,
     SetClipParamPayload,
+    SetPianoMixCommand,
+    SetPianoMixPayload,
     SetPianoProfileCommand,
     SetPianoProfilePayload,
     SetTrackParamCommand,
@@ -60,6 +62,7 @@ from motif_forge.domain.ir import (
     ArrangementIR,
     ArrangementIRV2,
     ArrangementIRV3,
+    ArrangementIRV4,
     DomainModel,
     NoteClip,
     PerformancePlan,
@@ -140,7 +143,14 @@ def _inverse_for(
             )
         )
 
-    if isinstance(command, (AppendPianoTrackCommand, AgentAppendPianoTrackCommand)):
+    if isinstance(command, SetPianoMixCommand):
+        add(
+            SetPianoMixCommand,
+            SetPianoMixPayload(
+                mix=before.piano_mix if isinstance(before, ArrangementIRV4) else None
+            ),
+        )
+    elif isinstance(command, (AppendPianoTrackCommand, AgentAppendPianoTrackCommand)):
         add(
             RemoveAddedPianoTrackCommand,
             RemoveAddedPianoTrackPayload(

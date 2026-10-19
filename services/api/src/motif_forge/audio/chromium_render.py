@@ -14,8 +14,20 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
 from motif_forge.audio.atomic_promote import AtomicPromoteError, promote_verified_file
-from motif_forge.domain.media_jobs import CandidatePreviewJobPayload, CanonicalRenderJobPayload
+from motif_forge.domain.media_jobs import (
+    CandidatePreviewJobPayload,
+    CandidatePreviewJobPayloadV4,
+    CanonicalRenderJobPayload,
+    CanonicalRenderJobPayloadV4,
+)
 from motif_forge.domain.render_capacity import estimate_render_capacity
+
+RenderPayload = (
+    CanonicalRenderJobPayload
+    | CandidatePreviewJobPayload
+    | CanonicalRenderJobPayloadV4
+    | CandidatePreviewJobPayloadV4
+)
 
 
 class ChromiumRenderError(RuntimeError):
@@ -37,7 +49,7 @@ class RenderServiceReceipt(BaseModel):
     sampleRate: int
     channels: int
     bitDepth: int
-    peak: float = Field(gt=0.0, le=1.0)
+    peak: float = Field(ge=0.0, le=1.0)
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,6 +90,36 @@ def _inspect_pcm24_wav(
     return channels, sample_rate, bit_depth, data_bytes / 6 / sample_rate
 
 
+def _expected_silence(payload: RenderPayload) -> bool:
+    graph = payload.audio_graph
+    if graph.get("schemaVersion") != "audio-graph-spec.v4":
+        return False
+    tracks = graph.get("tracks")
+    if (
+        graph.get("engineVersion") != "motif-forge-audio-engine.v4"
+        or payload.audio_engine_version != "motif-forge-audio-engine.v4"
+        or type(graph.get("expectedSilence")) is not bool
+        or not isinstance(tracks, list)
+        or not 1 <= len(tracks) <= 2
+        or any(
+            not isinstance(track, dict) or type(track.get("audible")) is not bool
+            for track in tracks
+        )
+    ):
+        raise ChromiumRenderError("RENDER_SILENCE_PROFILE_INVALID")
+    if graph["expectedSilence"] != (not any(track["audible"] for track in tracks)):
+        raise ChromiumRenderError("RENDER_SILENCE_PROFILE_INVALID")
+    selected = {str(track_id) for track_id in payload.render_track_ids}
+    if selected:
+        available = {track.get("trackId") for track in tracks}
+        if not selected.issubset(available):
+            raise ChromiumRenderError("RENDER_SILENCE_PROFILE_INVALID")
+        scoped = [track for track in tracks if track.get("trackId") in selected]
+        if graph["expectedSilence"] != (not any(track["audible"] for track in scoped)):
+            raise ChromiumRenderError("RENDER_SILENCE_PROFILE_INVALID")
+    return graph["expectedSilence"] is True
+
+
 class ChromiumRenderClient:
     def __init__(
         self,
@@ -100,7 +142,7 @@ class ChromiumRenderClient:
         self,
         *,
         job_id: UUID,
-        payload: CanonicalRenderJobPayload | CandidatePreviewJobPayload,
+        payload: RenderPayload,
     ) -> CanonicalRenderResult:
         if not self._root.is_dir():
             raise ChromiumRenderError("ARTIFACT_ROOT_UNAVAILABLE", retryable=True)
@@ -138,12 +180,13 @@ class ChromiumRenderClient:
         self,
         *,
         job_id: UUID,
-        payload: CanonicalRenderJobPayload | CandidatePreviewJobPayload,
+        payload: RenderPayload,
     ) -> CanonicalRenderResult:
         if not self._root.is_dir():
             raise ChromiumRenderError("ARTIFACT_ROOT_UNAVAILABLE", retryable=True)
         if not self._temp_root.is_dir():
             raise ChromiumRenderError("TEMP_ROOT_UNAVAILABLE", retryable=True)
+        expected_silence = _expected_silence(payload)
         temporary_key = f"jobs/{job_id}/render.wav"
         request = {
             "requestVersion": "render-service-request.v1",
@@ -205,6 +248,10 @@ class ChromiumRenderClient:
             raise ChromiumRenderError("RENDER_RECEIPT_VERSION_INVALID")
         if receipt.requestId != str(job_id) or receipt.storageKey != temporary_key:
             raise ChromiumRenderError("RENDER_LINEAGE_MISMATCH")
+        if receipt.peak == 0 and not expected_silence:
+            raise ChromiumRenderError("RENDER_SILENT_OUTPUT")
+        if expected_silence and receipt.peak != 0:
+            raise ChromiumRenderError("RENDER_EXPECTED_SILENCE_MISMATCH")
         temporary = _safe_path(self._temp_root, temporary_key)
         try:
             file_size = temporary.stat().st_size
@@ -215,6 +262,10 @@ class ChromiumRenderClient:
                 raise ChromiumRenderError("RENDER_OUTPUT_SIZE_EXCEEDED")
             with temporary.open("rb") as stream:
                 header = stream.read(44)
+                if expected_silence:
+                    for chunk in iter(lambda: stream.read(64 * 1024), b""):
+                        if any(chunk):
+                            raise ChromiumRenderError("RENDER_EXPECTED_SILENCE_MISMATCH")
                 stream.seek(0)
                 checksum = hashlib.file_digest(stream, "sha256").hexdigest()
             if checksum != receipt.sha256 or file_size != receipt.bytes:

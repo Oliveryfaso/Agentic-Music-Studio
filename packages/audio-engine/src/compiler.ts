@@ -1,10 +1,10 @@
 import * as Tone from "tone";
 
-import type { AudioGraphSpec, AudioTrackSpec, InstrumentBinding } from "./contracts.js";
+import type { AudioGraphSpec, InstrumentBinding } from "./contracts.js";
 import { preparePiano, type PreparedPiano } from "./piano-runtime.js";
 import { planPianoVoices, schedulePianoVoices } from "./instruments.js";
 import { BUILTIN_SYNTH_PRESETS } from "./presets.js";
-import { validateAudioGraphSpec } from "./validation.js";
+import { validateAudioGraphSpec, validateAudioRenderScope } from "./validation.js";
 
 function dbToGain(db: number): number {
   return 10 ** (db / 20);
@@ -26,24 +26,22 @@ function deterministicReverbImpulse(durationSeconds: number, sampleRate: number)
   return impulse;
 }
 
-function selectedTracks(spec: AudioGraphSpec, trackIds?: readonly string[]): readonly AudioTrackSpec[] {
-  if (trackIds === undefined) {
-    return spec.tracks;
-  }
-  const selected = new Set(trackIds);
-  if (selected.size !== trackIds.length || [...selected].some((id) => !spec.tracks.some((t) => t.trackId === id))) {
-    throw new Error("AUDIO_RENDER_SCOPE_INVALID");
-  }
-  return spec.tracks.filter((track) => selected.has(track.trackId));
-}
-
 export async function renderAudioGraphOffline(
   uncheckedSpec: AudioGraphSpec,
   trackIds?: readonly string[],
   instrumentBinding?: InstrumentBinding,
 ): Promise<AudioBuffer> {
   const spec = validateAudioGraphSpec(uncheckedSpec);
-  const tracks = selectedTracks(spec, trackIds);
+  const selected = validateAudioRenderScope(spec, trackIds);
+  const tracks = spec.schemaVersion === "audio-graph-spec.v4"
+    ? selected.filter(track => "audible" in track && track.audible === true)
+    : selected;
+  if (spec.schemaVersion === "audio-graph-spec.v4" && spec.expectedSilence) {
+    // Native AudioBuffer storage starts at exact digital zero. No pack decode,
+    // voice scheduling, convolution or Tone graph is needed for an all-muted mix.
+    return new AudioBuffer({ length: Math.ceil(spec.durationSeconds * spec.sampleRate),
+      numberOfChannels: spec.channels, sampleRate: spec.sampleRate });
+  }
   const reverbImpulse = deterministicReverbImpulse(
     spec.reverbDecaySeconds,
     spec.sampleRate,

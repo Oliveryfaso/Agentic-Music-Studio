@@ -62,6 +62,15 @@ export function projectDraft(state: EditorState): ArrangementIR {
 function applyDraftCommand(ir: ArrangementIR, command: EditorCommand): ArrangementIR {
   const draft = structuredClone(ir);
   const payload = command.payload as Record<string, unknown>;
+  if (command.command_type === "set_piano_mix") {
+    if (draft.schema_version !== "arrangement-ir.v3" && draft.schema_version !== "arrangement-ir.v4") throw new Error("Piano mix requires the saved two-part piano version");
+    if (command.payload.mix === null) {
+      if (draft.schema_version !== "arrangement-ir.v4") throw new Error("No piano mix profile to restore");
+      const { piano_mix: _mix, ...legacy } = draft;
+      return { ...legacy, schema_version: "arrangement-ir.v3", render_profile: { ...draft.render_profile, engine_version: "motif-forge-audio-engine.v3" } };
+    }
+    return { ...draft, schema_version: "arrangement-ir.v4", render_profile: { ...draft.render_profile, engine_version: "motif-forge-audio-engine.v4" }, piano_mix: structuredClone(command.payload.mix) };
+  }
   const trackId = String(payload.track_id ?? "");
   const track = draft.tracks.find((item) => item.track_id === trackId);
   if (command.command_type === "add_track") {

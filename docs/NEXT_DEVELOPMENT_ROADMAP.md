@@ -3,7 +3,7 @@
 > **For agentic workers:** 实施本路线中的具体纵切前，必须先为该纵切建立 `docs/superpowers/plans/YYYY-MM-DD-<slice>.md`，再使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 逐项执行。
 > 状态：已批准的主路线；S2 Task 6 起采用 ADR-016 作品集工程模式
 > 起点：受控 Upload → Import → 分析 HITL → 保持音高对齐 → Web Preview 已完成
-> 执行断点（2026-10-19）：历史G0/S1–S7、ADR-019 P0/P1与P2.1保持已验事实；新增P2.2固定谱自然语言伴奏/1–4bar局部修改已验收，专用Flash、可信和声/费用恢复/审批与Undo闭环见最新证据。其余P2–P5、三曲接入、前端工作区重构及基础混音仍分阶段推进，不能静默并入本次核心变更。
+> 执行断点（2026-10-19）：P2.2 有界语义钢琴后，M1 双钢琴基础混音第一阶段已验收；草稿保存/重开/Undo/reset、音量/声像/mute/solo 与同源保存版音频/导出通过。实时混音、三段 EQ、专业调音台新原型/配色、整页重构、多曲和其余 P2–P5 仍待独立合同，不静默并入本门。
 
 ## 当前产品改造入口（P0–P5）
 
@@ -367,7 +367,7 @@ Candidate fan-out 使用独立 `candidate_id + seed + CandidateState`；fan-in r
 - Minor（P2.2独立审查M1）：旧JSON Adapter响应缺少model时回退请求别名；本轮四次均有真实reported model。下一次Provider诊断升级或公开发布前，补缺失身份回执fixture并表示unknown；不影响本次真实调用的已知模型字段。
 - 三首规范素材是独立研究交付，尚未进入资源目录/来源保护/声音与持久化验收。不得绕过固定score ID或把删装饰转换版当完整原作。新的拍号/小节/和声能力需要显式版本化合同。
 - 前端先复用现piano-preview thread/run/base/hash、排队/规划/Worker/待保留/终态，改善经典入口、原版本/修改版标签与范围行；候选过期/Artifact四态准确投影需先补读模型，不自动rebase或重新付费。
-- 用户新增基础混音需求，另已交只读现状与M0–M3最小合同；现MP3不是draft实时逐轨混音，mute/solo/参数范围不一致、原谱锁与预期静音门需先定版本，不在P2.2临时修齐或扩DAW。
+- P2.2 时基础混音另立 M0–M3 合同；后续 M1 已用显式 v4 完成双钢琴基础控制、原谱保护分离与合法静音，见[合同](BASIC_PIANO_MIX_CONTRACT.md)。草稿仍非实时音频；EQ/主题/整页设计继续独立评估。
 
 ## 15. 计划维护规则
 
@@ -381,3 +381,9 @@ Candidate fan-out 使用独立 `candidate_id + seed + CandidateState`；fan-in r
 - 每个具体计划和验收报告列出覆盖的 `MF-Pxx`；若某个首版需求连续两个阶段没有对应任务或 Eval，视为路线漂移并在继续前复核。
 
 后续前端/混音/素材接口与顺序已另交本任务说明；本仓库新增声音或来源能力仍需自己的版本合同与运行证据，不能从设计交付推为完成。
+
+### M1 后置硬化与下一设计边界
+
+- M1-R1 / Minor：静音 v4 candidate recipe 仍固定 non-silence.v1，policy 沿旧名。执行当前不消费此标签，实际可信静音/重建通过；消费 validation_rules、Inspector 升级或公开发布前，修正新配方标签并保持旧 recipe hash 兼容，补静音 fixture。不把它写成已修复。
+- 默认并行 Web 的两项既有异步等待超时保留原始记录；完整单 worker 109 项通过。需要并行 CI 门时再定位，不从一次串行通过推成稳定性修复。
+- 用户新要求重新研究配色，保留整洁基础结构，专业旋钮/推子/频谱与三段 EQ 响应曲线由前端线交原型。M1 无整页重排或模拟 EQ；真实 EQ 在基础门完成后再评估低资源、预览/导出同源实现，不自动启动下一功能。

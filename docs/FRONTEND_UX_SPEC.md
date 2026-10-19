@@ -308,3 +308,8 @@ Compare 页面始终基于完整 Candidate Snapshot/IR；A/B 音频使用完整�
 - 色彩和动画没有降低时间线可读性。
 - 用户能区分 `available/evicted/missing/rehydrating`，外置盘断开不会静默改写内置盘。
 - 回收候选试听后仍能显式重建；最终 Master WAV/选择的 Stem 仍可按需完整导出。
+
+
+## 2026-10-19 M1 保存版音频语义
+
+双钢琴 Mixer 修改草稿，显式保存后生成新版音频；标明当前播放为保存版，提供该 Revision 的试听/导出入口。reset 回当前保存值，原谱音符继续锁定。本门无实时混音、EQ 或主题/整页重排。详见[版本合同](BASIC_PIANO_MIX_CONTRACT.md)和[实测边界](evidence/2026-10-19-m1-basic-mixing.md)。

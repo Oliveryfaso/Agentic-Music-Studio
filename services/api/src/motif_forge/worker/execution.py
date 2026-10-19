@@ -49,6 +49,7 @@ from motif_forge.audio.transcode import (
 from motif_forge.config import Settings
 from motif_forge.domain.export_plan import (
     EnsembleExportPlanV4,
+    MixExportPlanV5,
     PianoExportPlanV3,
     verify_export_plan_revision,
 )
@@ -62,9 +63,11 @@ from motif_forge.domain.media_jobs import (
     CandidatePreviewJobPayload,
     CandidatePreviewJobPayloadV2,
     CandidatePreviewJobPayloadV3,
+    CandidatePreviewJobPayloadV4,
     CanonicalRenderJobPayload,
     CanonicalRenderJobPayloadV2,
     CanonicalRenderJobPayloadV3,
+    CanonicalRenderJobPayloadV4,
     EnsembleExportBundleArtifactV4,
     ExportBundleArtifact,
     ExportBundleArtifactV2,
@@ -80,6 +83,7 @@ from motif_forge.domain.media_jobs import (
     MediaJob,
     MediaJobType,
     MediaQualityProfile,
+    MixExportBundleArtifactV5,
     PianoExportBundleArtifactV3,
     RebuildInputArtifact,
     RebuildRecipe,
@@ -418,7 +422,9 @@ async def execute_media_job(
                 assert source is not None
                 cancel_event = threading.Event()
                 media_result = await _await_work_or_cancellation(
-                    _execute_export_transcode(claimed, source, settings, cancel_event=cancel_event),
+                    _execute_export_transcode(
+                        claimed, source, settings, uow=uow, cancel_event=cancel_event
+                    ),
                     job_id=claimed.job_id,
                     uow=uow,
                     on_cancel=cancel_event.set,
@@ -1111,7 +1117,9 @@ def _parse_ingest_payload(job: MediaJob) -> IngestJobPayload:
 
 def _parse_canonical_render_payload(job: MediaJob) -> CanonicalRenderJobPayload:
     model = (
-        CanonicalRenderJobPayloadV3
+        CanonicalRenderJobPayloadV4
+        if job.input_payload.get("schema_version") == "canonical-render-job.v4"
+        else CanonicalRenderJobPayloadV3
         if job.input_payload.get("schema_version") == "canonical-render-job.v3"
         else CanonicalRenderJobPayloadV2
         if job.input_payload.get("schema_version") == "canonical-render-job.v2"
@@ -1122,7 +1130,9 @@ def _parse_canonical_render_payload(job: MediaJob) -> CanonicalRenderJobPayload:
 
 def _parse_candidate_preview_payload(job: MediaJob) -> CandidatePreviewJobPayload:
     model = (
-        CandidatePreviewJobPayloadV3
+        CandidatePreviewJobPayloadV4
+        if job.input_payload.get("schema_version") == "candidate-preview-job.v4"
+        else CandidatePreviewJobPayloadV3
         if job.input_payload.get("schema_version") == "candidate-preview-job.v3"
         else CandidatePreviewJobPayloadV2
         if job.input_payload.get("schema_version") == "candidate-preview-job.v2"
@@ -1248,7 +1258,9 @@ async def _execute_export_bundle(
     if isinstance(payload, ExportBundleJobPayloadV2):
         receipt_values.update(plan=payload.plan, plan_hash=payload.plan_hash)
         receipt_type = (
-            EnsembleExportBundleArtifactV4
+            MixExportBundleArtifactV5
+            if isinstance(payload.plan, MixExportPlanV5)
+            else EnsembleExportBundleArtifactV4
             if isinstance(payload.plan, EnsembleExportPlanV4)
             else PianoExportBundleArtifactV3
             if isinstance(payload.plan, PianoExportPlanV3)
@@ -1265,6 +1277,7 @@ async def _execute_export_transcode(
     source: AudioArtifact,
     settings: Settings,
     *,
+    uow: PostgresMediaJobUnitOfWork | None = None,
     cancel_event: threading.Event | None = None,
 ) -> Mp3TranscodeResult:
     payload = _parse_export_mp3_payload(job)
@@ -1278,6 +1291,22 @@ async def _execute_export_transcode(
         or source.arrangement_hash is None
     ):
         raise ExportTranscodeError("TRANSCODE_JOB_LINEAGE_INVALID")
+    allow_expected_silence = False
+    if source.encoder_version == "motif-forge-audio-engine.v4":
+        if uow is None:
+            raise ExportTranscodeError("TRANSCODE_JOB_LINEAGE_INVALID")
+        async with uow() as transaction:
+            revision = await transaction.get_revision(payload.revision_id)
+        if (
+            revision is None
+            or revision.project_id != job.project_id
+            or revision.content_hash != source.arrangement_hash
+        ):
+            raise ExportTranscodeError("TRANSCODE_JOB_LINEAGE_INVALID")
+        graph = compile_audio_graph(revision.arrangement_ir).graph
+        if graph.get("schemaVersion") != "audio-graph-spec.v4":
+            raise ExportTranscodeError("TRANSCODE_JOB_LINEAGE_INVALID")
+        allow_expected_silence = graph["expectedSilence"] is True
     return await asyncio.to_thread(
         transcode_master_to_mp3,
         artifact_root=settings.artifact_root,
@@ -1289,6 +1318,7 @@ async def _execute_export_transcode(
         expected_duration_seconds=source.duration_seconds or 0.0,
         timeout_seconds=payload.timeout_seconds,
         cancel_event=cancel_event,
+        allow_expected_silence=allow_expected_silence,
     )
 
 
@@ -1363,6 +1393,8 @@ async def _execute_candidate_preview(
             timeout_seconds=payload.timeout_seconds,
             bitrate_kbps=payload.bitrate_kbps,
             cancel_event=cancel_event,
+            allow_expected_silence=isinstance(payload, CandidatePreviewJobPayloadV4)
+            and payload.audio_graph["expectedSilence"] is True,
         )
         if (
             payload.expected_output_content_hash is not None

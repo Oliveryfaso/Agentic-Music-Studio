@@ -1,0 +1,4 @@
+{"status":"passed","checks":{"resetImmediateValue":"6","resetSavedGain":true,"draftOnlyBeforeSave":true,"reopenTrue":true,"browserSaves":1,"sourceExact":true,"noStaleAudio":true,"exactSavedUndo":true,"undoAuthoritativeHash":"f672c4175bc7ce74001144cd5dc9db5be94fd71a67d0b077f3928993d332b063","noStaleAudioAfterPriorExport":true,"invalidRejected":true,"savedAudioActuallyPlays":true},"audioProbes":11,"exports":["audible-export","silent-export"]}
+
+
+{"status": "m1_browser_and_real_audio_jobs_passed", "jobs": 19, "modelCalls": 0}

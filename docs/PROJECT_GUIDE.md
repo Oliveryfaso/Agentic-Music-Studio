@@ -2,7 +2,7 @@
 
 > 产品工作名：**Motif Forge**（音乐动机锻造台）
 > 文档状态：**架构基线已批准，详细合同已拆分**
-> 当前阶段（2026-10-19）：**P2.2 固定经典谱自然语言伴奏与1–4小节局部修改已验收**。复用P2.1原谱保护/双钢琴/同Parent的真实A/B、hash保留、重开/Undo/导出；新计划与0027、费用/恢复合同见 `P2_SEMANTIC_PIANO_CONTRACT.md`。仅此有界语义路径接通真实Flash，局部原和声固定；旧声音版本/四legacy策略兼容。不是多曲/通用导谱/自由编配、全部P2/P3、实时混音或音质达标。事实与反例见 `IMPLEMENTATION_STATUS.md` 和 `docs/evidence/2026-10-19-p22-semantic-piano.md`。
+> 当前阶段（2026-10-19）：**M1 双钢琴基础混音第一阶段已验收**。在已验收 P2.2 上，v3 显式进入 v4 混音，音量/声像/静音/独奏、草稿保存/重开/reset/精确 Undo 与同源试听导出已通；原谱 Track/音符/来源保持锁定。见 `BASIC_PIANO_MIX_CONTRACT.md` 与 `docs/evidence/2026-10-19-m1-basic-mixing.md`。不含实时混音、EQ/reverb/master、整页视觉重排、多曲或主观音质达标；旧声音版本/四 legacy 策略兼容。
 
 ---
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from contextlib import asynccontextmanager
@@ -154,7 +155,10 @@ class CommandBatchBody(ApiModel):
         if not isinstance(value, (list, tuple)):
             raise ValueError("commands must be an array")
         return tuple(
-            EDITOR_COMMAND_ADAPTER.validate_python(command, strict=False) for command in value
+            EDITOR_COMMAND_ADAPTER.validate_json(json.dumps(command, allow_nan=False), strict=True)
+            if isinstance(command, dict) and command.get("command_type") == "set_piano_mix"
+            else EDITOR_COMMAND_ADAPTER.validate_python(command, strict=False)
+            for command in value
         )
 
 

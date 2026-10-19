@@ -13,6 +13,7 @@ from motif_forge.domain.ir import (
     ArrangementIR,
     ArrangementIRV2,
     ArrangementIRV3,
+    ArrangementIRV4,
     Articulation,
     AudioClip,
     AudioSourceKind,
@@ -21,9 +22,11 @@ from motif_forge.domain.ir import (
     EnsemblePianoRenderProfile,
     KeyPoint,
     MeterPoint,
+    MixPianoRenderProfile,
     NoteClip,
     NoteEvent,
     PerformancePlan,
+    PianoMixState,
     PianoRenderProfile,
     ProvenanceRef,
     Section,
@@ -370,8 +373,19 @@ class RemoveAddedPianoTrackCommand(CommandEnvelope):
     payload: RemoveAddedPianoTrackPayload
 
 
+class SetPianoMixPayload(DomainModel):
+    mix: PianoMixState | None
+
+
+class SetPianoMixCommand(CommandEnvelope):
+    command_type: Literal["set_piano_mix"] = "set_piano_mix"
+    actor_kind: Literal["human"] = "human"
+    payload: SetPianoMixPayload
+
+
 EditorCommand = Annotated[
     InitializeCompositionCommand
+    | SetPianoMixCommand
     | AppendPianoTrackCommand
     | AgentAppendPianoTrackCommand
     | ReplacePianoRangeCommand
@@ -581,6 +595,90 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
     # The discriminated command model guarantees the payload pairing at parse time. Pydantic's
     # plugin does not currently preserve that relationship when narrowing the union below.
     payload: Any = command.payload
+    if isinstance(command, SetPianoMixCommand):
+        if not isinstance(arrangement, ArrangementIRV3) or len(arrangement.tracks) != 2:
+            raise issue(
+                "PIANO_MIX_PROFILE_UNSUPPORTED",
+                "piano_mix",
+                "mix mode requires a saved two-part piano profile",
+            )
+        if (
+            set(command.selection.track_ids) != {t.track_id for t in arrangement.tracks}
+            or len(command.selection.track_ids) != 2
+            or command.selection.start_tick is not None
+        ):
+            raise issue(
+                "PIANO_MIX_SELECTION_INVALID",
+                "piano_mix",
+                "the mix must preserve the finite two-track contract",
+            )
+        data = arrangement.model_dump(mode="python")
+        if payload.mix is None:
+            if not isinstance(arrangement, ArrangementIRV4):
+                raise issue(
+                    "PIANO_MIX_PROFILE_UNSUPPORTED",
+                    "piano_mix",
+                    "mix mode requires a saved two-part piano profile",
+                )
+            data.pop("piano_mix")
+            data.update(
+                schema_version="arrangement-ir.v3", render_profile=EnsemblePianoRenderProfile()
+            )
+            return ArrangementIRV3.model_validate(data)
+        if any(
+            not -60 <= t.gain_db <= 6
+            or any(abs(v) > 12 for v in (t.eq.low_db, t.eq.mid_db, t.eq.high_db))
+            for t in arrangement.tracks
+        ):
+            raise issue(
+                "PIANO_MIX_LEGACY_RANGE",
+                "piano_mix",
+                "the mix must preserve the finite two-track contract",
+            )
+        if {item.track_id for item in payload.mix.tracks} != {
+            t.track_id for t in arrangement.tracks
+        }:
+            raise issue(
+                "PIANO_MIX_TRACKS_INVALID",
+                "piano_mix",
+                "the mix must preserve the finite two-track contract",
+            )
+        data.update(
+            schema_version="arrangement-ir.v4",
+            render_profile=MixPianoRenderProfile(),
+            piano_mix=payload.mix,
+        )
+        return ArrangementIRV4.model_validate(data)
+    if isinstance(arrangement, ArrangementIRV4):
+        if isinstance(
+            command,
+            (
+                AppendPianoTrackCommand,
+                AgentAppendPianoTrackCommand,
+                RemoveAddedPianoTrackCommand,
+                SetPianoProfileCommand,
+                AddTrackCommand,
+                DeleteTrackCommand,
+                ImportAudioCommand,
+                InitializeCompositionCommand,
+            ),
+        ):
+            raise issue(
+                "PIANO_MIX_STRUCTURE_UNSUPPORTED",
+                "tracks",
+                "leave mix mode explicitly before changing the piano structure",
+            )
+        if isinstance(command, SetTrackParamCommand) and payload.parameter in {
+            "gain_db",
+            "pan",
+            "mute",
+            "solo",
+        }:
+            raise issue(
+                "PIANO_MIX_PARAMETER_CONFLICT",
+                "piano_mix",
+                "mix mode owns gain, pan, mute and solo",
+            )
     if isinstance(command, (AppendPianoTrackCommand, AgentAppendPianoTrackCommand)):
         if not isinstance(arrangement, ArrangementIRV2) or len(arrangement.tracks) != 1:
             raise issue(

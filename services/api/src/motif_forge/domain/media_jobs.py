@@ -11,7 +11,12 @@ from uuid import UUID
 
 from pydantic import Field, SerializerFunctionWrapHandler, model_serializer, model_validator
 
-from motif_forge.domain.export_plan import EnsembleExportPlanV4, ExportPlanValue, PianoExportPlanV3
+from motif_forge.domain.export_plan import (
+    EnsembleExportPlanV4,
+    ExportPlanValue,
+    MixExportPlanV5,
+    PianoExportPlanV3,
+)
 from motif_forge.domain.ir import DomainModel
 
 
@@ -219,6 +224,44 @@ class CandidatePreviewJobPayloadV3(CandidatePreviewJobPayload):
     def validate_piano_graph(self) -> Self:
         if self.audio_graph.get("schemaVersion") != "audio-graph-spec.v3":
             raise ValueError("AUDIO_GRAPH_SCHEMA_UNSUPPORTED")
+        return self
+
+
+def _validate_mix_graph(graph: dict[str, Any]) -> None:
+    tracks = graph.get("tracks")
+    if (
+        graph.get("schemaVersion") != "audio-graph-spec.v4"
+        or not isinstance(tracks, list)
+        or not tracks
+        or any(
+            not isinstance(track, dict) or type(track.get("audible")) is not bool
+            for track in tracks
+        )
+    ):
+        raise ValueError("AUDIO_GRAPH_MIX_INVALID")
+    if type(graph.get("expectedSilence")) is not bool or graph["expectedSilence"] != (
+        not any(track["audible"] for track in tracks)
+    ):
+        raise ValueError("AUDIO_GRAPH_EXPECTED_SILENCE_INVALID")
+
+
+class CanonicalRenderJobPayloadV4(CanonicalRenderJobPayload):
+    schema_version: Literal["canonical-render-job.v4"] = "canonical-render-job.v4"  # type: ignore[assignment]
+    audio_engine_version: Literal["motif-forge-audio-engine.v4"]  # type: ignore[assignment]
+
+    @model_validator(mode="after")
+    def validate_mix_graph(self) -> Self:
+        _validate_mix_graph(self.audio_graph)
+        return self
+
+
+class CandidatePreviewJobPayloadV4(CandidatePreviewJobPayload):
+    schema_version: Literal["candidate-preview-job.v4"] = "candidate-preview-job.v4"  # type: ignore[assignment]
+    audio_engine_version: Literal["motif-forge-audio-engine.v4"]  # type: ignore[assignment]
+
+    @model_validator(mode="after")
+    def validate_mix_graph(self) -> Self:
+        _validate_mix_graph(self.audio_graph)
         return self
 
 
@@ -804,11 +847,18 @@ class EnsembleExportBundleArtifactV4(PianoExportBundleArtifactV3):
     plan: EnsembleExportPlanV4
 
 
+class MixExportBundleArtifactV5(EnsembleExportBundleArtifactV4):
+    schema_version: Literal["export-bundle-artifact.v5"] = "export-bundle-artifact.v5"  # type: ignore[assignment]
+    engine_version: Literal["motif-forge-audio-engine.v4"]  # type: ignore[assignment]
+    plan: MixExportPlanV5
+
+
 ExportBundleArtifactValue = (
     ExportBundleArtifact
     | ExportBundleArtifactV2
     | PianoExportBundleArtifactV3
     | EnsembleExportBundleArtifactV4
+    | MixExportBundleArtifactV5
 )
 
 

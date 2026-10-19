@@ -450,14 +450,58 @@ def _validate_piano_performance[T: ArrangementIRV2](arrangement: T, *, maximum_t
     return arrangement
 
 
+class PianoTrackMix(DomainModel):
+    track_id: UUID
+    gain_db: float = Field(default=0.0, ge=-60.0, le=6.0, allow_inf_nan=False)
+    pan: float = Field(default=0.0, ge=-1.0, le=1.0, allow_inf_nan=False)
+    mute: bool = False
+    solo: bool = False
+
+
+class PianoMixState(DomainModel):
+    schema_version: Literal["piano-mix.v1"] = "piano-mix.v1"
+    tracks: tuple[PianoTrackMix, ...] = Field(min_length=1, max_length=2)
+
+    @model_validator(mode="after")
+    def unique_tracks(self) -> Self:
+        if len({item.track_id for item in self.tracks}) != len(self.tracks):
+            raise ValueError("PIANO_MIX_TRACKS_INVALID")
+        return self
+
+
+class MixPianoRenderProfile(EnsemblePianoRenderProfile):
+    engine_version: Literal["motif-forge-audio-engine.v4"] = "motif-forge-audio-engine.v4"  # type: ignore[assignment]
+
+
+class ArrangementIRV4(ArrangementIRV3):
+    schema_version: Literal["arrangement-ir.v4"] = "arrangement-ir.v4"  # type: ignore[assignment]
+    render_profile: MixPianoRenderProfile
+    piano_mix: PianoMixState
+
+    @model_validator(mode="after")
+    def validate_mix(self) -> Self:
+        if len(self.tracks) != 2:
+            raise ValueError("PIANO_MIX_PROFILE_UNSUPPORTED")
+        if {item.track_id for item in self.piano_mix.tracks} != {t.track_id for t in self.tracks}:
+            raise ValueError("PIANO_MIX_TRACKS_INVALID")
+        if any(
+            not -60 <= t.gain_db <= 6
+            or any(abs(value) > 12 for value in (t.eq.low_db, t.eq.mid_db, t.eq.high_db))
+            for t in self.tracks
+        ):
+            raise ValueError("PIANO_MIX_LEGACY_RANGE")
+        return self
+
+
 ArrangementValue = Annotated[
-    ArrangementIR | ArrangementIRV2 | ArrangementIRV3, Field(discriminator="schema_version")
+    ArrangementIR | ArrangementIRV2 | ArrangementIRV3 | ArrangementIRV4,
+    Field(discriminator="schema_version"),
 ]
 
 
 def read_arrangement_json(
     value: str | bytes, *, strict: Literal[True] = True
-) -> ArrangementIR | ArrangementIRV2 | ArrangementIRV3:
+) -> ArrangementIR | ArrangementIRV2 | ArrangementIRV3 | ArrangementIRV4:
     data: Any = json.loads(value)
     version = data.get("schema_version") if isinstance(data, dict) else None
     if version == "arrangement-ir.v1":
@@ -466,6 +510,8 @@ def read_arrangement_json(
         return ArrangementIRV2.model_validate_json(value, strict=strict)
     if version == "arrangement-ir.v3":
         return ArrangementIRV3.model_validate_json(value, strict=strict)
+    if version == "arrangement-ir.v4":
+        return ArrangementIRV4.model_validate_json(value, strict=strict)
     raise ValueError("IR_SCHEMA_VERSION_UNSUPPORTED")
 
 

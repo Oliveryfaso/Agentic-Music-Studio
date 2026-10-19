@@ -12,6 +12,7 @@ from motif_forge.domain.ir import (
     ArrangementIRV2,
     DomainModel,
     EnsemblePianoRenderProfile,
+    MixPianoRenderProfile,
     MusicalMode,
     NoteClip,
     NoteEvent,
@@ -105,7 +106,7 @@ def compile_piano_plan(
             ),
         )
     if (
-        version != "arrangement-ir.v3"
+        version not in ("arrangement-ir.v3", "arrangement-ir.v4")
         or len(base.tracks) != 2
         or not 1 <= start_bar <= end_bar <= 16
         or end_bar - start_bar >= 4
@@ -158,7 +159,7 @@ def _require_source(base: ArrangementIR) -> ArrangementIRV2:
     version = str(base.schema_version)
     if (
         not isinstance(base, ArrangementIRV2)
-        or version not in ("arrangement-ir.v2", "arrangement-ir.v3")
+        or version not in ("arrangement-ir.v2", "arrangement-ir.v3", "arrangement-ir.v4")
         or not base.tracks
         or base.ppq != 480
         or base.duration_tick != 17 * _BAR_TICKS
@@ -176,7 +177,11 @@ def _require_source(base: ArrangementIR) -> ArrangementIRV2:
     ):
         raise ValueError("CLASSICAL_SOURCE_REQUIRED")
     expected_profile = (
-        EnsemblePianoRenderProfile() if version == "arrangement-ir.v3" else PianoRenderProfile()
+        MixPianoRenderProfile()
+        if version == "arrangement-ir.v4"
+        else EnsemblePianoRenderProfile()
+        if version == "arrangement-ir.v3"
+        else PianoRenderProfile()
     )
     source = base.tracks[0]
     if (
