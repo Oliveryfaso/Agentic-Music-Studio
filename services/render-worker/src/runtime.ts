@@ -2,6 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { createWriteStream } from "node:fs";
 import { mkdir, readFile, rename, stat, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
+import type { ReviewedInstrumentCatalog } from "./instrument-catalog.js";
 
 type OutputSink = {
   finalPath: string;
@@ -33,8 +34,23 @@ export async function withTimeout<T>(
   }
 }
 
+// Probe-only startup handoff: keep cleanup ownership if its budget trips during launch.
+export async function launchWithinProbeBudget<T extends { close(): Promise<void> }>(
+  launch: () => Promise<T>,
+  budgetTripped: () => boolean,
+): Promise<T> {
+  if (budgetTripped()) throw new Error("PIANO_PROBE_RESOURCE_GUARD");
+  const resource = await launch();
+  if (budgetTripped()) {
+    await resource.close();
+    throw new Error("PIANO_PROBE_RESOURCE_GUARD");
+  }
+  return resource;
+}
+
 export class LoopbackRenderServer {
   readonly #sinks = new Map<string, OutputSink>();
+  readonly #instrumentPacks = new Map<string, ReviewedInstrumentCatalog>();
   readonly #pageBundlePath: string;
   readonly #sampleBytes: Uint8Array;
   readonly #server;
@@ -74,6 +90,13 @@ export class LoopbackRenderServer {
     this.#sinks.set(token, { finalPath, maximumBytes, cancelled: false });
   }
 
+  registerInstrumentPack(token: string, catalog: ReviewedInstrumentCatalog): void {
+    if (!/^[a-f0-9]{32}$/.test(token) || this.#instrumentPacks.has(token)) {
+      throw new Error("INSTRUMENT_CATALOG_TOKEN_INVALID");
+    }
+    this.#instrumentPacks.set(token, catalog);
+  }
+
   async cancelSink(token: string): Promise<void> {
     const sink = this.#sinks.get(token);
     if (sink === undefined) return;
@@ -86,6 +109,7 @@ export class LoopbackRenderServer {
   }
 
   async close(): Promise<void> {
+    this.#instrumentPacks.clear();
     await new Promise<void>((resolve, reject) => {
       this.#server.close((error) => (error === undefined ? resolve() : reject(error)));
     });
@@ -115,6 +139,15 @@ export class LoopbackRenderServer {
         });
         response.end(this.#sampleBytes);
         return;
+      }
+      const sampleMatch = request.url?.match(/^\/instrument-packs\/([a-f0-9]{32})\/([A-Za-z0-9:._-]{1,100})\.wav$/);
+      if (request.method === "GET" && sampleMatch?.[1] !== undefined && sampleMatch[2] !== undefined) {
+        const catalog = this.#instrumentPacks.get(sampleMatch[1]);
+        const sample = catalog?.sample(sampleMatch[2]);
+        if (sample === undefined) { response.writeHead(404).end(); return; }
+        response.writeHead(200, {"Content-Type": "audio/wav", "Content-Length": sample.byteLength,
+          "Cache-Control": "private, max-age=3600, immutable"});
+        response.end(sample); return;
       }
       const match = request.url?.match(/^\/outputs\/([a-f0-9]{32})$/);
       if (request.method === "POST" && match?.[1] !== undefined) {

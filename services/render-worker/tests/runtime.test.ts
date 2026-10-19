@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { createBuiltinClickWav, LoopbackRenderServer, withTimeout } from "../src/runtime.js";
+import { createBuiltinClickWav, LoopbackRenderServer, launchWithinProbeBudget, withTimeout } from "../src/runtime.js";
 
 describe("render worker runtime", () => {
   it("creates a deterministic PCM WAV for the built-in sampler", () => {
@@ -119,4 +119,18 @@ it("preserves the timeout label when page teardown rejects the render operation"
   await vi.advanceTimersByTimeAsync(25);
   await rejection;
   vi.useRealTimers();
+});
+
+// Regression: a budget trip during asynchronous Chromium startup must retain cleanup ownership.
+it("closes a browser that finishes launching after the probe budget trips", async () => {
+  let resolveLaunch!: (browser: { close: () => Promise<void> }) => void;
+  const launch = new Promise<{ close: () => Promise<void> }>((resolve) => { resolveLaunch = resolve; });
+  let budgetTripped = false;
+  const close = vi.fn(async () => undefined);
+  const pending = launchWithinProbeBudget(() => launch, () => budgetTripped);
+  const rejected = expect(pending).rejects.toThrow("PIANO_PROBE_RESOURCE_GUARD");
+  budgetTripped = true;
+  resolveLaunch({ close });
+  await rejected;
+  expect(close).toHaveBeenCalledTimes(1);
 });

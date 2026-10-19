@@ -3,20 +3,20 @@
 > **For agentic workers:** 实施本路线中的具体纵切前，必须先为该纵切建立 `docs/superpowers/plans/YYYY-MM-DD-<slice>.md`，再使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 逐项执行。
 > 状态：已批准的主路线；S2 Task 6 起采用 ADR-016 作品集工程模式
 > 起点：受控 Upload → Import → 分析 HITL → 保持音高对齐 → Web Preview 已完成
-> 执行断点（2026-10-19）：G0 与 S1–S7 为已完成历史门。用户已授权古典/爵士产品改造，当前已完成 **P0、P1-A1、包合同准备及A2.1内部导出子门**（ADR-019），不是重新打开S7。A2.2/B仍等隔离PG，真实钢琴音乐功能未实施，具体任务见下表与P1计划。
+> 执行断点（2026-10-19）：G0 与 S1–S7 为已完成历史门。用户已授权古典/爵士产品改造，当前已完成 **P0、P1-A1、包合同准备及A2.1内部导出子门**（ADR-019），不是重新打开S7。C1真实钢琴内部边界已验、隔离PG资源已解阻；下一生产A2.2/B接线前先完成用户要求的测试精简，见最新证据。
 
 ## 当前产品改造入口（P0–P5）
 
 | 阶段 | 当前状态/依赖 | 交付与证据 |
 |---|---|---|
 | P0 | 本轮测量与计划同步；只读旧导出包，未启动 DB/UI | [实施账本](superpowers/plans/2026-10-19-p0-product-baseline.md)、[实测报告](evidence/2026-10-19-p0-baseline.md) |
-| P1 | A1/包合同/A2.1已验；包内许可/SFZ文本已核，WAV等兼容解压；A2.2/B等PG（VM共享映像卷只读），钢琴待实施 | [最小钢琴计划](superpowers/plans/2026-10-19-p1-minimal-piano.md)：容量/共享 VM 边界→v1/v2 合同→小型 CC0 钢琴→表达/A-B/Undo |
+| P1 | A1/包合同/A2.1/C1内部真实钢琴已验；共享卷读写与解压/隔离PG门通过；生产A2.2/B及持久Undo/UI仍待实施 | [最小钢琴计划](superpowers/plans/2026-10-19-p1-minimal-piano.md)：容量/共享 VM 边界→v1/v2 合同→小型 CC0 钢琴→表达/A-B/Undo |
 | P2 | P1 后 | 少量合法经典谱、原谱保护、添加轨道与局部改编 |
 | P3 | P1/P2 可听基线后 | 有界结构/动机生成与爵士节奏组质量，真实模型验收另行预算 |
 | P4 | 测量从 P0 起；功能随证据进入 | 按需音源/渲染、缓存冻结、生命周期、Studio 性能 |
 | P5 | 质量/资源门通过后 | 室内乐和更完整管弦乐，基于实际编制决定轨数合同 |
 
-用户已续授权独立推进A2/B；不自动执行P2–P5。P1-A1证据见[容量报告](evidence/2026-10-19-p1a-render-capacity.md)，包合同/短适配及[A2.1内部导出合同/文件边界](evidence/2026-10-19-p1-a2-contract.md)已验，真实包仍隔离。下一生产Task为A2.2同一Parent/Worker/权威读模型接线，须先取得可验的隔离PostgreSQL；B持久音乐v2按双读/Undo/迁移顺序推进。音源许可/SFZ文本已用现有工具核验，WAV仍需兼容已批准解压能力，7-Zip未运行；PG真实阻塞是共享UnityWorkspace映像卷只读，需确认普通弹出/读写重挂，详见[资源核查](evidence/2026-10-19-p1-source-storage-audit.md)。电子风格将退出默认新建入口但保留旧 IDs/作品/声音/导出；P0 尚未过滤当前 UI。以下 S1–S7 表与数量为历史验收/原始追踪，不能误读为当前活动任务。
+用户已续授权独立推进A2/B，不自动执行P2–P5。最新[C1证据](evidence/2026-10-19-p1-c1-real-piano.md)证明真实小包→catalog→共享adapter→WAV，不能替代生产IR/Job/API/UI。普通共享映像读写重挂、任务内7-Zip均已明确批准并执行；隔离PG真实2 passed，资源阻塞解除，自有容器/凭据已清理。下一Task先完成最小测试结构精简与技术栈评估，再A2.2同一Parent/Worker/权威读模型接线，B按音乐v2双读/Commands/Undo/迁移guard推进。电子风格默认入口调整仍未实施；旧IDs/作品/声音/导出保留。以下S1–S7数量为历史验收，不能当成当前任务。
 
 **目标：** 从当前可靠的导入底座，按最短依赖路径完成“可生成、可听、可编辑、可恢复、可评测”的 Agentic Music Studio。
 

@@ -1,0 +1,1512 @@
+{
+  "stage": "P1-C1 internal real piano boundary",
+  "requirements": [
+    "MF-P02",
+    "MF-P05",
+    "MF-P10",
+    "MF-P15",
+    "MF-P16",
+    "MF-P17",
+    "MF-P18",
+    "MF-P21"
+  ],
+  "baseCommit": "6099fcac8a9b432fdca935d0dca0e8c635c3e73a",
+  "guideLastChangedCommit": "e3d943844b77c177b93437abfe530c989989feee",
+  "runtime": {
+    "schemaVersion": "real-piano-boundary.v1",
+    "date": "2026-10-19T03:05:03.192Z",
+    "scope": "audited pack -> nonce catalog -> shared adapter -> OfflineAudioContext WAV; no production v2 IR/Job/UI",
+    "packId": "freepats:upright-kw-small",
+    "packVersion": "2019-07-03.motif1",
+    "manifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813",
+    "sourceArchiveSha256": "ffb547fceb91eeb93d78cf8d220d1d5f726dcac891afc15e517805ac48abb39d",
+    "scoreSha256": "f2b6a3cf81f5225d145a86ebb15257958507421e52e0a8df85c882aaa9b5fbec",
+    "chromiumVersion": "151.0.7922.34",
+    "pedalSupported": false,
+    "subjectiveQualityMeasured": false,
+    "providerRequests": 0,
+    "providerTokens": 0,
+    "normalization": "common full-buffer RMS target .04, capped at peak .95; not LUFS or perceived loudness matching",
+    "loadDecodeMs": 214,
+    "decodedBufferBytes": 20575408,
+    "verifiedSamples": 26,
+    "originalScoreUnchanged": true,
+    "missingPackHttpStatus": 404,
+    "results": [
+      {
+        "variant": "legacy",
+        "renderAndWriteMs": 1854.3999998569489,
+        "bytes": 8640044,
+        "rawRms": 0.021697291143024114,
+        "gain": 1.8435481063662817,
+        "normalizedRms": 0.04,
+        "tailRmsAfter28": 0
+      },
+      {
+        "variant": "piano-mechanical",
+        "renderAndWriteMs": 807.9000000953674,
+        "bytes": 8640044,
+        "rawRms": 0.04034713542534539,
+        "gain": 0.9913962807598151,
+        "normalizedRms": 0.04,
+        "tailRmsAfter28": 0
+      },
+      {
+        "variant": "piano-expression",
+        "renderAndWriteMs": 804.7000000476837,
+        "bytes": 8640044,
+        "rawRms": 0.038864907602834085,
+        "gain": 1.029206100494708,
+        "normalizedRms": 0.039999999999999994,
+        "tailRmsAfter28": 0
+      },
+      {
+        "variant": "rollback",
+        "renderAndWriteMs": 1822.3999998569489,
+        "bytes": 8640044,
+        "rawRms": 0.02169729113739944,
+        "gain": 1.843548106844192,
+        "normalizedRms": 0.04,
+        "tailRmsAfter28": 0
+      }
+    ],
+    "files": [
+      {
+        "filename": "legacy.wav",
+        "bytes": 8640044,
+        "sha256": "570c79ee34e249d19d2317cf95d6d09e6eb4e13dd56530e2b7b4b1499f45d41a"
+      },
+      {
+        "filename": "piano-mechanical.wav",
+        "bytes": 8640044,
+        "sha256": "a4e234c2f7bfe85d0196658d9b0f6b2598d3e47deffac00f4b0515f7199f0703"
+      },
+      {
+        "filename": "piano-expression.wav",
+        "bytes": 8640044,
+        "sha256": "7c40e862c19f947a5aff8197172c56367a52f4e6ff0e3d666146e0f7f566f181"
+      },
+      {
+        "filename": "rollback.wav",
+        "bytes": 8640044,
+        "sha256": "9c4c3681bb3a8a848f1d70a54da65dc2e0342f381cbdcd2f19bf6bd8526f86d3"
+      }
+    ],
+    "resource": {
+      "method": "200ms aggregate RSS of this Node process and descendants; shared pages may double count; sampled, excludes VM/PG and other services",
+      "rssGuardBytes": 3221225472,
+      "guardTripped": false,
+      "sampleCount": 33,
+      "sampledMaximumProcessTreeRssBytes": 1246576640
+    }
+  },
+  "independentWaveCheck": {
+    "method": "independent stdlib wave/PCM24 read, pinned file SHA; waveform differences do not establish musical quality",
+    "files": [
+      {
+        "file": "legacy.wav",
+        "rms": 0.039999996509443664,
+        "peak": 0.18854224681854248,
+        "tailMaximumLsb": 0
+      },
+      {
+        "file": "piano-mechanical.wav",
+        "rms": 0.03999999662397085,
+        "peak": 0.2558002471923828,
+        "tailMaximumLsb": 0
+      },
+      {
+        "file": "piano-expression.wav",
+        "rms": 0.039999996603097214,
+        "peak": 0.30310535430908203,
+        "tailMaximumLsb": 0
+      },
+      {
+        "file": "rollback.wav",
+        "rms": 0.039999996510596825,
+        "peak": 0.18854224681854248,
+        "tailMaximumLsb": 0
+      }
+    ],
+    "rollbackMaximumLsb": 1,
+    "oldVsPianoDifferenceRms": 0.056815133619135115,
+    "mechanicalVsExpressionDifferenceRms": 0.02858167784647945,
+    "passed": true
+  },
+  "sourceAudit": {
+    "schemaVersion": "piano-wave-audit.v1",
+    "samplesVerified": 26,
+    "sampleRates": [
+      44100
+    ],
+    "channels": [
+      1
+    ],
+    "bitDepths": [
+      16
+    ],
+    "encodedBytes": 9452994,
+    "maximumEstimatedDecodedBytesAt48k": 20575508,
+    "loopCount": 12,
+    "sfzLoopEndInclusiveConvertedToExclusive": true,
+    "loopSemanticSource": "https://sfzformat.com/opcodes/loop_end/",
+    "packManifestSha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813",
+    "manifestStatus": "audited candidate for internal render; not yet production catalog",
+    "details": [
+      {
+        "sample": "kw-root-24",
+        "durationSeconds": 9.629773242630385,
+        "loopEndWithinSource": true
+      },
+      {
+        "sample": "kw-root-30",
+        "durationSeconds": 7.9721541950113375,
+        "loopEndWithinSource": true
+      },
+      {
+        "sample": "kw-root-35",
+        "durationSeconds": 8.320816326530613,
+        "loopEndWithinSource": true
+      },
+      {
+        "sample": "kw-root-39",
+        "durationSeconds": 9.03530612244898,
+        "loopEndWithinSource": true
+      },
+      {
+        "sample": "kw-root-42",
+        "durationSeconds": 8.923514739229025,
+        "loopEndWithinSource": true
+      },
+      {
+        "sample": "kw-root-47",
+        "durationSeconds": 7.73952380952381,
+        "loopEndWithinSource": true
+      },
+      {
+        "sample": "kw-root-51",
+        "durationSeconds": 5.449659863945579,
+        "loopEndWithinSource": true
+      },
+      {
+        "sample": "kw-root-54",
+        "durationSeconds": 6.023809523809524,
+        "loopEndWithinSource": true
+      },
+      {
+        "sample": "kw-root-57",
+        "durationSeconds": 4.236213151927438,
+        "loopEndWithinSource": true
+      },
+      {
+        "sample": "kw-root-60",
+        "durationSeconds": 4.838888888888889,
+        "loopEndWithinSource": true
+      },
+      {
+        "sample": "kw-root-63",
+        "durationSeconds": 4.93453514739229,
+        "loopEndWithinSource": true
+      },
+      {
+        "sample": "kw-root-66",
+        "durationSeconds": 4.202857142857143,
+        "loopEndWithinSource": true
+      },
+      {
+        "sample": "kw-root-69",
+        "durationSeconds": 2.9593197278911565,
+        "loopEndWithinSource": null
+      },
+      {
+        "sample": "kw-root-72",
+        "durationSeconds": 3.470294784580499,
+        "loopEndWithinSource": null
+      },
+      {
+        "sample": "kw-root-75",
+        "durationSeconds": 3.1575963718820863,
+        "loopEndWithinSource": null
+      },
+      {
+        "sample": "kw-root-78",
+        "durationSeconds": 1.9666666666666666,
+        "loopEndWithinSource": null
+      },
+      {
+        "sample": "kw-root-81",
+        "durationSeconds": 2.839206349206349,
+        "loopEndWithinSource": null
+      },
+      {
+        "sample": "kw-root-84",
+        "durationSeconds": 2.2102267573696146,
+        "loopEndWithinSource": null
+      },
+      {
+        "sample": "kw-root-87",
+        "durationSeconds": 1.8361451247165532,
+        "loopEndWithinSource": null
+      },
+      {
+        "sample": "kw-root-90",
+        "durationSeconds": 1.2555555555555555,
+        "loopEndWithinSource": null
+      },
+      {
+        "sample": "kw-root-93",
+        "durationSeconds": 1.251655328798186,
+        "loopEndWithinSource": null
+      },
+      {
+        "sample": "kw-root-96",
+        "durationSeconds": 1.791201814058957,
+        "loopEndWithinSource": null
+      },
+      {
+        "sample": "kw-root-99",
+        "durationSeconds": 0.7080498866213152,
+        "loopEndWithinSource": null
+      },
+      {
+        "sample": "kw-root-102",
+        "durationSeconds": 0.6682539682539682,
+        "loopEndWithinSource": null
+      },
+      {
+        "sample": "kw-root-105",
+        "durationSeconds": 0.9079818594104309,
+        "loopEndWithinSource": null
+      },
+      {
+        "sample": "kw-root-107",
+        "durationSeconds": 0.834625850340136,
+        "loopEndWithinSource": null
+      }
+    ]
+  },
+  "reviewedManifest": {
+    "adapterVersion": "multisample-buffer-source.v1",
+    "license": {
+      "spdx": "CC0-1.0",
+      "textSha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+    },
+    "maxVoices": 32,
+    "packId": "freepats:upright-kw-small",
+    "packVersion": "2019-07-03.motif1",
+    "pedal": "unsupported",
+    "releaseSeconds": 0.6,
+    "releaseTriggers": "unsupported",
+    "samples": [
+      {
+        "bitDepth": 16,
+        "byteSize": 849390,
+        "channels": 1,
+        "frames": 424673,
+        "keyHi": 26,
+        "keyLo": 21,
+        "loop": {
+          "endFrame": 424658,
+          "startFrame": 306378
+        },
+        "path": "samples/C1vH.wav",
+        "rootMidi": 24,
+        "sampleId": "kw-root-24",
+        "sampleRate": 44100,
+        "sha256": "a224065b4d1de1b22dc1df11cab2605db4c5418c8c74670bb91a8fbf1c7496e3",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 703188,
+        "channels": 1,
+        "frames": 351572,
+        "keyHi": 32,
+        "keyLo": 27,
+        "loop": {
+          "endFrame": 351557,
+          "startFrame": 240705
+        },
+        "path": "samples/F#1vH.wav",
+        "rootMidi": 30,
+        "sampleId": "kw-root-30",
+        "sampleRate": 44100,
+        "sha256": "35c207245134443da070bfa3939fa856b78c717e8263118f862445a732286011",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 733940,
+        "channels": 1,
+        "frames": 366948,
+        "keyHi": 36,
+        "keyLo": 33,
+        "loop": {
+          "endFrame": 366933,
+          "startFrame": 256475
+        },
+        "path": "samples/B1vH.wav",
+        "rootMidi": 35,
+        "sampleId": "kw-root-35",
+        "sampleRate": 44100,
+        "sha256": "ec5757380bd1b14e58456d71ae9218ef253b78e17d5b2d1bf77ee3769fa55e71",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 796958,
+        "channels": 1,
+        "frames": 398457,
+        "keyHi": 40,
+        "keyLo": 37,
+        "loop": {
+          "endFrame": 398442,
+          "startFrame": 288169
+        },
+        "path": "samples/D#2vH.wav",
+        "rootMidi": 39,
+        "sampleId": "kw-root-39",
+        "sampleRate": 44100,
+        "sha256": "98dd69cf99540257f9035a97bb0e8a7151dc59915367db1fd835ae7030c0fd6a",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 787098,
+        "channels": 1,
+        "frames": 393527,
+        "keyHi": 44,
+        "keyLo": 41,
+        "loop": {
+          "endFrame": 393512,
+          "startFrame": 250236
+        },
+        "path": "samples/F#2vH.wav",
+        "rootMidi": 42,
+        "sampleId": "kw-root-42",
+        "sampleRate": 44100,
+        "sha256": "4ff1e71e79cfd8f7cf2dc3e2f6c9857fc7b47fb2a12774336ccb71ebe116d5f2",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 682670,
+        "channels": 1,
+        "frames": 341313,
+        "keyHi": 48,
+        "keyLo": 45,
+        "loop": {
+          "endFrame": 341298,
+          "startFrame": 238940
+        },
+        "path": "samples/B2vH.wav",
+        "rootMidi": 47,
+        "sampleId": "kw-root-47",
+        "sampleRate": 44100,
+        "sha256": "b6de881fdc81b2d40eaf4b2ed0a77c2cc78782ece86a917c6513d74f46817c3f",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 480704,
+        "channels": 1,
+        "frames": 240330,
+        "keyHi": 52,
+        "keyLo": 49,
+        "loop": {
+          "endFrame": 240315,
+          "startFrame": 162986
+        },
+        "path": "samples/D#3vH.wav",
+        "rootMidi": 51,
+        "sampleId": "kw-root-51",
+        "sampleRate": 44100,
+        "sha256": "fc214f9a50a0df5e4e668ce2d8686cbf2dd64254863fa51c2dce1f3fdb1362e3",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 531344,
+        "channels": 1,
+        "frames": 265650,
+        "keyHi": 55,
+        "keyLo": 53,
+        "loop": {
+          "endFrame": 265635,
+          "startFrame": 194343
+        },
+        "path": "samples/F#3vH.wav",
+        "rootMidi": 54,
+        "sampleId": "kw-root-54",
+        "sampleRate": 44100,
+        "sha256": "ee4ef934d1fd5a3e1f42a2b54ff8227032974822daded770637860022b0a66c2",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 373678,
+        "channels": 1,
+        "frames": 186817,
+        "keyHi": 58,
+        "keyLo": 56,
+        "loop": {
+          "endFrame": 186802,
+          "startFrame": 120679
+        },
+        "path": "samples/A3vH.wav",
+        "rootMidi": 57,
+        "sampleId": "kw-root-57",
+        "sampleRate": 44100,
+        "sha256": "2fe091f5d07238e68aeba150cd2f0bd21dcedc14bbb246bce9ce56febe2695c5",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 426834,
+        "channels": 1,
+        "frames": 213395,
+        "keyHi": 61,
+        "keyLo": 59,
+        "loop": {
+          "endFrame": 213380,
+          "startFrame": 145927
+        },
+        "path": "samples/C4vH.wav",
+        "rootMidi": 60,
+        "sampleId": "kw-root-60",
+        "sampleRate": 44100,
+        "sha256": "9eb060c0a86196673e38b7b9532a94c7f2c54960391aa1f5ae0b75079c5c9db3",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 435270,
+        "channels": 1,
+        "frames": 217613,
+        "keyHi": 64,
+        "keyLo": 62,
+        "loop": {
+          "endFrame": 217598,
+          "startFrame": 151896
+        },
+        "path": "samples/D#4vH.wav",
+        "rootMidi": 63,
+        "sampleId": "kw-root-63",
+        "sampleRate": 44100,
+        "sha256": "1bbe2555554a824f27af50e6f6982f04fcd03a86526e845b3f065b8b4bb702bd",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 370736,
+        "channels": 1,
+        "frames": 185346,
+        "keyHi": 67,
+        "keyLo": 65,
+        "loop": {
+          "endFrame": 185331,
+          "startFrame": 138527
+        },
+        "path": "samples/F#4vH.wav",
+        "rootMidi": 66,
+        "sampleId": "kw-root-66",
+        "sampleRate": 44100,
+        "sha256": "011156e087c1da7f8111f7486f9d6b9939c9ac1e378632c9c9c66ef1c278db8e",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 261056,
+        "channels": 1,
+        "frames": 130506,
+        "keyHi": 70,
+        "keyLo": 68,
+        "path": "samples/A4vH.wav",
+        "rootMidi": 69,
+        "sampleId": "kw-root-69",
+        "sampleRate": 44100,
+        "sha256": "5a4b83e4d64d523430b7496edc62d525519844ec13824e362e9a6cd9a63c710d",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 306124,
+        "channels": 1,
+        "frames": 153040,
+        "keyHi": 73,
+        "keyLo": 71,
+        "path": "samples/C5vH.wav",
+        "rootMidi": 72,
+        "sampleId": "kw-root-72",
+        "sampleRate": 44100,
+        "sha256": "8b1022b0c5adb5656f065220d9e56b02ff2b970ba0e24e97d4fc877fe0250aa4",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 278544,
+        "channels": 1,
+        "frames": 139250,
+        "keyHi": 76,
+        "keyLo": 74,
+        "path": "samples/D#5vH.wav",
+        "rootMidi": 75,
+        "sampleId": "kw-root-75",
+        "sampleRate": 44100,
+        "sha256": "9741c76e21a6f7b8ef802e8a88ab4002d94b61c4bf4ce13f64169b2139958dc6",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 173504,
+        "channels": 1,
+        "frames": 86730,
+        "keyHi": 79,
+        "keyLo": 77,
+        "path": "samples/F#5vH.wav",
+        "rootMidi": 78,
+        "sampleId": "kw-root-78",
+        "sampleRate": 44100,
+        "sha256": "7c977d422e69ef7c384cb40093416f92438f74ff392117d0b56db811cb8cde0a",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 250462,
+        "channels": 1,
+        "frames": 125209,
+        "keyHi": 82,
+        "keyLo": 80,
+        "path": "samples/A5vH.wav",
+        "rootMidi": 81,
+        "sampleId": "kw-root-81",
+        "sampleRate": 44100,
+        "sha256": "1f80bf1211b42367e0150e4cef87a3b213f85b9d14b14c7c35ac9ce2f8c85822",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 194986,
+        "channels": 1,
+        "frames": 97471,
+        "keyHi": 85,
+        "keyLo": 83,
+        "path": "samples/C6vH.wav",
+        "rootMidi": 84,
+        "sampleId": "kw-root-84",
+        "sampleRate": 44100,
+        "sha256": "ea1ea4cfbb11c622df0ab757fe0a7bacf6fbb7e6fc92e101ae6a9a398af47b19",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 161992,
+        "channels": 1,
+        "frames": 80974,
+        "keyHi": 88,
+        "keyLo": 86,
+        "path": "samples/D#6vH.wav",
+        "rootMidi": 87,
+        "sampleId": "kw-root-87",
+        "sampleRate": 44100,
+        "sha256": "3717889698e547a675d8a0ecc12d9298bfeea246a01dab7a4ded7777a084e935",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 110784,
+        "channels": 1,
+        "frames": 55370,
+        "keyHi": 91,
+        "keyLo": 89,
+        "path": "samples/F#6vH.wav",
+        "rootMidi": 90,
+        "sampleId": "kw-root-90",
+        "sampleRate": 44100,
+        "sha256": "699afcb8bcab4d1e74c2292cb67adcd2120395ddeb501c83bcc07cd041d58262",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 110440,
+        "channels": 1,
+        "frames": 55198,
+        "keyHi": 94,
+        "keyLo": 92,
+        "path": "samples/A6vH.wav",
+        "rootMidi": 93,
+        "sampleId": "kw-root-93",
+        "sampleRate": 44100,
+        "sha256": "d5f098db3b9774b87961d0a794376fe21b9101f9ad96ca7e97b2c077de877693",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 158028,
+        "channels": 1,
+        "frames": 78992,
+        "keyHi": 97,
+        "keyLo": 95,
+        "path": "samples/C7vH.wav",
+        "rootMidi": 96,
+        "sampleId": "kw-root-96",
+        "sampleRate": 44100,
+        "sha256": "d4fb67ea722bf5b4be0151eb45318ca5c0abbf2d2998a0f309bd7d7d0b8f9a38",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 62494,
+        "channels": 1,
+        "frames": 31225,
+        "keyHi": 100,
+        "keyLo": 98,
+        "path": "samples/D#7vH.wav",
+        "rootMidi": 99,
+        "sampleId": "kw-root-99",
+        "sampleRate": 44100,
+        "sha256": "9effebfee179889e5ec390aecc191af990341c935e71761945325f35890469a0",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 58984,
+        "channels": 1,
+        "frames": 29470,
+        "keyHi": 103,
+        "keyLo": 101,
+        "path": "samples/F#7vH.wav",
+        "rootMidi": 102,
+        "sampleId": "kw-root-102",
+        "sampleRate": 44100,
+        "sha256": "89db47ae9115037bb1fa581bb6798b98892f95bf1c5fb4ce863e23ccae5b3a3b",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 80128,
+        "channels": 1,
+        "frames": 40042,
+        "keyHi": 105,
+        "keyLo": 104,
+        "path": "samples/A7vH.wav",
+        "rootMidi": 105,
+        "sampleId": "kw-root-105",
+        "sampleRate": 44100,
+        "sha256": "f71620b8cb9c86d431c02a33b1031f971796246d3fc014e20329351cf0f04831",
+        "velocityHi": 127,
+        "velocityLo": 1
+      },
+      {
+        "bitDepth": 16,
+        "byteSize": 73658,
+        "channels": 1,
+        "frames": 36807,
+        "keyHi": 108,
+        "keyLo": 106,
+        "path": "samples/B7vH.wav",
+        "rootMidi": 107,
+        "sampleId": "kw-root-107",
+        "sampleRate": 44100,
+        "sha256": "58dd3352d40bc2f08322250640078518585ad8830725e1b1eafc1b582703de9d",
+        "velocityHi": 127,
+        "velocityLo": 1
+      }
+    ],
+    "schemaVersion": "instrument-pack.v1",
+    "sourceArchiveSha256": "ffb547fceb91eeb93d78cf8d220d1d5f726dcac891afc15e517805ac48abb39d",
+    "sourceUrl": "https://freepats.zenvoid.org/Piano/UprightPianoKW/UprightPianoKW-small-SFZ-20190703.7z"
+  },
+  "extractorAudit": {
+    "url": "https://github.com/ip7z/7zip/releases/download/26.04/7z2604-mac.tar.xz",
+    "officialPage": "https://www.7-zip.org/download.html",
+    "bytes": 1861928,
+    "sha256": "bee04358cbcbc7106273cee0e8d72916db2696c48067a3538c34d8cd6fd16578",
+    "publisherDigest": "sha256:bee04358cbcbc7106273cee0e8d72916db2696c48067a3538c34d8cd6fd16578",
+    "members": [
+      {
+        "name": "7zz",
+        "bytes": 6051824
+      },
+      {
+        "name": "readme.txt",
+        "bytes": 3863
+      },
+      {
+        "name": "History.txt",
+        "bytes": 12112
+      },
+      {
+        "name": "License.txt",
+        "bytes": 6029
+      },
+      {
+        "name": "MANUAL",
+        "bytes": 0
+      },
+      {
+        "name": "MANUAL/style.css",
+        "bytes": 2850
+      },
+      {
+        "name": "MANUAL/general",
+        "bytes": 0
+      },
+      {
+        "name": "MANUAL/general/license.htm",
+        "bytes": 837
+      },
+      {
+        "name": "MANUAL/general/thanks.htm",
+        "bytes": 1664
+      },
+      {
+        "name": "MANUAL/general/faq.htm",
+        "bytes": 6016
+      },
+      {
+        "name": "MANUAL/general/index.htm",
+        "bytes": 790
+      },
+      {
+        "name": "MANUAL/general/style.css",
+        "bytes": 2850
+      },
+      {
+        "name": "MANUAL/general/register.htm",
+        "bytes": 627
+      },
+      {
+        "name": "MANUAL/general/performance.htm",
+        "bytes": 1990
+      },
+      {
+        "name": "MANUAL/general/7z.htm",
+        "bytes": 5808
+      },
+      {
+        "name": "MANUAL/general/formats.htm",
+        "bytes": 5027
+      },
+      {
+        "name": "MANUAL/cmdline",
+        "bytes": 0
+      },
+      {
+        "name": "MANUAL/cmdline/exit_codes.htm",
+        "bytes": 854
+      },
+      {
+        "name": "MANUAL/cmdline/switches",
+        "bytes": 0
+      },
+      {
+        "name": "MANUAL/cmdline/switches/sdel.htm",
+        "bytes": 954
+      },
+      {
+        "name": "MANUAL/cmdline/switches/working_dir.htm",
+        "bytes": 1722
+      },
+      {
+        "name": "MANUAL/cmdline/switches/stop_switch.htm",
+        "bytes": 740
+      },
+      {
+        "name": "MANUAL/cmdline/switches/sa.htm",
+        "bytes": 1436
+      },
+      {
+        "name": "MANUAL/cmdline/switches/overwrite.htm",
+        "bytes": 1516
+      },
+      {
+        "name": "MANUAL/cmdline/switches/charset.htm",
+        "bytes": 1997
+      },
+      {
+        "name": "MANUAL/cmdline/switches/stx.htm",
+        "bytes": 1388
+      },
+      {
+        "name": "MANUAL/cmdline/switches/volume.htm",
+        "bytes": 1325
+      },
+      {
+        "name": "MANUAL/cmdline/switches/output_dir.htm",
+        "bytes": 3261
+      },
+      {
+        "name": "MANUAL/cmdline/switches/email.htm",
+        "bytes": 962
+      },
+      {
+        "name": "MANUAL/cmdline/switches/sni.htm",
+        "bytes": 1385
+      },
+      {
+        "name": "MANUAL/cmdline/switches/exclude.htm",
+        "bytes": 2548
+      },
+      {
+        "name": "MANUAL/cmdline/switches/stdin.htm",
+        "bytes": 1587
+      },
+      {
+        "name": "MANUAL/cmdline/switches/bs.htm",
+        "bytes": 1997
+      },
+      {
+        "name": "MANUAL/cmdline/switches/password.htm",
+        "bytes": 2444
+      },
+      {
+        "name": "MANUAL/cmdline/switches/ar_exclude.htm",
+        "bytes": 1534
+      },
+      {
+        "name": "MANUAL/cmdline/switches/yes.htm",
+        "bytes": 1255
+      },
+      {
+        "name": "MANUAL/cmdline/switches/ar_no.htm",
+        "bytes": 1398
+      },
+      {
+        "name": "MANUAL/cmdline/switches/stdout.htm",
+        "bytes": 1438
+      },
+      {
+        "name": "MANUAL/cmdline/switches/scrc.htm",
+        "bytes": 1366
+      },
+      {
+        "name": "MANUAL/cmdline/switches/update.htm",
+        "bytes": 8267
+      },
+      {
+        "name": "MANUAL/cmdline/switches/recurse.htm",
+        "bytes": 3146
+      },
+      {
+        "name": "MANUAL/cmdline/switches/sns.htm",
+        "bytes": 2249
+      },
+      {
+        "name": "MANUAL/cmdline/switches/list_tech.htm",
+        "bytes": 802
+      },
+      {
+        "name": "MANUAL/cmdline/switches/bb.htm",
+        "bytes": 1937
+      },
+      {
+        "name": "MANUAL/cmdline/switches/spf.htm",
+        "bytes": 2425
+      },
+      {
+        "name": "MANUAL/cmdline/switches/index.htm",
+        "bytes": 7746
+      },
+      {
+        "name": "MANUAL/cmdline/switches/ssc.htm",
+        "bytes": 1466
+      },
+      {
+        "name": "MANUAL/cmdline/switches/style.css",
+        "bytes": 2850
+      },
+      {
+        "name": "MANUAL/cmdline/switches/method.htm",
+        "bytes": 53321
+      },
+      {
+        "name": "MANUAL/cmdline/switches/stl.htm",
+        "bytes": 978
+      },
+      {
+        "name": "MANUAL/cmdline/switches/spm.htm",
+        "bytes": 2349
+      },
+      {
+        "name": "MANUAL/cmdline/switches/ar_include.htm",
+        "bytes": 2676
+      },
+      {
+        "name": "MANUAL/cmdline/switches/type.htm",
+        "bytes": 4527
+      },
+      {
+        "name": "MANUAL/cmdline/switches/large_pages.htm",
+        "bytes": 3737
+      },
+      {
+        "name": "MANUAL/cmdline/switches/shared.htm",
+        "bytes": 1011
+      },
+      {
+        "name": "MANUAL/cmdline/switches/sfx.htm",
+        "bytes": 5711
+      },
+      {
+        "name": "MANUAL/cmdline/switches/scc.htm",
+        "bytes": 914
+      },
+      {
+        "name": "MANUAL/cmdline/switches/include.htm",
+        "bytes": 5870
+      },
+      {
+        "name": "MANUAL/cmdline/syntax.htm",
+        "bytes": 3962
+      },
+      {
+        "name": "MANUAL/cmdline/index.htm",
+        "bytes": 917
+      },
+      {
+        "name": "MANUAL/cmdline/style.css",
+        "bytes": 2850
+      },
+      {
+        "name": "MANUAL/cmdline/commands",
+        "bytes": 0
+      },
+      {
+        "name": "MANUAL/cmdline/commands/bench.htm",
+        "bytes": 8169
+      },
+      {
+        "name": "MANUAL/cmdline/commands/extract.htm",
+        "bytes": 4111
+      },
+      {
+        "name": "MANUAL/cmdline/commands/delete.htm",
+        "bytes": 1947
+      },
+      {
+        "name": "MANUAL/cmdline/commands/rename.htm",
+        "bytes": 1421
+      },
+      {
+        "name": "MANUAL/cmdline/commands/update.htm",
+        "bytes": 2569
+      },
+      {
+        "name": "MANUAL/cmdline/commands/add.htm",
+        "bytes": 3448
+      },
+      {
+        "name": "MANUAL/cmdline/commands/index.htm",
+        "bytes": 1670
+      },
+      {
+        "name": "MANUAL/cmdline/commands/extract_full.htm",
+        "bytes": 2896
+      },
+      {
+        "name": "MANUAL/cmdline/commands/style.css",
+        "bytes": 2850
+      },
+      {
+        "name": "MANUAL/cmdline/commands/test.htm",
+        "bytes": 1727
+      },
+      {
+        "name": "MANUAL/cmdline/commands/hash.htm",
+        "bytes": 3464
+      },
+      {
+        "name": "MANUAL/cmdline/commands/list.htm",
+        "bytes": 2244
+      },
+      {
+        "name": "MANUAL/start.htm",
+        "bytes": 1174
+      }
+    ],
+    "authorization": "explicit user approval: download and run this official extractor in task directory only",
+    "globalPathChanged": false
+  },
+  "sharedVolumeRepair": {
+    "recordedAt": "2026-10-19T02:40:06.289964+00:00",
+    "image": "/Volumes/KINGSTON/idea/.tools/UnityWorkspace.sparsebundle",
+    "mount": "/Volumes/UnityWorkspace",
+    "beforeWriteable": false,
+    "visibleUsers": {
+      "exit": 1,
+      "pidCommandOnly": "",
+      "stderr": ""
+    },
+    "colimaBefore": {
+      "name": "default",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 4,
+      "memory": 4294967296,
+      "disk": 16106127360,
+      "runtime": "docker"
+    },
+    "authorized": "normal detach then readwrite attach same image; stop on busy; no force, permission changes, VM deletion",
+    "detach": {
+      "exit": 0,
+      "stdout": "\"disk5\" ejected.\n",
+      "stderr": ""
+    },
+    "attach": {
+      "exit": 0,
+      "stdout": "/dev/disk5          \tGUID_partition_scheme          \t\n/dev/disk5s1        \tEFI                            \t\n/dev/disk5s2        \tApple_APFS                     \t\n/dev/disk6          \tEF57347C-0000-11AA-AA11-0030654\t\n/dev/disk6s1        \t41504653-0000-11AA-AA11-0030654\t/Volumes/UnityWorkspace\n",
+      "stderr": ""
+    },
+    "postcheck": {
+      "DeviceIdentifier": "disk6s1",
+      "MountPoint": "/Volumes/UnityWorkspace",
+      "Writable": true,
+      "FilesystemType": "apfs"
+    }
+  },
+  "postgresBoundary": {
+    "exit": 0,
+    "seconds": 2.359883915865794,
+    "testFiles": [
+      "services/api/tests/integration/test_postgres_generate_export_jobs.py",
+      "services/api/tests/integration/test_postgres_s7_export_reads.py"
+    ],
+    "server": "PostgreSQL 17.10",
+    "identityVerified": true,
+    "userDatabaseUsed": false
+  },
+  "schemaInventory": {
+    "scope": "read-only schema metadata from own tmpfs test database after real integration migrations; no production database",
+    "databaseIdentityVerified": true,
+    "migrationHead": "20260824_0021",
+    "appTables": [
+      "ai_model_request_reservations",
+      "ai_run_action_idempotency",
+      "ai_run_approvals",
+      "ai_run_edit_decisions",
+      "ai_run_events",
+      "ai_runs",
+      "approvals",
+      "artifacts",
+      "audit_events",
+      "candidate_snapshots",
+      "command_batches",
+      "composition_materialization_receipts",
+      "composition_plans",
+      "export_bundle_artifacts",
+      "feature_artifacts",
+      "idempotency_records",
+      "inbox_receipts",
+      "job_events",
+      "jobs",
+      "outbox_events",
+      "preview_candidates",
+      "project_branches",
+      "project_revisions",
+      "projects",
+      "revision_commands",
+      "run_events",
+      "runs",
+      "storage_events",
+      "upload_parts",
+      "upload_sessions"
+    ],
+    "constraints": [
+      {
+        "table": "artifacts",
+        "name": "ck_artifacts_artifacts_exactly_one_source",
+        "type": "c",
+        "definition": "CHECK (((source_job_id IS NULL) <> (source_upload_id IS NULL)))"
+      },
+      {
+        "table": "artifacts",
+        "name": "ck_artifacts_artifacts_final_revision_lineage",
+        "type": "c",
+        "definition": "CHECK (((((quality_profile)::text = ANY ((ARRAY['canonical-master.v1'::character varying, 'canonical-stem.v1'::character varying, 'delivery-mp3.v1'::character varying])::text[])) AND (revision_id IS NOT NULL) AND (candidate_snapshot_id IS NULL) AND (arrangement_hash IS NOT NULL) AND (render_scope IS NOT NULL)) OR (((quality_profile)::text = 'candidate-preview.v1'::text) AND (revision_id IS NULL) AND (candidate_snapshot_id IS NOT NULL) AND (arrangement_hash IS NOT NULL) AND ((render_scope)::text = 'master'::text) AND (render_track_ids = '[]'::jsonb)) OR (((quality_profile)::text <> ALL ((ARRAY['canonical-master.v1'::character varying, 'canonical-stem.v1'::character varying, 'delivery-mp3.v1'::character varying, 'candidate-preview.v1'::character varying])::text[])) AND (revision_id IS NULL) AND (candidate_snapshot_id IS NULL) AND (arrangement_hash IS NULL) AND (render_scope IS NULL) AND (render_track_ids = '[]'::jsonb))))"
+      },
+      {
+        "table": "artifacts",
+        "name": "fk_artifacts_candidate_snapshot",
+        "type": "f",
+        "definition": "FOREIGN KEY (candidate_snapshot_id) REFERENCES app.candidate_snapshots(id)"
+      },
+      {
+        "table": "artifacts",
+        "name": "fk_artifacts_project_id_projects",
+        "type": "f",
+        "definition": "FOREIGN KEY (project_id) REFERENCES app.projects(id)"
+      },
+      {
+        "table": "artifacts",
+        "name": "fk_artifacts_revision_id_project_revisions",
+        "type": "f",
+        "definition": "FOREIGN KEY (revision_id) REFERENCES app.project_revisions(id)"
+      },
+      {
+        "table": "artifacts",
+        "name": "fk_artifacts_source_job_id_jobs",
+        "type": "f",
+        "definition": "FOREIGN KEY (source_job_id) REFERENCES app.jobs(id)"
+      },
+      {
+        "table": "artifacts",
+        "name": "fk_artifacts_source_upload_id",
+        "type": "f",
+        "definition": "FOREIGN KEY (source_upload_id) REFERENCES app.upload_sessions(id)"
+      },
+      {
+        "table": "artifacts",
+        "name": "pk_artifacts",
+        "type": "p",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table": "export_bundle_artifacts",
+        "name": "fk_export_bundle_artifacts_project_id_projects",
+        "type": "f",
+        "definition": "FOREIGN KEY (project_id) REFERENCES app.projects(id)"
+      },
+      {
+        "table": "export_bundle_artifacts",
+        "name": "fk_export_bundle_artifacts_revision_id_project_revisions",
+        "type": "f",
+        "definition": "FOREIGN KEY (revision_id) REFERENCES app.project_revisions(id)"
+      },
+      {
+        "table": "export_bundle_artifacts",
+        "name": "fk_export_bundle_artifacts_source_job_id_jobs",
+        "type": "f",
+        "definition": "FOREIGN KEY (source_job_id) REFERENCES app.jobs(id)"
+      },
+      {
+        "table": "export_bundle_artifacts",
+        "name": "pk_export_bundle_artifacts",
+        "type": "p",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table": "export_bundle_artifacts",
+        "name": "uq_export_bundles_project_revision",
+        "type": "u",
+        "definition": "UNIQUE (project_id, revision_id)"
+      },
+      {
+        "table": "inbox_receipts",
+        "name": "pk_inbox_receipts",
+        "type": "p",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table": "inbox_receipts",
+        "name": "uq_inbox_receipts_consumer_event",
+        "type": "u",
+        "definition": "UNIQUE (consumer, event_id)"
+      },
+      {
+        "table": "jobs",
+        "name": "ck_jobs_jobs_attempts_within_limit",
+        "type": "c",
+        "definition": "CHECK (((attempts >= 0) AND (attempts <= max_attempts) AND ((max_attempts >= 1) AND (max_attempts <= 5))))"
+      },
+      {
+        "table": "jobs",
+        "name": "ck_jobs_jobs_exactly_one_output_profile",
+        "type": "c",
+        "definition": "CHECK (((output_quality_profile IS NULL) <> (output_feature_profile IS NULL)))"
+      },
+      {
+        "table": "jobs",
+        "name": "ck_jobs_jobs_lease_pair",
+        "type": "c",
+        "definition": "CHECK (((lease_owner IS NULL) = (lease_expires_at IS NULL)))"
+      },
+      {
+        "table": "jobs",
+        "name": "ck_jobs_jobs_progress_range",
+        "type": "c",
+        "definition": "CHECK (((progress_percent >= 0) AND (progress_percent <= 100)))"
+      },
+      {
+        "table": "jobs",
+        "name": "fk_jobs_project_id_projects",
+        "type": "f",
+        "definition": "FOREIGN KEY (project_id) REFERENCES app.projects(id)"
+      },
+      {
+        "table": "jobs",
+        "name": "fk_jobs_run_id_runs",
+        "type": "f",
+        "definition": "FOREIGN KEY (run_id) REFERENCES app.runs(id) ON DELETE CASCADE"
+      },
+      {
+        "table": "jobs",
+        "name": "pk_jobs",
+        "type": "p",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table": "jobs",
+        "name": "uq_jobs_project_type_key",
+        "type": "u",
+        "definition": "UNIQUE (project_id, job_type, idempotency_key)"
+      },
+      {
+        "table": "outbox_events",
+        "name": "pk_outbox_events",
+        "type": "p",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table": "outbox_events",
+        "name": "uq_outbox_events_dedupe_key",
+        "type": "u",
+        "definition": "UNIQUE (dedupe_key)"
+      },
+      {
+        "table": "project_branches",
+        "name": "fk_project_branches_base_revision_id_project_revisions",
+        "type": "f",
+        "definition": "FOREIGN KEY (base_revision_id) REFERENCES app.project_revisions(id) ON DELETE RESTRICT"
+      },
+      {
+        "table": "project_branches",
+        "name": "fk_project_branches_head_revision_project_revisions",
+        "type": "f",
+        "definition": "FOREIGN KEY (project_id, head_revision_id) REFERENCES app.project_revisions(project_id, id) DEFERRABLE INITIALLY DEFERRED"
+      },
+      {
+        "table": "project_branches",
+        "name": "fk_project_branches_project_id_projects",
+        "type": "f",
+        "definition": "FOREIGN KEY (project_id) REFERENCES app.projects(id) ON DELETE CASCADE"
+      },
+      {
+        "table": "project_branches",
+        "name": "pk_project_branches",
+        "type": "p",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table": "project_branches",
+        "name": "uq_project_branches_project_name",
+        "type": "u",
+        "definition": "UNIQUE (project_id, name)"
+      },
+      {
+        "table": "project_revisions",
+        "name": "ck_project_revisions_revision_actual_impact_range",
+        "type": "c",
+        "definition": "CHECK (((change_impact_actual >= 0) AND (change_impact_actual <= 3)))"
+      },
+      {
+        "table": "project_revisions",
+        "name": "ck_project_revisions_revision_predicted_impact_range",
+        "type": "c",
+        "definition": "CHECK (((change_impact_predicted >= 0) AND (change_impact_predicted <= 3)))"
+      },
+      {
+        "table": "project_revisions",
+        "name": "fk_project_revisions_command_batch_id_command_batches",
+        "type": "f",
+        "definition": "FOREIGN KEY (command_batch_id) REFERENCES app.command_batches(id) DEFERRABLE INITIALLY DEFERRED"
+      },
+      {
+        "table": "project_revisions",
+        "name": "fk_project_revisions_created_on_branch_id_project_branches",
+        "type": "f",
+        "definition": "FOREIGN KEY (created_on_branch_id) REFERENCES app.project_branches(id) DEFERRABLE INITIALLY DEFERRED"
+      },
+      {
+        "table": "project_revisions",
+        "name": "fk_project_revisions_parent_id_project_revisions",
+        "type": "f",
+        "definition": "FOREIGN KEY (parent_id) REFERENCES app.project_revisions(id) ON DELETE RESTRICT"
+      },
+      {
+        "table": "project_revisions",
+        "name": "fk_project_revisions_project_id_projects",
+        "type": "f",
+        "definition": "FOREIGN KEY (project_id) REFERENCES app.projects(id) ON DELETE CASCADE"
+      },
+      {
+        "table": "project_revisions",
+        "name": "pk_project_revisions",
+        "type": "p",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table": "project_revisions",
+        "name": "uq_project_revisions_project_id_id",
+        "type": "u",
+        "definition": "UNIQUE (project_id, id)"
+      }
+    ],
+    "indexes": [
+      {
+        "table": "artifacts",
+        "name": "ix_artifacts_availability_accessed",
+        "definition": "CREATE INDEX ix_artifacts_availability_accessed ON app.artifacts USING btree (availability, last_accessed_at)"
+      },
+      {
+        "table": "artifacts",
+        "name": "ix_artifacts_project_lifecycle",
+        "definition": "CREATE INDEX ix_artifacts_project_lifecycle ON app.artifacts USING btree (project_id, lifecycle_class)"
+      },
+      {
+        "table": "artifacts",
+        "name": "pk_artifacts",
+        "definition": "CREATE UNIQUE INDEX pk_artifacts ON app.artifacts USING btree (id)"
+      },
+      {
+        "table": "artifacts",
+        "name": "uq_artifacts_candidate_job_content",
+        "definition": "CREATE UNIQUE INDEX uq_artifacts_candidate_job_content ON app.artifacts USING btree (project_id, candidate_snapshot_id, source_job_id, content_hash, quality_profile) WHERE (candidate_snapshot_id IS NOT NULL)"
+      },
+      {
+        "table": "artifacts",
+        "name": "uq_artifacts_non_candidate_content",
+        "definition": "CREATE UNIQUE INDEX uq_artifacts_non_candidate_content ON app.artifacts USING btree (project_id, content_hash, quality_profile) WHERE (candidate_snapshot_id IS NULL)"
+      },
+      {
+        "table": "export_bundle_artifacts",
+        "name": "ix_export_bundles_project_created",
+        "definition": "CREATE INDEX ix_export_bundles_project_created ON app.export_bundle_artifacts USING btree (project_id, created_at)"
+      },
+      {
+        "table": "export_bundle_artifacts",
+        "name": "pk_export_bundle_artifacts",
+        "definition": "CREATE UNIQUE INDEX pk_export_bundle_artifacts ON app.export_bundle_artifacts USING btree (id)"
+      },
+      {
+        "table": "export_bundle_artifacts",
+        "name": "uq_export_bundles_project_revision",
+        "definition": "CREATE UNIQUE INDEX uq_export_bundles_project_revision ON app.export_bundle_artifacts USING btree (project_id, revision_id)"
+      },
+      {
+        "table": "jobs",
+        "name": "ix_jobs_run_status",
+        "definition": "CREATE INDEX ix_jobs_run_status ON app.jobs USING btree (run_id, status)"
+      },
+      {
+        "table": "jobs",
+        "name": "pk_jobs",
+        "definition": "CREATE UNIQUE INDEX pk_jobs ON app.jobs USING btree (id)"
+      },
+      {
+        "table": "jobs",
+        "name": "uq_jobs_project_type_key",
+        "definition": "CREATE UNIQUE INDEX uq_jobs_project_type_key ON app.jobs USING btree (project_id, job_type, idempotency_key)"
+      },
+      {
+        "table": "outbox_events",
+        "name": "ix_outbox_events_dispatchable",
+        "definition": "CREATE INDEX ix_outbox_events_dispatchable ON app.outbox_events USING btree (status, available_at, created_at)"
+      },
+      {
+        "table": "outbox_events",
+        "name": "ix_outbox_events_status_created",
+        "definition": "CREATE INDEX ix_outbox_events_status_created ON app.outbox_events USING btree (status, created_at)"
+      },
+      {
+        "table": "outbox_events",
+        "name": "pk_outbox_events",
+        "definition": "CREATE UNIQUE INDEX pk_outbox_events ON app.outbox_events USING btree (id)"
+      },
+      {
+        "table": "outbox_events",
+        "name": "uq_outbox_events_dedupe_key",
+        "definition": "CREATE UNIQUE INDEX uq_outbox_events_dedupe_key ON app.outbox_events USING btree (dedupe_key)"
+      },
+      {
+        "table": "project_revisions",
+        "name": "ix_project_revisions_project_created",
+        "definition": "CREATE INDEX ix_project_revisions_project_created ON app.project_revisions USING btree (project_id, created_at)"
+      },
+      {
+        "table": "project_revisions",
+        "name": "pk_project_revisions",
+        "definition": "CREATE UNIQUE INDEX pk_project_revisions ON app.project_revisions USING btree (id)"
+      },
+      {
+        "table": "project_revisions",
+        "name": "uq_project_revisions_project_id_id",
+        "definition": "CREATE UNIQUE INDEX uq_project_revisions_project_id_id ON app.project_revisions USING btree (project_id, id)"
+      }
+    ]
+  },
+  "storageHygiene": {
+    "keepSet": {
+      "acceptedAudio": "/Volumes/KINGSTON/idea/agentic-music-workbench/artifacts/piano-real/2026-10-19-accepted",
+      "reviewedRawSource": "/Volumes/KINGSTON/idea/agentic-music-workbench/artifacts/instrument-packs/kw-small-20190703",
+      "sourceArchive": "research/piano-source-audit/UprightPianoKW-small-SFZ-20190703.7z",
+      "approvedExtractor": "tools/7zip-26.04",
+      "allOtherArtifactsContainersImagesVolumesAndCaches": "untouched"
+    },
+    "beforeLogicalBytes": {
+      "/Volumes/KINGSTON/idea/agentic-music-workbench/artifacts/piano-real/2026-10-19-candidate-1": 35352722,
+      "/Users/oliver/Documents/Codex/2026-10-18/task-2/research/piano-source-audit/verified-source": 9471890
+    },
+    "removedLogicalBytes": 44824612,
+    "afterExactDeletedPathsExist": {
+      "/Volumes/KINGSTON/idea/agentic-music-workbench/artifacts/piano-real/2026-10-19-candidate-1": false,
+      "/Users/oliver/Documents/Codex/2026-10-18/task-2/research/piano-source-audit/verified-source": false
+    },
+    "acceptedAudioHashCount": 4,
+    "retainedSourceFilesVerified": 30,
+    "partialFilesInAccepted": 0,
+    "health": {
+      "sharedMountWritable": true,
+      "dockerContext": "default",
+      "colimaRetainedRunning": true,
+      "otherRunningOrRestartingContainerCount": 10,
+      "ownContainerRemoved": true,
+      "ownCredentialDirectoryRemoved": true,
+      "sharedServicesStoppedByTask": false
+    },
+    "sharedDockerCachePruned": false
+  },
+  "verification": {
+    "audioWorkerTestsPassed": 55,
+    "audioWorkerTestsFailed": 0,
+    "tsc": "passed",
+    "hostBundleBuild": "passed",
+    "scriptSyntax": "passed",
+    "catalogRuntimeReviewTestsPassed": 13,
+    "independentReview": "one initial + one repair; no remaining C1 current-path blocker",
+    "postCleanupAcceptedShaVerified": true
+  },
+  "notClaimed": [
+    "production v2 IR/Job/API/UI",
+    "persistent Undo",
+    "pedal",
+    "release triggers",
+    "perceptual musical quality",
+    "container/host power-loss durability",
+    "production RSS ceiling"
+  ]
+}

@@ -42,6 +42,14 @@ Project Home → Brief → Parent Graph Planning → Plan Review/Adjustment
 
 S3 已把 S2 的 API 级闭环变成用户可操作的作品流，S4/S5 加入四个 Style Pack、Theory 证据、双候选、Critic/Repair 和 A/B 人工选择，S6 加入轻量手工编辑与有界 AI 选区编辑，S7 再补齐正式 Export、Run Inspector、About/Eval 证据面和 96 条内部 Eval。当前已经达到个人作品集首版；负载、多租户和发布运维属于按需后置硬化，不再是默认活动阶段。
 
+### 最新断点：P1-C1 真实钢琴内部边界（2026-10-19）
+
+MF-P02/P05/P10/P15/P16/P17/P18/P21。用户明确批准正常共享映像读写重挂与任务内官方7-Zip，均成功；原只读卷/解压/隔离PG资源阻塞已解除，以下2.0.1–2.0.4按各门当时事实保留。CC0/SFZ及26个实际WAV全部核验，固定manifest/样本hash、nonce+sampleId catalog和共享适配器生成4份真实30秒48k stereo PCM24。独立WAV检查通过，旧声音回退最大1LSB，原谱不变；没有音乐审美结论。
+
+启动超限竞态已RED→GREEN修复，一次独立审查与唯一修复复核无剩余阻塞。最终audio/Worker55 passed、tsc/宿主build通过；真实隔离PG两条导出基线2 passed/1.18s，迁移头20260824_0021。进程树RSS采样最大约1.16GiB，非生产硬上限。精确回收44,824,612 logical bytes，删除自有PG/凭据，保留共享VM/历史服务。
+
+真实钢琴仍只供内部probe，不是用户生产v2链路；持久IR/Job/Commands/Undo、API/UI/动态正式导出尚待A2.2/B。踏板/release-trigger未支持。接下一实施阶段前先完成用户要求的最小测试结构精简；不引入Java/Rust重写。见[证据](evidence/2026-10-19-p1-c1-real-piano.md)。
+
 ### 2.0.1 P1-A1 有界渲染容量（2026-10-19）
 
 MF-P02/P15/P16/P17/P18/P21。producer、Worker配额估算、HTTP服务及Python adapter已按时长/采样率/声道/位深推导PCM上界，保留v1零额外tail与旧Job字段范围；显式拒绝超300秒、12轨、20k事件、96MiB输出或320MiB裸媒体预算。流式hash减少整WAV副本，补齐超时/取消/无效回执清理及重叠body单槽限制。

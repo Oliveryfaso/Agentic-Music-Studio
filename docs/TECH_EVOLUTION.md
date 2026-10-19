@@ -455,3 +455,12 @@ RED→GREEN覆盖缺API、单轨输出8/9/10逻辑文件、错误轨道/hash/pre
 Stage P1 supporting resource audit；MF-P05/P10/P15/P16/P17/P18/P21。用户批准小型音源下载，复用隔离包重验hash。现有bsdtar -xqOf能完整读取CC0/readme/SFZ，三项退出0，文本/sha已核；26 region覆盖21–108，12循环/14不循环、release0.6，未声明速度分层。系统3.5.3与已安装Conda3.7.7读取WAV均失败filter40202，未新装工具、未放行音源/渲染。早先“包内文本不可读”只在原扫描方式下成立，本轮fast-read子门推进，WAV阻塞仍保留。
 
 用户终端也复现EROFS后，只读确认_lima符号链接实际落在UnityWorkspace APFS sparsebundle。mount/statvfs/diskutil Writable=false、hdiutil writeable=false，KINGSTON底层可写，相关flags0、空间充足；不再单一归因执行环境权限。最初为何只读附加未知，未断言损坏。共享卷普通弹出/读写重挂尚未执行，不改权限/删VM/强制修复，A2.2/B继续等隔离PG。仅文档/证据更新，未改产品代码或重跑无关全suite，无下载新工具/付费/公共push。[证据](evidence/2026-10-19-p1-source-storage-audit.md)。
+
+
+## 2026-10-19 P1-C1 真实钢琴边界与资源解阻
+
+MF-P02/P05/P10/P15/P16/P17/P18/P21。用户明确批准后普通detach/readwrite attach同一共享映像成功，Writable=true；官方7-Zip26.04仅任务内、发布digest匹配，完成26WAV+CC0/SFZ核验。受信manifest pin catalog、nonce/sampleId路由和共享adapter生成真实四份30秒WAV；stdlib独立格式/hash/RMS/尾音检查，旧声音回退max1LSB、原谱不变。
+
+独立审查发现启动预算竞态，以deferred生命周期回归RED→GREEN修复，唯一复核无阻塞；audio/Worker55、tsc/宿主build通过。样本解码20,575,408bytes，214ms；机械/表达渲染写盘808/805ms，采样进程树RSS约1.16GiB，非生产上限/性能分布/审美证明。缺踏板与release-trigger，尚无生产v2IR/Job/UI或持久Undo。
+
+缓存PG17.10专用tmpfs库两真实导出测试2passed/1.18s，迁移20260824_0021、30张app表及选定约束索引实际可见；不证明主机掉电持久性。删除自有PG及生成凭据，保留共享VM/历史服务，Docker context default不变。精确删除旧candidate和重复源44,824,612logicalbytes；保留最终音频与源/工具并重验hash。无付费/大包/公共push。[完整证据](evidence/2026-10-19-p1-c1-real-piano.md)。
