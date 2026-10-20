@@ -1,0 +1,362 @@
+{
+  "date": "2026-10-20",
+  "base": "a841c1189780006c795f4d4efc6ee28d1d24889e",
+  "acceptance": "engineering_paths_passed; original_model_identity_not_accepted; Q4_intent_failed; human_listening_pending",
+  "requirements": [
+    "MF-P04",
+    "MF-P05",
+    "MF-P06",
+    "MF-P10",
+    "MF-P11",
+    "MF-P13",
+    "MF-P15",
+    "MF-P16",
+    "MF-P17",
+    "MF-P18",
+    "MF-P20",
+    "MF-P21"
+  ],
+  "usage": {
+    "policy": {
+      "schema": "motif-acceptance-money.v1",
+      "authorization": "human-20261020-motif-followup-cumulative-cny10",
+      "source_thread": "01a1576c-69df-7530-9e2e-d2b7a6d0c01c",
+      "authorization_ceiling_micro_cny": 10000000,
+      "batch": "p23-three-scores-real-20261020",
+      "batch_ceiling_micro_cny": 1000000,
+      "maximum_submissions": 7,
+      "reserve_micro_cny": 96000,
+      "requested_model": "deepseek-v4-flash",
+      "expected_reported_model": "deepseek-flash",
+      "endpoint": "https://api.deepseek.com/chat/completions",
+      "max_total_tokens": 12000,
+      "max_output_tokens": 3072,
+      "max_input_utf8_bytes": 8000,
+      "input_micro_cny_per_token": 2,
+      "output_micro_cny_per_token": 8,
+      "legacy_upper_micro_cny_not_bill": 23852,
+      "legacy_calls": 4,
+      "legacy_tokens": 7228,
+      "new_authorization_starts_after_legacy": true
+    },
+    "submissions": 7,
+    "entries": [
+      {
+        "case": "Q1",
+        "input_utf8_bytes": 5339,
+        "ordinal": 1,
+        "request_sha256": "16576762eed3871459c5cb5a1008879ee08d101d030c91013b79af79232949ab",
+        "reserve_micro_cny": 96000,
+        "phase": "completed",
+        "http_status": 200,
+        "reported_model": "deepseek-flash",
+        "upper_micro_cny": 8316,
+        "usage": {
+          "completion_tokens": 597,
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 1770,
+          "prompt_tokens": 1770,
+          "total_tokens": 2367
+        },
+        "outcome": "accepted"
+      },
+      {
+        "case": "Q4",
+        "input_utf8_bytes": 5646,
+        "ordinal": 2,
+        "request_sha256": "4cbca9ceb745dd580a2770c6328faa89d98db3cdc88fe904b09d8f15d93a12b4",
+        "reserve_micro_cny": 96000,
+        "phase": "completed",
+        "http_status": 200,
+        "reported_model": "deepseek-flash",
+        "upper_micro_cny": 5508,
+        "usage": {
+          "completion_tokens": 208,
+          "prompt_cache_hit_tokens": 1024,
+          "prompt_cache_miss_tokens": 898,
+          "prompt_tokens": 1922,
+          "total_tokens": 2130
+        },
+        "outcome": "accepted"
+      },
+      {
+        "case": "Q2",
+        "input_utf8_bytes": 5307,
+        "ordinal": 3,
+        "request_sha256": "d848551e8dc997d981ff05607f467de4230610a2b9accac2197849edbcedb395",
+        "reserve_micro_cny": 96000,
+        "phase": "completed",
+        "http_status": 200,
+        "reported_model": "deepseek-flash",
+        "upper_micro_cny": 6602,
+        "usage": {
+          "completion_tokens": 385,
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 1761,
+          "prompt_tokens": 1761,
+          "total_tokens": 2146
+        },
+        "outcome": "accepted"
+      },
+      {
+        "case": "Q5",
+        "input_utf8_bytes": 5682,
+        "ordinal": 4,
+        "request_sha256": "3afb6ae723f9e738f2d35d7e9747517a9cbed5abf14a5438be96604affba010b",
+        "reserve_micro_cny": 96000,
+        "phase": "completed",
+        "http_status": 200,
+        "reported_model": "deepseek-flash",
+        "upper_micro_cny": 5680,
+        "usage": {
+          "completion_tokens": 220,
+          "prompt_cache_hit_tokens": 1024,
+          "prompt_cache_miss_tokens": 936,
+          "prompt_tokens": 1960,
+          "total_tokens": 2180
+        },
+        "outcome": "accepted"
+      },
+      {
+        "case": "Q3",
+        "input_utf8_bytes": 4762,
+        "ordinal": 5,
+        "request_sha256": "db896d3541d27da4d89b38ebf217034aced2e9e3a3c229fef8e3c9573a9902e4",
+        "reserve_micro_cny": 96000,
+        "phase": "completed",
+        "http_status": 200,
+        "reported_model": "deepseek-flash",
+        "upper_micro_cny": 5608,
+        "usage": {
+          "completion_tokens": 336,
+          "prompt_cache_hit_tokens": 896,
+          "prompt_cache_miss_tokens": 564,
+          "prompt_tokens": 1460,
+          "total_tokens": 1796
+        },
+        "outcome": "accepted"
+      },
+      {
+        "case": "Q6",
+        "input_utf8_bytes": 5127,
+        "ordinal": 6,
+        "request_sha256": "5b4d07bb6da6c4accbb74d2f399e47b6bfef1c3b1bf35e3c70e6ab3ea2414d04",
+        "reserve_micro_cny": 96000,
+        "phase": "completed",
+        "http_status": 200,
+        "reported_model": "deepseek-flash",
+        "upper_micro_cny": 5174,
+        "usage": {
+          "completion_tokens": 235,
+          "prompt_cache_hit_tokens": 1024,
+          "prompt_cache_miss_tokens": 623,
+          "prompt_tokens": 1647,
+          "total_tokens": 1882
+        },
+        "outcome": "accepted"
+      },
+      {
+        "case": "Q7",
+        "input_utf8_bytes": 5617,
+        "ordinal": 7,
+        "request_sha256": "8128af7b313f413e82205eb22f22dd302b58faac397bb9ed7a444e3bea272246",
+        "reserve_micro_cny": 96000,
+        "phase": "completed",
+        "http_status": 200,
+        "reported_model": "deepseek-flash",
+        "upper_micro_cny": 4142,
+        "usage": {
+          "completion_tokens": 33,
+          "prompt_cache_hit_tokens": 1792,
+          "prompt_cache_miss_tokens": 147,
+          "prompt_tokens": 1939,
+          "total_tokens": 1972
+        },
+        "outcome": "expected_refusal"
+      }
+    ],
+    "stopped": true,
+    "exposure_micro_cny": 41030,
+    "legacy_upper_micro_cny": 23852,
+    "lifetime_upper_micro_cny": 64882,
+    "estimated_not_billed": true,
+    "last_event_digest": "475375cfb02883965a4010f0d26f4cb5bc5f7d593ce3ddacc7d5821eff5852f5",
+    "total_tokens": 14473,
+    "model_identity_hold": true
+  },
+  "model_identity": {
+    "requested": "deepseek-v4-flash",
+    "reported": "deepseek-flash",
+    "official_service_version": "DeepSeek-V4.1-Flash-1017",
+    "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+    "verified_date": "2026-10-20",
+    "original_v4_flash_identical": false,
+    "exact_served_weights_independently_verifiable": false,
+    "calls_paused_permanently": true
+  },
+  "case_metrics": [
+    {
+      "case": "Q1",
+      "source": "c01-minuet-g-a16.v1",
+      "requested_model": "deepseek-v4-flash",
+      "reported_model": "deepseek-flash",
+      "first_half_notes": 15,
+      "second_half_notes": 27,
+      "later_denser": true
+    },
+    {
+      "case": "Q4",
+      "source": "c01-minuet-g-a16.v1",
+      "requested_model": "deepseek-v4-flash",
+      "reported_model": "deepseek-flash",
+      "before_notes": 12,
+      "after_notes": 8,
+      "chord_changed_bars": [],
+      "octave_changed_bars": [
+        10,
+        12
+      ],
+      "velocity_changed_bars": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "before_gate_steps_total": 36,
+      "after_gate_steps_total": 24,
+      "harmony_preserved": true,
+      "rejected_candidate_exact_hash_and_protected_outside": true,
+      "intent_register_preservation_passed": false
+    },
+    {
+      "case": "Q2",
+      "source": "c02-la-candeur-a8.v1",
+      "requested_model": "deepseek-v4-flash",
+      "reported_model": "deepseek-flash",
+      "first_half_notes": 10,
+      "second_half_notes": 16,
+      "later_denser": true
+    },
+    {
+      "case": "Q5",
+      "source": "c02-la-candeur-a8.v1",
+      "requested_model": "deepseek-v4-flash",
+      "reported_model": "deepseek-flash",
+      "before_notes": 16,
+      "after_notes": 8,
+      "chord_changed_bars": [],
+      "octave_changed_bars": [],
+      "velocity_changed_bars": [],
+      "before_gate_steps_total": 32,
+      "after_gate_steps_total": 32,
+      "harmony_preserved": true
+    },
+    {
+      "case": "Q3",
+      "source": "j01-bethena-a-first8.v1",
+      "requested_model": "deepseek-v4-flash",
+      "reported_model": "deepseek-flash",
+      "first_half_notes": 7,
+      "second_half_notes": 15,
+      "later_denser": true
+    },
+    {
+      "case": "Q6",
+      "source": "j01-bethena-a-first8.v1",
+      "requested_model": "deepseek-v4-flash",
+      "reported_model": "deepseek-flash",
+      "before_notes": 15,
+      "after_notes": 24,
+      "chord_changed_bars": [],
+      "octave_changed_bars": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "velocity_changed_bars": [],
+      "before_gate_steps_total": 33,
+      "after_gate_steps_total": 48,
+      "harmony_preserved": true
+    }
+  ],
+  "intent_failure": {
+    "Q4": "requested original register preserved; bars10/12 changed octave3 to2 despite valid schema/harmony. No paid repair attempted."
+  },
+  "Q5_caveat": "notes16→8; velocity/octave/harmony preserved, total gated duration32→32 grid steps, so lower onset density does not prove more total silence",
+  "new_jobs": 19,
+  "old26_jobs_rerun": false,
+  "formal_worker_function_not_redis_transport": true,
+  "export_files": 11,
+  "checks": {
+    "focused_undo_preview_semantic": 14,
+    "python_unit_eval_launcher": 888,
+    "task_identity_and_spend_guard": 33,
+    "ruff_format_diff": true
+  },
+  "resources": {
+    "owned_pg_removed": true,
+    "generated_credentials_removed": true,
+    "shared_services_not_commanded": true,
+    "docker_prune_or_vm_stop": false
+  },
+  "shared_container_ids_unchanged": true,
+  "full_listening": {
+    "file": "/Users/oliver/Documents/Codex/2026-10-18/task-2/research/Motif-P23-真实模型三曲试听-2026-10-20.zip",
+    "bytes": 13817997,
+    "sha256": "bc2f9b22c33c620280b4c15ea5c6585531a1a97963a67d4bb21da5f2cc70dcb0",
+    "cases": 6,
+    "clips": 24,
+    "canonical_files": 12,
+    "offline": true,
+    "human_accepted": false,
+    "model_identity_hold": true,
+    "intent_all_passed": false
+  },
+  "compact_listening": {
+    "file": "/Users/oliver/Documents/Codex/2026-10-18/task-2/research/Motif-P23-三曲离线试听-轻量版-2026-10-20.zip",
+    "bytes": 4875006,
+    "sha256": "4d091bd949a18f3bf07618c71e4a276c993663ac43185a8bc90ae4f6117fc5fd",
+    "clips": 24,
+    "canonical_included": false,
+    "model_identity_hold": true,
+    "human_accepted": false
+  },
+  "native_library_confirmed": false,
+  "task_harness_identity_gate_implemented_not_product_global_gate": true,
+  "guard_sources_sha256": {
+    "spending_gate.py": "09c550f59dcfc772321b0b8f669338995b8c611bb4537149fc16bfa1c71fc8a5",
+    "identity_gate.py": "eb73e76759047cadf82f6b0e46641b617c4043b65e0c04c81f501e2223809cc7",
+    "test_identity_gate.py": "7b4b65bd31207b9b5de09175cfeb6b8c9c89e09d126d50317326eca9a64a7510",
+    "probe-live.py": "f3541aea63a1aaa475621f64d4d9e9fafdecd0b3feb6712eb1c0dacce242e0fe"
+  },
+  "native_library_delivery": {
+    "full_zip_blob_upload": "failed after253715ms",
+    "compact_zip_blob_upload": "failed after141864ms",
+    "library_file_ids": [],
+    "failure": "OpenAI file blob upload transport error on two regional endpoints; no further retry"
+  },
+  "offline_browser": {
+    "status": "passed",
+    "clipsActuallyPlayed": 24,
+    "networkRequired": false,
+    "actualModelCalls": 0,
+    "ownedServicesStarted": 0,
+    "pageErrors": []
+  },
+  "storage_hygiene": {
+    "owned_rebuildable_test_dirs_removed": [
+      "identity-green-tmp",
+      "__pycache__",
+      "independent-identity-review-tmp",
+      "independent-guard-recheck-tmp",
+      "final-suite-tmp",
+      "independent-guard-tmp"
+    ],
+    "logical_bytes_removed": 7622158,
+    "kept_media_files": 79,
+    "all_kept_media_hashes_unchanged": true,
+    "model_calls_added": 0,
+    "no_shared_cache_prune": true
+  }
+}

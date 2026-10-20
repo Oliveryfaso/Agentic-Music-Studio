@@ -385,6 +385,7 @@ class UndoCommittedRevision:
                         (
                             SetPianoProfileCommand,
                             AppendPianoTrackCommand,
+                            AgentAppendPianoTrackCommand,
                             RemoveAddedPianoTrackCommand,
                             ReplacePianoRangeCommand,
                         ),

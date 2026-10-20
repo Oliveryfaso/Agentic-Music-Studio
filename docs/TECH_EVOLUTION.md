@@ -572,3 +572,12 @@ RED→GREEN含请求4/计划8/service4/和声5，真实PG先被旧约束拒绝�
 ## 2026-10-20：P2.3 质量收尾（真实模型授权待定）
 
 基于97d7a20，准备三曲9例/7次上限及独立CNY1提案，0真实模型/0新Job，历史账本不清零。停止器调度延迟复现漏停Compose；六种截止交错先后两次准确RED，最小截止分支保留已完成真实退出码，仍用原3秒截止门且TERM后wait局限保留，修自有Web fixture env/ready与忙循环。合同11/Python885与原3.2秒探针通过，普通并行修前后12/12不冒充根因证明。只读PCM复算repeat/两Stem和均1LSB，严格SHA仍失败，原媒体/归档14项保留hash不变；既有旁路数值门不重写为同Revision字节门。执行通道短暂断开后恢复。详见[质量证据](evidence/2026-10-20-p23-quality-closure.md)与[待批准验收](evidence/2026-10-20-p23-live-model-acceptance-plan.md)。
+
+
+## 2026-10-20：P2.3真实采样、身份暂停与Undo修复
+
+MF-P04/P05/P06/P10/P11/P13/P15/P16/P17/P18/P20/P21。本轮7次真实调用/14473tokens，公开峰价上界¥0.041030（非账单），无第8次/重试。历史合计11次/21701tokens/上界¥0.064882，不清零。请求名保持deepseek-v4-flash、响应deepseek-flash；官方说明旧模型下线→V4.1-Flash-1017替代。主线已读映射却误当已获人类身份确认，未在首个名称差异停止；现账本永久pause，任务驱动逐次pre/post身份门禁要求精确替代版本的人类确认，当前null拒绝外发。不能称原V4 Flash同权重或音乐质量通过。
+
+实际UI/API/隔离PG/正式Worker函数+fresh Parent三曲六例、真实第三轨拒绝、两项零调用守卫；19新Job/11完整导出文件校验，旧26不重跑，不冒充Redis/Celery传输。Q4更轻更疏但第10/12小节音区3→2违反保留指令，Q5密度减半但总gate时长不减；用户听感待验，保留失败不追加调用。实际发现语义加轨Undo白名单遗漏，生产一行补齐AgentAppend且保留精确parent/current-head/HITL条件，三曲有效RED→GREEN14、真实PG/UI零调用恢复原IR/hash，最终Python888与任务门禁33通过，独立Undo/身份审查无确认发现。
+
+24对比剪辑+12完整源MP3离线原包保留，原增益/固定增益等LUFS分列；标明模型替代/意图失败/人工未验。owned API/renderer/browser退出，精确PG与凭据删除，共享容器ID列表不变。Library首个blob上传失败不宣称附件已交付。main/Guide不变，不部署。详见[验收与执行失误](evidence/2026-10-20-p23-real-model-validation.md)、[机器证据](evidence/2026-10-20-p23-real-model-validation.json)。
