@@ -1,0 +1,175 @@
+{
+  "saved_evidence_recompiled_exactly": true,
+  "model_plan_unmodified": true,
+  "required_register": {
+    "9": 2,
+    "10": 3,
+    "11": 2,
+    "12": 3
+  },
+  "old_failure_register": {
+    "9": 2,
+    "10": 2,
+    "11": 2,
+    "12": 2
+  },
+  "new_register": {
+    "9": 2,
+    "10": 3,
+    "11": 2,
+    "12": 3
+  },
+  "selected_note_count_before": 12,
+  "selected_note_count_after": 8,
+  "velocity_before": [
+    56,
+    56,
+    56,
+    56,
+    56,
+    56,
+    58,
+    58,
+    58,
+    60,
+    60,
+    60
+  ],
+  "velocity_after": [
+    38,
+    38,
+    40,
+    40,
+    40,
+    40,
+    42,
+    42
+  ],
+  "selected_gate_ticks_before": 4320,
+  "selected_gate_ticks_after": 1920,
+  "original_and_outside_exact": true,
+  "new_paid_calls": 1,
+  "new_total_tokens": 2187,
+  "new_peak_price_upper_micro_cny_not_bill": 5586,
+  "postapproval_cumulative_upper_micro_cny_not_bill": 46616,
+  "postapproval_calls": 8,
+  "postapproval_tokens": 16660,
+  "lifetime_calls": 12,
+  "lifetime_tokens": 23888,
+  "lifetime_upper_micro_cny_not_bill": 70468,
+  "requested_model": "deepseek-v4-flash",
+  "response_model": "deepseek-flash",
+  "official_declared_service": "DeepSeek-V4.1-Flash-1017",
+  "independent_weights_verification": false,
+  "usage_status_retained": "partial",
+  "missing_optional_usage": [
+    "reasoning_tokens"
+  ],
+  "mandatory_billing_token_fields_complete": true,
+  "new_batch_permanently_paused": true,
+  "old_batch_seal_verified": true,
+  "human_quality_accepted": false,
+  "boundary": "API/PG/Parent/Worker, not Redis/Celery or full Compose",
+  "stage": "P2.3 Q4 register preservation",
+  "date": "2026-10-20",
+  "requirements": [
+    "MF-P04",
+    "MF-P05",
+    "MF-P06",
+    "MF-P10",
+    "MF-P11",
+    "MF-P13",
+    "MF-P15",
+    "MF-P16",
+    "MF-P18",
+    "MF-P20",
+    "MF-P21"
+  ],
+  "base_commit": "ccbbe4003872594ea383d30a0cbfdfea150905cf",
+  "tests": {
+    "related": 29,
+    "unit_root": 856,
+    "eval": 52,
+    "combined_python": 908,
+    "task_guard": 37,
+    "mypy_source_files": 4,
+    "ruff_passed": true,
+    "existing_warnings": [
+      "Starlette/httpx TestClient deprecation"
+    ]
+  },
+  "review": {
+    "fresh_independent_agent": true,
+    "confirmed_findings": 0,
+    "memory_checks": 8,
+    "scope_mutations": 4,
+    "repair_rereview": false
+  },
+  "model_source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+  "model_replacement_explicitly_approved": true,
+  "official_at_send": {
+    "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+    "checked_utc": "2026-10-20T17:23:12.077900+00:00",
+    "html_sha256": "556097caba8adfeeed6455714bffd731c7f60db520fcee06a922eba5840663a3",
+    "service_version": "DeepSeek-V4.1-Flash-1017",
+    "response_model": "deepseek-flash",
+    "input_peak_cny_per_million": 2,
+    "output_peak_cny_per_million": 8,
+    "exact_weights_independently_verified": false
+  },
+  "source_fixture_sha256": "e3267b8a86da65fd4ad6df5a4b7d24e88ba6f822dde4374bc32ac6ff6f26bfcc",
+  "real_receipt_sha256": "fc448520810edd9196c5014d5f69d5ad76f617f762f4983d21abe30f6a56c827",
+  "actual_new_jobs": 2,
+  "offline_new_jobs": 2,
+  "old_jobs_rerun": 0,
+  "audio": [
+    {
+      "side": "A",
+      "file": "Q4-R1-A.mp3",
+      "bytes": 613005,
+      "sha256": "44bcf26795b9cd226dde6b40c59da33bfbc568d0a32bb545b9c0367058352951"
+    },
+    {
+      "side": "B",
+      "file": "Q4-R1-B.mp3",
+      "bytes": 613005,
+      "sha256": "abc5f68863877c9d31629c32649bbecda609db08bf132d6633aa7744258830d7"
+    }
+  ],
+  "listening": {
+    "clips_played": 4,
+    "browser_closed": true,
+    "human_quality_accepted": false,
+    "matched_lufs": [
+      -24.0,
+      -24.01
+    ],
+    "constant_gain_only": true,
+    "lossy_copies_kbps": 128
+  },
+  "cleanup": {
+    "exact_pg_removed": true,
+    "generated_dsn_removed": true,
+    "renderer_browser_closed": true,
+    "shared_27_container_ids_unchanged": true,
+    "logical_regular_file_bytes_removed": 34599371,
+    "retained_files_rehashed": 24,
+    "all_match": true,
+    "global_prune": false
+  },
+  "guide": {
+    "last_revision": "d68b900bd8dce6c5786dd0b6c6b531429c9d38a2",
+    "diff_empty": true,
+    "content_hashed": false
+  },
+  "library": {
+    "latest_attempt_explicit_failure": true,
+    "new_id": null,
+    "no_duplicate_upload": true
+  },
+  "helper_failures": {
+    "initial_offline_renderer_dependency_error": "resolved with existing node_modules; original failure retained",
+    "initial_listening_codec_level_offset": "constant-gain correction verified; original audio unchanged",
+    "cleanup_sql_probe_errors": 2
+  }
+}

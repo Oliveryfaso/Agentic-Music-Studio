@@ -24,3 +24,39 @@
 - 产品验收：同一实际候选选区，原增益判断力度，固定增益等综合响度比较音色/密度；canonical不改写，不以强诊断滤波代替成品预设。把可辨、意图符合、偏好与客观文件检查分开记录。
 
 [本轮验收与边界](evidence/2026-10-20-p23-semantic-v2.md)。
+
+### P2.3 Q4 explicit register preservation (2026-10-20)
+
+New `piano-accompaniment-prompt.v4` writers retain Plan/Record v1–v2. For a
+recognized explicit keep-register clause during modify, `piano-register-preserved.v1`
+means that each selected bar's saved Plan `octave` stays equal. It does not mean
+locking every note pitch: allowed rhythm changes can select different tones of the
+same verified triad. Register-changing requests remain permitted when no keep lock
+is requested. This bounded recognizer supports explicit Chinese/English keep phrases;
+it is not a general proof that arbitrary prose has been understood.
+
+Before building a Provider, the service proves each octave by replaying the saved
+source run's bar plan and comparing exact NoteEvent identities/values and Track
+identity through at most 64 Revision ancestors. Missing/manual/unverifiable octave
+provenance returns `PIANO_REGISTER_UNVERIFIED`; no inference from a single root.
+Contradictory recognized keep/shift clauses return `PIANO_REGISTER_INTENT_UNSUPPORTED`.
+The Provider receives `fixed_register`; Provider and application validate exact
+per-bar equality before saving a plan, and application revalidates stored-plan replay.
+A violation returns `PIANO_REGISTER_CHANGED`, schedules no candidate media and never
+transposes/clamps/retries the response. Original melody, harmony, outside-range
+notes and hash-bound human approval retain their existing protections.
+
+Historical plans, Revisions and failed Q4 media remain immutable. Existing records
+are readable; an old violating plan is refused when rematerialized under the new
+explicit lock. Safe optional `register_policy` metadata records the validation rule;
+no IR/DB/request schema or migration changes. The saved real 2026-10-20 Q4
+counterexample is the failure Eval `PIANO_REGISTER_CHANGED`; compliant replay with
+exact model-plan equality and protected notes is its success control. Offline
+fixtures are not new model calls or human music-quality acceptance.
+
+The user explicitly accepted the official V4.1-Flash-1017 replacement after the
+original seven-call batch was paused. A separate targeted batch may reserve at
+most CNY0.20 / two submissions, including failures, within the original cumulative
+CNY10 approval; one Q4 call is planned. Old history is not unlocked or reset.
+Official routing plus a generic response name does not prove a cryptographic
+weight identity. See the task evidence and subsequent outcome for actual use.

@@ -10,6 +10,10 @@ from uuid import UUID, uuid5
 from motif_forge.application.ai_runs import ReadAIRunByThreadId
 from motif_forge.application.errors import ApplicationError
 from motif_forge.application.piano_harmony import require_preserved_harmony, resolve_piano_harmony
+from motif_forge.application.piano_register import (
+    require_preserved_register,
+    resolve_piano_register,
+)
 from motif_forge.application.ports import AIRunUnitOfWorkFactory, UnitOfWorkFactory
 from motif_forge.domain.ai_runs import AIRun, EditRunRequest
 from motif_forge.domain.commands import (
@@ -24,6 +28,10 @@ from motif_forge.domain.commands import (
 from motif_forge.domain.ir import ArrangementIR
 from motif_forge.domain.piano_plan import compile_piano_plan, read_piano_plan
 from motif_forge.domain.piano_record import validate_v2_record
+from motif_forge.domain.piano_register import (
+    REGISTER_POLICY_VERSION,
+    register_preservation_requested,
+)
 from motif_forge.domain.piano_requests import PianoSemanticRequestV2, require_semantic_source
 
 if TYPE_CHECKING:
@@ -37,7 +45,12 @@ class PianoPlanStore(Protocol):
 
 class PianoPlanner(Protocol):
     async def create(
-        self, base: ArrangementIR, request: Any, *, harmony: dict[int, str] | None = None
+        self,
+        base: ArrangementIR,
+        request: Any,
+        *,
+        harmony: dict[int, str] | None = None,
+        register: dict[int, int] | None = None,
     ) -> dict[str, Any]: ...
 
 
@@ -74,6 +87,14 @@ class PianoSemanticService:
         # Validate authoritative target/scope before constructing a paid client.
         source = require_semantic_source(base, semantic)
         v2 = isinstance(semantic, PianoSemanticRequestV2)
+        try:
+            keep_register = semantic.mode == "modify" and register_preservation_requested(
+                semantic.intent
+            )
+        except ValueError as error:
+            raise ApplicationError(
+                "PIANO_REGISTER_INTENT_UNSUPPORTED", "保持与改变音区的要求存在歧义,未调用模型。"
+            ) from error
         placeholder = read_piano_plan(
             json.dumps(
                 {
@@ -109,14 +130,28 @@ class PianoSemanticService:
                 start_bar=semantic.start_bar,
                 end_bar=semantic.end_bar,
             )
+        register = None
+        if keep_register:
+            assert self._projects is not None
+            register = await resolve_piano_register(
+                self._projects,
+                self._store,
+                revision_id=request.base_revision_id,
+                base=base,
+                start_bar=semantic.start_bar,
+                end_bar=semantic.end_bar,
+            )
         record = await self._store.read(run.run_id)
         if record is None:
             planner = self._planner_factory(run)
-            record = (
-                await planner.create(base, semantic)
-                if harmony is None
-                else await planner.create(base, semantic, harmony=harmony)
-            )
+            if register is not None:
+                record = await planner.create(base, semantic, harmony=harmony, register=register)
+            else:
+                record = (
+                    await planner.create(base, semantic)
+                    if harmony is None
+                    else await planner.create(base, semantic, harmony=harmony)
+                )
             # Revalidate before persisting an immutable model result.
             if v2:
                 validate_v2_record(record)
@@ -134,6 +169,9 @@ class PianoSemanticService:
             if harmony is not None:
                 require_preserved_harmony(plan, harmony)
                 record["harmony_policy"] = "piano-harmony-preserved.v1"
+            if register is not None:
+                require_preserved_register(plan, register)
+                record["register_policy"] = REGISTER_POLICY_VERSION
             record = await self._store.save(run.run_id, record)
         if v2:
             validate_v2_record(record)
@@ -144,6 +182,8 @@ class PianoSemanticService:
         plan = read_piano_plan(json.dumps(record["plan"]))
         if harmony is not None:
             require_preserved_harmony(plan, harmony)
+        if register is not None:
+            require_preserved_register(plan, register)
         track = compile_piano_plan(
             base,
             plan,

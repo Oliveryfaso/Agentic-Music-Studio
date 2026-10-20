@@ -18,7 +18,17 @@
 
 ## 2. 当前产品形态
 
-### 当前验收：P2.3真实采样完成，模型身份与音乐质量保持未通过（2026-10-20）
+### 当前切片：P2.3 Q4音区保持修复及单次真实验证通过（2026-10-20）
+
+MF-P04/P05/P06/P10/P11/P13/P15/P16/P18/P20/P21。显式“保留音区”固定选区逐bar保存Plan.octave，来源必须用source_run_id重编译并比对精确NoteEvents/Track；不能证明/矛盾在Provider前拒绝。新Prompt v4固定register；Provider、存前、重放三处校验，违例无候选/Job，不转八度修补/重试；旧Schema/IR/DB/Graph不改，原失败样本和七次暂停账本封存。
+
+用户明确接受官方V4.1-Flash-1017替代后，新独立批仅1真实请求/2187tokens（1985in+202out）/公开高峰价估计上界¥0.005586，非账单；批准后累计8次/16660tokens/¥0.046616，旧批准前4次另保留，历史合计12次/23888tokens/¥0.070468。request deepseek-v4-flash/response deepseek-flash，发送前即时核对官方路由/价格与精确数据范围。新批已永久pause，没有第2次；旧seq23 pause和null身份文件不解锁。reasoning_tokens未提供，必需计费字段完整，产品保持partial/null。
+
+原Q4第10/12bar octave3→2的真实反例RED→GREEN；新真实结果9–12bar为2/3/2/3，原和声不变、音符12→8、力度56–60→38–42、总gate4320→1920ticks。实际API/自有PG/正式Worker2Jobs+fresh Parent重复resume、保存计划0追加调用重放、候选拒绝/分支不变通过。原Q1保存计划仅作隔离输入复用，无新append；不重跑旧整批。Python908（unit/root856+Eval52）、任务门禁37、mypy4source/Ruff/format，fresh独审无确认发现，另8内存+4范围检查。无需重跑未改变的前端/DSP构建，不冒充Redis/Celery/Compose或人耳审美通过。
+
+新四段原增益/固定增益等LUFS离线播放通过（−24.00/−24.01LUFS），完整canonical保留，128k副本有损。自有PG/生成DSN/renderer/browser关闭，共享27容器身份不变，精确清理34599371逻辑bytes，24保留媒体/归档hash一致。Library本次唯一重试明确失败、无ID；新旧本地试听均保留。Guide/main不变、不部署。[切片验收](evidence/2026-10-20-p23-q4-register.md)、[机器证据](evidence/2026-10-20-p23-q4-register.json)。
+
+### 历史批次：P2.3首次真实采样与身份暂停（2026-10-20；后续确认见上节）
 
 MF-P04/P05/P06/P10/P11/P13/P15/P16/P17/P18/P20/P21。本轮7次真实调用/14473tokens，公开峰价上界¥0.041030（非账单），无第8次/重试。历史合计11次/21701tokens/上界¥0.064882，不清零。请求名保持deepseek-v4-flash、响应deepseek-flash；官方说明旧模型下线→V4.1-Flash-1017替代。主线已读映射却误当已获人类身份确认，未在首个名称差异停止；现账本永久pause，任务驱动逐次pre/post身份门禁要求精确替代版本的人类确认，当前null拒绝外发。不能称原V4 Flash同权重或音乐质量通过。
 

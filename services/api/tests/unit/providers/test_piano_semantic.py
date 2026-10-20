@@ -76,7 +76,7 @@ async def test_piano_prompt_has_musical_context_and_one_bounded_non_thinking_cal
         )
     assert len(calls) == 1 and result["usage"]["total_tokens"] == 300
     assert result["model"] == "deepseek-v4.1-flash-1017"
-    assert result["prompt_version"] == "piano-accompaniment-prompt.v3"
+    assert result["prompt_version"] == "piano-accompaniment-prompt.v4"
     assert len(result["plan"]["bars"][8]["grid"]) > len(result["plan"]["bars"][0]["grid"])
 
 

@@ -581,3 +581,17 @@ MF-P04/P05/P06/P10/P11/P13/P15/P16/P17/P18/P20/P21。本轮7次真实调用/1447
 实际UI/API/隔离PG/正式Worker函数+fresh Parent三曲六例、真实第三轨拒绝、两项零调用守卫；19新Job/11完整导出文件校验，旧26不重跑，不冒充Redis/Celery传输。Q4更轻更疏但第10/12小节音区3→2违反保留指令，Q5密度减半但总gate时长不减；用户听感待验，保留失败不追加调用。实际发现语义加轨Undo白名单遗漏，生产一行补齐AgentAppend且保留精确parent/current-head/HITL条件，三曲有效RED→GREEN14、真实PG/UI零调用恢复原IR/hash，最终Python888与任务门禁33通过，独立Undo/身份审查无确认发现。
 
 24对比剪辑+12完整源MP3离线原包保留，原增益/固定增益等LUFS分列；标明模型替代/意图失败/人工未验。owned API/renderer/browser退出，精确PG与凭据删除，共享容器ID列表不变。Library首个blob上传失败不宣称附件已交付。main/Guide不变，不部署。详见[验收与执行失误](evidence/2026-10-20-p23-real-model-validation.md)、[机器证据](evidence/2026-10-20-p23-real-model-validation.json)。
+
+
+## 2026-10-20：P2.3 Q4音区保持的可证明约束与针对性真实验证
+
+MF-P04/P05/P06/P10/P11/P13/P15/P16/P18/P20/P21。显式“保留音区”固定选区逐bar保存Plan.octave，来源必须用source_run_id重编译并比对精确NoteEvents/Track；不能证明/矛盾在Provider前拒绝。新Prompt v4固定register；Provider、存前、重放三处校验，违例无候选/Job，不转八度修补/重试；旧Schema/IR/DB/Graph不改，原失败样本和七次暂停账本封存。
+
+用户明确接受官方V4.1-Flash-1017替代后，新独立批仅1真实请求/2187tokens（1985in+202out）/公开高峰价估计上界¥0.005586，非账单；批准后累计8次/16660tokens/¥0.046616，旧批准前4次另保留，历史合计12次/23888tokens/¥0.070468。request deepseek-v4-flash/response deepseek-flash，发送前即时核对官方路由/价格与精确数据范围。新批已永久pause，没有第2次；旧seq23 pause和null身份文件不解锁。reasoning_tokens未提供，必需计费字段完整，产品保持partial/null。
+
+原Q4第10/12bar octave3→2的真实反例RED→GREEN；新真实结果9–12bar为2/3/2/3，原和声不变、音符12→8、力度56–60→38–42、总gate4320→1920ticks。实际API/自有PG/正式Worker2Jobs+fresh Parent重复resume、保存计划0追加调用重放、候选拒绝/分支不变通过。原Q1保存计划仅作隔离输入复用，无新append；不重跑旧整批。Python908（unit/root856+Eval52）、任务门禁37、mypy4source/Ruff/format，fresh独审无确认发现，另8内存+4范围检查。无需重跑未改变的前端/DSP构建，不冒充Redis/Celery/Compose或人耳审美通过。
+
+新四段原增益/固定增益等LUFS离线播放通过（−24.00/−24.01LUFS），完整canonical保留，128k副本有损。自有PG/生成DSN/renderer/browser关闭，共享27容器身份不变，精确清理34599371逻辑bytes，24保留媒体/归档hash一致。Library本次唯一重试明确失败、无ID；新旧本地试听均保留。Guide/main不变、不部署。[切片验收](evidence/2026-10-20-p23-q4-register.md)、[机器证据](evidence/2026-10-20-p23-q4-register.json)。
+
+
+初始离线renderer依赖解析失败，复用现有依赖后实际边界通过；试听编码−0.44dB偏移按实测固定增益纠正，源文件不动；清理统计两次表/schema错误均在删除前停止，改权威ORM后成功。均保留失败证据，不作为模型或产品成功计数。
