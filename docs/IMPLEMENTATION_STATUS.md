@@ -18,6 +18,12 @@
 
 ## 2. 当前产品形态
 
+### 质量收尾：P2.3 真实模型验收准备与停止器截止竞争（2026-10-20）
+
+MF-P04/P05/P06/P10/P11/P13/P15/P16/P18/P21。准备9例/最多7真实提交、建议独立CNY1与0.672元最坏预留，尚未授权/调用；旧4次7228tokens/0.023852元公开价上界与累计门不重置。Settings白名单确认官方端点/原请求名/局部单次限制。真实音乐效果待人工，不让fixture代替模型验收。
+
+停止器两种截止交错都观察RED→GREEN：已完成child在deadline前或TERM前退出时保留真实status，仍用原3秒截止门，TERM后wait并非绝对退出上限；旧自有Web测试修env/ready并去忙循环。合同11、完整Python885、Bash/Ruff/format/diff通过，原3.2秒调度间隔探针修前漏Compose、修后执行Compose；普通并行修前后各12绿不作根因证明。原历史偶发无trace，不能断言同因。既有Master/Stem只读复算1LSB、严格SHA不等，14保留音频/归档hash不变，不放宽身份协议或扩大确定性声明。本轮0模型/0新Job、无DB/业务/前端/音频引擎改动；独立审查结果见质量证据，main/Guide保持。详见[验收计划](evidence/2026-10-20-p23-live-model-acceptance-plan.md)、[质量收尾](evidence/2026-10-20-p23-quality-closure.md)。
+
 ### 当前集成：P2.3 三曲语义 v2 / 0030（2026-10-20）
 
 MF-P02/P04/P05/P06/P08/P09/P11/P13/P15/P16/P17/P18/P20/P21。在88c0a07三曲目录/规则路径上接通source/meter绑定的request v2、实际bar ticks计划/编译、record v2双读和0030 JSON约束/危险降级保护；三曲自然语言append与第二轨1–4bar局部modify已开放。旧v1六和弦plan/Track/IR hash独立6/6完全一致；不可证明和声付费前拒绝，不猜D/Dm根音。Prompt新写v3，旧记录不改。8bar默认5–8，未知回执同body/key保留。

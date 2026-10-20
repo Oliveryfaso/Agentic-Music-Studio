@@ -45,7 +45,15 @@ run_quiet_with_timeout() {
 
   while kill -0 "$command_pid" >/dev/null 2>&1; do
     if (( SECONDS >= deadline )); then
-      kill "$command_pid" >/dev/null 2>&1 || true
+      # The probe may have completed while this shell was descheduled.
+      if ! kill -0 "$command_pid" >/dev/null 2>&1; then
+        wait "$command_pid" >/dev/null 2>&1
+        return $?
+      fi
+      if ! kill "$command_pid" >/dev/null 2>&1; then
+        wait "$command_pid" >/dev/null 2>&1
+        return $?
+      fi
       wait "$command_pid" >/dev/null 2>&1 || true
       return 124
     fi

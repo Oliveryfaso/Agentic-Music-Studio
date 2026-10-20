@@ -568,3 +568,7 @@ RED→GREEN含请求4/计划8/service4/和声5，真实PG先被旧约束拒绝�
 资源门：先冻结当前build、全部accepted媒体/来源/manifest、旧诊断与固定试听、venv/node依赖；关闭精确标签PG、自生凭据/API/renderer/browser。只删本轮具名mypy/测试/Ruff/build cache及自生._jobs，回收34,334,972 logical bytes；47保留文件重hash通过。Docker/BuildKit仅只读盘点，混合共享归属不清故不prune、不停Colima、不碰用户DB/游戏验收。没有重建无变更的共享Docker targets；本轮为actual host live + Docker PG，不冒充Redis/Celery/Compose或pinned Docker验收。Guide最后d68b900、前后diff空。正常dev checkpoint/push按已有授权，不合main/强推/部署。
 
 详见[验收](evidence/2026-10-20-p23-semantic-v2.md)、[机器证据](evidence/2026-10-20-p23-semantic-v2.json)、[独立审查](evidence/2026-10-20-p23-semantic-v2-review.md)。
+
+## 2026-10-20：P2.3 质量收尾（真实模型授权待定）
+
+基于97d7a20，准备三曲9例/7次上限及独立CNY1提案，0真实模型/0新Job，历史账本不清零。停止器调度延迟复现漏停Compose；六种截止交错先后两次准确RED，最小截止分支保留已完成真实退出码，仍用原3秒截止门且TERM后wait局限保留，修自有Web fixture env/ready与忙循环。合同11/Python885与原3.2秒探针通过，普通并行修前后12/12不冒充根因证明。只读PCM复算repeat/两Stem和均1LSB，严格SHA仍失败，原媒体/归档14项保留hash不变；既有旁路数值门不重写为同Revision字节门。执行通道短暂断开后恢复。详见[质量证据](evidence/2026-10-20-p23-quality-closure.md)与[待批准验收](evidence/2026-10-20-p23-live-model-acceptance-plan.md)。

@@ -403,5 +403,5 @@ Candidate fan-out 使用独立 `candidate_id + seed + CandidateState`；fan-in r
 
 - 历史reported-model缺失回退仍按P2.2登记，不因本轮fixture升级而宣称解决。
 - PianoPanel现行保存/打开/Undo按project+revision重挂，因此8bar初始化5–8已实测；若以后改为同一实例原地从一轨切两轨，应把mode-change effect中的旧9–12改为实际defaultStart/defaultEnd。独审未认定当前路径缺陷；触发器是移除/改变现有key重挂，最迟同一次UI改动处理，最小复现为8bar组件原地由一轨变两轨。
-- 原启动器stub在并行门一次未记录docker compose down，独立与最终串行通过；代码未改、根因未确认。需要并行CI门、再次复现或修改启停路径时定位其调度/时间窗口，不能把本轮串行绿推为稳定性修复。
-- 宿主重复Master SHA不等而PCM最大1LSB原始证据保留；本轮只使用已存在的宿主容差。准备pinned Docker确定性声明、重复结果幂等失败或再次超容差时升级，不把此结论扩展到生产跨平台字节确定性。
+- 停止器后续已复现并修复deadline/TERM前child完成丢失成功status的竞态，双窗口确定性RED→GREEN、合同11/完整Python885、调度延迟probe闭合；普通并行修前后各12绿不作修复依据。原无trace偶发事件不能断言同因，复发或并行CI门按新trace继续定位。
+- 宿主重复Master SHA不等而PCM最大1LSB原始证据保留；既有M1/M2旁路数值准则不等于事前同Revision重渲染字节门。只读复算仍1LSB，不能放宽Artifact/Revision/HITL/原轨精确身份；准备pinned Docker声明、重复结果幂等失败或超差时升级，不能追渲染碰字节相同。
