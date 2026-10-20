@@ -13,7 +13,7 @@ export function Transport({
   onPause: () => void;
   onStop: () => void;
   onSeek: (seconds: number) => void;
-  mediaProps: { onTimeUpdate: () => void; onEnded: () => void; onError: () => void };
+  mediaProps: { onTimeUpdate: () => void; onEnded: () => void; onError: () => void; onPause: () => void; onPlay: () => void; onEmptied: () => void };
 }) {
   return (
     <section className="studio-transport" aria-label="播放控制">

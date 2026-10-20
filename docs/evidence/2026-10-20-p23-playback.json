@@ -1,0 +1,125 @@
+{
+  "stage": "P2.3 playback reliability follow-up; not full P2.3 acceptance",
+  "requirements": [
+    "MF-P11",
+    "MF-P18",
+    "MF-P20",
+    "MF-P21"
+  ],
+  "base": "d68b900bd8dce6c5786dd0b6c6b531429c9d38a2",
+  "patch_sha256": "52d76a04ac0b8d2f2a5141845e68e9a19f5df45023a10a1bb3689fdf59f54d34",
+  "production_files": 6,
+  "regression_files": 2,
+  "actual_repository_checks": {
+    "web": 25,
+    "audio_contracts": 39,
+    "export_contracts": 25,
+    "full_web_typecheck": true,
+    "production_build": true,
+    "git_diff_check": true
+  },
+  "independent_review": {
+    "fresh": true,
+    "blocking_findings": 0,
+    "independent_state_probes": 12,
+    "author_repair_recheck": false
+  },
+  "integrated_browser": {
+    "boundary": "actual repository production build + explicitly labelled read-only retained snapshot API",
+    "macLocal": true,
+    "headless": true,
+    "postgresWorkerRerun": false,
+    "newJobs": 0,
+    "modelCalls": 0,
+    "humanListeningAccepted": false,
+    "physicalDeviceObserved": false,
+    "checks": [
+      {
+        "name": "acceptance audio position / pause intent",
+        "before": 0.426099,
+        "after": {
+          "time": 0.462862,
+          "paused": false
+        },
+        "passed": true
+      },
+      {
+        "name": "integrated saved playback/stop",
+        "fixture": "c02-baseline",
+        "revisionId": "52bd3e6f-c672-491e-ba97-9b26d4e345df",
+        "src": "/api/v1/audio-artifacts/fa34fafe-a681-47f4-b34b-7531e3e0cae4/content",
+        "bytes": 619053,
+        "sha256": "cbc3fa3c1f12a449307c8e0be624aeb170a485155e276c62a778ee16c448bc19",
+        "passed": true
+      },
+      {
+        "name": "integrated saved playback/stop",
+        "fixture": "c02-mid-notch",
+        "revisionId": "dbc9314c-f31b-44de-a6c5-cc4eb59595ad",
+        "src": "/api/v1/audio-artifacts/31732efd-075d-4103-98ac-3844f245c5fd/content",
+        "bytes": 619053,
+        "sha256": "e1561b0a074a97beeb7d67e9d8f2c6a9bdd71653c46666a574ab6b81c8fafd8f",
+        "passed": true
+      },
+      {
+        "name": "integrated saved playback/stop",
+        "fixture": "c01-minuet-g-a16.v1",
+        "revisionId": "d048efd4-08c1-4f8e-b59d-5c356e025d78",
+        "src": "/api/v1/audio-artifacts/d7eb96ac-7e93-4f3e-aa6a-9e1cca79d5c9/content",
+        "bytes": 980781,
+        "sha256": "10c8f67b1009d6ae2d8149c8c8b29b9801eac790d01e7308b73afa0f43afe2e9",
+        "passed": true
+      },
+      {
+        "name": "integrated saved playback/stop",
+        "fixture": "j01-bethena-a-first8.v1",
+        "revisionId": "319a53ff-dc16-4437-98ef-d054af7a2a0e",
+        "src": "/api/v1/audio-artifacts/34ecbc93-f576-4f2a-a76b-0d9ec0a3b8e4/content",
+        "bytes": 433965,
+        "sha256": "42a63e5fd1c7853ac7e0b71c1e0b162e0f8dd30c41c3dbed0001d9c85f867fa6",
+        "passed": true
+      }
+    ],
+    "pageErrors": [],
+    "narrowViewport": {
+      "width": 390,
+      "bodyScrollWidth": 390
+    },
+    "writesRejected": true,
+    "status": "passed"
+  },
+  "prior_candidate_real_boundary": {
+    "three_score_jobs": 26,
+    "additional_eq_bypass_jobs": 6,
+    "rerun_this_integration": false,
+    "formal_worker_entry": "execute_media_job with fresh Parent resume",
+    "redis_celery_transport_tested": false
+  },
+  "new_jobs_this_integration": 0,
+  "paid_model_calls_this_integration": 0,
+  "human_listening_accepted": false,
+  "physical_device_observed": false,
+  "unchanged": [
+    "API",
+    "DB/schema",
+    "IR",
+    "DSP",
+    "Worker",
+    "dependencies",
+    "theme",
+    "PROJECT_GUIDE"
+  ],
+  "remaining": [
+    "three-score picker",
+    "source-aware semantic v2/0030",
+    "human physical-device listening"
+  ],
+  "storage": {
+    "deletion_bytes": 0,
+    "current_web_dist_kiB": 2304,
+    "mixed_vite_cache_kiB": 7424,
+    "shared_docker_mutated": false,
+    "user_database_used": false,
+    "keep": "current build/dependencies/accepted audio and raw evidence; mixed cache retained, no global prune"
+  }
+}

@@ -535,3 +535,12 @@ MF-P05/P06/P11/P13/P15/P16/P17/P18/P21；起点9520a89/Guide clean，至独立�
 最终builtUI/Worker/Parent export15Jobs；两次harness失败分别1/9Jobs（屏外鼠标坐标、React立即读），三次实际总25Jobs/0AIRun；13实际音频。旁路/zero≤1PCM24LSB、Master两stem≤2LSB、静音真0、同Revision graph/hash；15设置75频点PCM曲线误差1.062153e-6dB。4秒暖小probe33.25/36.60/32.10ms是有界耗时，不是CPU/RSS/P95/整曲审美；MP3 RMS容差0.5dB，实际preview−.446140/export−.000213dB。新v5recipe正确静音标签，旧v4 M1-R1仍延期、不改hash。
 
 产品模型0/新增依赖音源0；旧4调用7228tokens公开峰价上界¥.023852非账单原账不变；用户取消额度轮询，Library不重试。自有PG/tmpfs/凭据/launcher清理，31保留files重核，关闭后13音频/20导出身份和当前buildassets复核；精准逻辑回收77,654,375bytes（backend34,100,139+cache43,508,306+launcher45,930），共享容器身份不变，无prune/用户库迁移/main合并/部署。没有新Dockerfile/lockfile/系统依赖，沿host-first当前built Web/Worker+缓存PG容器验证，不为形式重建无关镜像。见[验收](evidence/2026-10-19-m2-three-band-eq.md)、[审查](evidence/2026-10-19-m2-review.md)、[存储](evidence/2026-10-19-m2-storage.json)。
+
+
+## 2026-10-20：P2.3 试听可靠性集成
+
+MF-P11/P18/P20/P21；base d68b900、Guide clean。六生产/两测试文件补丁先核HEAD/逐文件base/hash，正式写入获准后应用。Stop/替源/卸载旧回执隔离、native媒体事件/RAF、双向唯一播放、A/B绝对位置/metadata锁/候选失效、保存版Revision与静态EQ文案。API/DB/IR/DSP/Worker/依赖/主题不变。
+
+真实repo Web25/Audio39/Export25/fullWebTS/productionbuild/diff通过；fresh独立审查无阻塞，独立12状态探针，无作者修复复核。Mac实际build+明示只读保留快照4媒体播放/停止、入口A/B、写入403、390px无横溢通过。辅助验收HTML转义失败保留，语法检查后一次复验关闭；不是产品回归。
+
+旧候选26Job与后段6Job不重跑；本次0Job/0模型。新统一人工入口先听感后曲谱/界面，不上传反馈，限40分钟loopback自动关闭；不是生产API/PG/Worker重跑。三曲picker/语义v2/0030及人耳/物理设备仍待验，不把P2.3整体写完。当前dist2304KiB、混合Vite缓存7424KiB保留、删除0；无共享VM/prune/用户DB/main合并/部署。见[集成验收](evidence/2026-10-20-p23-playback.md)与[证据](evidence/2026-10-20-p23-playback.json)。

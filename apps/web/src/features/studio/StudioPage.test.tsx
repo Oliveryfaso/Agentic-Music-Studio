@@ -58,7 +58,7 @@ describe("Read-only Arrangement Studio", () => {
     const playable = studio("available");
     playable.delivery_assets[0]!.duration_milliseconds = null;
     stubReads(playable, "ready");
-    const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue();
+    const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(async function(this: HTMLMediaElement) { Object.defineProperty(this, "paused", { configurable: true, value: false }); });
     const pause = vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
     const raf = vi.spyOn(window, "requestAnimationFrame").mockReturnValue(41);
     const cancelRaf = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);

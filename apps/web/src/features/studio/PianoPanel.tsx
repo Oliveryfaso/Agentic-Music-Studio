@@ -136,7 +136,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
         {state.model_requests!=null&&<p>模型请求：{state.model_requests} 次</p>}
         {state.usage_status==='known'&&state.total_tokens!=null?<p>总用量：{state.total_tokens} tokens</p>:<p>用量暂不完整，费用未确认。</p>}
       </div>}
-      {state?.baseline_artifact_id&&state.piano_artifact_id&&<PianoComparison key={thread} baseline={state.baseline_artifact_id} piano={state.piano_artifact_id} label={classicalSource?(modify?'局部修改':'加轨版本'):'钢琴表达'}/>}
+      {state?.baseline_artifact_id&&state.piano_artifact_id&&<PianoComparison key={`${thread}:${state.baseline_artifact_id}:${state.piano_artifact_id}`} baseline={state.baseline_artifact_id} piano={state.piano_artifact_id} label={classicalSource?(modify?'局部修改':'加轨版本'):'钢琴表达'}/>}
       {state?.phase==='waiting_piano_approval'&&<>
         {!matches&&<p className="field-error">这段试听属于另一个已保存版本。请打开对应版本后确认。</p>}
         <label className="piano-confirm"><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)} disabled={!ready||busy}/>我已试听，确认{keepLabel}</label>
@@ -157,19 +157,22 @@ function PianoComparison({baseline,piano,label}:{baseline:string;piano:string;la
   const position=useRef({time:0,playing:false});
   const [selected,setSelected]=useState<'baseline'|'piano'>('baseline');
   const [failed,setFailed]=useState(false);
+  const [switching,setSwitching]=useState(false);
+  const sourceGeneration=useRef(0);
+  useEffect(()=>()=>{++sourceGeneration.current;},[]);
   function choose(value:'baseline'|'piano'){
-    if(value===selected||!audio.current)return;
-    position.current={time:audio.current.currentTime,playing:!audio.current.paused};audio.current.pause();setFailed(false);setSelected(value);
+    if(value===selected||!audio.current||switching)return;
+    if(audio.current.readyState>=1)position.current={time:audio.current.currentTime,playing:!audio.current.paused};++sourceGeneration.current;audio.current.pause();setFailed(false);setSwitching(true);setSelected(value);
   }
   return <div className="piano-comparison">
-    <div className="piano-ab-switch" role="group" aria-label="同位置 A/B 试听">
-      <button type="button" aria-pressed={selected==='baseline'} onClick={()=>choose('baseline')}>A · 原版本</button>
-      <button type="button" aria-pressed={selected==='piano'} onClick={()=>choose('piano')}>B · {label}</button>
+    <div className="piano-ab-switch" role="group" aria-label="同位置 A/B 试听" aria-busy={switching}>
+      <button type="button" aria-pressed={selected==='baseline'} disabled={switching} onClick={()=>choose('baseline')}>A · 原版本</button>
+      <button type="button" aria-pressed={selected==='piano'} disabled={switching} onClick={()=>choose('piano')}>B · {label}</button>
     </div>
     <audio ref={audio} controls preload="metadata" aria-label="钢琴 A/B 试听" src={audioContentUrl(selected==='baseline'?baseline:piano)}
       onPlay={event=>{document.querySelectorAll('audio').forEach(other=>{if(other!==event.currentTarget)other.pause();});}}
-      onLoadedMetadata={()=>{const node=audio.current;if(!node)return;node.currentTime=Math.min(position.current.time,Math.max(0,node.duration-.01));if(position.current.playing)void node.play().catch(()=>setFailed(true));}}
-      onError={()=>setFailed(true)}/>
+      onLoadedMetadata={()=>{const node=audio.current;if(!node)return;setSwitching(false);node.currentTime=Math.min(position.current.time,Math.max(0,node.duration-.01));if(position.current.playing){const token=sourceGeneration.current,source=node.src;void node.play().catch(error=>{if(token===sourceGeneration.current&&audio.current===node&&node.src===source&&error?.name!=="AbortError")setFailed(true);});}}}
+      onError={()=>{setSwitching(false);setFailed(true);}}/>
     <p className="saved-audio-note">切换 A/B 保留播放位置。试听为 160 kbps MP3，正式导出提供 WAV。</p>
     {failed&&<p className="field-error">试听音频暂不可用，请重新载入后再确认。</p>}
   </div>;

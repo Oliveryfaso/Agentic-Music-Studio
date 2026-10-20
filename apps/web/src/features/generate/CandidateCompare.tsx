@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { audioContentUrl } from "../../shared/api";
 import type { AIRun } from "../../shared/openapi";
@@ -22,11 +22,38 @@ export function CandidateCompare({
   onSelect: (decision: CandidateDecision) => void;
 }) {
   const [playing, setPlaying] = useState<string | null>(null);
+  const audio = useRef<HTMLAudioElement>(null);
+  const position = useRef({time:0,playing:true});
+  const [switching,setSwitching] = useState(false);
+  const [playbackFailed,setPlaybackFailed] = useState(false);
+  const sourceGeneration=useRef(0);
+  const sourceIdentity=useRef<{runId:string;id:string;artifact:string;hash:string}|null>(null);
+  useEffect(()=>()=>{++sourceGeneration.current;},[]);
+  function choosePreview(id:string){
+    if(switching)return;
+    const target=run.candidates.find(candidate=>candidate.candidate_id===id);
+    if(!target||target.preview_availability!=="available")return;
+    ++sourceGeneration.current;
+    sourceIdentity.current={runId:run.run_id,id,artifact:target.preview_artifact_id,hash:target.candidate_content_hash};
+    const node=audio.current;
+    if(node&&node.readyState>=1)position.current={time:node.currentTime,playing:!node.paused};
+    node?.pause();setSwitching(true);setPlaybackFailed(false);setPlaying(id);
+  }
   const [assertion, setAssertion] = useState("");
   const [note, setNote] = useState("");
   const candidates = [...run.candidates].sort((left, right) =>
     left.label.localeCompare(right.label),
   );
+  const previewSetIdentity=JSON.stringify(run.candidates.map(candidate=>[candidate.candidate_id,candidate.preview_artifact_id,candidate.candidate_content_hash,candidate.preview_availability]));
+  useEffect(()=>{
+    const identity=sourceIdentity.current;
+    if(!identity)return;
+    const current=run.candidates.find(candidate=>candidate.candidate_id===identity.id);
+    if(identity.runId!==run.run_id||!current||current.preview_availability!=="available"||current.preview_artifact_id!==identity.artifact||current.candidate_content_hash!==identity.hash){
+      ++sourceGeneration.current;audio.current?.pause();sourceIdentity.current=null;
+      position.current={time:0,playing:true};setPlaying(null);setSwitching(false);setPlaybackFailed(false);
+    }
+  },[run.run_id,previewSetIdentity]);
   const recommendation = candidates.find(
     (candidate) => candidate.candidate_id === run.critique?.recommended_candidate_id,
   );
@@ -75,11 +102,15 @@ export function CandidateCompare({
                 <div><dt>结构</dt><dd>{run.plan?.plan.sections.length ?? "—"} 段</dd></div>
                 <div><dt>乐理阻断项</dt><dd>{theoryErrors}</dd></div>
               </dl>
-              {active ? (
+              {active && playable ? (
                 <audio
                   aria-label={`候选 ${candidate.label.toUpperCase()} 试听`}
                   controls
-                  autoPlay
+                  ref={audio}
+                  key={candidate.preview_artifact_id}
+                  onPlay={event=>{document.querySelectorAll("audio").forEach(other=>{if(other!==event.currentTarget)other.pause();});}}
+                  onLoadedMetadata={event=>{const node=event.currentTarget;setSwitching(false);node.currentTime=Math.min(position.current.time,Math.max(0,node.duration-.01));if(position.current.playing){const token=sourceGeneration.current,source=node.src;void node.play().catch(error=>{if(token===sourceGeneration.current&&audio.current===node&&node.src===source&&error?.name!=="AbortError")setPlaybackFailed(true);});}}}
+                  onError={()=>{setSwitching(false);setPlaybackFailed(true);}}
                   preload="metadata"
                   src={audioContentUrl(candidate.preview_artifact_id)}
                 >浏览器不支持音频播放。</audio>
@@ -87,8 +118,8 @@ export function CandidateCompare({
                 <button
                   className="secondary-inline"
                   type="button"
-                  disabled={!playable}
-                  onClick={() => setPlaying(candidate.candidate_id)}
+                  disabled={!playable || switching}
+                  onClick={() => choosePreview(candidate.candidate_id)}
                 >{playable
                   ? `试听候选 ${candidate.label.toUpperCase()}`
                   : previewAvailabilityLabel(candidate.preview_availability)}</button>
@@ -111,6 +142,8 @@ export function CandidateCompare({
         })}
       </div>
 
+      <p className="form-note" role="status">{switching?"正在切换音频，保留原播放位置…":"A/B 切换保留绝对播放位置；不同长度会停在目标音频范围内。"}</p>
+      {playbackFailed&&<p className="field-error" role="alert">试听未能播放，请检查音频状态后重试。</p>}
       <div className="candidate-decision-form">
         <label>选择确认
           <textarea

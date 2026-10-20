@@ -18,7 +18,7 @@ export function EditPreviewCard({ preview, busy, rootReady, onDecision }: {
       </span>
     </div>
     {ready && preview.preview_artifact_id
-      ? <audio controls preload="metadata" src={audioContentUrl(preview.preview_artifact_id)} />
+      ? <audio onPlay={event=>{document.querySelectorAll("audio").forEach(other=>{if(other!==event.currentTarget)other.pause();});}} controls preload="metadata" src={audioContentUrl(preview.preview_artifact_id)} />
       : <p>试听工件尚不可用；审批保持锁定。</p>}
     <dl>
       <div><dt>实际影响</dt><dd>L{preview.actual_change_impact}</dd></div>
