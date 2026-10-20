@@ -2160,7 +2160,8 @@ export interface components {
              * @default []
              */
             locked_ranges: components["schemas"]["LockedRangeRef"][];
-            piano_request?: components["schemas"]["PianoSemanticRequest"] | null;
+            /** Piano Request */
+            piano_request?: components["schemas"]["PianoSemanticRequest"] | components["schemas"]["PianoSemanticRequestV2"] | null;
             /**
              * Seed
              * @default 0
@@ -3379,7 +3380,8 @@ export interface components {
              * @default 0
              */
             seed: number;
-            semantic?: components["schemas"]["PianoSemanticRequest"] | null;
+            /** Semantic */
+            semantic?: components["schemas"]["PianoSemanticRequest"] | components["schemas"]["PianoSemanticRequestV2"] | null;
         };
         /** PianoPreviewResponse */
         PianoPreviewResponse: {
@@ -3441,6 +3443,41 @@ export interface components {
              * @constant
              */
             schema_version: "piano-semantic-request.v1";
+            /**
+             * Start Bar
+             * @default 1
+             */
+            start_bar: number;
+            /** Target Track Id */
+            target_track_id?: string | null;
+        };
+        /** PianoSemanticRequestV2 */
+        PianoSemanticRequestV2: {
+            /**
+             * Beats Per Bar
+             * @enum {integer}
+             */
+            beats_per_bar: 3 | 4;
+            /** End Bar */
+            end_bar: number;
+            /** Intent */
+            intent: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "append" | "modify";
+            /**
+             * Schema Version
+             * @default piano-semantic-request.v2
+             * @constant
+             */
+            schema_version: "piano-semantic-request.v2";
+            /**
+             * Source Score Id
+             * @enum {string}
+             */
+            source_score_id: "mutopia-528-melody.v1" | "c01-minuet-g-a16.v1" | "c02-la-candeur-a8.v1" | "j01-bethena-a-first8.v1";
             /**
              * Start Bar
              * @default 1

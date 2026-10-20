@@ -6,12 +6,12 @@ import json
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import insert
-
 from motif_forge.application.errors import ApplicationError
+from motif_forge.domain.piano_record import validate_v2_record
 from motif_forge.infrastructure.persistence.database import SessionFactory
 from motif_forge.infrastructure.persistence.tables import PianoAccompanimentPlanRow
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 
 _FORBIDDEN_KEYS = frozenset(
     {
@@ -43,11 +43,13 @@ def _copy_record(value: dict[str, Any]) -> dict[str, Any]:
                 validate(nested)
 
     try:
-        if value.get("schema_version") != "piano-plan-record.v1":
+        if value.get("schema_version") not in ("piano-plan-record.v1", "piano-plan-record.v2"):
             raise ValueError("unsupported piano plan record version")
         validate(value)
+        if value["schema_version"] == "piano-plan-record.v2":
+            validate_v2_record(value)
         return json.loads(json.dumps(value, allow_nan=False))  # type: ignore[no-any-return]
-    except (TypeError, ValueError) as exc:
+    except (KeyError, TypeError, ValueError) as exc:
         raise ApplicationError(
             "PIANO_PLAN_RECORD_INVALID", "Only a validated, safe piano plan record may be stored."
         ) from exc
@@ -75,7 +77,7 @@ class PostgresPianoPlanStore:
             # compares exact content, and never overwrites an already paid result.
             await session.execute(
                 insert(PianoAccompanimentPlanRow)
-                .values(run_id=run_id, schema_version="piano-plan-record.v1", payload=payload)
+                .values(run_id=run_id, schema_version=payload["schema_version"], payload=payload)
                 .on_conflict_do_nothing(index_elements=[PianoAccompanimentPlanRow.run_id])
             )
             stored = (

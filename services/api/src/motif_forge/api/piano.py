@@ -11,8 +11,6 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 
 from fastapi import APIRouter, Header
 from langgraph.types import Command
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-
 from motif_forge.agent.parent_graph import initial_piano_preview_state
 from motif_forge.application.ai_runs import ReadAIRun, ReadAIRunByThreadId, RecordAIRunGraphProgress
 from motif_forge.application.edit_runs import CreateEditAIRun, CreateEditAIRunRequest
@@ -29,7 +27,13 @@ from motif_forge.domain.accompaniment import AccompanimentIntent
 from motif_forge.domain.ai_runs import EditRunRequest
 from motif_forge.domain.commands import Selection
 from motif_forge.domain.ir import PerformancePlan, PianoRenderProfile
-from motif_forge.domain.piano_requests import PianoSemanticRequest
+from motif_forge.domain.piano_requests import (
+    PianoSemanticInput,
+    PianoSemanticRequest,
+    PianoSemanticRequestV2,
+    read_piano_request,
+)
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ApiModel(BaseModel):
@@ -51,14 +55,14 @@ class PianoPreviewOptions(ApiModel):
     performance_plan: PerformancePlan = Field(default_factory=PerformancePlan)
     seed: int = Field(default=0, ge=0, le=2**31 - 1)
     accompaniment: AccompanimentIntent | None = None
-    semantic: PianoSemanticRequest | None = None
+    semantic: PianoSemanticInput | None = None
 
     @field_validator("semantic", mode="before")
     @classmethod
-    def read_semantic(cls, value: Any) -> PianoSemanticRequest | None:
-        if value is None or isinstance(value, PianoSemanticRequest):
+    def read_semantic(cls, value: Any) -> PianoSemanticInput | None:
+        if value is None or isinstance(value, (PianoSemanticRequest, PianoSemanticRequestV2)):
             return value
-        return PianoSemanticRequest.model_validate_json(json.dumps(value), strict=True)
+        return read_piano_request(json.dumps(value))
 
     @field_validator("accompaniment", mode="before")
     @classmethod
@@ -227,8 +231,8 @@ def build_piano_router(
                 assert semantic.target_track_id is not None
                 selection = Selection(
                     track_ids=(semantic.target_track_id,),
-                    start_tick=(semantic.start_bar - 1) * 1920,
-                    end_tick=semantic.end_bar * 1920,
+                    start_tick=(semantic.start_bar - 1) * semantic.bar_ticks,
+                    end_tick=semantic.end_bar * semantic.bar_ticks,
                 )
             run = await CreateEditAIRun(ai_runs)(
                 CreateEditAIRunRequest(

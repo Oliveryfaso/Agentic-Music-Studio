@@ -5,8 +5,6 @@ from __future__ import annotations
 from typing import Annotated, Literal, Self
 from uuid import UUID, uuid5
 
-from pydantic import Field, model_validator
-
 from motif_forge.domain.ir import (
     ArrangementIR,
     ArrangementIRV2,
@@ -14,7 +12,6 @@ from motif_forge.domain.ir import (
     EnsemblePianoRenderProfile,
     EqPianoRenderProfile,
     MixPianoRenderProfile,
-    MusicalMode,
     NoteClip,
     NoteEvent,
     PianoEqProfile,
@@ -23,11 +20,10 @@ from motif_forge.domain.ir import (
     TrackRole,
     TrackType,
 )
+from motif_forge.domain.reviewed_scores import reviewed_source
+from pydantic import Field, TypeAdapter, model_validator
 
-_BAR_TICKS = 1920
 _STEP_TICKS = 120
-_SOURCE_REF = "score:mutopia-528-melody.v1"
-_SOURCE_SHA256 = "995a1d612fd073be18902ada308a525ee973206e0113e5010e1af3520b628907"
 _TRIADS = {
     "C": (0, 4, 7),
     "G": (7, 11, 14),
@@ -35,6 +31,8 @@ _TRIADS = {
     "Em": (4, 7, 11),
     "Am": (9, 12, 16),
     "Bm": (11, 14, 18),
+    "F": (5, 9, 12),
+    "Dm": (2, 5, 9),
 }
 
 
@@ -63,9 +61,46 @@ class AccompanimentPlan(DomainModel):
     bars: tuple[BarPlan, ...] = Field(min_length=1, max_length=16)
 
 
+class BarPlanV2(DomainModel):
+    bar: int = Field(ge=1, le=16)
+    chord: Literal["G", "C", "D", "Em", "Am", "Bm", "F", "Dm"]
+    grid: tuple[Annotated[int, Field(ge=0, le=15)], ...] = Field(min_length=1, max_length=8)
+    octave: Literal[2, 3]
+    velocity: int = Field(ge=32, le=80)
+    gate_steps: int = Field(default=3, ge=1, le=4)
+
+    @model_validator(mode="after")
+    def validate_grid(self) -> Self:
+        if tuple(sorted(set(self.grid))) != self.grid:
+            raise ValueError("ACCOMPANIMENT_GRID_INVALID")
+        return self
+
+
+class AccompanimentPlanV2(DomainModel):
+    schema_version: Literal["accompaniment-plan.v2"] = "accompaniment-plan.v2"
+    summary: str = Field(min_length=1, max_length=300)
+    beats_per_bar: Literal[3, 4]
+    bars: tuple[BarPlanV2, ...] = Field(min_length=1, max_length=16)
+
+    @model_validator(mode="after")
+    def validate_meter(self) -> Self:
+        if any(
+            step + bar.gate_steps > self.beats_per_bar * 4 for bar in self.bars for step in bar.grid
+        ):
+            raise ValueError("ACCOMPANIMENT_NOTE_OUT_OF_BAR")
+        return self
+
+
+PianoPlan = AccompanimentPlan | AccompanimentPlanV2
+
+
+def read_piano_plan(value: str) -> PianoPlan:
+    return TypeAdapter(PianoPlan).validate_json(value, strict=True)
+
+
 def compile_piano_plan(
     base: ArrangementIR,
-    plan: AccompanimentPlan,
+    plan: PianoPlan,
     *,
     request_id: UUID,
     target_track_id: UUID | None = None,
@@ -74,20 +109,35 @@ def compile_piano_plan(
 ) -> Track:
     """Return an added/replacement Track for application-owned preview and HITL.
 
-    The only accepted source is the reviewed 16-bar melody plus its release rest.
+    Only a version-pinned reviewed melody plus its release rest is accepted.
     Editing removes only notes wholly inside the selected bars. A boundary-spanning
     note or a removed note's performance override fails closed; nothing is clipped,
     discarded, or reset implicitly. The caller still owns non-target comparison,
     ArrangementIR validation, ChangeImpact, budget, and candidate persistence.
     """
     piano = _require_source(base)
+    source = reviewed_source(base)
+    legacy = source.score_id == "mutopia-528-melody.v1"
+    if legacy != isinstance(plan, AccompanimentPlan):
+        raise ValueError("ACCOMPANIMENT_PLAN_VERSION_MISMATCH")
+    if isinstance(plan, AccompanimentPlanV2):
+        if plan.beats_per_bar != source.beats:
+            raise ValueError("ACCOMPANIMENT_METER_MISMATCH")
+        allowed = (
+            {"C", "Dm", "Em", "F", "G", "Am"}
+            if source.tonic == "C"
+            else {"G", "Am", "Bm", "C", "D", "Em"}
+        )
+        if any(bar.chord not in allowed for bar in plan.bars):
+            raise ValueError("ACCOMPANIMENT_CHORD_UNSUPPORTED")
+    bar_ticks = source.bar_ticks
     version = str(base.schema_version)
     if target_track_id is None:
         if (
             version != "arrangement-ir.v2"
             or len(base.tracks) != 1
             or start_bar != 1
-            or end_bar != 16
+            or end_bar != source.measures
         ):
             raise ValueError("ACCOMPANIMENT_SCOPE_INVALID")
         _require_bar_coverage(plan, start_bar, end_bar)
@@ -103,14 +153,14 @@ def compile_piano_plan(
                     clip_id=uuid5(request_id, "piano-plan:clip"),
                     start_tick=0,
                     duration_tick=base.duration_tick,
-                    notes=_compile_notes(plan, request_id),
+                    notes=_compile_notes(plan, request_id, bar_ticks),
                 ),
             ),
         )
     if (
         version not in ("arrangement-ir.v3", "arrangement-ir.v4", "arrangement-ir.v5")
         or len(base.tracks) != 2
-        or not 1 <= start_bar <= end_bar <= 16
+        or not 1 <= start_bar <= end_bar <= source.measures
         or end_bar - start_bar >= 4
     ):
         raise ValueError("ACCOMPANIMENT_SCOPE_INVALID")
@@ -129,7 +179,7 @@ def compile_piano_plan(
         raise ValueError("ACCOMPANIMENT_TARGET_INVALID")
     _require_bar_coverage(plan, start_bar, end_bar)
     clip = target.clips[0]
-    first, last = (start_bar - 1) * _BAR_TICKS, end_bar * _BAR_TICKS
+    first, last = (start_bar - 1) * bar_ticks, end_bar * bar_ticks
     removed_ids = set()
     retained = []
     for note in clip.notes:
@@ -152,31 +202,23 @@ def compile_piano_plan(
     insert_at = next(
         (index for index, note in enumerate(retained) if note.start_tick >= last), len(retained)
     )
-    notes = (*retained[:insert_at], *_compile_notes(plan, request_id), *retained[insert_at:])
+    notes = (
+        *retained[:insert_at],
+        *_compile_notes(plan, request_id, bar_ticks),
+        *retained[insert_at:],
+    )
     updated_clip = NoteClip.model_validate({**clip.model_dump(), "notes": notes})
     return Track.model_validate({**target.model_dump(), "clips": (updated_clip,)})
 
 
 def _require_source(base: ArrangementIR) -> ArrangementIRV2:
     version = str(base.schema_version)
+    reviewed_source(base)
     if (
         not isinstance(base, ArrangementIRV2)
         or version
         not in ("arrangement-ir.v2", "arrangement-ir.v3", "arrangement-ir.v4", "arrangement-ir.v5")
         or not base.tracks
-        or base.ppq != 480
-        or base.duration_tick != 17 * _BAR_TICKS
-        or len(base.time_signature_map) != 1
-        or base.time_signature_map[0].numerator != 4
-        or base.time_signature_map[0].denominator != 4
-        or len(base.key_map) != 1
-        or base.key_map[0].tick != 0
-        or base.key_map[0].tonic != "G"
-        or base.key_map[0].mode is not MusicalMode.MAJOR
-        or not any(
-            item.kind == "asset" and item.ref == _SOURCE_REF and item.version == _SOURCE_SHA256
-            for item in base.provenance
-        )
     ):
         raise ValueError("CLASSICAL_SOURCE_REQUIRED")
     expected_profile = (
@@ -206,22 +248,23 @@ def _require_source(base: ArrangementIR) -> ArrangementIRV2:
     return base
 
 
-def _require_bar_coverage(plan: AccompanimentPlan, start_bar: int, end_bar: int) -> None:
+def _require_bar_coverage(plan: PianoPlan, start_bar: int, end_bar: int) -> None:
     expected = tuple(range(start_bar, end_bar + 1))
     if tuple(sorted(item.bar for item in plan.bars)) != expected:
         raise ValueError("ACCOMPANIMENT_BAR_COVERAGE")
 
 
-def _compile_notes(plan: AccompanimentPlan, request_id: UUID) -> tuple[NoteEvent, ...]:
+def _compile_notes(plan: PianoPlan, request_id: UUID, bar_ticks: int) -> tuple[NoteEvent, ...]:
     notes = []
-    for bar in sorted(plan.bars, key=lambda item: item.bar):
+    bars: tuple[BarPlan | BarPlanV2, ...] = plan.bars
+    for bar in sorted(bars, key=lambda item: item.bar):
         for index, step in enumerate(bar.grid):
             offset = _TRIADS[bar.chord][(0, 1, 2, 1)[index % 4]]
             notes.append(
                 NoteEvent(
                     note_id=uuid5(request_id, f"piano-plan:bar:{bar.bar}:step:{step}"),
                     pitch=(bar.octave + 1) * 12 + offset,
-                    start_tick=(bar.bar - 1) * _BAR_TICKS + step * _STEP_TICKS,
+                    start_tick=(bar.bar - 1) * bar_ticks + step * _STEP_TICKS,
                     duration_tick=bar.gate_steps * _STEP_TICKS,
                     velocity=bar.velocity,
                 )

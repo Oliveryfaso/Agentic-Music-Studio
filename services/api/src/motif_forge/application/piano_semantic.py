@@ -22,7 +22,9 @@ from motif_forge.domain.commands import (
     apply_commands,
 )
 from motif_forge.domain.ir import ArrangementIR
-from motif_forge.domain.piano_plan import AccompanimentPlan, BarPlan, compile_piano_plan
+from motif_forge.domain.piano_plan import compile_piano_plan, read_piano_plan
+from motif_forge.domain.piano_record import validate_v2_record
+from motif_forge.domain.piano_requests import PianoSemanticRequestV2, require_semantic_source
 
 if TYPE_CHECKING:
     from motif_forge.application.piano_preview import PianoPreviewRequest
@@ -70,12 +72,20 @@ class PianoSemanticService:
                 "PIANO_RUN_CONTEXT_MISMATCH", "Piano request does not match its durable AI Run."
             )
         # Validate authoritative target/scope before constructing a paid client.
-        placeholder = AccompanimentPlan(
-            summary="scope validation",
-            bars=tuple(
-                BarPlan(bar=i, chord="G", grid=(0,), octave=2, velocity=40)
-                for i in range(semantic.start_bar, semantic.end_bar + 1)
-            ),
+        source = require_semantic_source(base, semantic)
+        v2 = isinstance(semantic, PianoSemanticRequestV2)
+        placeholder = read_piano_plan(
+            json.dumps(
+                {
+                    "schema_version": "accompaniment-plan.v2" if v2 else "accompaniment-plan.v1",
+                    **({"beats_per_bar": source.beats} if v2 else {}),
+                    "summary": "scope validation",
+                    "bars": [
+                        {"bar": i, "chord": source.tonic, "grid": [0], "octave": 2, "velocity": 40}
+                        for i in range(semantic.start_bar, semantic.end_bar + 1)
+                    ],
+                }
+            )
         )
         compile_piano_plan(
             base,
@@ -108,7 +118,11 @@ class PianoSemanticService:
                 else await planner.create(base, semantic, harmony=harmony)
             )
             # Revalidate before persisting an immutable model result.
-            plan = AccompanimentPlan.model_validate_json(json.dumps(record["plan"]), strict=True)
+            if v2:
+                validate_v2_record(record)
+                if record.get("request") != semantic.model_dump(mode="json"):
+                    raise ValueError("PIANO_PLAN_RECORD_CONTEXT_MISMATCH")
+            plan = read_piano_plan(json.dumps(record["plan"]))
             compile_piano_plan(
                 base,
                 plan,
@@ -121,7 +135,13 @@ class PianoSemanticService:
                 require_preserved_harmony(plan, harmony)
                 record["harmony_policy"] = "piano-harmony-preserved.v1"
             record = await self._store.save(run.run_id, record)
-        plan = AccompanimentPlan.model_validate_json(json.dumps(record["plan"]), strict=True)
+        if v2:
+            validate_v2_record(record)
+            if record.get("request") != semantic.model_dump(mode="json"):
+                raise ValueError("PIANO_PLAN_RECORD_CONTEXT_MISMATCH")
+        elif record.get("schema_version", "piano-plan-record.v1") != "piano-plan-record.v1":
+            raise ValueError("PIANO_PLAN_RECORD_CONTEXT_MISMATCH")
+        plan = read_piano_plan(json.dumps(record["plan"]))
         if harmony is not None:
             require_preserved_harmony(plan, harmony)
         track = compile_piano_plan(
@@ -146,8 +166,8 @@ class PianoSemanticService:
                 client_sequence=0,
                 selection=Selection(
                     track_ids=(track.track_id,),
-                    start_tick=(semantic.start_bar - 1) * 1920,
-                    end_tick=semantic.end_bar * 1920,
+                    start_tick=(semantic.start_bar - 1) * source.bar_ticks,
+                    end_tick=semantic.end_bar * source.bar_ticks,
                 ),
                 payload=ReplacePianoRangePayload(
                     track=track, start_bar=semantic.start_bar, end_bar=semantic.end_bar

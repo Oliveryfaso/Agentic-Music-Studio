@@ -36,12 +36,17 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
   const [restoredIntent]=useState(()=>restorePendingIntent(storageKey));
   const [identityStorageAvailable,setIdentityStorageAvailable]=useState(restoredIntent.available);
   const [entry,setEntry]=useState<'rules'|'semantic'>(restoredIntent.intent?'semantic':'rules');
-  const sourceSemantic=classicalSource?.source.score_id==='mutopia-528-melody.v1';
+  const legacySemantic=classicalSource?.source.score_id==='mutopia-528-melody.v1';
+  const sourceBars=classicalSource?.import_report.measure_count??16;
+  const sourceBeats=classicalSource?.import_report.beats??4;
+  const sourceSemantic=Boolean(classicalSource&&['mutopia-528-melody.v1','c01-minuet-g-a16.v1','c02-la-candeur-a8.v1','j01-bethena-a-first8.v1'].includes(classicalSource.source.score_id));
+  const appendDescription=sourceBars===16?APPEND_DESCRIPTION:`加一个低音区钢琴伴奏，前${sourceBars/2}小节稀疏，后${sourceBars/2}小节稍活跃，不改旋律`;
+  const defaultStart=sourceBars===8?5:9,defaultEnd=sourceBars===8?8:12;
   const semantic=Boolean(sourceSemantic&&(modify||entry==='semantic'));
-  const [description,setDescription]=useState(restoredIntent.intent?.request?.intent??(modify?MODIFY_DESCRIPTION:APPEND_DESCRIPTION));
-  const [startBar,setStartBar]=useState(restoredIntent.intent?.request?.start_bar??9),[endBar,setEndBar]=useState(restoredIntent.intent?.request?.end_bar??12);
+  const [description,setDescription]=useState(restoredIntent.intent?.request?.intent??(modify?MODIFY_DESCRIPTION:appendDescription));
+  const [startBar,setStartBar]=useState(restoredIntent.intent?.request?.start_bar??defaultStart),[endBar,setEndBar]=useState(restoredIntent.intent?.request?.end_bar??defaultEnd);
   const previousMode=useRef(modify);
-  useEffect(()=>{if(previousMode.current!==modify){setDescription(modify?MODIFY_DESCRIPTION:APPEND_DESCRIPTION);setStartBar(9);setEndBar(12);previousMode.current=modify;}},[modify]);
+  useEffect(()=>{if(previousMode.current!==modify){setDescription(modify?MODIFY_DESCRIPTION:appendDescription);setStartBar(9);setEndBar(12);previousMode.current=modify;}},[modify]);
   const [velocity,setVelocity]=useState(classicalSource?54:76),[onset,setOnset]=useState(8),[gate,setGate]=useState(180);
   const [confirmed,setConfirmed]=useState(false);
   const [pattern,setPattern]=useState<AccompanimentIntent['pattern']>('roots');
@@ -49,10 +54,10 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
   const [chordText,setChordText]=useState(()=>classicalSource?.source.default_chords.join(' ')??'');
   const chordNames=chordText.trim().split(/[\s,，、]+/).filter(Boolean);
   const chords=chordNames.filter((value):value is AccompanimentIntent['chords'][number]=>['G','C','D','Em','Am','Bm','F','Dm'].includes(value));
-  const validRange=Number.isInteger(startBar)&&Number.isInteger(endBar)&&startBar>=1&&endBar<=16&&endBar>=startBar&&endBar-startBar<4;
+  const validRange=Number.isInteger(startBar)&&Number.isInteger(endBar)&&startBar>=1&&endBar<=sourceBars&&endBar>=startBar&&endBar-startBar<4;
   const validInputs=semantic?description.trim().length>0&&description.length<=800&&(!modify||validRange):classicalSource?chords.length===classicalSource.import_report.measure_count&&chords.length===chordNames.length&&Number.isInteger(velocity)&&velocity>=32&&velocity<=80:Number.isInteger(velocity)&&velocity>=1&&velocity<=127&&Number.isInteger(onset)&&Math.abs(onset)<=60&&Number.isInteger(gate)&&gate>=1&&gate<=9600;
   const intent=useRef<PianoIntent|null>(restoredIntent.intent);
-  const semanticFingerprint=JSON.stringify({description:description.trim(),modify,startBar:modify?startBar:1,endBar:modify?endBar:16});
+  const semanticFingerprint=JSON.stringify({source:classicalSource?.source.score_id,beats:sourceBeats,description:description.trim(),modify,startBar:modify?startBar:1,endBar:modify?endBar:sourceBars});
   const key=['piano-preview',projectId,thread];
   const audition=useQuery({queryKey:key,queryFn:()=>readPianoPreview(projectId,thread!),enabled:thread!==null,
     refetchInterval:(query)=>PENDING_PHASES.has(query.state.data?.phase??'')?1500:false,retry:false});
@@ -68,8 +73,12 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
   const start=useMutation({retry:false,mutationFn:async()=>{
     const profile=capability.data?.render_profile;
     if(!profile)throw new Error('请先连接可用的钢琴音源。');
-    const semanticRequest:SemanticRequest={schema_version:'piano-semantic-request.v1',intent:description.trim(),mode:modify?'modify':'append',
-      ...(modify?{target_track_id:arrangement.tracks[1]!.track_id}:{}),start_bar:modify?startBar:1,end_bar:modify?endBar:16};
+    const scope={intent:description.trim(),mode:modify?'modify' as const:'append' as const,
+      ...(modify?{target_track_id:arrangement.tracks[1]!.track_id}:{}),start_bar:modify?startBar:1,end_bar:modify?endBar:sourceBars};
+    const semanticRequest:SemanticRequest=legacySemantic||!classicalSource
+      ?{schema_version:'piano-semantic-request.v1',...scope}
+      :{schema_version:'piano-semantic-request.v2',source_score_id:classicalSource.source.score_id as Extract<SemanticRequest,{schema_version:'piano-semantic-request.v2'}>['source_score_id'],
+        beats_per_bar:sourceBeats as 3|4,...scope};
     const body:PianoPreviewOptions={branch_id:branchId,base_revision_id:revisionId,seed:0,
       render_profile:profile,performance_plan:classicalSource?{schema_version:'performance-plan.v1',notes:[],pedal_events:[]}:buildPianoPerformance(arrangement,selection,{velocity,onset,gate}),
       ...(semantic?{semantic:semanticRequest}:classicalSource?{accompaniment:{pattern,chords,octave,velocity}}:{})};
@@ -98,7 +107,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
     <p className="saved-audio-note">{classicalSource?(semanticContext?'描述想要的密度、音区或力度。Flash 每次生成只发起一次请求，保留前原版本不变。':'选择每小节和弦与伴奏织体，用同一钢琴的低音声部衬托旋律。规则伴奏不消耗模型额度。'):<>调整{selection?'所选范围':'整轨音符'}的演奏表达。先比较试听，确认后保存新版本。</>}</p>
     <p className="piano-source">FreePats Upright KW · CC0 · 踏板暂不支持</p>
     {semanticContext&&!identityStorageAvailable&&<p className="field-error">浏览器无法保存请求标识。网络失败后请保持此页并重试；刷新可能丢失请求身份，请勿再次新建付费请求。</p>}
-    {classicalSource&&!sourceSemantic&&<p>新曲目的自然语言伴奏与局部修改尚未开放；当前可新增规则伴奏，并继续保存混音、导出或撤回已保存修改。</p>}
+    {classicalSource&&!sourceSemantic&&<p>当前来源不支持自然语言伴奏；请使用已审核曲目。</p>}
     {!canPrepare&&<p>{classicalSource?'当前入口支持原谱加一条伴奏，请保留现有两轨范围。':'当前入口支持一条乐器轨。多轨作品仍可使用原有编辑和导出。'}</p>}
     {canPrepare&&<>
       {!capability.data?.available&&<p className="field-error">{capability.isPending?'正在检查钢琴音源…':'钢琴音源暂不可用，请检查本地渲染服务。原有音色仍可使用。'} <button type="button" onClick={()=>void capability.refetch()} disabled={capability.isFetching}>重新检查</button></p>}
@@ -109,10 +118,10 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
       {semantic?<fieldset className="piano-expression-fields" disabled={busy||active}>
         <label style={{gridColumn:'1 / -1'}}>伴奏描述<textarea aria-label="伴奏描述" rows={4} maxLength={800} value={description} onChange={e=>setDescription(e.target.value)} style={{width:'100%',boxSizing:'border-box'}}/></label>
         {modify?<>
-          <label>开始小节<input aria-label="开始小节" type="number" min={1} max={16} step={1} value={startBar} onChange={e=>setStartBar(Number(e.target.value))}/></label>
-          <label>结束小节<input aria-label="结束小节" type="number" min={1} max={16} step={1} value={endBar} onChange={e=>setEndBar(Number(e.target.value))}/></label>
-          <p style={{gridColumn:'1 / -1'}}>仅修改新增的第二轨，选择第 1–16 小节内连续 1–4 小节。原和声、原谱与范围外内容保持不变；本轮不支持局部换和弦。{!validRange&&' 请检查小节范围。'}</p>
-        </>:<p style={{gridColumn:'1 / -1'}}>为第 1–16 小节新增一条低音区钢琴伴奏，保留锁定的原谱旋律。</p>}
+          <label>开始小节<input aria-label="开始小节" type="number" min={1} max={sourceBars} step={1} value={startBar} onChange={e=>setStartBar(Number(e.target.value))}/></label>
+          <label>结束小节<input aria-label="结束小节" type="number" min={1} max={sourceBars} step={1} value={endBar} onChange={e=>setEndBar(Number(e.target.value))}/></label>
+          <p style={{gridColumn:'1 / -1'}}>仅修改新增的第二轨，选择第 1–{sourceBars} 小节内连续 1–4 小节。原和声、原谱与范围外内容保持不变；本轮不支持局部换和弦。{!validRange&&' 请检查小节范围。'}</p>
+        </>:<p style={{gridColumn:'1 / -1'}}>为第 1–{sourceBars} 小节新增一条低音区钢琴伴奏，保留锁定的原谱旋律。</p>}
       </fieldset>:classicalSource?<fieldset className="piano-expression-fields" disabled={busy||active}>
         <label>伴奏织体<select aria-label="伴奏织体" value={pattern} onChange={e=>setPattern(e.target.value as AccompanimentIntent['pattern'])}><option value="roots">稀疏根音点奏</option><option value="broken">分解和弦</option></select></label>
         <label>低音八度<select aria-label="低音八度" value={octave} onChange={e=>setOctave(Number(e.target.value) as 2|3)}><option value={2}>第 2 八度</option><option value={3}>第 3 八度</option></select></label>

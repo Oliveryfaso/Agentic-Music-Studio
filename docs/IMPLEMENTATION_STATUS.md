@@ -18,6 +18,16 @@
 
 ## 2. 当前产品形态
 
+### 当前集成：P2.3 三曲语义 v2 / 0030（2026-10-20）
+
+MF-P02/P04/P05/P06/P08/P09/P11/P13/P15/P16/P17/P18/P20/P21。在88c0a07三曲目录/规则路径上接通source/meter绑定的request v2、实际bar ticks计划/编译、record v2双读和0030 JSON约束/危险降级保护；三曲自然语言append与第二轨1–4bar局部modify已开放。旧v1六和弦plan/Track/IR hash独立6/6完全一致；不可证明和声付费前拒绝，不猜D/Dm根音。Prompt新写v3，旧记录不改。8bar默认5–8，未知回执同body/key保留。
+
+最终Python879/Web127/Audio124、Mypy141/Ruff-format/两TS、实际Web build/renderer bundle通过。真实PG三曲v2+旧v1回放/预算/局部/重开/Undo4项及独立fixture守卫2项；一次fresh独审无已确认发现，独立Python31/UI16/损坏record10例。Mac实际UI/API/PG/正式Worker+fresh Parent验证三曲A/B、拒绝/保留、C02局部/重开/精确Undo；15个新Job成功、11文件完整导出校验；旧26Job未重跑。4次Provider回执是明确离线fixture，真实模型调用/新增付费0，不当作模型质量证据。
+
+实际候选另交原增益和等响度剪辑（−23.99/−24.00LUFS），四段离线真实播放及hash通过，人耳产品效果/偏好待验。先前用户只确认强滤波诊断差异可辨，未扩大为音乐质量通过。补全导出的严格重复Master SHA断言失败原始保留；宿主重复及Master减两Stem最大各1PCM24LSB，按既有宿主容差通过，不宣称pinned Docker字节确定性。旧启动器一次并行stub失败，单独及最终串行通过，未称已修复。
+
+自有PG/API/renderer/browser及凭据关闭，精确回收34,334,972逻辑bytes，47保留文件校验；共享VM/用户DB/混合builder及固定试听构建/原诊断保持。Guide不变；未合main/部署。代码接线阶段完成，实际新曲付费模型/人类审美、实时EQ/主题及其余P3–P5保持单列。[验收](evidence/2026-10-20-p23-semantic-v2.md)、[机器证据](evidence/2026-10-20-p23-semantic-v2.json)。
+
 ### 当前集成：P2.3 三曲目录与规则路径（2026-10-20）
 
 MF-P01/P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20/P21。生产目录新增Petzold小步舞曲16bars3/4 G、Burgmüller坦诉8bars4/4 C、Joplin Bethena原第9–16小节/8bars3/4 G，保留旧谱第四项。固定ID/XML及manifest/source hash、来源/转换损失/许可、原/工作分支、原旋律保护、实际bar ticks、规则F/Dm及MIDI拍号和导出credits已接入真实代码。没有下载或执行LilyPond。

@@ -553,3 +553,18 @@ Base4a7c43d/Guide clean；MF-P01/P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20
 UI RED5→candidate31/最终32；真实repoPython69/Web34/fullTS/mypy132/Ruff-format/build135模块；actual OpenAPI重生成DTO一致。导出局部变量名类型冲突在作者检查时修正。一次fresh独审无阻塞，独立Python69+额外UI6，无修复复核。actualAPI+隔离PG+Mac真实UI三曲导入/刷新；C02服务器201后丢回执、刷新重试同project；same-key异body409、after-root异常回滚无第4个project；Job/AIRun0。renderer admission明确stub，不宣称此次Worker/音质/生产恢复通过。原26Job与EQ6Job不重跑，paid0。
 
 当前固定试听4a dist/媒体/hash/10:36:58UTC期限保持，新build仅workspace；自有API/browser/PG/新凭据已清理。删本任务重复build/mypy-cache34,711,908逻辑bytes，保留当前build和试听备份，混合缓存/共享VM/用户DB/游戏不动。原.ly历史27处尾空格按hash保留，staged whitespace仅排除此文本且单独验hash。semantic v2/0030、用户听感、实时端口/主题未完成；不合main/部署。见[验收/准确剩余](evidence/2026-10-20-p23-catalog.md)与[机器证据](evidence/2026-10-20-p23-catalog.json)。
+
+
+## 2026-10-20：P2.3 source-aware semantic v2 / 0030
+
+在88c0a07三曲目录上完成新请求/计划/record/Provider/UI：实际3/4或4/4时间，源与请求pin、只追加第二轨或1–4bar局部修改、原和声证明、原轨/范围外exact和旧v1双读。0030前向JSON约束及新来源/请求/record危险降级guard；不新增Graph、IR/engine或工具依赖。Prompt写v3，旧数据不改。
+
+RED→GREEN含请求4/计划8/service4/和声5，真实PG先被旧约束拒绝。处理Alembic误读新AppleDouble、SQLAlchemy紧凑JSON数字冒号绑定以及旧head/error-label断言；原始失败保留。最终Python879、Web127、Audio124、Mypy141、Ruff/format/两TS和实际Web/renderer构建。一次fresh独审无已确认发现，独立31Python/16UI、legacy hash6/6与损坏record10/10拒绝；后续只把DB guard测试fixture改为自包含，2项单独通过，产品代码未再改变。
+
+实际Mac built UI/API/隔离PG/正式Worker及fresh Parent resume三曲A/B、reject/approve、C02局部/重开/精确Undo，15新Job/11完整导出文件校验；模型为4个离线transport fixture回执，真实新付费0，既有4次7228tokens/峰价上界¥0.023852账本不动。旧26Job及EQ链不重跑。
+
+用户确认独立强滤波诊断可辨，仅此人类门通过。实际C02候选另交原增益与等LUFS选区、无极端EQ；−23.99/−24.00LUFS，四段Mac离线实际播放通过，人耳效果/偏好待验。完整导出更强的重复SHA断言失败保留，PCM重复/两stem和最大各1LSB，按既有宿主容差记录，不声明pinned Docker byte identity。旧启动器一次并行stub失败、单独和最终串行通过，未改启停或称稳定性修复。
+
+资源门：先冻结当前build、全部accepted媒体/来源/manifest、旧诊断与固定试听、venv/node依赖；关闭精确标签PG、自生凭据/API/renderer/browser。只删本轮具名mypy/测试/Ruff/build cache及自生._jobs，回收34,334,972 logical bytes；47保留文件重hash通过。Docker/BuildKit仅只读盘点，混合共享归属不清故不prune、不停Colima、不碰用户DB/游戏验收。没有重建无变更的共享Docker targets；本轮为actual host live + Docker PG，不冒充Redis/Celery/Compose或pinned Docker验收。Guide最后d68b900、前后diff空。正常dev checkpoint/push按已有授权，不合main/强推/部署。
+
+详见[验收](evidence/2026-10-20-p23-semantic-v2.md)、[机器证据](evidence/2026-10-20-p23-semantic-v2.json)、[独立审查](evidence/2026-10-20-p23-semantic-v2-review.md)。

@@ -1,4 +1,4 @@
-# P2.2 semantic piano contract v1
+# 钢琴语义合同：P2.2 v1 / P2.3 v2
 
 固定Mutopia528/16bar/Gmajor4/4/同包双钢琴。覆盖MF-P02/04/05/06/11/13/15/16/17/18/21；更广P2/P3另列。
 
@@ -12,3 +12,15 @@
 - Schema变化为显式新请求/state/record/command type；IR/Graph/engine/Job v1/v2/v3、Plan/Bundle v4声音合同不改。0027前向建表；存在semantic Run或Plan时拒绝危险降级。
 
 实际验收、费用/审查/限制：[P2.2 evidence](evidence/2026-10-19-p22-semantic-piano.md)。后续曲库/混音/UI可复用身份、阶段与审批接口，但本v1的固定谱面/和声范围不能被前端静默放宽。
+
+
+## P2.3 新来源显式 v2（2026-10-20）
+
+- v1上述16bar/G/4/4合同和旧record原样保留。c01-minuet-g-a16.v1（16bar3/4 G）、c02-la-candeur-a8.v1（8bar4/4 C）、j01-bethena-a-first8.v1（8bar3/4 G）必须使用`piano-semantic-request.v2`，显式`source_score_id`与`beats_per_bar`；registry决定谱内bars，append全范围，modify第二轨连续1–4bar，不含额外尾音bar。
+- `accompaniment-plan.v2`带实际beats；PPQ480、step120，3/4每bar12步，4/4每bar16步，step+gate不得越界。G只G/Am/Bm/C/D/Em；C只C/Dm/Em/F/G/Am。固定原和声、原轨及范围外保护不减；新规则单D根音的D/Dm歧义付费前失败，不能猜。
+- `piano-plan-record.v2`保存精确请求和固定source元数据；新旧双读，保存前及重放后重验。0030将row/payload/plan/request/source/meter绑定，存在新来源Revision/Candidate、v2请求或record时拒绝危险降级，不更新旧行。上线新writer前先迁移自有目标库到0030；本轮未动用户库。
+- 新调用Prompt v3使用实际meter/key/bar ticks/chord词汇；state/Parent/IR/engine/Worker版本不变。1request/12000tokens/3072output/8000输入字节/repair0不变；模型前验证来源/范围/已证和声。新的三曲付费模型质量未验，离线fixture只证明接线。
+- UI按权威source report发v2，8bar默认5–8、16bar默认9–12；未知回执同请求重试/刷新，不自动新付费。actual保存/重开/HITL/Undo与既有导出链复用。
+- 产品验收：同一实际候选选区，原增益判断力度，固定增益等综合响度比较音色/密度；canonical不改写，不以强诊断滤波代替成品预设。把可辨、意图符合、偏好与客观文件检查分开记录。
+
+[本轮验收与边界](evidence/2026-10-20-p23-semantic-v2.md)。

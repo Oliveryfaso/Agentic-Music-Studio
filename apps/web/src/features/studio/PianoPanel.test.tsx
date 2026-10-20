@@ -157,16 +157,37 @@ it('keeps a failed semantic request in memory and warns when browser identity st
   expect(vi.mocked(api.startPianoPreview).mock.calls[1]![2]).toBe(vi.mocked(api.startPianoPreview).mock.calls[0]![2]);
 });
 
-it('keeps a new eight-bar score on real rule chords and disables unsupported semantic requests',async()=>{
+it('keeps real eight-bar rule chords and opens the versioned natural language entry',async()=>{
  vi.mocked(api.readPianoCapability).mockResolvedValue({available:true,render_profile:{}} as never);const waiting={thread_id:'new-score',phase:'waiting_piano_worker',base_revision_id:'revision'} as never;vi.mocked(api.startPianoPreview).mockResolvedValue(waiting);vi.mocked(api.readPianoPreview).mockResolvedValue(waiting);
  const arrangement=pianoScore();render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}})}><PianoPanel projectId="p" branchId="b" revisionId="revision" arrangement={arrangement} selection={null} dirty={false} rootReady onSaved={vi.fn()} classicalSource={{source:{score_id:'c02-la-candeur-a8.v1',default_chords:['C','G','C','G','F','C','G','C']},import_report:{measure_count:8,beats:4,tonic:'C'}} as never}/></QueryClientProvider>);
- expect(screen.getByRole('radio',{name:/自然语言伴奏/})).toBeDisabled();
+ expect(screen.getByRole('radio',{name:/自然语言伴奏/})).toBeEnabled();
  const button=screen.getByRole('button',{name:'生成 A/B 试听'});await waitFor(()=>expect(button).toBeEnabled());fireEvent.click(button);
  await waitFor(()=>expect(api.startPianoPreview).toHaveBeenCalledWith('p',expect.objectContaining({accompaniment:expect.objectContaining({chords:['C','G','C','G','F','C','G','C']})}),expect.any(String)));
  expect(vi.mocked(api.startPianoPreview).mock.calls[0]![1]).not.toHaveProperty('semantic');
 });
-it('never opens legacy semantic modification for a new two-track score',async()=>{
+it('opens v2 local modification for a new eight-bar three-four score',async()=>{
  vi.mocked(api.readPianoCapability).mockResolvedValue({available:true,render_profile:{}} as never);const arrangement=pianoScore();arrangement.tracks.push({...structuredClone(arrangement.tracks[0]!),track_id:'added',name:'伴奏'});
  render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><PianoPanel projectId="p" branchId="b" revisionId="r" arrangement={arrangement} selection={null} dirty={false} rootReady onSaved={vi.fn()} classicalSource={{source:{score_id:'j01-bethena-a-first8.v1',default_chords:Array(8).fill('G')},import_report:{measure_count:8,beats:3,tonic:'G'}} as never}/></QueryClientProvider>);
- expect(screen.queryByRole('button',{name:'按描述生成 A/B 试听'})).not.toBeInTheDocument();expect(screen.getByText(/新曲目的自然语言/)).toBeInTheDocument();expect(api.startPianoPreview).not.toHaveBeenCalled();
+ expect(screen.getByRole('button',{name:'按描述生成 A/B 试听'})).toBeInTheDocument();
+ expect(screen.getByLabelText('开始小节')).toHaveValue(5);expect(screen.getByLabelText('结束小节')).toHaveValue(8);
+ const generate=screen.getByRole('button',{name:'按描述生成 A/B 试听'});await waitFor(()=>expect(generate).toBeEnabled());
+ fireEvent.change(screen.getByLabelText('结束小节'),{target:{value:9}});expect(generate).toBeDisabled();
+ fireEvent.change(screen.getByLabelText('结束小节'),{target:{value:8}});
+ vi.mocked(api.startPianoPreview).mockResolvedValue({thread_id:'new-local',phase:'planning'} as never);
+ vi.mocked(api.readPianoPreview).mockResolvedValue({thread_id:'new-local',phase:'planning'} as never);
+ fireEvent.click(generate);await waitFor(()=>expect(api.startPianoPreview).toHaveBeenCalledWith('p',expect.objectContaining({semantic:expect.objectContaining({schema_version:'piano-semantic-request.v2',source_score_id:'j01-bethena-a-first8.v1',beats_per_bar:3,mode:'modify',start_bar:5,end_bar:8,target_track_id:'added'})}),expect.any(String)));
+});
+
+it.each([['c01-minuet-g-a16.v1',3,16],['c02-la-candeur-a8.v1',4,8],['j01-bethena-a-first8.v1',3,8]] as const)('submits exact v2 source scope and reuses unknown receipt for %s',async(score,beats,bars)=>{
+ const {ApiError}=await import('../../shared/api');
+ vi.mocked(api.readPianoCapability).mockResolvedValue({available:true,render_profile:{}} as never);
+ vi.mocked(api.startPianoPreview).mockRejectedValue(new ApiError('网络中断','API_UNAVAILABLE',true,0));
+ const show=()=>render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><PianoPanel projectId="new-project" branchId="b" revisionId="r" arrangement={pianoScore()} selection={null} dirty={false} rootReady onSaved={vi.fn()} classicalSource={{source:{score_id:score,default_chords:Array(bars).fill('G')},import_report:{measure_count:bars,beats,tonic:'G'}} as never}/></QueryClientProvider>);
+ const first=show();fireEvent.click(screen.getByLabelText('自然语言伴奏'));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'按描述生成 A/B 试听'})).toBeEnabled());
+ fireEvent.click(screen.getByRole('button',{name:'按描述生成 A/B 试听'}));await screen.findByRole('alert');first.unmount();
+ show();await waitFor(()=>expect(screen.getByRole('button',{name:'按描述生成 A/B 试听'})).toBeEnabled());
+ fireEvent.click(screen.getByRole('button',{name:'按描述生成 A/B 试听'}));await waitFor(()=>expect(api.startPianoPreview).toHaveBeenCalledTimes(2));
+ const calls=vi.mocked(api.startPianoPreview).mock.calls;expect(calls[0]![1]).toEqual(calls[1]![1]);expect(calls[0]![2]).toBe(calls[1]![2]);
+ expect(calls[1]![1].semantic).toEqual(expect.objectContaining({schema_version:'piano-semantic-request.v2',source_score_id:score,beats_per_bar:beats,start_bar:1,end_bar:bars}));
 });

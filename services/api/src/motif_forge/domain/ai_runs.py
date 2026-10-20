@@ -10,16 +10,15 @@ from enum import StrEnum
 from typing import Literal, Self
 from uuid import UUID
 
-from pydantic import Field, model_validator
-
 from motif_forge.agent.schemas import CompositionPlan
 from motif_forge.domain.commands import Selection
 from motif_forge.domain.editing import LockedRangeRef
 from motif_forge.domain.ir import DomainModel
 from motif_forge.domain.piano_requests import (
     PIANO_ACCOMPANIMENT_RUN_STATE_SCHEMA_VERSION,
-    PianoSemanticRequest,
+    PianoSemanticInput,
 )
+from pydantic import Field, model_validator
 
 AI_RUN_SCHEMA_VERSION = "ai-run.v1"
 MAX_MODEL_REQUESTS = 3
@@ -56,7 +55,7 @@ class EditRunRequest(DomainModel):
     locked_ranges: tuple[LockedRangeRef, ...] = ()
     allow_local_catalog: Literal[True] = True
     seed: int = Field(default=0, ge=0, le=2**31 - 1)
-    piano_request: PianoSemanticRequest | None = None
+    piano_request: PianoSemanticInput | None = None
 
     @model_validator(mode="after")
     def validate_piano_scope(self) -> Self:
@@ -71,8 +70,8 @@ class EditRunRequest(DomainModel):
             assert semantic.target_track_id is not None
             expected = Selection(
                 track_ids=(semantic.target_track_id,),
-                start_tick=(semantic.start_bar - 1) * 1920,
-                end_tick=semantic.end_bar * 1920,
+                start_tick=(semantic.start_bar - 1) * semantic.bar_ticks,
+                end_tick=semantic.end_bar * semantic.bar_ticks,
             )
         if self.selection != expected:
             raise ValueError("Edit selection must match the explicit semantic piano scope")

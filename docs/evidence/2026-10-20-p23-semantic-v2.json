@@ -1,0 +1,163 @@
+{
+  "stage": "P2.3 semantic v2/0030 and three-source UI integration",
+  "date": "2026-10-20",
+  "base_commit": "88c0a074c00765c008a271129f8ebf64ab8ec25c",
+  "branch": "codex/motif-p0-piano-preparation",
+  "requirements": [
+    "MF-P02",
+    "MF-P04",
+    "MF-P05",
+    "MF-P06",
+    "MF-P08",
+    "MF-P09",
+    "MF-P11",
+    "MF-P13",
+    "MF-P15",
+    "MF-P16",
+    "MF-P17",
+    "MF-P18",
+    "MF-P20",
+    "MF-P21"
+  ],
+  "guide_last_commit": "d68b900bd8dce6c5786dd0b6c6b531429c9d38a2",
+  "guide_working_tree_diff": "empty before and after",
+  "implementation": {
+    "request": "piano-semantic-request.v2",
+    "plan": "accompaniment-plan.v2",
+    "record": "piano-plan-record.v2",
+    "prompt": "piano-accompaniment-prompt.v3",
+    "migration": "20261020_0030",
+    "parent_graph_unchanged": true,
+    "ir_engine_versions_unchanged": true,
+    "legacy_v1_kept": true,
+    "new_request_source_bound": true,
+    "unverifiable_harmony_rejected_before_paid_factory": true,
+    "unknown_receipt_reuses_request": true
+  },
+  "verification": {
+    "python_final_serial": 879,
+    "web": 127,
+    "audio_worker": 124,
+    "mypy_sources": 141,
+    "ruff_format_and_both_typescript": true,
+    "web_production_build": true,
+    "actual_renderer_bundle": true,
+    "pg_legacy_and_three_v2": 4,
+    "pg_direct_guards": 2,
+    "pg_guards_self_contained_fixture": true,
+    "independent_review_findings": 0,
+    "independent_python": 31,
+    "independent_ui": 16,
+    "independent_legacy_hashes": 6,
+    "independent_corrupt_records_rejected": 10
+  },
+  "observed_failures": [
+    "Expected RED: v2 request4, plan8, service4, harmony5; old PG constraint rejected v2 record before0030",
+    "New migration AppleDouble file caused null-byte loader failure; only task-owned sidecar removed after writes",
+    "SQLAlchemy treated compact JSON colon-number as bind; JSON SQL whitespace fixed and real PG reverified",
+    "Old head/semantic rejection-label assertions updated for explicit0030/v2 boundary",
+    "One preexisting launcher test failed during concurrent gate; isolated and final serial879 passed; no launcher stability repair claimed",
+    "Additional strict repeated Master byte-hash assertion failed; observed host PCM maximum1LSB; raw failure report retained"
+  ],
+  "runtime": {
+    "actual_mac": true,
+    "source_flows": 3,
+    "new_formal_worker_jobs": 15,
+    "new_actual_provider_calls": 0,
+    "offline_fixture_submissions": 4,
+    "fixture_usage_not_paid_bill": true,
+    "old_26_jobs_rerun": false,
+    "three_original_heads_and_tracks_unchanged": true,
+    "reject_head_unchanged": true,
+    "c02_saved_local_change_reopen_exact_undo": true,
+    "wrong_candidate_hash_guard": "existing contract; no weakening",
+    "full_export": {
+      "status": "passed_with_preexisting_host_pcm_tolerance",
+      "files": 11,
+      "extra_formal_jobs": 5,
+      "total_new_formal_jobs": 15,
+      "sha256_verified_against_actual_download": true,
+      "strict_repeat_file_identity": false,
+      "host_repeat_max_pcm24_lsb": 1,
+      "master_minus_two_stems_max_pcm24_lsb": 1,
+      "host_tolerance_pcm24_lsb": 1,
+      "source_midi_meter_verified": true,
+      "credits_source_and_license_verified": true,
+      "raw_harness_stricter_hash_assertion_failed": true,
+      "raw_report_preserved": true,
+      "pinned_docker_determinism_tested": false,
+      "new_model_calls": 0
+    },
+    "redis_celery_transport_tested": false,
+    "pinned_docker_tested": false
+  },
+  "actual_candidate_comparison": {
+    "bars": [
+      5,
+      8
+    ],
+    "before_revision": "6e74b906-7f7b-4981-bf2c-3e7070984042",
+    "after_revision": "af276b97-0621-4335-9682-ffe3560d972e",
+    "processing": "selection trim, identical10ms fades and one constant gain only; no coloration, limiter or compression",
+    "matched_mp3_lufs": [
+      -23.99,
+      -24.0
+    ],
+    "raw_and_matched_both_provided": true,
+    "browser_real_playback_files": 4,
+    "offline_external_requests": 0,
+    "human_actual_candidate_quality_accepted": false
+  },
+  "human_feedback": {
+    "prior_independent_strong_coloration_diagnostic_discriminable": true,
+    "extends_to_all_music_quality": false
+  },
+  "storage": {
+    "reclaimed_logical_bytes": 34334972,
+    "keep_files_rehashed": 47,
+    "owned_pg_api_browser_renderer_closed": true,
+    "generated_credentials_removed": true,
+    "shared_vm_or_builder_pruned": false,
+    "old_diagnostic_and_fixed_listening_build_unchanged": true
+  },
+  "remaining": [
+    "Human evaluation of actual candidate effect/preference; paid new-source model quality not tested",
+    "Real-time short-selection EQ, new themes, new instruments and broader P3-P5 remain separate scope",
+    "Host repeat rendering not byte-identical; pinned Docker determinism, Redis/Celery restart/load not tested"
+  ],
+  "source_cases": [
+    {
+      "score_id": "c01-minuet-g-a16.v1",
+      "project_id": "7d1a86c9-f21a-4a25-a015-e22e81c3759d",
+      "beats": 3,
+      "bars": 16,
+      "original_revision": "426fefe2-05d4-5d61-8969-78376a6f823b",
+      "saved_revision": null,
+      "modified_revision": null,
+      "reject": true,
+      "undo_exact": false
+    },
+    {
+      "score_id": "c02-la-candeur-a8.v1",
+      "project_id": "c043551f-ea5d-4831-b216-a6f9c3de33f4",
+      "beats": 4,
+      "bars": 8,
+      "original_revision": "342b6d46-ccaf-5896-9f33-25bca06dc3e4",
+      "saved_revision": "6e74b906-7f7b-4981-bf2c-3e7070984042",
+      "modified_revision": "af276b97-0621-4335-9682-ffe3560d972e",
+      "reject": false,
+      "undo_exact": true
+    },
+    {
+      "score_id": "j01-bethena-a-first8.v1",
+      "project_id": "e2913c3e-5e43-48a4-95c2-023e08402c84",
+      "beats": 3,
+      "bars": 8,
+      "original_revision": "8e4b318e-1581-589d-8fbc-75bf01e83187",
+      "saved_revision": "5b4dc1c4-6484-48b7-9769-f85758a115fd",
+      "modified_revision": null,
+      "reject": false,
+      "undo_exact": false
+    }
+  ]
+}

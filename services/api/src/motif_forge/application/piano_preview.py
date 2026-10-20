@@ -6,8 +6,6 @@ from collections.abc import Awaitable, Callable
 from typing import Literal
 from uuid import UUID, uuid5
 
-from pydantic import Field, model_validator
-
 from motif_forge.application.candidate_previews import (
     CandidatePreviewCursor,
     CollectCandidatePreview,
@@ -36,8 +34,9 @@ from motif_forge.domain.commands import (
     SetPianoProfilePayload,
 )
 from motif_forge.domain.ir import DomainModel, PerformancePlan, PianoRenderProfile
-from motif_forge.domain.piano_requests import PianoSemanticRequest
+from motif_forge.domain.piano_requests import PianoSemanticInput
 from motif_forge.domain.revisions import CandidateSnapshot
+from pydantic import Field, model_validator
 
 PianoStep = Literal["baseline", "piano"]
 
@@ -51,7 +50,7 @@ class PianoPreviewRequest(DomainModel):
     performance_plan: PerformancePlan = Field(default_factory=PerformancePlan)
     seed: int = Field(default=0, ge=0, le=2**31 - 1)
     accompaniment: AccompanimentIntent | None = None
-    semantic: PianoSemanticRequest | None = None
+    semantic: PianoSemanticInput | None = None
 
     @model_validator(mode="after")
     def one_musical_source(self) -> PianoPreviewRequest:

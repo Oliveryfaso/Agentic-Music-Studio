@@ -67,5 +67,5 @@ def test_three_score_rule_preservation_and_unknown_semantic_contract_eval(score_
         summary="must not use the old semantic contract",
         bars=(BarPlan(bar=1, chord="G", grid=(0,), octave=2, velocity=54),),
     )
-    with pytest.raises(ValueError, match="CLASSICAL_SOURCE_REQUIRED"):
+    with pytest.raises(ValueError, match="ACCOMPANIMENT_PLAN_VERSION_MISMATCH"):
         compile_piano_plan(original, plan, request_id=UUID(int=3))

@@ -5,8 +5,6 @@ from __future__ import annotations
 from typing import Annotated, Any, Literal, Self
 from uuid import NAMESPACE_URL, UUID, uuid5
 
-from pydantic import Field, TypeAdapter, ValidationError, model_validator
-
 from motif_forge.domain.errors import DomainIssue, DomainValidationError, issue
 from motif_forge.domain.ir import (
     MAX_TRACKS,
@@ -40,6 +38,7 @@ from motif_forge.domain.ir import (
     TrackRole,
     TrackType,
 )
+from pydantic import Field, TypeAdapter, ValidationError, model_validator
 
 COMMAND_SCHEMA_VERSION = "editor-command.v1"
 
@@ -767,7 +766,21 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
             raise issue("ACCOMPANIMENT_TARGET_INVALID", "tracks", "a saved added part is required")
         original = arrangement.tracks[1]
         replacement = payload.track
-        start, end = (payload.start_bar - 1) * 1920, payload.end_bar * 1920
+        from motif_forge.domain.reviewed_scores import reviewed_source
+
+        try:
+            source = reviewed_source(arrangement)
+        except ValueError:
+            raise issue(
+                "CLASSICAL_SOURCE_REQUIRED", "provenance", "an approved original score is required"
+            ) from None
+        if payload.end_bar > source.measures:
+            raise issue(
+                "ACCOMPANIMENT_SCOPE_INVALID",
+                "selection",
+                "the source release bar cannot be edited",
+            )
+        start, end = (payload.start_bar - 1) * source.bar_ticks, payload.end_bar * source.bar_ticks
         if (
             replacement.track_id != original.track_id
             or original.locked_ranges
