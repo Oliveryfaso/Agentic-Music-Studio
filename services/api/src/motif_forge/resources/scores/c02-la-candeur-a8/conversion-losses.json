@@ -1,0 +1,257 @@
+{
+  "fixture_id": "c02-la-candeur-a8",
+  "approval_state": "research fixture; explicit reduction not yet approved as built-in resource",
+  "source_pitch_and_metric_duration_preserved_for_selected_principal_voice": true,
+  "quantization_applied": false,
+  "transpose_applied": false,
+  "whole_score_is_lossless": false,
+  "excluded_voice_names": [
+    "vTwo (silent spacers in the selected 8 measures)",
+    "vThree (left-hand harmony, original lines 90–99)"
+  ],
+  "excluded_voices_recoverable_from": [
+    "c02-la-candeur-a8/source-original/25EF-01.ly"
+  ],
+  "scope_and_semantic_changes": [
+    "First repeat section is played once; no repeat expansion and no transposition.",
+    "Fingerings, slurs, dynamic p, hairpins and cresc. text are retained as located source annotations, not expressed by principal-only XML playback.",
+    "Original harmony includes F, G7/B and D7; current G/C/D/Em/Am/Bm accompaniment palette cannot restore it faithfully."
+  ],
+  "tempo": {
+    "source_midi_bpm": 152,
+    "fixture_bpm": 112,
+    "kind": "explicit fixed evaluation tempo; not a transcription measurement"
+  },
+  "located_annotations_not_played_by_principal_xml": [
+    {
+      "kind": "-5",
+      "anchor_event_id": "m01-n01",
+      "source_line": 29
+    },
+    {
+      "kind": "DYN_P",
+      "anchor_event_id": "m01-n01",
+      "source_line": 29
+    },
+    {
+      "kind": "(",
+      "anchor_event_id": "m01-n01",
+      "source_line": 29,
+      "slur_id": 1
+    },
+    {
+      "kind": "-3",
+      "anchor_event_id": "m01-n02",
+      "source_line": 29
+    },
+    {
+      "kind": ")",
+      "anchor_event_id": "m01-n04",
+      "source_line": 29,
+      "slur_id": 1
+    },
+    {
+      "kind": "(",
+      "anchor_event_id": "m01-n05",
+      "source_line": 29,
+      "slur_id": 2
+    },
+    {
+      "kind": ")",
+      "anchor_event_id": "m01-n08",
+      "source_line": 29,
+      "slur_id": 2
+    },
+    {
+      "kind": "-5",
+      "anchor_event_id": "m02-n01",
+      "source_line": 30
+    },
+    {
+      "kind": "DIM_START",
+      "anchor_event_id": "m02-n01",
+      "source_line": 30
+    },
+    {
+      "kind": "(",
+      "anchor_event_id": "m02-n01",
+      "source_line": 30,
+      "slur_id": 3
+    },
+    {
+      "kind": ")",
+      "anchor_event_id": "m02-n04",
+      "source_line": 30,
+      "slur_id": 3
+    },
+    {
+      "kind": "HAIRPIN_END",
+      "anchor_event_id": "m02-n04",
+      "source_line": 30
+    },
+    {
+      "kind": "(",
+      "anchor_event_id": "m02-n05",
+      "source_line": 30,
+      "slur_id": 4
+    },
+    {
+      "kind": ")",
+      "anchor_event_id": "m02-n08",
+      "source_line": 30,
+      "slur_id": 4
+    },
+    {
+      "kind": "-5",
+      "anchor_event_id": "m03-n01",
+      "source_line": 31
+    },
+    {
+      "kind": "(",
+      "anchor_event_id": "m03-n01",
+      "source_line": 31,
+      "slur_id": 5
+    },
+    {
+      "kind": "-2",
+      "anchor_event_id": "m03-n05",
+      "source_line": 31
+    },
+    {
+      "kind": "-1",
+      "anchor_event_id": "m03-n06",
+      "source_line": 31
+    },
+    {
+      "kind": "-3",
+      "anchor_event_id": "m03-n07",
+      "source_line": 31
+    },
+    {
+      "kind": ")",
+      "anchor_event_id": "m03-n08",
+      "source_line": 31,
+      "slur_id": 5
+    },
+    {
+      "kind": "(",
+      "anchor_event_id": "m04-n01",
+      "source_line": 32,
+      "slur_id": 6
+    },
+    {
+      "kind": "-2",
+      "anchor_event_id": "m04-n05",
+      "source_line": 32
+    },
+    {
+      "kind": "-1",
+      "anchor_event_id": "m04-n06",
+      "source_line": 32
+    },
+    {
+      "kind": ")",
+      "anchor_event_id": "m04-n08",
+      "source_line": 32,
+      "slur_id": 6
+    },
+    {
+      "kind": "TEXT_CRESC",
+      "anchor_event_id": "m05-n01",
+      "source_line": 34
+    },
+    {
+      "kind": "(",
+      "anchor_event_id": "m05-n01",
+      "source_line": 34,
+      "slur_id": 7
+    },
+    {
+      "kind": ")",
+      "anchor_event_id": "m05-n04",
+      "source_line": 34,
+      "slur_id": 7
+    },
+    {
+      "kind": "(",
+      "anchor_event_id": "m05-n05",
+      "source_line": 34,
+      "slur_id": 8
+    },
+    {
+      "kind": ")",
+      "anchor_event_id": "m05-n08",
+      "source_line": 34,
+      "slur_id": 8
+    },
+    {
+      "kind": "-4",
+      "anchor_event_id": "m06-n01",
+      "source_line": 35
+    },
+    {
+      "kind": "(",
+      "anchor_event_id": "m06-n01",
+      "source_line": 35,
+      "slur_id": 9
+    },
+    {
+      "kind": ")",
+      "anchor_event_id": "m06-n04",
+      "source_line": 35,
+      "slur_id": 9
+    },
+    {
+      "kind": "(",
+      "anchor_event_id": "m06-n05",
+      "source_line": 35,
+      "slur_id": 10
+    },
+    {
+      "kind": ")",
+      "anchor_event_id": "m06-n08",
+      "source_line": 35,
+      "slur_id": 10
+    },
+    {
+      "kind": "-3",
+      "anchor_event_id": "m07-n01",
+      "source_line": 36
+    },
+    {
+      "kind": "CRESC_START",
+      "anchor_event_id": "m07-n01",
+      "source_line": 36
+    },
+    {
+      "kind": "(",
+      "anchor_event_id": "m07-n01",
+      "source_line": 36,
+      "slur_id": 11
+    },
+    {
+      "kind": "-4",
+      "anchor_event_id": "m07-n03",
+      "source_line": 36
+    },
+    {
+      "kind": "HAIRPIN_END",
+      "anchor_event_id": "m07-n04",
+      "source_line": 36
+    },
+    {
+      "kind": ")",
+      "anchor_event_id": "m08-n05",
+      "source_line": 37,
+      "slur_id": 11
+    }
+  ],
+  "graces_not_played_by_principal_xml": [],
+  "engraving_not_preserved": [
+    "beam layout",
+    "stem/layout directives",
+    "staff/clef presentation",
+    "original page layout"
+  ],
+  "full_original_preserved": true
+}

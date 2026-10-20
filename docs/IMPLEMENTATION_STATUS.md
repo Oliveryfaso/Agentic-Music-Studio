@@ -18,7 +18,17 @@
 
 ## 2. 当前产品形态
 
-### 当前集成：P2.3 试听可靠性后续（2026-10-20，人工听感待验）
+### 当前集成：P2.3 三曲目录与规则路径（2026-10-20）
+
+MF-P01/P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20/P21。生产目录新增Petzold小步舞曲16bars3/4 G、Burgmüller坦诉8bars4/4 C、Joplin Bethena原第9–16小节/8bars3/4 G，保留旧谱第四项。固定ID/XML及manifest/source hash、来源/转换损失/许可、原/工作分支、原旋律保护、实际bar ticks、规则F/Dm及MIDI拍号和导出credits已接入真实代码。没有下载或执行LilyPond。
+
+目录使用实际DTO，逐曲确认绑定元数据；导入意图绑定score/key/body，未知回执锁曲并保留sessionStorage，同请求重试/刷新恢复；明确写入前失败可重选。新曲进入权威来源报告与规则伴奏；**新曲自然语言/两轨局部修改明确禁用**，旧谱v1语义保留。semantic v2/0030尚未实现，不称P2.3整体完成。
+
+真实repo Python69/Web34、fullWebTS/mypy132/Ruff-format、独立目录生产build通过；actual OpenAPI重新生成DTO逐字节相同。Mac本机built UI+actual API+隔离PG三曲导入/重开、XML/节拍/调/原轨锁与两分支heads、same-key重放/异body409；C02服务器完成后故意丢回执，刷新重试仍同project；after-root异常回滚、不留第四个project。渲染服务可用性 admission stub明确保留，MediaJob/AIRun行均0，不宣称此次真实渲染/Redis-Celery通过。复用既有候选三曲26Job，不重跑。
+
+一次fresh独立审查无当前路径阻塞，独立Python69与6个额外UI失败探针通过，无作者修复复核。自有PG/API/browser/凭据已关；固定试听4a构建/媒体/原截止时间保持，新build仅workspace。精确回收34,711,908逻辑bytes的本任务重复build/mypy缓存，保留当前build和试听备份，不动混合缓存/共享VM/用户DB。Guide不变，无main合并/部署。[验收与剩余](evidence/2026-10-20-p23-catalog.md)、[机器证据](evidence/2026-10-20-p23-catalog.json)。
+
+### 已集成：P2.3 试听可靠性后续（2026-10-20，人工听感待验）
 
 MF-P11/P18/P20/P21。六个 Web 生产文件隔离 Stop/替源/卸载后的旧播放回执，跟随原生媒体事件；候选和钢琴 A/B 保留绝对秒数、续播意图和 metadata 切换锁，失效候选清理，播放入口双向互斥。保存版明确标记 Revision，EQ 草稿不冒充实时音频。无 API/数据库/IR/DSP/Worker/主题/依赖变更。
 

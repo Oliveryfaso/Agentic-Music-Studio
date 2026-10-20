@@ -156,15 +156,14 @@ def write_export_bundle(
         )
     score_refs = [p for p in request.arrangement.provenance if p.ref.startswith("score:")]
     if score_refs:
-        from motif_forge.application.classical_import import SOURCE_REF, reviewed_score
+        from motif_forge.application.classical_import import reviewed_score
+        from motif_forge.domain.reviewed_scores import reviewed_source
 
-        score_source, _ = reviewed_score()
-        if (
-            len(score_refs) != 1
-            or score_refs[0].ref != SOURCE_REF
-            or score_refs[0].version != score_source["musicxml_sha256"]
-        ):
-            raise ValueError("CLASSICAL_SOURCE_HASH_MISMATCH")
+        try:
+            score_identity = reviewed_source(request.arrangement)
+        except ValueError as exc:
+            raise ValueError("CLASSICAL_SOURCE_HASH_MISMATCH") from exc
+        score_source, _ = reviewed_score(score_identity.score_id)
         score_credit = {
             "score_id": score_source["score_id"],
             "title": score_source["title"],
@@ -177,6 +176,18 @@ def write_export_bundle(
             "musicxml_sha256": score_source["musicxml_sha256"],
             "conversion": score_source["conversion"],
         }
+        if "sources" in score_source:
+            score_credit.update(
+                {
+                    key: score_source[key]
+                    for key in (
+                        "sources",
+                        "sha256_scope",
+                        "conversion_losses",
+                        "integration_review",
+                    )
+                }
+            )
         credits = json.loads(files["credits.json"])
         credits["credits"].append(score_credit)
         files["credits.json"] = _json_bytes(credits)

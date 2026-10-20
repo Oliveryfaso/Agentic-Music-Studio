@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from hashlib import sha256
 from importlib.resources import files
-from typing import Any, Literal
+from typing import Any
 from uuid import UUID, uuid4, uuid5
 
 from pydantic import Field
@@ -19,6 +19,7 @@ from motif_forge.application.ports import UnitOfWorkFactory
 from motif_forge.domain.canonical import arrangement_content_hash
 from motif_forge.domain.classical_score import parse_musicxml, score_to_arrangement
 from motif_forge.domain.ir import DomainModel
+from motif_forge.domain.reviewed_scores import REVIEWED_SCORES, ScoreId, reviewed_source
 from motif_forge.domain.revisions import (
     AuthorKind,
     ChangeImpact,
@@ -28,20 +29,38 @@ from motif_forge.domain.revisions import (
     versions_for_arrangement,
 )
 
-SCORE_ID: Literal["mutopia-528-melody.v1"] = "mutopia-528-melody.v1"
+SCORE_ID: ScoreId = "mutopia-528-melody.v1"
 SOURCE_REF = "score:" + SCORE_ID
 
 
-def reviewed_score() -> tuple[dict[str, Any], bytes]:
+def reviewed_score(score_id: str = SCORE_ID) -> tuple[dict[str, Any], bytes]:
+    entry = REVIEWED_SCORES.get(score_id)
+    if entry is None:
+        raise ApplicationError(
+            "CLASSICAL_SOURCE_NOT_FOUND", "This score is not in the reviewed catalog."
+        )
     resource = files("motif_forge").joinpath("resources/scores")
-    manifest = json.loads(resource.joinpath("ode-manifest.json").read_text())
-    original = resource.joinpath("ode-original.ly").read_bytes()
-    xml = resource.joinpath("ode-melody.musicxml").read_bytes()
+    data = resource.joinpath(entry.manifest_path).read_bytes()
+    manifest = json.loads(data)
+    xml = resource.joinpath(entry.xml_path).read_bytes()
+    if entry.manifest_sha256 is None:
+        source_valid = sha256(
+            resource.joinpath("ode-original.ly").read_bytes()
+        ).hexdigest() == manifest.get("sha256")
+    else:
+        source_valid = sha256(data).hexdigest() == entry.manifest_sha256 and all(
+            sha256(
+                resource.joinpath(score_id.removesuffix(".v1"), item["file"]).read_bytes()
+            ).hexdigest()
+            == item["sha256"]
+            for item in manifest["files"]
+        )
     if (
-        manifest.get("score_id") != SCORE_ID
+        manifest.get("score_id") != score_id
         or manifest.get("license") != "Public Domain"
-        or sha256(original).hexdigest() != manifest.get("sha256")
-        or sha256(xml).hexdigest() != manifest.get("musicxml_sha256")
+        or not source_valid
+        or manifest.get("musicxml_sha256") != entry.xml_sha256
+        or sha256(xml).hexdigest() != entry.xml_sha256
     ):
         raise ApplicationError(
             "CLASSICAL_SOURCE_HASH_MISMATCH", "The reviewed score source has changed."
@@ -50,7 +69,7 @@ def reviewed_score() -> tuple[dict[str, Any], bytes]:
 
 
 class ClassicalScoreRequest(DomainModel):
-    score_id: Literal["mutopia-528-melody.v1"] = SCORE_ID
+    score_id: ScoreId = SCORE_ID
     name: str = Field(default="欢乐颂 · 我的改编", min_length=1, max_length=120)
 
 
@@ -72,7 +91,7 @@ class CreateClassicalScore:
     async def __call__(
         self, request: ClassicalScoreRequest, *, idempotency_key: str
     ) -> ClassicalScoreResult:
-        manifest, xml = reviewed_score()
+        manifest, xml = reviewed_score(request.score_id)
         # Validate before creating even an empty Project; no model, installation or fallback.
         parse_musicxml(xml, namespace=UUID(int=0))
         key = "classical-score:" + sha256(idempotency_key.encode()).hexdigest()
@@ -98,7 +117,10 @@ class CreateClassicalScore:
             # A single commit owns the new project, source, fork, audits and receipt.
             # An interrupted import therefore exposes either the complete score or nothing.
             root = create_root_state(uuid4(), created_by="human:local")
-            await tx.insert_project_root(name=request.name, root=root)
+            name = request.name
+            if request.score_id != SCORE_ID and name == "欢乐颂 · 我的改编":
+                name = manifest["title"] + " · 我的改编"
+            await tx.insert_project_root(name=name, root=root)
             branch = root.branch
             await tx.insert_audit_event(
                 event_id=uuid5(root.project_id, "classical-project-created.v1"),
@@ -114,7 +136,7 @@ class CreateClassicalScore:
             score = score_to_arrangement(
                 parse_musicxml(xml, namespace=root.project_id),
                 project_id=root.project_id,
-                source_ref=SOURCE_REF,
+                source_ref="score:" + request.score_id,
             )
             now = datetime.now(UTC)
             revision = Revision(
@@ -157,11 +179,11 @@ class CreateClassicalScore:
                 event_type="project.classical-score.imported",
                 resource_id=revision.revision_id,
                 payload={
-                    "score_id": SCORE_ID,
+                    "score_id": request.score_id,
                     "source_sha256": manifest["sha256"],
                     "musicxml_sha256": manifest["musicxml_sha256"],
-                    "measures": 16,
-                    "notes": 62,
+                    "measures": manifest["measures"],
+                    "notes": manifest["note_count"],
                     "model_calls": 0,
                     "source_branch_id": str(branch.branch_id),
                     "working_branch_id": str(working.branch_id),
@@ -187,15 +209,17 @@ class CreateClassicalScore:
 async def read_classical_source(projects: UnitOfWorkFactory, project_id: UUID) -> dict[str, Any]:
     async with projects() as tx:
         revision = await tx.get_revision(uuid5(project_id, "classical-score-revision.v1"))
-    if (
-        revision is None
-        or revision.project_id != project_id
-        or not any(p.ref == SOURCE_REF for p in revision.arrangement_ir.provenance)
-    ):
+    if revision is None or revision.project_id != project_id:
         raise ApplicationError(
             "CLASSICAL_SOURCE_NOT_FOUND", "No reviewed score import belongs to this project."
         )
-    manifest, xml = reviewed_score()
+    try:
+        identity = reviewed_source(revision.arrangement_ir)
+    except ValueError as exc:
+        raise ApplicationError(
+            "CLASSICAL_SOURCE_NOT_FOUND", "No reviewed score import belongs to this project."
+        ) from exc
+    manifest, xml = reviewed_score(identity.score_id)
     parsed = parse_musicxml(xml, namespace=project_id)
     return {
         "project_id": str(project_id),

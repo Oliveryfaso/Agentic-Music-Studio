@@ -738,13 +738,14 @@ def _apply_command(arrangement: ArrangementIR, command: EditorCommand) -> Arrang
             raise issue(
                 "PIANO_TRACK_LIMIT_EXCEEDED", "tracks", "add one part to the original melody"
             )
-        if not any(
-            p.kind == "asset" and p.ref == "score:mutopia-528-melody.v1"
-            for p in arrangement.provenance
-        ):
+        from motif_forge.domain.reviewed_scores import reviewed_source
+
+        try:
+            reviewed_source(arrangement)
+        except ValueError:
             raise issue(
                 "CLASSICAL_SOURCE_REQUIRED", "provenance", "an approved original score is required"
-            )
+            ) from None
         original = arrangement.tracks[0]
         if (
             not original.locked_ranges

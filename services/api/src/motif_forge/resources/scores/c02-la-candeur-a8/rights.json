@@ -1,0 +1,37 @@
+{
+  "composer": "Johann Friedrich Franz Burgmuller",
+  "original_composition": "public-domain screening supported by historical work and source; not a blanket worldwide-rights warranty",
+  "digital_edition": "Mutopia-2013/01/12-202",
+  "digital_editor": "Bas Wassink",
+  "historical_source": "Collection Litolff, 19th Century",
+  "digital_contribution_license": "Public Domain (Mutopia contributor dedication; not mislabeled CC0)",
+  "commercial_use": true,
+  "redistribution": true,
+  "permission_basis": "specific score/header PD declaration plus Mutopia legal explanation",
+  "digital_edition_page": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=202",
+  "license_explanation_url": "https://www.mutopiaproject.org/legal.html",
+  "page_evidence": {
+    "sha256": "348c7e0987542a5e810cc943d6ae8b7e69bdbd864f6a4fa670af2ef41fa93bae",
+    "accessed_at": "2026-10-19T08:56:03.427532+00:00",
+    "html_packaged": false
+  },
+  "attribution": "Johann Friedrich Franz Burgmuller; digital edition by Bas Wassink / Mutopia-2013/01/12-202; selected-voice transcription and explicit simplification: Motif task artifact.",
+  "attribution_requirement": "No CC-style attribution condition in PD dedication; preserve provenance/credits under project contract.",
+  "arrangement": "New selected-voice/one-pass pitch-duration view. Not a complete original score; all excluded voices and expression losses are disclosed.",
+  "recording": {
+    "external_audio_included": false,
+    "recording_license_granted": false,
+    "midi_downloaded": false
+  },
+  "conversion_contribution": "No additional third-party restrictions introduced; no new licensing of the user's entire project is asserted.",
+  "unknown_rights_material": "Only links and factual metadata for website pages are packaged; no unlicensed page HTML, modern arrangements, PDF cover art or audio.",
+  "sources": [
+    {
+      "url": "https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-01/25EF-01.ly",
+      "file": "c02-la-candeur-a8/source-original/25EF-01.ly",
+      "bytes": 3594,
+      "sha256": "d1720877ca1b813148cb3c09cc0f26ca5e88c63aab321d2765efde0dd91ec6d6",
+      "accessed_at": "2026-10-19T08:53:57.890132+00:00"
+    }
+  ]
+}

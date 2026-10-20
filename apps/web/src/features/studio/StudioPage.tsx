@@ -114,7 +114,7 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
   const selectedClip = selectedTrack?.clips.find((clip) => clip.clip_id === editor.selection?.clipId) ?? selectedTrack?.clips[0] ?? null;
 
   const rootReady = project.data.storage_root_status === "ready";
-  const classical=editor.base.arrangement.provenance?.some(ref=>ref.kind==="asset"&&ref.ref==="score:mutopia-528-melody.v1")??false;
+  const classical=editor.base.arrangement.provenance?.some(ref=>ref.kind==="asset"&&ref.ref.startsWith("score:"))??false;
   const handleRunCreated = (run: AIRun) => {
     sessionStorage.setItem(`motif-forge:project:${projectId}:edit-run`, run.run_id);
     setEditRunId(run.run_id);

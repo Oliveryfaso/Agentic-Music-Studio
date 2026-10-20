@@ -867,7 +867,7 @@ export interface components {
         /** AccompanimentIntent */
         AccompanimentIntent: {
             /** Chords */
-            chords: ("G" | "C" | "D" | "Em" | "Am" | "Bm")[];
+            chords: ("G" | "C" | "D" | "Em" | "Am" | "Bm" | "F" | "Dm")[];
             /**
              * Octave
              * @default 2
@@ -1570,6 +1570,10 @@ export interface components {
         };
         /** ClassicalScoreDescription */
         ClassicalScoreDescription: {
+            /** Beats */
+            beats: number;
+            /** Bpm */
+            bpm: number;
             /** Composer */
             composer: string;
             /** Conversion */
@@ -1596,6 +1600,8 @@ export interface components {
             source_url: string;
             /** Title */
             title: string;
+            /** Tonic */
+            tonic: string;
         };
         /** ClassicalScoreRequest */
         ClassicalScoreRequest: {
@@ -1607,9 +1613,9 @@ export interface components {
             /**
              * Score Id
              * @default mutopia-528-melody.v1
-             * @constant
+             * @enum {string}
              */
-            score_id: "mutopia-528-melody.v1";
+            score_id: "mutopia-528-melody.v1" | "c01-minuet-g-a16.v1" | "c02-la-candeur-a8.v1" | "j01-bethena-a-first8.v1";
         };
         /** ClassicalScoreResult */
         ClassicalScoreResult: {

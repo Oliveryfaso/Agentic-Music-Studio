@@ -276,10 +276,19 @@ def test_explicit_export_request_ids_separate_retry_jobs_without_changing_revisi
     assert "request_id" not in old.model_dump(mode="json")
 
 
-def test_classical_two_part_export_binds_new_job_plan_and_score_rights(tmp_path):
+@pytest.mark.parametrize(
+    "score_id",
+    [
+        "mutopia-528-melody.v1",
+        "c01-minuet-g-a16.v1",
+        "c02-la-candeur-a8.v1",
+        "j01-bethena-a-first8.v1",
+    ],
+)
+def test_classical_two_part_export_binds_new_job_plan_and_score_rights(tmp_path, score_id):
     from uuid import uuid4
 
-    from motif_forge.application.classical_import import SOURCE_REF, reviewed_score
+    from motif_forge.application.classical_import import reviewed_score
     from motif_forge.application.rendering import build_canonical_render_payload
     from motif_forge.domain.accompaniment import AccompanimentIntent, accompaniment_command
     from motif_forge.domain.classical_score import parse_musicxml, score_to_arrangement
@@ -287,16 +296,18 @@ def test_classical_two_part_export_binds_new_job_plan_and_score_rights(tmp_path)
     from motif_forge.domain.revisions import versions_for_arrangement
 
     project = uuid4()
-    source, xml = reviewed_score()
+    source, xml = reviewed_score(score_id)
     original = score_to_arrangement(
-        parse_musicxml(xml, namespace=project), project_id=project, source_ref=SOURCE_REF
+        parse_musicxml(xml, namespace=project), project_id=project, source_ref="score:" + score_id
     )
     candidate = apply_commands(
         original,
         (
             accompaniment_command(
                 original,
-                AccompanimentIntent(pattern="roots", chords=("G",) * 16, octave=2, velocity=54),
+                AccompanimentIntent(
+                    pattern="roots", chords=tuple(source["default_chords"]), octave=2, velocity=54
+                ),
                 request_id=uuid4(),
             ),
         ),
@@ -327,6 +338,10 @@ def test_classical_two_part_export_binds_new_job_plan_and_score_rights(tmp_path)
         and score_credit["musicxml_sha256"] == source["musicxml_sha256"]
     )
     license = json.loads((tmp_path / result.storage_prefix / "license.json").read_text())
+    if "sources" in source:
+        assert score_credit["sources"] == source["sources"]
+        assert score_credit["conversion_losses"] == source["conversion_losses"]
+        assert score_credit["sha256_scope"] == source["sha256_scope"]
     assert any(
         item.get("license") == "Public Domain" and item.get("score_id") == source["score_id"]
         for item in license["assets"]

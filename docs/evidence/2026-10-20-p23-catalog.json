@@ -1,0 +1,159 @@
+{
+  "stage": "P2.3 catalog + deterministic rule path; semantic v2 not implemented",
+  "base": "4a7c43da42da036c73c5ac77d3b778ea3b36a2a9",
+  "scope_files": 37,
+  "requirements": [
+    "MF-P01",
+    "MF-P02",
+    "MF-P05",
+    "MF-P06",
+    "MF-P08",
+    "MF-P10",
+    "MF-P11",
+    "MF-P13",
+    "MF-P15",
+    "MF-P16",
+    "MF-P17",
+    "MF-P18",
+    "MF-P20",
+    "MF-P21"
+  ],
+  "actual_checks": [
+    {
+      "check": "python",
+      "exit_code": 0,
+      "seconds": 2.613
+    },
+    {
+      "check": "web",
+      "exit_code": 0,
+      "seconds": 7.659
+    },
+    {
+      "check": "typescript",
+      "exit_code": 0,
+      "seconds": 2.206
+    },
+    {
+      "check": "mypy",
+      "exit_code": 0,
+      "seconds": 9.098
+    },
+    {
+      "check": "ruff",
+      "exit_code": 0,
+      "seconds": 0.092
+    },
+    {
+      "check": "format",
+      "exit_code": 0,
+      "seconds": 0.019
+    },
+    {
+      "check": "web-build",
+      "exit_code": 0,
+      "seconds": 0.353
+    },
+    {
+      "check": "diff",
+      "exit_code": 0,
+      "seconds": 0.077
+    }
+  ],
+  "python_passed": 69,
+  "web_passed": 34,
+  "mypy_sources": 132,
+  "generated_dto_matches_actual_openapi": true,
+  "actual_boundary": {
+    "macLocal": true,
+    "headless": true,
+    "boundary": "actual repository built UI + actual API + isolated PostgreSQL; renderer capability admission stubbed; no render/model execution",
+    "cases": [
+      {
+        "scoreId": "c01-minuet-g-a16.v1",
+        "projectId": "bc2e923d-39ca-4a88-807d-b1dbf296e703",
+        "revisionId": "03b4a00c-a9de-56ee-a1b4-dc94dcb61e74",
+        "sourceBranchId": "4d7f0ce3-cb55-4c81-aefa-37bac2d5e0be",
+        "branchId": "181fd887-3422-5d50-8cce-0796848e95e3",
+        "beats": 3,
+        "bars": 16,
+        "lockedSource": true,
+        "replaySameProject": true,
+        "wrongBodyRejected409": true,
+        "semanticDisabled": true,
+        "ruleUiReady": true,
+        "xmlHash": "7f223a9cc8b64af65a28f4a12892acca6b65a7acf8391a820bfba0ff4cd3ac72",
+        "lostReceiptRecovered": false
+      },
+      {
+        "scoreId": "c02-la-candeur-a8.v1",
+        "projectId": "a59073ba-fae2-4f54-a2a4-28edfa4badfa",
+        "revisionId": "e6814f37-ec43-5194-90df-33b5a793ac4d",
+        "sourceBranchId": "7616275b-5dd4-46d5-aaee-01d169b5692c",
+        "branchId": "f72c55f1-c94e-5048-b040-42141965c57b",
+        "beats": 4,
+        "bars": 8,
+        "lockedSource": true,
+        "replaySameProject": true,
+        "wrongBodyRejected409": true,
+        "semanticDisabled": true,
+        "ruleUiReady": true,
+        "xmlHash": "3bbe6a5e4e1487679e87570835039ffe143092176f49b097168c54b7f9376663",
+        "lostReceiptRecovered": true
+      },
+      {
+        "scoreId": "j01-bethena-a-first8.v1",
+        "projectId": "8565833f-f6c0-4238-99bb-90799433a791",
+        "revisionId": "c1dbd655-035f-518f-9367-7a7c125a7189",
+        "sourceBranchId": "f017fd9a-a4a6-48cc-b460-8472e674a882",
+        "branchId": "e780befa-b707-581b-b1bd-5e48fe0e6e71",
+        "beats": 3,
+        "bars": 8,
+        "lockedSource": true,
+        "replaySameProject": true,
+        "wrongBodyRejected409": true,
+        "semanticDisabled": true,
+        "ruleUiReady": true,
+        "xmlHash": "1f7116b0950708f16bfc3ef3434fc7c34c810a646715aae92f3d4ce8dc72ecc6",
+        "lostReceiptRecovered": false
+      }
+    ],
+    "pageErrors": [],
+    "modelCalls": 0,
+    "newJobs": 0,
+    "viewport": {
+      "width": 390,
+      "scrollWidth": 390
+    },
+    "status": "passed",
+    "pgProjectCount": 3,
+    "originalAndWorkingHeadsVerified": true,
+    "atomicRollbackAfterRootInsert": true,
+    "mediaJobRows": 0,
+    "aiRunRows": 0,
+    "rendererCapabilityStubbed": true,
+    "productionSourceValidation": true,
+    "productionRecoveryMechanismTested": false
+  },
+  "review": {
+    "fresh": true,
+    "blocking_findings": 0,
+    "independent_python_cases": 69,
+    "additional_ui_probes": 6,
+    "author_repair_recheck": false
+  },
+  "new_jobs": 0,
+  "paid_model_calls": 0,
+  "old_26_jobs_rerun": false,
+  "human_listening_accepted": false,
+  "fixed_listening_build_commit": "4a7c43d",
+  "fixed_listening_build_unchanged": true,
+  "fixed_listening_deadline_unchanged": true,
+  "temporary_pg_api_browser_closed": true,
+  "generated_credentials_removed": true,
+  "reclaimed_logical_bytes": 34711908,
+  "main_merged": false,
+  "deployed": false,
+  "semantic_v2_and_0030_implemented": false,
+  "original_source_whitespace_exception": "source-original/*.ly preserved hash-pinned; no execution"
+}

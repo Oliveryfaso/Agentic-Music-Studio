@@ -11,7 +11,6 @@ from fastapi import APIRouter, Header, Response
 from pydantic import BaseModel
 
 from motif_forge.application.classical_import import (
-    SCORE_ID,
     ClassicalScoreRequest,
     ClassicalScoreResult,
     CreateClassicalScore,
@@ -22,6 +21,7 @@ from motif_forge.application.errors import ApplicationError
 from motif_forge.application.piano_capability import PianoCapability
 from motif_forge.application.ports import UnitOfWorkFactory
 from motif_forge.domain.classical_score import ScoreNote
+from motif_forge.domain.reviewed_scores import REVIEWED_SCORES
 
 
 class ClassicalScoreDescription(BaseModel):
@@ -38,6 +38,9 @@ class ClassicalScoreDescription(BaseModel):
     measure_count: int
     note_count: int
     default_chords: tuple[str, ...]
+    beats: int
+    bpm: float
+    tonic: str
 
 
 class ClassicalCatalogResponse(BaseModel):
@@ -85,6 +88,9 @@ def describe(manifest: dict[str, Any]) -> ClassicalScoreDescription:
         measure_count=manifest["measures"],
         note_count=manifest["note_count"],
         default_chords=tuple(manifest["default_chords"]),
+        beats=manifest.get("beats", 4),
+        bpm=manifest.get("bpm", 100),
+        tonic=manifest.get("tonic", "G"),
     )
 
 
@@ -95,20 +101,17 @@ def build_classical_router(
 
     @router.get("/classical-scores", response_model=ClassicalCatalogResponse)
     async def catalog() -> ClassicalCatalogResponse:
-        manifest, _ = reviewed_score()
-        return ClassicalCatalogResponse(data=(describe(manifest),))
+        return ClassicalCatalogResponse(
+            data=tuple(describe(reviewed_score(score_id)[0]) for score_id in REVIEWED_SCORES)
+        )
 
     @router.get("/classical-scores/{score_id}/musicxml")
     async def musicxml(score_id: str) -> Response:
-        if score_id != SCORE_ID:
-            raise ApplicationError(
-                "CLASSICAL_SOURCE_NOT_FOUND", "This score is not in the reviewed catalog."
-            )
-        _, data = reviewed_score()
+        _, data = reviewed_score(score_id)
         return Response(
             data,
             media_type="application/vnd.recordare.musicxml+xml",
-            headers={"Content-Disposition": 'attachment; filename="ode-melody.musicxml"'},
+            headers={"Content-Disposition": f'attachment; filename="{score_id}.musicxml"'},
         )
 
     @router.post(

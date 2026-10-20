@@ -36,7 +36,8 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
   const [restoredIntent]=useState(()=>restorePendingIntent(storageKey));
   const [identityStorageAvailable,setIdentityStorageAvailable]=useState(restoredIntent.available);
   const [entry,setEntry]=useState<'rules'|'semantic'>(restoredIntent.intent?'semantic':'rules');
-  const semantic=Boolean(classicalSource&&(modify||entry==='semantic'));
+  const sourceSemantic=classicalSource?.source.score_id==='mutopia-528-melody.v1';
+  const semantic=Boolean(sourceSemantic&&(modify||entry==='semantic'));
   const [description,setDescription]=useState(restoredIntent.intent?.request?.intent??(modify?MODIFY_DESCRIPTION:APPEND_DESCRIPTION));
   const [startBar,setStartBar]=useState(restoredIntent.intent?.request?.start_bar??9),[endBar,setEndBar]=useState(restoredIntent.intent?.request?.end_bar??12);
   const previousMode=useRef(modify);
@@ -47,7 +48,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
   const [octave,setOctave]=useState<2|3>(2);
   const [chordText,setChordText]=useState(()=>classicalSource?.source.default_chords.join(' ')??'');
   const chordNames=chordText.trim().split(/[\s,，、]+/).filter(Boolean);
-  const chords=chordNames.filter((value):value is AccompanimentIntent['chords'][number]=>['G','C','D','Em','Am','Bm'].includes(value));
+  const chords=chordNames.filter((value):value is AccompanimentIntent['chords'][number]=>['G','C','D','Em','Am','Bm','F','Dm'].includes(value));
   const validRange=Number.isInteger(startBar)&&Number.isInteger(endBar)&&startBar>=1&&endBar<=16&&endBar>=startBar&&endBar-startBar<4;
   const validInputs=semantic?description.trim().length>0&&description.length<=800&&(!modify||validRange):classicalSource?chords.length===classicalSource.import_report.measure_count&&chords.length===chordNames.length&&Number.isInteger(velocity)&&velocity>=32&&velocity<=80:Number.isInteger(velocity)&&velocity>=1&&velocity<=127&&Number.isInteger(onset)&&Math.abs(onset)<=60&&Number.isInteger(gate)&&gate>=1&&gate<=9600;
   const intent=useRef<PianoIntent|null>(restoredIntent.intent);
@@ -89,7 +90,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
   const matches=state?.base_revision_id===revisionId;
   const ready=rootReady&&!dirty&&matches&&state?.phase==='waiting_piano_approval';
   const error=start.error||decision.error||cancel.error||audition.error;
-  const canPrepare=single||modify;
+  const canPrepare=single||(modify&&sourceSemantic);
   const keepLabel=classicalSource?(modify?'保留这次修改':'保留这条伴奏'):'保存这版钢琴表达';
   return <section className="studio-panel piano-expression" aria-labelledby="piano-expression-title">
     <div className="panel-heading"><div><p className="eyebrow">PIANO / EXPRESSION</p><h3 id="piano-expression-title">{classicalSource?(modify?'修改新增的伴奏':'给原谱加一条伴奏'):'钢琴表达'}</h3></div>
@@ -97,12 +98,13 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
     <p className="saved-audio-note">{classicalSource?(semanticContext?'描述想要的密度、音区或力度。Flash 每次生成只发起一次请求，保留前原版本不变。':'选择每小节和弦与伴奏织体，用同一钢琴的低音声部衬托旋律。规则伴奏不消耗模型额度。'):<>调整{selection?'所选范围':'整轨音符'}的演奏表达。先比较试听，确认后保存新版本。</>}</p>
     <p className="piano-source">FreePats Upright KW · CC0 · 踏板暂不支持</p>
     {semanticContext&&!identityStorageAvailable&&<p className="field-error">浏览器无法保存请求标识。网络失败后请保持此页并重试；刷新可能丢失请求身份，请勿再次新建付费请求。</p>}
+    {classicalSource&&!sourceSemantic&&<p>新曲目的自然语言伴奏与局部修改尚未开放；当前可新增规则伴奏，并继续保存混音、导出或撤回已保存修改。</p>}
     {!canPrepare&&<p>{classicalSource?'当前入口支持原谱加一条伴奏，请保留现有两轨范围。':'当前入口支持一条乐器轨。多轨作品仍可使用原有编辑和导出。'}</p>}
     {canPrepare&&<>
       {!capability.data?.available&&<p className="field-error">{capability.isPending?'正在检查钢琴音源…':'钢琴音源暂不可用，请检查本地渲染服务。原有音色仍可使用。'} <button type="button" onClick={()=>void capability.refetch()} disabled={capability.isFetching}>重新检查</button></p>}
       {classicalSource&&single&&<fieldset className="piano-actions" disabled={busy||active}><legend>伴奏方式</legend>
         <label><input type="radio" name="piano-entry" checked={entry==='rules'} onChange={()=>setEntry('rules')}/>规则伴奏</label>
-        <label><input type="radio" name="piano-entry" checked={entry==='semantic'} onChange={()=>setEntry('semantic')}/>自然语言伴奏</label>
+        <label><input type="radio" name="piano-entry" checked={entry==='semantic'} disabled={!sourceSemantic} onChange={()=>setEntry('semantic')}/>自然语言伴奏</label>
       </fieldset>}
       {semantic?<fieldset className="piano-expression-fields" disabled={busy||active}>
         <label style={{gridColumn:'1 / -1'}}>伴奏描述<textarea aria-label="伴奏描述" rows={4} maxLength={800} value={description} onChange={e=>setDescription(e.target.value)} style={{width:'100%',boxSizing:'border-box'}}/></label>
@@ -116,7 +118,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
         <label>低音八度<select aria-label="低音八度" value={octave} onChange={e=>setOctave(Number(e.target.value) as 2|3)}><option value={2}>第 2 八度</option><option value={3}>第 3 八度</option></select></label>
         <label>伴奏力度<input aria-label="伴奏力度" type="number" min={32} max={80} value={velocity} onChange={e=>setVelocity(Number(e.target.value))}/></label>
         <label className="piano-chord-field" style={{gridColumn:'1 / -1'}}>每小节和弦<input aria-label="每小节和弦" value={chordText} onChange={e=>setChordText(e.target.value)} maxLength={180}/></label>
-        <p style={{gridColumn:'1 / -1'}}>依次填写 {classicalSource.import_report.measure_count} 个和弦，用空格分隔。当前支持 G、C、D、Em、Am、Bm。{!validInputs&&' 请检查数量、和弦名称与力度。'}</p>
+        <p style={{gridColumn:'1 / -1'}}>依次填写 {classicalSource.import_report.measure_count} 个和弦，用空格分隔。当前支持 G、C、D、Em、Am、Bm、F、Dm；不支持七和弦或转位。{!validInputs&&' 请检查数量、和弦名称与力度。'}</p>
       </fieldset>:<fieldset className="piano-expression-fields" disabled={busy||active}>
         <label>力度 <input aria-label="钢琴力度" type="number" min={1} max={127} step={1} value={velocity} onChange={e=>setVelocity(Number(e.target.value))}/></label>
         <label>起音偏移（tick）<input aria-label="钢琴起音偏移" type="number" min={-60} max={60} step={1} value={onset} onChange={e=>setOnset(Number(e.target.value))}/></label>

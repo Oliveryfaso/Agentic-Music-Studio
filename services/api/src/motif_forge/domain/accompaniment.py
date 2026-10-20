@@ -17,11 +17,12 @@ from motif_forge.domain.ir import (
     TrackRole,
     TrackType,
 )
+from motif_forge.domain.reviewed_scores import reviewed_source
 
 
 class AccompanimentIntent(DomainModel):
     pattern: Literal["roots", "broken"]
-    chords: tuple[Literal["G", "C", "D", "Em", "Am", "Bm"], ...] = Field(
+    chords: tuple[Literal["G", "C", "D", "Em", "Am", "Bm", "F", "Dm"], ...] = Field(
         min_length=1, max_length=32
     )
     octave: Literal[2, 3] = 2
@@ -31,11 +32,8 @@ class AccompanimentIntent(DomainModel):
 def accompaniment_command(
     base: ArrangementIRV2, intent: AccompanimentIntent, *, request_id: UUID
 ) -> AppendPianoTrackCommand:
-    if not any(
-        p.kind == "asset" and p.ref == "score:mutopia-528-melody.v1" for p in base.provenance
-    ):
-        raise ValueError("CLASSICAL_SOURCE_REQUIRED")
-    bars = base.duration_tick // (base.time_signature_map[0].numerator * 480) - 1
+    source = reviewed_source(base)
+    bars = source.measures
     if len(intent.chords) != bars:
         raise ValueError("ACCOMPANIMENT_MEASURE_COUNT")
     roots = {
@@ -45,6 +43,8 @@ def accompaniment_command(
         "Em": (4, 7, 11),
         "Am": (9, 12, 16),
         "Bm": (11, 14, 18),
+        "F": (5, 9, 12),
+        "Dm": (2, 5, 9),
     }
     notes = []
     bar_ticks = base.time_signature_map[0].numerator * 480

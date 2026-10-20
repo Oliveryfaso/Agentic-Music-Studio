@@ -31,9 +31,14 @@ def arrangement_to_midi(arrangement: ArrangementIR) -> bytes:
     """Encode tempo/meta plus one MIDI track per instrument track."""
 
     tempo = round(60_000_000 / arrangement.tempo_map[0].bpm)
+    meter = arrangement.time_signature_map[0]
     meta = [
         (0, 0, b"\xff\x51\x03" + tempo.to_bytes(3, "big")),
-        (0, 1, b"\xff\x58\x04\x04\x02\x18\x08"),
+        (
+            0,
+            1,
+            b"\xff\x58\x04" + bytes((meter.numerator, meter.denominator.bit_length() - 1, 24, 8)),
+        ),
     ]
     chunks = [_track_chunk(meta)]
     for channel, track in enumerate(

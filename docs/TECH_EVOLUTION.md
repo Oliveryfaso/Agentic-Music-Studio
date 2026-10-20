@@ -544,3 +544,12 @@ MF-P11/P18/P20/P21；base d68b900、Guide clean。六生产/两测试文件补�
 真实repo Web25/Audio39/Export25/fullWebTS/productionbuild/diff通过；fresh独立审查无阻塞，独立12状态探针，无作者修复复核。Mac实际build+明示只读保留快照4媒体播放/停止、入口A/B、写入403、390px无横溢通过。辅助验收HTML转义失败保留，语法检查后一次复验关闭；不是产品回归。
 
 旧候选26Job与后段6Job不重跑；本次0Job/0模型。新统一人工入口先听感后曲谱/界面，不上传反馈，限40分钟loopback自动关闭；不是生产API/PG/Worker重跑。三曲picker/语义v2/0030及人耳/物理设备仍待验，不把P2.3整体写完。当前dist2304KiB、混合Vite缓存7424KiB保留、删除0；无共享VM/prune/用户DB/main合并/部署。见[集成验收](evidence/2026-10-20-p23-playback.md)与[证据](evidence/2026-10-20-p23-playback.json)。
+
+
+## 2026-10-20：P2.3 三曲审核目录与安全规则入口
+
+Base4a7c43d/Guide clean；MF-P01/P02/P05/P06/P08/P10/P11/P13/P15/P16/P17/P18/P20/P21。37文件候选重新算diff/hash，正式获准写入；3份版本钉死XML/source/rights/conversion，保留legacy第四项；实际3/4/4/4、8/16+release，规则F/Dm/MIDI拍号/导出credits。复用前端picker/reviewKey，逐曲确认、score/key/body绑定，unknown回执锁曲/sessionStorage同key；Studio权威来源报告，新曲semantic显式禁用，旧v1保留。
+
+UI RED5→candidate31/最终32；真实repoPython69/Web34/fullTS/mypy132/Ruff-format/build135模块；actual OpenAPI重生成DTO一致。导出局部变量名类型冲突在作者检查时修正。一次fresh独审无阻塞，独立Python69+额外UI6，无修复复核。actualAPI+隔离PG+Mac真实UI三曲导入/刷新；C02服务器201后丢回执、刷新重试同project；same-key异body409、after-root异常回滚无第4个project；Job/AIRun0。renderer admission明确stub，不宣称此次Worker/音质/生产恢复通过。原26Job与EQ6Job不重跑，paid0。
+
+当前固定试听4a dist/媒体/hash/10:36:58UTC期限保持，新build仅workspace；自有API/browser/PG/新凭据已清理。删本任务重复build/mypy-cache34,711,908逻辑bytes，保留当前build和试听备份，混合缓存/共享VM/用户DB/游戏不动。原.ly历史27处尾空格按hash保留，staged whitespace仅排除此文本且单独验hash。semantic v2/0030、用户听感、实时端口/主题未完成；不合main/部署。见[验收/准确剩余](evidence/2026-10-20-p23-catalog.md)与[机器证据](evidence/2026-10-20-p23-catalog.json)。
