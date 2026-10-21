@@ -9,6 +9,13 @@ import {cancelPianoPreview,decidePianoPreview,readPianoCapability,readPianoPrevi
 type SemanticRequest=NonNullable<PianoPreviewOptions['semantic']>;
 const APPEND_DESCRIPTION='加一个低音区钢琴伴奏，前8小节稀疏，后8小节稍活跃，不改旋律';
 const MODIFY_DESCRIPTION='这几小节更稀疏、更轻，其余保持';
+const KEEP_REGISTER_DESCRIPTION='这几小节更稀疏、更轻，保留原和声与音区，其余保持不变。';
+const PIANO_FAILURE_MESSAGES:Record<string,string>={
+  PIANO_REGISTER_UNVERIFIED:'无法核实这段伴奏的保存音区，未调用模型。请打开有生成计划的保存版本，或先移除描述中的音区保持要求。',
+  PIANO_REGISTER_CHANGED:'生成结果没有保留要求的音区，候选已拒绝，原版本不变。',
+  AI_RUN_BASE_REVISION_CONFLICT:'保存版本已变化。请从作品列表打开最新版本，再检查选区并生成。',
+  REVISION_CONFLICT:'保存版本已变化。请从作品列表打开最新版本，再检查选区并生成。',
+};
 const PENDING_PHASES=new Set(['queued','planning','waiting_piano_worker']);
 type PianoIntent={fingerprint:string;key:string;semanticFingerprint:string;request?:SemanticRequest};
 function restorePendingIntent(storageKey:string):{intent:PianoIntent|null;available:boolean}{
@@ -106,6 +113,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
       <span className="status-pill">{classicalSource?(arrangement.tracks.length>1?'原谱 + 伴奏':'原谱旋律'):arrangement.schema_version!=='arrangement-ir.v1'?'已保存真实钢琴':'原有音色'}</span></div>
     <p className="saved-audio-note">{classicalSource?(semanticContext?'描述想要的密度、音区或力度。Flash 每次生成只发起一次请求，保留前原版本不变。':'选择每小节和弦与伴奏织体，用同一钢琴的低音声部衬托旋律。规则伴奏不消耗模型额度。'):<>调整{selection?'所选范围':'整轨音符'}的演奏表达。先比较试听，确认后保存新版本。</>}</p>
     <p className="piano-source">FreePats Upright KW · CC0 · 踏板暂不支持</p>
+    {semanticContext&&classicalSource&&<p className="saved-audio-note">当前曲目：{sourceBars} 小节，{sourceBeats}/4。以主旋律摘录为基准；和声与乐句线索辅助编配，请试听后决定是否保留。</p>}
     {semanticContext&&!identityStorageAvailable&&<p className="field-error">浏览器无法保存请求标识。网络失败后请保持此页并重试；刷新可能丢失请求身份，请勿再次新建付费请求。</p>}
     {classicalSource&&!sourceSemantic&&<p>当前来源不支持自然语言伴奏；请使用已审核曲目。</p>}
     {!canPrepare&&<p>{classicalSource?'当前入口支持原谱加一条伴奏，请保留现有两轨范围。':'当前入口支持一条乐器轨。多轨作品仍可使用原有编辑和导出。'}</p>}
@@ -118,6 +126,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
       {semantic?<fieldset className="piano-expression-fields" disabled={busy||active}>
         <label style={{gridColumn:'1 / -1'}}>伴奏描述<textarea aria-label="伴奏描述" rows={4} maxLength={800} value={description} onChange={e=>setDescription(e.target.value)} style={{width:'100%',boxSizing:'border-box'}}/></label>
         {modify?<>
+          <div style={{gridColumn:'1 / -1'}}><button type="button" className="secondary-inline" onClick={()=>setDescription(KEEP_REGISTER_DESCRIPTION)}>填入保留音区的描述</button><p>“保留音区”固定所选每小节的八度，不锁定每个音高。无法核实保存计划时，会在调用模型前停止。</p></div>
           <label>开始小节<input aria-label="开始小节" type="number" min={1} max={sourceBars} step={1} value={startBar} onChange={e=>setStartBar(Number(e.target.value))}/></label>
           <label>结束小节<input aria-label="结束小节" type="number" min={1} max={sourceBars} step={1} value={endBar} onChange={e=>setEndBar(Number(e.target.value))}/></label>
           <p style={{gridColumn:'1 / -1'}}>仅修改新增的第二轨，选择第 1–{sourceBars} 小节内连续 1–4 小节。原和声、原谱与范围外内容保持不变；本轮不支持局部换和弦。{!validRange&&' 请检查小节范围。'}</p>
@@ -145,7 +154,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
       {state?.semantic_summary&&<p>{state.semantic_summary}</p>}
       {(state?.model||state?.semantic_summary)&&<div className="saved-audio-note"><p>Flash计划 + 确定性编译</p>{state.model&&<p>模型：{state.model}</p>}
         {state.model_requests!=null&&<p>模型请求：{state.model_requests} 次</p>}
-        {state.usage_status==='known'&&state.total_tokens!=null?<p>总用量：{state.total_tokens} tokens</p>:<p>用量暂不完整，费用未确认。</p>}
+        {state.usage_status==='known'&&state.total_tokens!=null?<p>总用量：{state.total_tokens} tokens</p>:state.usage_status==='partial'&&state.total_tokens!=null?<p>已报告用量：{state.total_tokens} tokens（明细不完整，费用未确认）</p>:<p>用量暂不完整，费用未确认。</p>}
       </div>}
       {state?.baseline_artifact_id&&state.piano_artifact_id&&<PianoComparison key={`${thread}:${state.baseline_artifact_id}:${state.piano_artifact_id}`} baseline={state.baseline_artifact_id} piano={state.piano_artifact_id} label={classicalSource?(modify?'局部修改':'加轨版本'):'钢琴表达'}/>}
       {state?.phase==='waiting_piano_approval'&&<>
@@ -157,9 +166,9 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
       {state?.phase==='completed'&&state.revision_id&&<button type="button" onClick={()=>onSaved(state.revision_id!)}>打开已保存版本</button>}
       {state?.phase==='rejected'&&<p>已放弃试听，原版本保留。</p>}
       {state?.phase==='cancelled'&&<p>试听已取消，原版本保留。</p>}
-      {state?.phase==='failed'&&<p className="field-error">试听失败：{state.error_code}。原版本保留。{semantic?'修改描述后，可再次主动生成；会发起新的模型请求。':'可重新试听。'}</p>}
+      {state?.phase==='failed'&&<p className="field-error">{PIANO_FAILURE_MESSAGES[state.error_code??'']??'试听失败，原版本保留。'}（{state.error_code}）{semantic?'修改描述后，可再次主动生成；会发起新的模型请求。':'可重新试听。'}</p>}
     </div>}
-    {error&&<p className="field-error" role="alert">{error instanceof ApiError?`${error.message}（${error.code}）`:error.message}</p>}
+    {error&&<p className="field-error" role="alert">{error instanceof ApiError?`${PIANO_FAILURE_MESSAGES[error.code]??error.message}（${error.code}）`:error.message}</p>}
   </section>;
 }
 

@@ -1,0 +1,246 @@
+{
+  "stage": "P2.3 daily stability and bounded product flow",
+  "date": "2026-10-21",
+  "requirements": [
+    "MF-P04",
+    "MF-P05",
+    "MF-P06",
+    "MF-P10",
+    "MF-P11",
+    "MF-P13",
+    "MF-P15",
+    "MF-P16",
+    "MF-P18",
+    "MF-P20",
+    "MF-P21"
+  ],
+  "baseline_commit": "36d2a3e05d16f90918594d96ebe8145232a0c48e",
+  "baseline_human_accepted_scope": "nine delivered clips of this result only, not all scores/styles",
+  "production_changes": [
+    "PianoPanel explicit keep-register text-fill action, no auto-submit/default change",
+    "source meter/principal-reduction guidance",
+    "partial reported total without fabricated cost",
+    "actionable Chinese register/stale HTTP failures retaining error codes"
+  ],
+  "algorithms_schemas_graph_dsp_dependencies_changed": false,
+  "verification": {
+    "python_unit_eval_root": {
+      "passed": 942,
+      "seconds": 13.74,
+      "existing_deprecation_warnings": 1
+    },
+    "new_eval": 25,
+    "postgres": {
+      "passed": 4,
+      "seconds": 1.91,
+      "new_multiround_case": 1,
+      "existing_three_score": 3
+    },
+    "web": {
+      "full_suite_before_final_copy_alias": 133,
+      "final_daily_ui": 7,
+      "final_typescript": "passed",
+      "final_build_modules": 135
+    },
+    "task_identity_budget_scope": {
+      "passed": 55,
+      "seconds": 0.45
+    },
+    "independent_repair_recheck": 13,
+    "ruff": "passed"
+  },
+  "offline_actual_product": {
+    "cases": [
+      "SEED",
+      "EDIT_A",
+      "EDIT_B",
+      "TAIL"
+    ],
+    "formal_jobs": 8,
+    "mock_provider_steps": 4,
+    "actual_paid_http_attempts": 0,
+    "undo_restores_exact_ir_and_hash": true,
+    "repeated_key_same_run": true,
+    "guards": [
+      {
+        "id": "stale_base",
+        "http_status": 409
+      },
+      {
+        "id": "five_bar_scope",
+        "http_status": 422
+      }
+    ],
+    "fresh_parent_duplicate_resume": true
+  },
+  "live_actual_product": {
+    "formal_jobs": 4,
+    "free_saved_plan_seed": true,
+    "paid_cases": [
+      "TAIL C02 bars5-8"
+    ],
+    "source_score": "c02-la-candeur-a8.v1",
+    "input_utf8_bytes": 6894,
+    "stage_counts": {
+      "planned": 1,
+      "reserved": 1,
+      "send_attempted": 1,
+      "response_observed": 1
+    },
+    "status": "technical_pass_pending_listening",
+    "original_and_outside_exact": true,
+    "plan_unmodified": true,
+    "candidate_hash_recompiled_exact": true,
+    "fixed_harmony": {
+      "5": "C",
+      "6": "Dm",
+      "7": "F",
+      "8": "G"
+    },
+    "fixed_octaves": [
+      2,
+      2,
+      2,
+      2
+    ],
+    "intent_proxies": {
+      "before": {
+        "note_count": 15,
+        "mean_velocity": 58.8,
+        "peak_velocity": 62,
+        "total_gate_tick": 5760
+      },
+      "after": {
+        "note_count": 7,
+        "mean_velocity": 41.42857142857143,
+        "peak_velocity": 44,
+        "total_gate_tick": 2520
+      },
+      "checks": {
+        "nonempty": true,
+        "fewer_note_onsets": true,
+        "lower_mean_velocity": true,
+        "peak_velocity_not_higher": true,
+        "total_gate_not_longer": true
+      },
+      "intent_proxies_met": true,
+      "human_listening_accepted": false,
+      "scope": "single C02 bars5-8 sparse/lighter request; not a general music-quality metric"
+    },
+    "same_key_same_run": true,
+    "wrong_hash_http_status": 409,
+    "candidate_rejected": true,
+    "playback": {
+      "same_position": true,
+      "both_advance": true,
+      "time": 3.216171
+    },
+    "mobile_overflow": false,
+    "human_music_accepted": false,
+    "redis_celery_compose_transport_proven": false,
+    "authorized_payload_file_sha256": "26ef5f587d2e19bf9dbbe586f42ffbee379b7748ca05e0d7639cd054852fba8a",
+    "request_payload_canonical_sha256": "827cc6c7a5024fec95b68f350f619e04d2d48cf848d6f2b8731c83dae7c3d4e4"
+  },
+  "paid": {
+    "new_http_attempts": 1,
+    "new_responses": 1,
+    "automatic_retries": 0,
+    "requested_model": "deepseek-v4-flash",
+    "response_model": "deepseek-flash",
+    "official_routed_service": "DeepSeek-V4.1-Flash-1017",
+    "human_replacement_confirmation": "Sentinel_d969e5f6337c819197299ad66dc0ed17",
+    "official_mapping_price_pre_post": true,
+    "independently_verified_weights": false,
+    "usage": {
+      "completion_tokens": 220,
+      "prompt_cache_hit_tokens": 1152,
+      "prompt_cache_miss_tokens": 1093,
+      "prompt_tokens": 2245,
+      "total_tokens": 2465
+    },
+    "new_upper_micro_cny_not_bill": 6250,
+    "prior_upper_micro_cny_not_bill": 53748,
+    "cumulative_postapproval": {
+      "requests": 10,
+      "tokens": 21626,
+      "upper_micro_cny_not_bill": 59998,
+      "ceiling_micro_cny": 10000000,
+      "remaining_micro_cny_by_estimate": 9940002
+    },
+    "legacy_preapproval": {
+      "requests": 4,
+      "tokens": 7228,
+      "upper_micro_cny_not_bill": 23852
+    },
+    "lifetime": {
+      "requests": 14,
+      "tokens": 28854,
+      "upper_micro_cny_not_bill": 83850
+    },
+    "new_batch_permanently_paused": true,
+    "reasoning_tokens": "unknown; product partial, no fabricated0",
+    "raw_audio_or_private_file_upload_to_model": false
+  },
+  "review": {
+    "fresh_reviewers": 1,
+    "repair_rechecks": 1,
+    "initial_critical": 0,
+    "initial_important": 3,
+    "initial_minor": 1,
+    "all_closed": true,
+    "remaining_blockers": [],
+    "closed_findings": [
+      "opposite intent falsely accepted",
+      "planned counted as actual send",
+      "nonJSON HTTP evidence/post-check loss",
+      "real stale ApiError alias"
+    ]
+  },
+  "listening": {
+    "clips": 4,
+    "duration_each_seconds": 8.571428571428571,
+    "groups": [
+      "original relative gain",
+      "fixed-gain equal integrated LUFS"
+    ],
+    "matched_lufs": [
+      -24.0,
+      -24.0
+    ],
+    "matched_true_peak_dbtp": [
+      -12.59,
+      -12.77
+    ],
+    "player": "file:// actual Chromium four media plus both same-position switches passed",
+    "new_model_calls_for_pack": 0,
+    "zip_bytes": 941269,
+    "zip_sha256": "cff2a6d8d6e3fb578007f9d8a2739cd0d0da0dd92d1165339ed46326a1ff8494",
+    "library_status": "succeeded",
+    "human_accepted": false,
+    "library_file_id": "libfile_b4c25a60cb108191a5bd5d511da428a1"
+  },
+  "limits": [
+    "three pinned principal reductions, synthetic structural adversaries, 3/4 and4/4; not all-music generalization",
+    "one triad/bar in bounded palette; no full original LH/pedal/sevenths/inversions",
+    "at least one accompaniment note each bar; entire added-part rest unsupported",
+    "sparse/lighter proxy checks are task-specific and not new production taste rejection",
+    "one stochastic local real sample, no distribution-level taste reliability",
+    "owned tmpfs PG proves actual process recovery, not host power-loss durability",
+    "baseline Plan musical events match excluding IDs; re-rendered MP3 not prior-byte-identical"
+  ],
+  "guide_unchanged": true,
+  "main_unchanged": true,
+  "deployed": false,
+  "cleanup": {
+    "reclaimed_logical_bytes": 12316929,
+    "retained_files_verified": 60,
+    "accepted_baseline_and_new_media_unchanged": true,
+    "reviewed_sources_unchanged": true,
+    "inventory_persisted_before_delete": true,
+    "shared_cache_volume_or_vm_changed": false,
+    "exact_owned_pg_removed": true,
+    "generated_credentials_removed": true,
+    "shared_container_id_names_unchanged": true,
+    "renderer_api_browser_closed": true
+  }
+}

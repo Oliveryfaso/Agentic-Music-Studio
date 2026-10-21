@@ -613,3 +613,14 @@ Python917（既有弃用warning1）、相关31、任务门禁45/mypy2/Ruff通过
 执行证据补充：先观察Provider上下文缺失RED3，再领域/Provider新9和相关31GREEN。full917只跑一次；新J01锚点后聚焦9+mypy通过，任务门禁33+scope7+post5，后接线12复验。review唯一Important先保存回执再post官方GET修复，异常永久pause保留预留，5反例限定复核通过。没有因一般“继续”而扩大数据、重置费用或刷成功。
 
 辅助过程保留：首次诊断用了system Python3.9导入datetime.UTC失败；后改repo3.12。Track投影最初按数组索引比较失败，改权威Track ID后通过；不是产品时间bug。任务测试模板广泛替换把期望23852误改13852，仅测试修正，历史策略/账本未改。Library上传已成功，元数据写入时system Python无os.setxattr，改native xattr并回读，无二次上传。外置盘首次rmtree因已消失条目ENOENT中断，限定根目录恢复并在删除前持久清单，17,637,889只统计恢复阶段，先前部分不估算。旧失败/媒体/回执原样保留，不将辅助失败算模型失败或掩盖它。
+
+
+## 2026-10-21：P2.3 日常局部编辑稳定性收口
+
+MF-P04/P05/P06/P10/P11/P13/P15/P16/P18/P20/P21。用户已听上一轮36d2a3e九段并称效果不错，作为该次声音基线保留；不推断全曲库或盲测偏好。本轮不改Prompt/编译器/IR/Graph/DB/DSP/音源，只补PianoPanel显式保留音区文本填入、来源拍号/主旋律摘录提示、partial已报告tokens、音区及真实stale HTTP中文处理；无自动提交或默认意图改变。
+
+三曲首/中/末与对抗Eval25；实际PG新多轮链及既有三曲共4通过，覆盖重叠修改、精确Undo、祖先音区证明、重放/重复/过期/错误hash/越界。Python942（已有弃用warning1）、完整Web133、最终文案alias聚焦7、TS/build135modules、Ruff、任务门禁55通过。实际built UI/API/自有PG/生产Parent/Worker离线8Jobs+本次4Jobs成功，原生同位置A/B及390px通过；不冒充Redis/Celery/Compose重验或人耳质量通过。
+
+唯一真实C02第5–8bar局部请求，免费复用已认可Plan种子，无新付费append/重试：15→7音、平均力度58.8→41.43、gate5760→2520ticks，原旋律/原和声C-Dm-F-G/逐bar octave2/范围外精确保留，原模型Plan不修补。候选已在隔离项目放弃；新局部听感待用户。2245in+220out=2465tokens，峰价估计上界¥0.006250非账单；批准窗口累计10次/21626tokens/¥0.059998，原累计¥10不重置，按估计余量¥9.940002。request deepseek-v4-flash/response deepseek-flash，人类接受官方V4.1-Flash-1017替代，pre/post官方映射/峰价与精确scope/账本gate通过，未知权重不声称独立验证。所有历史批次和新批永久pause。
+
+一fresh独审3Important+1Minor经唯一修复复查关闭，独立13通过；真实发送阶段/非JSON回执及post核验/相反意图停止器补齐，代理仍不等同人耳。新四段原增益/固定增益等LUFS离线实播通过，**Library明确成功 libfile_b4c25a60cb108191a5bd5d511da428a1（941,269bytes）**；旧包/九段/失败/账本不变。自有PG/生成DSN/API/renderer/browser关闭，共享27容器身份不变，清单先持久再清理12,316,929逻辑bytes，60保留文件指纹通过。Guide/main不变、不部署；dev正常checkpoint与push远端回读以最终交付记录为准。见[验收](evidence/2026-10-21-p23-daily-stability.md)、[机器证据](evidence/2026-10-21-p23-daily-stability.json)、[独审](evidence/2026-10-21-p23-daily-stability-review.md)。

@@ -18,7 +18,17 @@
 
 ## 2. 当前产品形态
 
-### 当前切片：P2.3 音乐契合度上下文与针对性验证（2026-10-21，人耳待验）
+### 当前切片：P2.3 日常局部编辑稳定性（2026-10-21，技术收口；新局部听感待验）
+
+MF-P04/P05/P06/P10/P11/P13/P15/P16/P18/P20/P21。用户已听上一轮36d2a3e九段并称效果不错，作为该次声音基线保留；不推断全曲库或盲测偏好。本轮不改Prompt/编译器/IR/Graph/DB/DSP/音源，只补PianoPanel显式保留音区文本填入、来源拍号/主旋律摘录提示、partial已报告tokens、音区及真实stale HTTP中文处理；无自动提交或默认意图改变。
+
+三曲首/中/末与对抗Eval25；实际PG新多轮链及既有三曲共4通过，覆盖重叠修改、精确Undo、祖先音区证明、重放/重复/过期/错误hash/越界。Python942（已有弃用warning1）、完整Web133、最终文案alias聚焦7、TS/build135modules、Ruff、任务门禁55通过。实际built UI/API/自有PG/生产Parent/Worker离线8Jobs+本次4Jobs成功，原生同位置A/B及390px通过；不冒充Redis/Celery/Compose重验或人耳质量通过。
+
+唯一真实C02第5–8bar局部请求，免费复用已认可Plan种子，无新付费append/重试：15→7音、平均力度58.8→41.43、gate5760→2520ticks，原旋律/原和声C-Dm-F-G/逐bar octave2/范围外精确保留，原模型Plan不修补。候选已在隔离项目放弃；新局部听感待用户。2245in+220out=2465tokens，峰价估计上界¥0.006250非账单；批准窗口累计10次/21626tokens/¥0.059998，原累计¥10不重置，按估计余量¥9.940002。request deepseek-v4-flash/response deepseek-flash，人类接受官方V4.1-Flash-1017替代，pre/post官方映射/峰价与精确scope/账本gate通过，未知权重不声称独立验证。所有历史批次和新批永久pause。
+
+一fresh独审3Important+1Minor经唯一修复复查关闭，独立13通过；真实发送阶段/非JSON回执及post核验/相反意图停止器补齐，代理仍不等同人耳。新四段原增益/固定增益等LUFS离线实播通过，**Library明确成功 libfile_b4c25a60cb108191a5bd5d511da428a1（941,269bytes）**；旧包/九段/失败/账本不变。自有PG/生成DSN/API/renderer/browser关闭，共享27容器身份不变，清单先持久再清理12,316,929逻辑bytes，60保留文件指纹通过。Guide/main不变、不部署；dev正常checkpoint与push远端回读以最终交付记录为准。见[验收](evidence/2026-10-21-p23-daily-stability.md)、[机器证据](evidence/2026-10-21-p23-daily-stability.json)、[独审](evidence/2026-10-21-p23-daily-stability-review.md)。
+
+### 前次切片：P2.3 音乐契合度上下文与针对性验证（2026-10-21；后续用户已认可该次听感）
 
 MF-P04/P05/P06/P10/P11/P13/P15/P16/P18/P20/P21。用户听到新增轨但认为契合不足；已核对旧三曲、最新Q4与原谱左手，确认和声功能/半终止、3/4脉冲、26/23半音无动机跳进和句尾填音风险。原轨与编译时间相同、无声部交叉，不据此宣称测过声学起音。基线明确为固定速度主旋律摘录，非完整原作演奏。
 
@@ -28,7 +38,7 @@ Python917（既有弃用warning1）、相关31、任务门禁45/mypy2/Ruff通过
 
 官方V4.1-Flash-1017已有人类接受，request deepseek-v4-flash/response deepseek-flash，pre/post官方GET与精确数据/预算gate通过，不能独立证明权重。本次1请求/2501tokens/峰价估计上界¥0.007132非账单；批准后累计9次/19161tokens/¥0.053748，沿用同一¥10；新旧账本永久pause，无第2次/重试，reasoning未知保持partial/null。
 
-九段原/旧/新及H/R/V/独奏离线实播/同位置切换通过，固定增益−24.01至−23.99LUFS，160k有损副本。**Library新包已明确成功：libfile_9f7aadcc6c988191a1ea2f7ce36f402e（1,946,591bytes）**，历史失败不改写。自有PG/DSN/renderer/browser关闭，共享27容器保持；54保留文件校验，恢复清理可计量17,637,889逻辑bytes，外置盘首次部分删除未计量。Guide/main不变、不部署。下一门为人耳契合/清晰/乐句/偏好对照，未启动新架构。[研究与验收](evidence/2026-10-21-p23-musical-fit.md)、[机器证据](evidence/2026-10-21-p23-musical-fit.json)。
+九段原/旧/新及H/R/V/独奏离线实播/同位置切换通过，固定增益−24.01至−23.99LUFS，160k有损副本。**Library新包已明确成功：libfile_9f7aadcc6c988191a1ea2f7ce36f402e（1,946,591bytes）**，历史失败不改写。自有PG/DSN/renderer/browser关闭，共享27容器保持；54保留文件校验，恢复清理可计量17,637,889逻辑bytes，外置盘首次部分删除未计量。Guide/main不变、不部署。当时下一门为人耳契合/清晰/乐句/偏好对照，后续反馈见当前切片；未启动新架构。[研究与验收](evidence/2026-10-21-p23-musical-fit.md)、[机器证据](evidence/2026-10-21-p23-musical-fit.json)。
 
 ### 历史切片：P2.3 Q4音区保持修复及单次真实验证通过（2026-10-20）
 

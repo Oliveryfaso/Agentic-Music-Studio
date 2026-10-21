@@ -86,3 +86,10 @@ UNMOTIVATED_REGISTER_LEAP and CADENCE_REST_FILLED. They name observable hypothes
 not universal errors: syncopation and nonchord tones can be intentional. Compare
 single-field chord/grid/octave controls and fixed-gain equal-LUFS full mixes;
 separate fit, melody clarity, phrase flow and preference in human acceptance.
+
+
+### Daily editing controls and evidence (2026-10-21)
+
+The explicit keep-register helper fills the textarea only after a click; it does not submit or change the default/restored semantic body. Register means the saved per-bar Plan octave, not every pitch. An unprovable saved Plan is rejected before provider use. The UI displays reviewed source meter/principal-reduction limits, actionable register and actual stale-base HTTP codes, and a reported partial total with incomplete-details/unconfirmed-cost copy. Unknown usage stays unknown. Existing body/key recovery, dirty-version/HITL hash checks and no-automatic-retry policy remain.
+
+The current bounded corpus has new first/middle/end and adversarial Eval plus one representative actual PG overlapping-edit/Undo/ancestor-reedit chain. These prove structural scope, not arbitrary music quality. The task-only live harness separately preregisters sparse/lighter count, velocity and gate proxies, pauses on opposite intent, and distinguishes planned/reserved/send-attempted/response-observed. No new production taste rejection or Plan postprocessing was introduced. See daily-stability evidence and its one-review/one-recheck outcome.
