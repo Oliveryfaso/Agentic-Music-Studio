@@ -18,7 +18,13 @@
 
 ## 2. 当前产品形态
 
-### 当前B2a：独立项目免费API持久化与完整导出（2026-10-21）
+### 当前B2b：正常停启与隔离还原API通过，共享worker额外重启未决（2026-10-21）
+
+MF-P06/P13/P15/P16/P17/P18/P21。独立C02手工候选2真实Job各attempt1；同一自有Beta正常停启一次，保存Revision/待审批checkpoint/13媒体文件18,089,074bytes精确保持，3原body/key回放无新业务效果。只读完整dump216,825bytes+23媒体payload19,661,346bytes还原到空独立库/RO媒体副本，39表及canonical IR/完整正常HTTP一致；目标API读取通过容器自身loopback，宿主18100连接失败保留。精确清退3临时容器/1网络，源Beta最终Web/API正常，无应用/配置/模型/凭据改动。
+
+一次fresh独审1项清退回执Minor已唯一窄复核关闭。**其他3个原running media-worker在窗口内额外重启，原因/其任务恢复未决；不能宣称共享环境全程无影响。** 27其他容器ID和最终status保留，18稳定StartedAt保持、6原restart loops。原前端浏览器原生审批未完成，浏览器播放/恢复/导出、同环境自然语言连续修改/Undo、运行中Job/断电恢复及完整Beta仍未验。新增模型0，旧累计估计¥0.059998非账单/同一¥10保持。[B2b证据](evidence/2026-10-21-beta-b2b-recovery-restore.md)。
+
+### B2a：独立项目免费API持久化与完整导出（2026-10-21）
 
 MF-P06/P13/P16/P17/P18/P21的限定验证。同一正常Beta服务下另建审核C02项目，3个独立客户端依次生成手工候选、GET恢复→错误hash409/head保留→正常审批保存/相同body回放→新client重读相同Revision→完整正式导出。7真实Job各attempt1成功、7published Outbox、11下载文件共17,315,226bytes，SHA/manifest/canonical工程与保存版本一致；AI Run/模型调用0。未触碰原前端项目、未改应用代码/配置/服务。
 

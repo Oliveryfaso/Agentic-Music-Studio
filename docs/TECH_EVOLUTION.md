@@ -680,3 +680,8 @@ MF-P16/P17/P18/P21。经用户精确共享/维护授权，同一VM正常停启�
 ## 2026-10-21 Beta B2a isolated free API persistence/export
 
 MF-P06/P13/P16/P17/P18/P21。同一正常服务独立C02，3客户端进程恢复持久待审批状态/错误hash409/正确保存与回放/重读同Revision/完整导出；7真实Job各1次、7published、11文件17,315,226bytes及SHA/manifest/canonical IR通过。1验收脚本Important唯一修复关闭，未改产品代码、未动原前端项目或启停服务。新增模型0，旧累计估计¥0.059998非账单保持；浏览器、服务重启/隔离备份恢复和完整B2待验。[证据](evidence/2026-10-21-beta-b2a-free-api.md)。
+
+
+## 2026-10-21 Beta B2b owned restart / isolated restore
+
+MF-P06/P13/P15/P16/P17/P18/P21。正常自有Beta停启一次；独立C02待审批checkpoint、保存版、13完整文件身份恢复，3次精确回放无新业务效果。完整dump+媒体在专用根内复制、空独立库还原，39表与API内容/完整IR一致；容器内正常HTTP通过，宿主18100失败保留。临时3容器/1网络清退，备份保留，原Beta最终可用；7离线负探针、一次fresh独审Minor1唯一窄复核关闭。另3个其他worker额外重启原因/任务影响未决，不能声称shared无影响；18稳定StartedAt保持、6原loops。未改应用/配置/声音/凭据，模型0，旧累计估计¥0.059998非账单/同一¥10。浏览器/真实自然语言连续修改/运行中Job或断电及完整Beta不由本次替代。[证据](evidence/2026-10-21-beta-b2b-recovery-restore.md)。
