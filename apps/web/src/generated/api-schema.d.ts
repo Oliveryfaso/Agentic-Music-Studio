@@ -3189,6 +3189,7 @@ export interface components {
              */
             release_triggers_supported: false;
             render_profile?: components["schemas"]["PianoRenderProfile"];
+            semantic_generation?: components["schemas"]["SemanticGenerationCapability"];
         };
         /** PianoCapabilityResponse */
         PianoCapabilityResponse: {
@@ -3386,6 +3387,28 @@ export interface components {
         /** PianoPreviewResponse */
         PianoPreviewResponse: {
             data: components["schemas"]["PianoPreviewData"];
+        };
+        /** PianoRecoveryInfo */
+        PianoRecoveryInfo: {
+            /** Pending Count */
+            pending_count?: number | null;
+            /**
+             * Reason Code
+             * @default PIANO_RECOVERY_UNAVAILABLE
+             */
+            reason_code: string | null;
+            /**
+             * Selection Rule
+             * @default newest_created
+             * @constant
+             */
+            selection_rule: "newest_created";
+            /**
+             * Status
+             * @default unavailable
+             * @enum {string}
+             */
+            status: "ready" | "unavailable" | "limit_reached";
         };
         /**
          * PianoRenderProfile
@@ -3654,11 +3677,13 @@ export interface components {
             head_revision_id: string;
             /** Name */
             name: string;
+            piano_preview_recovery?: components["schemas"]["PianoRecoveryInfo"];
             /**
              * Project Id
              * Format: uuid
              */
             project_id: string;
+            recoverable_piano_preview?: components["schemas"]["RecoverablePianoPreview"] | null;
             recoverable_run: components["schemas"]["ProjectRunSummaryData"] | null;
             /** Revisions */
             revisions: components["schemas"]["RevisionSummaryData"][];
@@ -3714,6 +3739,31 @@ export interface components {
             status: "live" | "ready" | "not_ready";
             /** Version */
             version: string;
+        };
+        /** RecoverablePianoPreview */
+        RecoverablePianoPreview: {
+            /**
+             * Base Revision Id
+             * Format: uuid
+             */
+            base_revision_id: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /**
+             * Phase
+             * @enum {string}
+             */
+            phase: "queued" | "planning" | "waiting_piano_worker" | "waiting_piano_approval";
+            /** Thread Id */
+            thread_id: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** RecoverySummary */
         RecoverySummary: {
@@ -4341,6 +4391,20 @@ export interface components {
              * @default []
              */
             track_ids: string[];
+        };
+        /**
+         * SemanticGenerationCapability
+         * @description Local configuration only; no claim of remote model readiness.
+         */
+        SemanticGenerationCapability: {
+            /**
+             * Configuration
+             * @default unknown
+             * @enum {string}
+             */
+            configuration: "configured" | "not_configured" | "unknown";
+            /** Reason Code */
+            reason_code?: "MODEL_NOT_CONFIGURED" | null;
         };
         /** SetClipParamCommand */
         SetClipParamCommand: {

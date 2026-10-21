@@ -53,6 +53,7 @@ from motif_forge.application.media_jobs import (
 )
 from motif_forge.application.piano_capability import ReadPianoCapability
 from motif_forge.application.piano_preview import PianoPreviewWorkflow
+from motif_forge.application.piano_recovery import ReadPianoRecovery
 from motif_forge.application.piano_semantic import PianoSemanticService
 from motif_forge.application.ports import (
     AIRunUnitOfWorkFactory,
@@ -99,6 +100,7 @@ from motif_forge.infrastructure.persistence.database import (
 from motif_forge.infrastructure.persistence.export_reads import PostgresExportProjectionStore
 from motif_forge.infrastructure.persistence.media_jobs import PostgresMediaJobUnitOfWork
 from motif_forge.infrastructure.persistence.piano_plans import PostgresPianoPlanStore
+from motif_forge.infrastructure.persistence.piano_recovery import PostgresPianoRecoveryStore
 from motif_forge.infrastructure.persistence.project_reads import PostgresProjectReadStore
 from motif_forge.infrastructure.persistence.run_graph_history import PostgresRunGraphHistoryStore
 from motif_forge.infrastructure.persistence.run_inspection import PostgresRunInspectionStore
@@ -422,6 +424,7 @@ def create_app(
     runtime_run_inspection = run_inspection_store
     runtime_run_graph_history = run_graph_history_store
     runtime_media_uow = None
+    runtime_piano_recovery_store = None
     runtime_storage_gate = None
     if runtime_uow is None and runtime_settings.postgres_dsn is not None:
         dsn = runtime_settings.postgres_dsn.get_secret_value()
@@ -431,6 +434,7 @@ def create_app(
         runtime_upload_uow = PostgresUploadUnitOfWork(session_factory)
         runtime_ai_run_uow = PostgresAIRunUnitOfWork(session_factory)
         runtime_project_reads = PostgresProjectReadStore(session_factory)
+        runtime_piano_recovery_store = PostgresPianoRecoveryStore(session_factory)
         runtime_export_reads = PostgresExportProjectionStore(
             session_factory, artifact_root=runtime_settings.artifact_root
         )
@@ -495,7 +499,10 @@ def create_app(
                     PianoPreviewWorkflow(
                         project_uow,
                         runtime_media_uow,
-                        ReadPianoCapability(service_url=runtime_settings.render_service_url),
+                        ReadPianoCapability(
+                            service_url=runtime_settings.render_service_url,
+                            semantic_generation_configured=runtime_settings.deepseek_configured,
+                        ),
                         semantic=PianoSemanticService(
                             cast(AIRunUnitOfWorkFactory, runtime_ai_run_uow),
                             PostgresPianoPlanStore(session_factory),
@@ -540,13 +547,19 @@ def create_app(
     app.include_router(
         build_classical_router(
             runtime_uow,
-            capability=ReadPianoCapability(service_url=runtime_settings.render_service_url),
+            capability=ReadPianoCapability(
+                service_url=runtime_settings.render_service_url,
+                semantic_generation_configured=runtime_settings.deepseek_configured,
+            ),
         )
     )
     app.include_router(
         build_piano_router(
             runtime_uow,
-            capability=ReadPianoCapability(service_url=runtime_settings.render_service_url),
+            capability=ReadPianoCapability(
+                service_url=runtime_settings.render_service_url,
+                semantic_generation_configured=runtime_settings.deepseek_configured,
+            ),
             graph_getter=lambda: app.state.parent_graph,
             ai_runs=runtime_ai_run_uow,
         )
@@ -558,6 +571,11 @@ def create_app(
             build_project_read_router(
                 runtime_project_reads,
                 storage_root_inspector or LocalStorageRootInspector(runtime_settings.artifact_root),
+                piano_recovery=(
+                    ReadPianoRecovery(runtime_piano_recovery_store, lambda: app.state.parent_graph)
+                    if runtime_piano_recovery_store is not None
+                    else None
+                ),
             )
         )
     if runtime_export_reads is not None:

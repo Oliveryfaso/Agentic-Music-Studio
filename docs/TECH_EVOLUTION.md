@@ -685,3 +685,10 @@ MF-P06/P13/P16/P17/P18/P21。同一正常服务独立C02，3客户端进程恢�
 ## 2026-10-21 Beta B2b owned restart / isolated restore
 
 MF-P06/P13/P15/P16/P17/P18/P21。正常自有Beta停启一次；独立C02待审批checkpoint、保存版、13完整文件身份恢复，3次精确回放无新业务效果。完整dump+媒体在专用根内复制、空独立库还原，39表与API内容/完整IR一致；容器内正常HTTP通过，宿主18100失败保留。临时3容器/1网络清退，备份保留，原Beta最终可用；7离线负探针、一次fresh独审Minor1唯一窄复核关闭。另3个其他worker额外重启原因/任务影响未决，不能声称shared无影响；18稳定StartedAt保持、6原loops。未改应用/配置/声音/凭据，模型0，旧累计估计¥0.059998非账单/同一¥10。浏览器/真实自然语言连续修改/运行中Job或断电及完整Beta不由本次替代。[证据](evidence/2026-10-21-beta-b2b-recovery-restore.md)。
+
+
+## 2026-10-21 Beta B2c reopen / read-only discovery
+
+MF-P06/P13/P18/P21。复用Preview/幂等/MediaRun/AIRun，不新建索引平台或迁移；baseline阶段已可找回，双Job不重复，scope-before-limit与只读aget身份核验避免误报。GETworkspace新增明确多候选/空/未知/超限语义和原base；capability独立本地配置三态，所有renderer失败仍保留已知配置，未接模型。原前端导航只由保存head门控；其余页面消费交回原session。
+
+62相关检查、PG隔离边界1、生成TS/Mypy/Ruff、fresh独审0阻塞；正常Beta新API5GET返回原两个HITL线程、三个head与主库计数不变。仅自有api刷新，其他8个自有服务元数据不变，旧项目/Colima未操作。旧镜像tag无效预检已阻止替换，先由636d4aa源码重建回滚镜像再更新；保存失败回执。手工首Job前孤儿仍明确unavailable。模型0/旧估计¥0.059998非账单、浏览器审批/UI未通过保持如实。测试DB及35,986,643逻辑bytes自有cache/context已清；mixed builder4.49GB不全局prune。[证据](evidence/2026-10-21-beta-b2c-reopen-contracts.md)。

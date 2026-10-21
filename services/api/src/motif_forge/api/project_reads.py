@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from uuid import UUID
 
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, ConfigDict
 
+from motif_forge.application.piano_recovery import PianoRecoveryDirectory
 from motif_forge.application.project_reads import (
     ListProjects,
     ProjectReadStore,
@@ -39,6 +40,8 @@ class RevisionStudioResponse(ApiModel):
 def build_project_read_router(
     store: ProjectReadStore,
     inspect_storage_root: Callable[[], StorageRootSnapshot],
+    *,
+    piano_recovery: Callable[[UUID, UUID], Awaitable[PianoRecoveryDirectory]] | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1", tags=["projects"])
 
@@ -49,20 +52,16 @@ def build_project_read_router(
     @router.get("/projects/{project_id}", response_model=ProjectWorkspaceResponse)
     async def read_project(project_id: UUID) -> ProjectWorkspaceResponse:
         return ProjectWorkspaceResponse(
-            data=await ReadProjectWorkspace(store, inspect_storage_root)(project_id)
+            data=await ReadProjectWorkspace(store, inspect_storage_root, piano_recovery)(project_id)
         )
 
     @router.get(
         "/projects/{project_id}/revisions/{revision_id}/studio",
         response_model=RevisionStudioResponse,
     )
-    async def read_revision_studio(
-        project_id: UUID, revision_id: UUID
-    ) -> RevisionStudioResponse:
+    async def read_revision_studio(project_id: UUID, revision_id: UUID) -> RevisionStudioResponse:
         return RevisionStudioResponse(
-            data=await ReadRevisionStudio(store)(
-                project_id=project_id, revision_id=revision_id
-            )
+            data=await ReadRevisionStudio(store)(project_id=project_id, revision_id=revision_id)
         )
 
     return router

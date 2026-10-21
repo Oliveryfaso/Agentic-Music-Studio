@@ -40,7 +40,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
       </div>
       <p className="project-updated">更新于 {formatDate(project.updated_at)}</p>
       <div className="project-card-actions">
-        {project.has_playable_revision && (
+        {project.head_revision_id && (
           <button
             className="primary-button"
             type="button"

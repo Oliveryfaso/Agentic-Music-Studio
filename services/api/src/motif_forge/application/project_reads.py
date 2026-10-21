@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from datetime import datetime
 from typing import Literal, Protocol
 from uuid import UUID
@@ -11,6 +11,11 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from motif_forge.application.errors import ApplicationError
+from motif_forge.application.piano_recovery import (
+    PianoRecoveryDirectory,
+    PianoRecoveryInfo,
+    RecoverablePianoPreview,
+)
 from motif_forge.application.storage import StorageRootSnapshot
 from motif_forge.domain.ai_runs import AIRunStatus
 from motif_forge.domain.ir import ArrangementIR, ArrangementValue, read_arrangement_json
@@ -63,6 +68,8 @@ class ProjectWorkspace(ProjectReadModel):
 
 class ProjectWorkspaceData(ProjectWorkspace):
     storage_root_status: StorageRootHealth
+    recoverable_piano_preview: RecoverablePianoPreview | None = None
+    piano_preview_recovery: PianoRecoveryInfo = Field(default_factory=PianoRecoveryInfo)
 
 
 class DeliveryAsset(ProjectReadModel):
@@ -128,17 +135,26 @@ class ReadProjectWorkspace:
         self,
         store: ProjectReadStore,
         inspect_storage_root: Callable[[], StorageRootSnapshot],
+        piano_recovery: Callable[[UUID, UUID], Awaitable[PianoRecoveryDirectory]] | None = None,
     ) -> None:
         self._store = store
         self._inspect_storage_root = inspect_storage_root
+        self._piano_recovery = piano_recovery
 
     async def __call__(self, project_id: UUID) -> ProjectWorkspaceData:
         project = await self._store.read_project(project_id)
         if project is None:
             raise ApplicationError("PROJECT_NOT_FOUND", "the project does not exist")
+        recovery = (
+            await self._piano_recovery(project_id, project.active_branch_id)
+            if self._piano_recovery is not None
+            else PianoRecoveryDirectory()
+        )
         return ProjectWorkspaceData(
             **project.model_dump(mode="python"),
             storage_root_status=self._inspect_storage_root().health,
+            recoverable_piano_preview=recovery.recoverable,
+            piano_preview_recovery=recovery.recovery,
         )
 
 

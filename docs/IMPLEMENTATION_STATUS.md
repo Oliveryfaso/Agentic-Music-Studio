@@ -419,3 +419,10 @@ S6 已完成轻量 Studio Draft、不可变 Undo/Redo、严格 EditRun/EditPatch
 **当前断点（2026-10-19）：S7 历史封板保持，P0 产品基线/合同同步与 P1 钢琴准备已获用户授权。** 保留 Parent Graph、审批、不可变 Revision、费用/恢复和旧四风格兼容；后续产品工作按 ADR-019 和 P1 计划逐纵切进行，不启动全部 P2–P5。资源与真实旧工程证据的具体覆盖/未测边界见 P0 报告。
 
 具体前后顺序、阶段门和优化规则见 `NEXT_DEVELOPMENT_ROADMAP.md`。
+
+
+## 2026-10-21 B2c：个人Beta重开与只读恢复合同
+
+MF-P06/P13/P18/P21。已集成原前端ProjectCard一行修正，保存head无MP3仍可打开（真实源码RED→GREEN+首页回归3/3、TS）。workspace新增手工/semantic候选目录与ready/unavailable/limit_reached/count/确定排序；只读既有业务身份与Graph，stale保原base，TTL/终态排除，最多10条/3秒，不创建或审批。capability独立配置三态只注入本地bool，不探测模型或泄密。62相关unit/API/SQL检查、独立真实PG边界1、Mypy/Ruff、一次fresh独审0阻塞通过。正常Beta仅更新自有API，真实5GET确认两个原pending线程与三个head/主库计数保持、音源ready且模型not_configured。
+
+原前端尚需消费两读合同与root Undo提示；真实浏览器原生审批仍阻塞，未把fixture/API称UI通过，完整个人Beta仍未整体验收。模型0新调用，旧累计估计¥0.059998/同一¥10非账单；main/Guide不变。旧镜像tag失败发生在替换前，已重建636d4aa应用回滚镜像，非旧镜像字节复刻；隔离测试库与35,986,643逻辑bytes自有cache/context清退，shared builder4.49GB归属混合未prune。[完整证据](evidence/2026-10-21-beta-b2c-reopen-contracts.md) / [独审](evidence/2026-10-21-beta-b2c-review.md)。
