@@ -207,7 +207,7 @@ it('opens the returned Undo revision instead of pairing its ID with the previous
   const restoredId='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';let restoredReads=0;
   vi.stubGlobal('fetch',vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{
     const path=String(input);
-    if(path.endsWith(`/revisions/${REVISION_ID}/studio`))return jsonResponse({data:studio('available')});
+    if(path.endsWith(`/revisions/${REVISION_ID}/studio`)){const value=studio('available');value.parent_revision_id=restoredId;return jsonResponse({data:value});}
     if(path.endsWith(`/revisions/${restoredId}/studio`)){restoredReads++;const value=studio('available');value.revision_id=restoredId;return jsonResponse({data:value});}
     if(path===`/api/v1/projects/${PROJECT_ID}`)return jsonResponse({data:project('ready')});
     if(path.endsWith('/undo')&&init?.method==='POST')return jsonResponse({data:{revision_id:restoredId}});

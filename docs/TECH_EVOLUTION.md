@@ -692,3 +692,8 @@ MF-P06/P13/P15/P16/P17/P18/P21。正常自有Beta停启一次；独立C02待审�
 MF-P06/P13/P18/P21。复用Preview/幂等/MediaRun/AIRun，不新建索引平台或迁移；baseline阶段已可找回，双Job不重复，scope-before-limit与只读aget身份核验避免误报。GETworkspace新增明确多候选/空/未知/超限语义和原base；capability独立本地配置三态，所有renderer失败仍保留已知配置，未接模型。原前端导航只由保存head门控；其余页面消费交回原session。
 
 62相关检查、PG隔离边界1、生成TS/Mypy/Ruff、fresh独审0阻塞；正常Beta新API5GET返回原两个HITL线程、三个head与主库计数不变。仅自有api刷新，其他8个自有服务元数据不变，旧项目/Colima未操作。旧镜像tag无效预检已阻止替换，先由636d4aa源码重建回滚镜像再更新；保存失败回执。手工首Job前孤儿仍明确unavailable。模型0/旧估计¥0.059998非账单、浏览器审批/UI未通过保持如实。测试DB及35,986,643逻辑bytes自有cache/context已清；mixed builder4.49GB不全局prune。[证据](evidence/2026-10-21-beta-b2c-reopen-contracts.md)。
+
+
+## 2026-10-21 Beta B2c UI消费者集成收尾
+
+MF-P06/P13/P18/P21。原前端已审5文件补丁接入实际仓库：用户主动恢复原base/thread、明确目录多/空/未知/上限、模型配置独立资源、root Undo、草稿和终态/读取门禁。60相关+阶段全Web164/TS通过，原独审+一次窄复核证据沿用，不加新功能/审查循环。首次15173拒绝连接且旧Web PID已无，按授权只恢复自有Web并更新原停止器receipt；无Compose/旧项目/Colima操作。正常HTTP提供三份补丁模块、6个真实API保持原候选/三个head及同版ready11文件；未播放/下载/浏览器。模型0/旧估计¥0.059998非账单，保留服务交用户验收，0bytes清理且不动共享cache/卷。[完整收尾](evidence/2026-10-21-beta-b2c-ui-integration.md)。

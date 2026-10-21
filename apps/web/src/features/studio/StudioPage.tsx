@@ -100,6 +100,7 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
     }
   };
   const undoRevision = async () => {
+    if (studio.data.parent_revision_id === null) return;
     try {
       const result = await undoCommittedRevision(projectId, { branch_id: editor.base.branchId, base_revision_id: editor.base.revisionId, target_revision_id: editor.base.revisionId }, `web-undo-${crypto.randomUUID()}`);
       const restored = await readRevisionStudio(projectId,result.revision_id);
@@ -150,7 +151,7 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
         bars={projection.totalBars}
         bpm={studio.data.arrangement_ir.tempo_map?.[0]?.bpm ?? 120}
         actions={<><a className="secondary-inline" href={`/projects/${encodeURIComponent(projectId)}/exports/${encodeURIComponent(revisionId)}`}>查看导出</a>{studio.data.source_run_id && <a className="secondary-inline" href={`/runs/${encodeURIComponent(studio.data.source_run_id)}/inspect`}>查看执行记录</a>}</>}
-        toolbar={<StudioToolbar state={editor} onUndo={() => dispatch({ type: "undo" })} onRedo={() => dispatch({ type: "redo" })} onSave={() => void saveDraft()} onUndoRevision={() => void undoRevision()} />}
+        toolbar={<StudioToolbar state={editor} hasParentRevision={studio.data.parent_revision_id !== null} onUndo={() => dispatch({ type: "undo" })} onRedo={() => dispatch({ type: "redo" })} onSave={() => void saveDraft()} onUndoRevision={() => void undoRevision()} />}
       />
       <p className="mobile-review-note">手机上可以试听和查看作品；精细编辑请使用桌面浏览器。</p>
       {studio.data.bundle_id === null && <StatusBanner tone="warning" message="作品已保存，导出尚未完整完成" detail="编排内容已保留。可以继续编辑，或前往导出页查看已完成的文件。" />}
@@ -172,9 +173,11 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
         <StudioInspector>
           {classical?<ClassicalAccompanimentPanel projectId={projectId} branchId={editor.base.branchId} revisionId={editor.base.revisionId}
             arrangement={editor.base.arrangement} selection={editor.selection} dirty={editor.historyCursor>0}
-            rootReady={rootReady} onSaved={(next)=>{void queryClient.invalidateQueries({queryKey:["project",projectId]});navigate({name:"studio",projectId,revisionId:next});}}/>:<PianoPanel projectId={projectId} branchId={editor.base.branchId} revisionId={editor.base.revisionId}
+            rootReady={rootReady} headRevisionId={project.data.head_revision_id}
+            recovery={{info:project.data.piano_preview_recovery,candidate:project.data.recoverable_piano_preview,reading:project.isFetching,onRead:async()=>{const result=await project.refetch();if(result.isError)throw result.error;}}} onSaved={(next)=>{void queryClient.invalidateQueries({queryKey:["project",projectId]});navigate({name:"studio",projectId,revisionId:next});}}/>:<PianoPanel projectId={projectId} branchId={editor.base.branchId} revisionId={editor.base.revisionId}
             arrangement={editor.base.arrangement} selection={editor.selection} dirty={editor.historyCursor>0}
-            rootReady={rootReady} onSaved={(next)=>{void queryClient.invalidateQueries({queryKey:["project",projectId]});navigate({name:"studio",projectId,revisionId:next});}}/>}
+            rootReady={rootReady} headRevisionId={project.data.head_revision_id}
+            recovery={{info:project.data.piano_preview_recovery,candidate:project.data.recoverable_piano_preview,reading:project.isFetching,onRead:async()=>{const result=await project.refetch();if(result.isError)throw result.error;}}} onSaved={(next)=>{void queryClient.invalidateQueries({queryKey:["project",projectId]});navigate({name:"studio",projectId,revisionId:next});}}/>}
           {!classical&&<EditPanel projectId={projectId} branchId={editor.base.branchId} baseRevisionId={editor.base.revisionId} selection={editor.selection} lockedRanges={[]} rootReady={rootReady} onRunCreated={handleRunCreated} />}
           {editRun.mode !== "idle" && <section className="edit-run-status" aria-live="polite"><strong>{editRunModeLabel(editRun.mode)}</strong>{editRun.errorCode && <span>{editRun.errorCode}</span>}{editRun.mode === "committed" && editRun.revisionId && <button className="primary-button" type="button" onClick={() => navigate({ name: "studio", projectId, revisionId: editRun.revisionId as string })}>打开修改后的版本</button>}</section>}
           {editRun.preview && <EditPreviewCard preview={editRun.preview} busy={editDecisionPending} rootReady={rootReady} onDecision={(action) => void decidePreview(action)} />}

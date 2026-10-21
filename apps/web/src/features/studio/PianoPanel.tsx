@@ -1,11 +1,12 @@
 import {useMutation,useQuery,useQueryClient} from '@tanstack/react-query';
 import {useEffect,useRef,useState} from 'react';
 import {ApiError,audioContentUrl} from '../../shared/api';
-import type {ArrangementIR,PianoPreviewData,PianoPreviewOptions,ClassicalSourceData,AccompanimentIntent} from '../../shared/openapi';
+import type {ArrangementIR,PianoPreviewData,PianoPreviewOptions,ClassicalSourceData,AccompanimentIntent,ProjectWorkspace} from '../../shared/openapi';
 import type {EditorSelection} from './editorState';
 import {buildPianoPerformance} from './pianoPerformance';
 import {cancelPianoPreview,decidePianoPreview,readPianoCapability,readPianoPreview,startPianoPreview} from './pianoApi';
 
+type PianoRecoveryDirectory={info:ProjectWorkspace['piano_preview_recovery'];candidate:ProjectWorkspace['recoverable_piano_preview'];reading:boolean;onRead:()=>Promise<unknown>};
 type SemanticRequest=NonNullable<PianoPreviewOptions['semantic']>;
 const APPEND_DESCRIPTION='加一个低音区钢琴伴奏，前8小节稀疏，后8小节稍活跃，不改旋律';
 const MODIFY_DESCRIPTION='这几小节更稀疏、更轻，其余保持';
@@ -31,9 +32,9 @@ function restorePendingIntent(storageKey:string):{intent:PianoIntent|null;availa
 }
 
 
-export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,dirty,rootReady,onSaved,classicalSource}:{
+export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,dirty,rootReady,onSaved,classicalSource,headRevisionId,recovery}:{
   projectId:string;branchId:string;revisionId:string;arrangement:ArrangementIR;selection:EditorSelection|null;
-  dirty:boolean;rootReady:boolean;onSaved:(revision:string)=>void;classicalSource?:ClassicalSourceData;
+  dirty:boolean;rootReady:boolean;onSaved:(revision:string)=>void;classicalSource?:ClassicalSourceData;headRevisionId?:string;recovery?:PianoRecoveryDirectory;
 }){
   const client=useQueryClient();
   const capability=useQuery({queryKey:['piano-capability'],queryFn:readPianoCapability,retry:false});
@@ -70,7 +71,17 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
   const audition=useQuery({queryKey:key,queryFn:()=>readPianoPreview(projectId,thread!),enabled:thread!==null,
     refetchInterval:(query)=>PENDING_PHASES.has(query.state.data?.phase??'')?1500:false,retry:false});
   const state=audition.data;
-  const recoveryBlocked=thread!==null&&(audition.isPending||audition.isError);
+  const terminalPhase=['completed','rejected','cancelled','failed'].includes(state?.phase??'');
+  const directoryToken=terminalPhase&&thread!==null?`${thread}:${state?.phase}`:null;
+  const [checkedDirectoryToken,setCheckedDirectoryToken]=useState<string|null>(null);
+  const checkDirectory=useMutation({mutationFn:async()=>{const token=directoryToken;await recovery?.onRead();return token;},onSuccess:setCheckedDirectoryToken});
+  const terminalUnverified=directoryToken!==null&&checkedDirectoryToken!==directoryToken;
+  const directoryUnconfirmed=recovery!==undefined&&(thread===null||terminalPhase)&&(recovery.reading||checkDirectory.isPending||terminalUnverified||recovery.info?.status!=='ready'||recovery.info.pending_count!==0||Boolean(recovery.candidate));
+  const recoveryBlocked=directoryUnconfirmed||(thread!==null&&(audition.isPending||audition.isError));
+  const staleBase=headRevisionId!==undefined&&headRevisionId!==revisionId;
+  const modelConfiguration=capability.isError?'unknown':capability.data?.semantic_generation?.configuration??'unknown';
+  const modelNotConfigured=modelConfiguration==='not_configured';
+  const notConfiguredMessage=modify?'自然语言服务尚未配置，暂不能按描述修改伴奏。已保存版本与现有试听仍保留。':'自然语言服务尚未配置；规则伴奏仍可使用。';
   const pianoReady=Boolean(capability.data?.available&&capability.data.render_profile&&!capability.isError);
   const resourceCode=capability.data?.error_code??(capability.error instanceof ApiError?capability.error.code:null);
   const active=PENDING_PHASES.has(state?.phase??'')||state?.phase==='waiting_piano_approval';
@@ -82,7 +93,9 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
     if(value.revision_id)onSaved(value.revision_id);
   };
   const start=useMutation({retry:false,mutationFn:async()=>{
-    if(recoveryBlocked)throw new Error('请先重新读取现有试听进度。');
+    if(recoveryBlocked)throw new Error('请先重新读取或恢复现有试听。');
+    if(staleBase)throw new Error('请先打开最新保存版本，再生成试听。');
+    if(semantic&&modelNotConfigured)throw new Error(notConfiguredMessage);
     const profile=capability.data?.render_profile;
     if(!profile)throw new Error('请先连接可用的钢琴音源。');
     const scope={intent:description.trim(),mode:modify?'modify' as const:'append' as const,
@@ -109,7 +122,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
   const cancel=useMutation({mutationFn:()=>cancelPianoPreview(projectId,thread!),onSuccess:change});
   const busy=start.isPending||decision.isPending||cancel.isPending;
   const matches=state?.base_revision_id===revisionId;
-  const ready=rootReady&&!dirty&&!recoveryBlocked&&matches&&state?.phase==='waiting_piano_approval';
+  const ready=rootReady&&!dirty&&!staleBase&&!recoveryBlocked&&matches&&state?.phase==='waiting_piano_approval';
   const error=start.error||decision.error||cancel.error;
   const canPrepare=single||(modify&&sourceSemantic);
   const keepLabel=classicalSource?(modify?'保留这次修改':'保留这条伴奏'):'保存这版钢琴表达';
@@ -118,6 +131,9 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
       <span className="status-pill">{classicalSource?(arrangement.tracks.length>1?'原谱 + 伴奏':'原谱旋律'):arrangement.schema_version!=='arrangement-ir.v1'?'已保存真实钢琴':'原有音色'}</span></div>
     <p className="saved-audio-note">{classicalSource?(semanticContext?'描述想要的密度、音区或力度。Flash 每次生成只发起一次请求，保留前原版本不变。':'选择每小节和弦与伴奏织体，用同一钢琴的低音声部衬托旋律。规则伴奏不消耗模型额度。'):<>调整{selection?'所选范围':'整轨音符'}的演奏表达。先比较试听，确认后保存新版本。</>}</p>
     <p className="piano-source">FreePats Upright KW · CC0 · 踏板暂不支持</p>
+    {recovery&&(thread===null||(terminalPhase&&!audition.isError&&!audition.isFetching))&&<PianoRecoveryNotice projectId={projectId} branchId={branchId} headRevisionId={headRevisionId} directory={recovery} dirty={dirty} reading={recovery.reading||checkDirectory.isPending} terminalUnverified={terminalUnverified} onRead={()=>checkDirectory.mutate()}/>}
+    {sourceSemantic&&<p className="saved-audio-note">{modelNotConfigured?notConfiguredMessage:modelConfiguration==='configured'?'自然语言服务已在本地配置，未验证远端可用性。':'暂不能确认自然语言服务的本地配置；音源状态单独检查。'}{modelNotConfigured&&capability.data?.semantic_generation?.reason_code&&`（${capability.data.semantic_generation.reason_code}）`}</p>}
+    {staleBase&&<div className="field-error"><p>当前打开的保存版本已不是分支最新版，不能生成或保留试听。</p>{dirty?<><p>请先保存或撤销草稿，再打开最新版本。</p><button type="button" disabled>打开最新版本</button></>:<a href={`/projects/${encodeURIComponent(projectId)}/studio/${encodeURIComponent(headRevisionId!)}`}>打开最新版本</a>}</div>}
     {semanticContext&&classicalSource&&<p className="saved-audio-note">当前曲目：{sourceBars} 小节，{sourceBeats}/4。以主旋律摘录为基准；和声与乐句线索辅助编配，请试听后决定是否保留。</p>}
     {semanticContext&&!identityStorageAvailable&&<p className="field-error">浏览器无法保存请求标识。网络失败后请保持此页并重试；刷新可能丢失请求身份，请勿再次新建付费请求。</p>}
     {classicalSource&&!sourceSemantic&&<p>当前来源不支持自然语言伴奏；请使用已审核曲目。</p>}
@@ -150,7 +166,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
       </fieldset>}
       {dirty&&<p className="field-error">请先保存或撤销草稿修改，再试听钢琴表达。</p>}
       {semanticContext&&<p className="saved-audio-note">自然语言生成需要模型服务；音源就绪仅代表本地渲染资源可用。</p>}
-      <button className="secondary-inline" type="button" disabled={!rootReady||dirty||!pianoReady||busy||active||recoveryBlocked||!validInputs}
+      <button className="secondary-inline" type="button" disabled={!rootReady||dirty||staleBase||!pianoReady||busy||active||recoveryBlocked||(semantic&&modelNotConfigured)||!validInputs}
         onClick={()=>start.mutate()}>{start.isPending?'正在创建试听…':semantic?(start.isError&&intent.current?.semanticFingerprint===semanticFingerprint?'重试同一次生成请求':'按描述生成 A/B 试听'):start.isError?'重试 A/B 试听':'生成 A/B 试听'}</button>
       {semantic&&start.isError&&<p>网络失败后重试会复用同一次请求；修改描述后生成会发起新的模型请求。</p>}
     </>}
@@ -203,5 +219,27 @@ function PianoComparison({baseline,piano,label}:{baseline:string;piano:string;la
       onError={()=>{setSwitching(false);setFailed(true);}}/>
     <p className="saved-audio-note">切换 A/B 保留播放位置。试听为 160 kbps MP3，正式导出提供 WAV。</p>
     {failed&&<p className="field-error">试听音频暂不可用，请重新载入后再确认。</p>}
+  </div>;
+}
+
+
+function PianoRecoveryNotice({projectId,branchId,headRevisionId,directory,dirty,reading,terminalUnverified,onRead}:{projectId:string;branchId:string;headRevisionId:string|undefined;directory:PianoRecoveryDirectory;dirty:boolean;reading:boolean;terminalUnverified:boolean;onRead:()=>void}){
+  const {info,candidate}=directory;
+  if(reading)return <div className="piano-audition" aria-live="polite"><p>正在读取未完成试听；确认前不会开放新的生成。</p><button type="button" disabled>正在读取…</button></div>;
+  if(terminalUnverified)return <div className="piano-audition" aria-live="polite"><p>当前试听已结束。请重新读取未完成试听，确认是否还有其他候选，再开始新的生成。</p><button type="button" onClick={onRead}>重新读取未完成试听</button></div>;
+  if(info?.status==='ready'&&info.pending_count===0&&!candidate)return <div className="saved-audio-note"><p>当前分支没有可恢复的未完成试听。</p></div>;
+  const found=info?.status==='ready'&&(info.pending_count??0)>0&&candidate?.branch_id===branchId;
+  if(!found||!candidate)return <div className="piano-audition" aria-live="polite">
+    <p>{info?.status==='limit_reached'?'未完成试听的查询达到上限，暂不能确认候选数量。':!info?'尚未确认是否有未完成试听。':'暂时无法读取未完成试听。'}{info?.reason_code&&`（${info.reason_code}）`}重新读取确认前，不会开放新的生成。</p>
+    <button type="button" disabled={reading} onClick={onRead}>{reading?'正在读取…':'重新读取未完成试听'}</button>
+  </div>;
+  const stale=headRevisionId!==undefined&&candidate.base_revision_id!==headRevisionId;
+  const href=`/projects/${encodeURIComponent(projectId)}/studio/${encodeURIComponent(candidate.base_revision_id)}?piano_preview=${encodeURIComponent(candidate.thread_id)}`;
+  const phaseLabel={queued:'等待规划',planning:'正在规划',waiting_piano_worker:'正在生成两版试听',waiting_piano_approval:'等待试听后确认'}[candidate.phase];
+  return <div className="piano-audition" role="group" aria-label="未完成的钢琴试听">
+    <p>{info.pending_count!>1?`当前分支有 ${info.pending_count} 版未完成试听。这里只列出最新创建的一版，其他候选未被改变。`:'找到一版未完成的钢琴试听。'}{phaseLabel}。</p>
+    {stale&&<p className="field-error">这版试听基于较早版本，不能保留到当前最新版本。恢复链接会打开原保存版本。</p>}
+    <p className="saved-audio-note">先恢复已有试听，再决定是否保留或放弃；确认前不会新建试听。</p>
+    {dirty?<><p>请先保存或撤销草稿，再打开已有试听。</p><button type="button" disabled>恢复这版试听</button></>:<a className="secondary-inline" href={href}>恢复这版试听</a>}
   </div>;
 }

@@ -426,3 +426,10 @@ S6 已完成轻量 Studio Draft、不可变 Undo/Redo、严格 EditRun/EditPatch
 MF-P06/P13/P18/P21。已集成原前端ProjectCard一行修正，保存head无MP3仍可打开（真实源码RED→GREEN+首页回归3/3、TS）。workspace新增手工/semantic候选目录与ready/unavailable/limit_reached/count/确定排序；只读既有业务身份与Graph，stale保原base，TTL/终态排除，最多10条/3秒，不创建或审批。capability独立配置三态只注入本地bool，不探测模型或泄密。62相关unit/API/SQL检查、独立真实PG边界1、Mypy/Ruff、一次fresh独审0阻塞通过。正常Beta仅更新自有API，真实5GET确认两个原pending线程与三个head/主库计数保持、音源ready且模型not_configured。
 
 原前端尚需消费两读合同与root Undo提示；真实浏览器原生审批仍阻塞，未把fixture/API称UI通过，完整个人Beta仍未整体验收。模型0新调用，旧累计估计¥0.059998/同一¥10非账单；main/Guide不变。旧镜像tag失败发生在替换前，已重建636d4aa应用回滚镜像，非旧镜像字节复刻；隔离测试库与35,986,643逻辑bytes自有cache/context清退，shared builder4.49GB归属混合未prune。[完整证据](evidence/2026-10-21-beta-b2c-reopen-contracts.md) / [独审](evidence/2026-10-21-beta-b2c-review.md)。
+
+
+## 2026-10-21 B2c UI消费者已集成，停在用户验收关口
+
+MF-P06/P13/P18/P21。原前端a83decb基线补丁精确5文件集成；恢复目录、模型配置三态、root Undo、读取/终态/旧base/草稿门禁均接入既有页面，无新接口或音乐变化。真实仓库源码60相关检查、阶段全Web47文件164项与TS通过；原前端一次独审+唯一窄复核关闭2 Important/1 Minor，本次不重复审查循环。仅恢复已无监听的自有Web，API/旧项目/Colima不动；普通HTTP核验三个当前模块和真实6个API，原候选/三个head保持、固定同版导出ready11项。
+
+此前“原前端尚需消费”事项已由本条闭合；源码GET/组件检查不等于浏览器验收。原生DevTools状态仍unknown、不可转发，未重发/绕过。实际播放、下载、键盘/小屏及完整自然语言连续创作仍未据此通过；本轮不再扩功能。模型0新调用，旧累计估计¥0.059998/同一¥10非账单，main/Guide不变。[集成证据与手动入口](evidence/2026-10-21-beta-b2c-ui-integration.md)。

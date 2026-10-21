@@ -1,8 +1,9 @@
 import type { EditorState } from "./editorState";
 import { canSaveDraft } from "./editorState";
 
-export function StudioToolbar({ state, onUndo, onRedo, onSave, onUndoRevision }: {
+export function StudioToolbar({ state, hasParentRevision, onUndo, onRedo, onSave, onUndoRevision }: {
   state: EditorState;
+  hasParentRevision: boolean;
   onUndo: () => void;
   onRedo: () => void;
   onSave: () => void;
@@ -13,7 +14,8 @@ export function StudioToolbar({ state, onUndo, onRedo, onSave, onUndoRevision }:
     <button type="button" onClick={onRedo} disabled={state.historyCursor === state.commands.length}>重做</button>
     <span role="status">{state.historyCursor} 个未保存修改</span>
     <button type="button" className="primary-inline" onClick={onSave} disabled={!canSaveDraft(state)}>{state.saveState === "saving" ? "保存中…" : "保存新版本"}</button>
-    <button type="button" onClick={onUndoRevision} disabled={state.historyCursor > 0}>撤回已保存修改</button>
+    <button type="button" onClick={onUndoRevision} disabled={!hasParentRevision || state.historyCursor > 0}>撤回已保存修改</button>
+    {!hasParentRevision && <span className="saved-audio-note">初始版本没有上一版可撤回。</span>}
     {state.saveState === "error" && <span className="field-error" role="alert">保存失败，草稿仍保留</span>}
     {state.conflict && <span className="field-error" role="alert">分支已更新到 {state.conflict.serverRevisionId}，请先处理冲突</span>}
   </div>;
