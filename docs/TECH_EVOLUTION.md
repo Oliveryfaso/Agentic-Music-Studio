@@ -697,3 +697,7 @@ MF-P06/P13/P18/P21。复用Preview/幂等/MediaRun/AIRun，不新建索引平台
 ## 2026-10-21 Beta B2c UI消费者集成收尾
 
 MF-P06/P13/P18/P21。原前端已审5文件补丁接入实际仓库：用户主动恢复原base/thread、明确目录多/空/未知/上限、模型配置独立资源、root Undo、草稿和终态/读取门禁。60相关+阶段全Web164/TS通过，原独审+一次窄复核证据沿用，不加新功能/审查循环。首次15173拒绝连接且旧Web PID已无，按授权只恢复自有Web并更新原停止器receipt；无Compose/旧项目/Colima操作。正常HTTP提供三份补丁模块、6个真实API保持原候选/三个head及同版ready11文件；未播放/下载/浏览器。模型0/旧估计¥0.059998非账单，保留服务交用户验收，0bytes清理且不动共享cache/卷。[完整收尾](evidence/2026-10-21-beta-b2c-ui-integration.md)。
+
+## 2026-10-21 — B2c acceptance-state test-only closure
+
+MF-P06/P13/P18/P21：复用原前端的一文件两测试补丁，补独审并窄修approve mock假阳性，独立复核关闭；workspace和实际repo均2/2，完整Web类型检查通过。仅测试与文档，不修改编配、API、服务、凭据或用户作品。真实模型/正常Beta多轮Undo仍待；免费准备的两次审核timeout均未创建进程，没有把mock、历史案例或正时长音频当作本轮整链成功。新增模型调用/预算预留0，旧估计累计¥0.059998非账单。[证据](evidence/2026-10-21-beta-acceptance-state-close.md)。
