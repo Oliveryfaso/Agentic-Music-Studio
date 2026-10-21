@@ -18,7 +18,13 @@
 
 ## 2. 当前产品形态
 
-### B1 source preparation: personal Beta profile, runtime gate pending (2026-10-21)
+### 当前B1：正常本机运行与手工队列试听已验证（2026-10-21）
+
+MF-P16/P17/P18/P21。经用户精确批准的只读音源共享与同VM一次维护已完成，27原容器/旧卷保留，原4running恢复、17inactive未启动；不声称修复原6restart循环。专用3镜像源码核验、实际正常Compose/Vite、loopback端口、容器RO包/固定pin、实时capability及4谱目录均通过，resource_ready=true。实测非root EACCES经最小Dockerfile权限修复，实际RED→GREEN1、构建合同7/renderer音频124与fresh独审0确认发现；不改宿主数据/包权限或声音。
+
+真实C02导入→显式手工规则伴奏→正常队列2渲染Jobs（各attempt1）→两个可用Artifact→waiting_piano_approval通过，未推进head，无人工完成Job或测试脚本业务写库。模型/tracing仍禁用、AI Run/付费调用0，累计旧估计¥0.059998非账单不重置。真实入口已交原前端session，浏览器实际播放/恢复/确认/导出及B2同环境自然语言编辑/Undo/关开/导出/还原仍待；不宣称个人Beta整链已完成。当前环境保留待前端，shared BuildKit归属不明不prune。详见[本机运行证据](evidence/2026-10-21-beta-b1-runtime.md)。
+
+### Historical B1 source preparation: runtime gate pending at that checkpoint (2026-10-21)
 
 MF-P16/P17/P18/P21. Installed source/config for isolated loopback Beta, explicit public templates, disabled model/tracing, reviewed readonly pack/pin, live capability/catalog guard and dedicated single-target image build.67 installed focused checks and17 independent checks pass; no review findings. Host assets verify and6 actual Compose config checks pass. Real readonly bind probe fails125: VM sees old ext4 placeholders rather than the actual host external volume. No permission to modify/restart sharedVM; no new image build/service/URL/Project/Revision. This is a source checkpoint, not B1 runtime acceptance. Real Compose/UI and B2 same-environment model/edit/reopen/export await the concrete external-share and later credential boundaries. [Evidence](evidence/2026-10-21-beta-b1-source.md).
 

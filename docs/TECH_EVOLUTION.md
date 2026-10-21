@@ -670,3 +670,8 @@ Machine-readable evidence: [2026-10-21-beta-b0-runtime.json](2026-10-21-beta-b0-
 外盘共享就绪后先核验精确路径及pin，再按独立Beta标签分别构建必要3目标，正常启动同一持久数据环境、核对实际只读mount/loopback/livecapability/四谱目录；将真实URL/Project/Revision交回原前端session浏览器验收。之后才是同环境真实模型连续修改、Undo、关开、同Revision导出及新目标恢复。模型配置仍受具体凭据授权限制，不用fixture回执或人工完成Job冒充真实链。
 
 本轮新增模型调用0/费用0；旧累计公开价上界0.059998元是估计、不是账单，同一累计10元不重置。main/Guide未改，无公开部署。[机器证据](2026-10-21-beta-b1-source.json)。完整独审、RED/GREEN及原挂载失败保留在任务workspace，没有公开共享容器清单或秘密。
+
+
+## 2026-10-21 Personal Beta B1 runtime / narrow image permissions repair
+
+MF-P16/P17/P18/P21。经用户精确共享/维护授权，同一VM正常停启一次，RO包与pin、原27容器和全局context保持。3专用当前镜像+正常Compose/Vite已启动；真实发现0700公开bundle/package.json的非root EACCES，最小Dockerfile最终权限修复，实际RED→GREEN1、既有build7/renderer音频124、fresh独审0确认发现。实际API/Parent/Outbox/Redis/Celery完成C02手工2Jobs/2Artifact待审批，原前端浏览器UAT与B2尚未替代。模型/凭据/音频业务无新范围；0付费调用，旧累计估计¥0.059998非账单、同一¥10保持。共享缓存归属不明不prune，保留未决候选和环境供原前端。完整事实及限制见[evidence/2026-10-21-beta-b1-runtime.md](evidence/2026-10-21-beta-b1-runtime.md)。

@@ -34,6 +34,11 @@ RUN npm run build:audio \
     && npm prune --omit=dev \
     && npm cache clean --force
 
+# External source volumes may preserve owner-only modes in the copied dist tree.
+# Only public runtime outputs need to be readable by the existing non-root user.
+RUN chmod 0755 services/render-worker/dist \
+    && chmod 0644 package.json services/render-worker/dist/*.js
+
 USER 10001:10001
 
 CMD ["node", "services/render-worker/dist/service.js"]

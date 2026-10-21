@@ -73,7 +73,7 @@ scripts/stop_motif_forge.sh
 
 停止脚本只关闭可验证的本启动器 Web 进程与精确容器 ID，保留容器、数据库卷、镜像、素材和作品；从不启动或停止 Colima，也不关闭其他项目。所有权记录缺失或身份不符时拒绝认领旧服务，请从其原启动终端处理。只按启动终端的 `Ctrl+C` 仍仅停止前端。
 
-所有权元数据按当前仓库与用户分隔，保存于私有 runtime 目录（可用 `MOTIF_FORGE_RUNTIME_DIR` 显式指定），不包含模型密钥。现有未记录的 Compose 项目不会被自动接管；更换 Docker daemon 会明确拒绝。真实钢琴个人 Beta 的资源/模型档位和整链验证仍需后续阶段，本切片只收口安全启停。
+所有权元数据按当前仓库与用户分隔，保存于私有 runtime 目录（可用 `MOTIF_FORGE_RUNTIME_DIR` 显式指定），不包含模型密钥。现有未记录的 Compose 项目不会被自动接管；更换 Docker daemon 会明确拒绝。真实钢琴个人 Beta 的已验证运行范围与仍待完成的整链门见下一节。
 
 可选命令：
 
@@ -84,11 +84,11 @@ scripts/start_motif_forge.sh --no-open # 启动，但不自动打开浏览器
 
 > **默认不会调用付费模型。** 标准 Compose 配置显式清空 DeepSeek Key，使用确定性回退规划，也可以走完审批、候选、渲染和导出。页面会标明回退来源，不将其包装成模型结果。付费 Provider 验证属于单独、显式启用的开发流程，仅往 `.env` 填 Key 不会改变这一默认边界。
 
-### 审核曲库双钢琴个人 Beta：运行档位已交付，实际运行验收待完成
+### 审核曲库双钢琴个人 Beta：本机启动与手工试听已验证
 
-这是显式选择的本机档位，复用现有Studio、版本与导出，不改变已认可声音。审核曲库是固定主旋律摘录，不能当任意曲谱导入或完整原作；模型仍禁用。源码/配置检查和独审已通过，**完整Compose、浏览器及同环境真实AI日用链仍未验收**，见[B1证据与当前外盘共享前提](docs/evidence/2026-10-21-beta-b1-source.md)。
+这是显式选择的本机档位，复用现有Studio、版本与导出，不改变已认可声音。审核曲库是固定主旋律摘录，不能当任意曲谱导入或完整原作；模型仍禁用。已通过正常Compose/Vite启动、固定音源实时检查及审核C02手工伴奏的两次真实队列渲染；**原前端浏览器验收及同环境真实AI日用链仍未验收**，见[B1运行证据与边界](docs/evidence/2026-10-21-beta-b1-runtime.md)。
 
-需要宿主和Docker VM都能访问同一已审核钢琴包与可写外置数据目录。仅在Mac能读到文件不够；VM的同名旧目录也不是实际共享。当前Mac的Colima尚未共享实际KINGSTON内容，工具不会自动改VM配置、重启共享服务、改pin、下载音源或回落内部盘。
+需要宿主和Docker VM都能访问同一已审核钢琴包与可写外置数据目录。仅在Mac能读到文件不够；VM的同名旧目录也不是实际共享。当前Mac已按明确批准添加精确音源RO共享并保留专用数据目录。启动器不会自动改VM配置、重启共享服务、改pin、下载音源或回落内部盘。
 
 环境前提满足后，显式构建三个独立Beta目标，再启动：
 
@@ -101,7 +101,7 @@ scripts/start_motif_forge.sh --personal-beta --no-open
 scripts/stop_motif_forge.sh --personal-beta
 ```
 
-如需显式Docker context，在各命令前设置当前已核实的 `DOCKER_CONTEXT`；这不会切换全局context。Beta默认媒体根为仓库下 `artifacts/personal-beta`，可用 `MOTIF_FORGE_BETA_STORAGE_ROOT` 显式指定外置根；已有审核包可用 `MOTIF_FORGE_REVIEWED_PIANO_ROOT` 指定。两者都必须真实可用且满足VM共享，不自动搬运数据。默认独立端口是Web15173/API18000/renderer18090/PG15432/Redis16379，全部只限本机；这些是配置值，未代表本轮已有可打开入口。
+如需显式Docker context，在各命令前设置当前已核实的 `DOCKER_CONTEXT`；这不会切换全局context。Beta默认媒体根为仓库下 `artifacts/personal-beta`，可用 `MOTIF_FORGE_BETA_STORAGE_ROOT` 显式指定外置根；已有审核包可用 `MOTIF_FORGE_REVIEWED_PIANO_ROOT` 指定。两者都必须真实可用且满足VM共享，不自动搬运数据。默认独立端口是Web15173/API18000/renderer18090/PG15432/Redis16379，全部只限本机；本轮已实际运行该端口组。已有运行环境请使用原交接中的相同runtime回执目录，不在新目录认领旧服务。
 
 `--personal-beta --check`只检查且不创建文件；首次尚未初始化媒体目录时会明确提示由正常启动创建。缺Web依赖、审核资源或独立镜像会退出，不自动安装/下载。正常启动只有新鲜renderer包身份、API能力与四谱目录都匹配后才报告ready。私有临时所有权receipt被OS清理后继续拒绝认领旧资源，不承诺整机重启后的自动恢复。
 

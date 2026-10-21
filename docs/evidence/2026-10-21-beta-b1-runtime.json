@@ -1,0 +1,100 @@
+{
+  "schema": "motif-personal-beta-b1-runtime.v1",
+  "date": "2026-10-21",
+  "stage": "B1 local runtime foundation verified; original frontend UAT and B2 pending",
+  "requirements": [
+    "MF-P16",
+    "MF-P17",
+    "MF-P18",
+    "MF-P21"
+  ],
+  "source_checkpoint_before": "6e5e7c5",
+  "guide_last_revision": "d68b900",
+  "guide_diff_empty": true,
+  "maintenance": {
+    "human_explicit_approval": true,
+    "existing_vm_restarted_once": true,
+    "only_exact_reviewed_pack_added_readonly": true,
+    "old_data_share_preserved": true,
+    "original_container_ids_preserved": 27,
+    "original_running_containers_returned_running": 4,
+    "original_inactive_containers_kept_inactive": 17,
+    "preexisting_restart_loops_not_claimed_fixed": 6,
+    "daemon_and_global_context_unchanged": true
+  },
+  "images": {
+    "dedicated_beta_tags": true,
+    "api_and_media_files_checked_each": 157,
+    "renderer_current_source_bundles_checked": 3,
+    "existing_shared_image_ids_unchanged": true
+  },
+  "runtime": {
+    "loopback_only": true,
+    "pack_bind_readonly": true,
+    "pack_pin": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813",
+    "resource_preflight": {
+      "schema_version": "motif-personal-beta-preflight.v1",
+      "assets_verified": true,
+      "resource_ready": true,
+      "renderer_admission": "matched",
+      "live_checks": "passed",
+      "issues": []
+    },
+    "model_keys_empty": true,
+    "tracing_disabled": true,
+    "browser_uat_completed": false
+  },
+  "permission_repair": {
+    "real_red": "default UID10001 EACCES for root-owned0700 public runtime files",
+    "change": "only final render image dist0755 and package.json/JS0644; existing non-root user retained",
+    "actual_green": 1,
+    "existing_build_contract_checks": 7,
+    "renderer_build_audio_tests": 124,
+    "fresh_independent_review_findings": 0,
+    "host_repository_pack_and_data_permissions_not_changed": true
+  },
+  "normal_api": {
+    "fixed_reviewed_score": "c02-la-candeur-a8.v1",
+    "import_http": 201,
+    "preview_http": 202,
+    "manual_accompaniment_only": true,
+    "candidate_phase": "waiting_piano_approval",
+    "render_jobs": [
+      {
+        "type": "render_preview",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "type": "render_preview",
+        "status": "succeeded",
+        "attempts": 1
+      }
+    ],
+    "outbox_published_count": 2,
+    "real_available_artifacts": 2,
+    "ai_runs": 0,
+    "no_db_writes_or_manual_job_completion_by_test_harness": true,
+    "head_not_advanced_by_candidate": true,
+    "failure_fixture": {
+      "method": "GET",
+      "status": 404,
+      "error_code": "AI_RUN_NOT_FOUND",
+      "meaning": "deliberately unknown thread, not a failed Job"
+    }
+  },
+  "billing": {
+    "new_requests": 0,
+    "new_estimated_cost_cny": 0,
+    "existing_cumulative_estimate_upper_cny": 0.059998,
+    "same_cumulative_authorized_cap_cny": 10,
+    "is_invoice": false
+  },
+  "not_verified_this_stage": [
+    "original frontend browser A/B/error/decision/export UAT",
+    "same-environment natural language model/edit/Undo/reopen/export full B2",
+    "whole-Mac restart or lost owner-receipt recovery",
+    "subjective music quality"
+  ],
+  "public_data_boundary": "no keys/audio/raw VM config/shared container inventories published"
+}
