@@ -675,3 +675,8 @@ Machine-readable evidence: [2026-10-21-beta-b0-runtime.json](2026-10-21-beta-b0-
 ## 2026-10-21 Personal Beta B1 runtime / narrow image permissions repair
 
 MF-P16/P17/P18/P21。经用户精确共享/维护授权，同一VM正常停启一次，RO包与pin、原27容器和全局context保持。3专用当前镜像+正常Compose/Vite已启动；真实发现0700公开bundle/package.json的非root EACCES，最小Dockerfile最终权限修复，实际RED→GREEN1、既有build7/renderer音频124、fresh独审0确认发现。实际API/Parent/Outbox/Redis/Celery完成C02手工2Jobs/2Artifact待审批，原前端浏览器UAT与B2尚未替代。模型/凭据/音频业务无新范围；0付费调用，旧累计估计¥0.059998非账单、同一¥10保持。共享缓存归属不明不prune，保留未决候选和环境供原前端。完整事实及限制见[evidence/2026-10-21-beta-b1-runtime.md](evidence/2026-10-21-beta-b1-runtime.md)。
+
+
+## 2026-10-21 Beta B2a isolated free API persistence/export
+
+MF-P06/P13/P16/P17/P18/P21。同一正常服务独立C02，3客户端进程恢复持久待审批状态/错误hash409/正确保存与回放/重读同Revision/完整导出；7真实Job各1次、7published、11文件17,315,226bytes及SHA/manifest/canonical IR通过。1验收脚本Important唯一修复关闭，未改产品代码、未动原前端项目或启停服务。新增模型0，旧累计估计¥0.059998非账单保持；浏览器、服务重启/隔离备份恢复和完整B2待验。[证据](evidence/2026-10-21-beta-b2a-free-api.md)。

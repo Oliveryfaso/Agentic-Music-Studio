@@ -18,7 +18,13 @@
 
 ## 2. 当前产品形态
 
-### 当前B1：正常本机运行与手工队列试听已验证（2026-10-21）
+### 当前B2a：独立项目免费API持久化与完整导出（2026-10-21）
+
+MF-P06/P13/P16/P17/P18/P21的限定验证。同一正常Beta服务下另建审核C02项目，3个独立客户端依次生成手工候选、GET恢复→错误hash409/head保留→正常审批保存/相同body回放→新client重读相同Revision→完整正式导出。7真实Job各attempt1成功、7published Outbox、11下载文件共17,315,226bytes，SHA/manifest/canonical工程与保存版本一致；AI Run/模型调用0。未触碰原前端项目、未改应用代码/配置/服务。
+
+独审1项Important经唯一窄修复查关闭，修复仅任务验收脚本的完整内容比较与success落盘顺序。浏览器、服务重启/备份还原、同环境自然语言多轮编辑/Undo及完整B2仍未验；重启阶段等原前端完成协调。旧累计估计¥0.059998非账单、同一¥10不变。详见[B2a证据](evidence/2026-10-21-beta-b2a-free-api.md)。
+
+### B1：正常本机运行与手工队列试听已验证（2026-10-21）
 
 MF-P16/P17/P18/P21。经用户精确批准的只读音源共享与同VM一次维护已完成，27原容器/旧卷保留，原4running恢复、17inactive未启动；不声称修复原6restart循环。专用3镜像源码核验、实际正常Compose/Vite、loopback端口、容器RO包/固定pin、实时capability及4谱目录均通过，resource_ready=true。实测非root EACCES经最小Dockerfile权限修复，实际RED→GREEN1、构建合同7/renderer音频124与fresh独审0确认发现；不改宿主数据/包权限或声音。
 

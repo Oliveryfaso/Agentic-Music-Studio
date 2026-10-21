@@ -1,0 +1,51 @@
+{
+  "schema": "motif-beta-b2a-api-evidence.v1",
+  "baseline": "0bc5b31",
+  "requirements": [
+    "MF-P06",
+    "MF-P13",
+    "MF-P16",
+    "MF-P17",
+    "MF-P18",
+    "MF-P21"
+  ],
+  "new_isolated_project": true,
+  "distinct_client_processes": 3,
+  "protected_frontend_project_requested": false,
+  "normal_api_json_requests": 28,
+  "raw_file_gets": 11,
+  "waiting_checkpoint_recovered": true,
+  "wrong_hash_409_preserved_head": true,
+  "same_approval_replayed": true,
+  "saved_canonical_hash": "bd1b6f6010767abe61a30a1d5cdfa02f0590f73c33ff321163cc4c746b2723a5",
+  "export_plan_hash": "384ee00643d28ac4914bfecbee81c3c9eaba6fa3b147055b4144ae5fb8f18a83",
+  "saved_and_exported_canonical_ir_equal": true,
+  "manifest_members_verified": true,
+  "file_count": 11,
+  "downloaded_bytes": 17315226,
+  "real_jobs": 7,
+  "jobs_all_succeeded_one_attempt": true,
+  "published_outbox": 7,
+  "ai_runs": 0,
+  "new_model_calls": 0,
+  "new_estimated_fee_cny": 0,
+  "same_window_cumulative_estimate_upper_cny": 0.059998,
+  "same_window_cap_cny": 10,
+  "is_invoice": false,
+  "service_restart_performed": false,
+  "browser_uat_by_development_line": false,
+  "backup_restore_performed": false,
+  "full_B2_accepted": false,
+  "fresh_independent_review": {
+    "initial_current_path_important": 1,
+    "sole_narrow_recheck_closed": true,
+    "remaining_blockers": 0
+  },
+  "not_verified": [
+    "browser close/reopen and full user flow",
+    "owned Beta service stop/start recovery",
+    "isolated backup/restore",
+    "same-environment natural language and multiple edits/Undo"
+  ],
+  "application_runtime_code_or_config_changed": false
+}
