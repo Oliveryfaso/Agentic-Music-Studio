@@ -1,5 +1,9 @@
+x-motif-runtime-labels: &motif-runtime-labels
+  io.motif-forge.runtime-owner: ${MOTIF_FORGE_RUNTIME_OWNER:-unmanaged}
+
 services:
   api:
+    labels: *motif-runtime-labels
     image: motif-forge-api:local
     build:
       context: .
@@ -33,6 +37,7 @@ services:
         condition: service_healthy
 
   migrate:
+    labels: *motif-runtime-labels
     image: motif-forge-api:local
     build:
       context: .
@@ -51,6 +56,7 @@ services:
     restart: "no"
 
   storage-init:
+    labels: *motif-runtime-labels
     image: motif-forge-api:local
     environment:
       DEEPSEEK_API_KEY: ""
@@ -66,6 +72,7 @@ services:
     restart: "no"
 
   dispatcher:
+    labels: *motif-runtime-labels
     image: motif-forge-api:local
     command: ["python", "-m", "motif_forge.worker.dispatcher"]
     env_file:
@@ -87,6 +94,7 @@ services:
     restart: unless-stopped
 
   resume-dispatcher:
+    labels: *motif-runtime-labels
     image: motif-forge-api:local
     command: ["python", "-m", "motif_forge.worker.resume_dispatcher"]
     env_file:
@@ -112,6 +120,7 @@ services:
     restart: unless-stopped
 
   media-worker:
+    labels: *motif-runtime-labels
     image: motif-forge-media-worker:local
     build:
       context: .
@@ -154,6 +163,7 @@ services:
     stop_grace_period: 30s
 
   render-worker:
+    labels: *motif-runtime-labels
     image: motif-forge-render-worker:local
     build:
       context: .
@@ -177,6 +187,7 @@ services:
     stop_grace_period: 30s
 
   postgres:
+    labels: *motif-runtime-labels
     image: postgres:17-alpine
     environment:
       POSTGRES_DB: motif_forge
@@ -193,6 +204,7 @@ services:
       - motif_forge_postgres:/var/lib/postgresql/data
 
   redis:
+    labels: *motif-runtime-labels
     image: redis:7.4-alpine
     ports:
       - "6379:6379"
@@ -204,3 +216,7 @@ services:
 
 volumes:
   motif_forge_postgres:
+    labels: *motif-runtime-labels
+networks:
+  default:
+    labels: *motif-runtime-labels

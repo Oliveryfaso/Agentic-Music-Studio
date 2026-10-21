@@ -11,6 +11,7 @@ const APPEND_DESCRIPTION='加一个低音区钢琴伴奏，前8小节稀疏，�
 const MODIFY_DESCRIPTION='这几小节更稀疏、更轻，其余保持';
 const KEEP_REGISTER_DESCRIPTION='这几小节更稀疏、更轻，保留原和声与音区，其余保持不变。';
 const PIANO_FAILURE_MESSAGES:Record<string,string>={
+  PIANO_SEMANTIC_UNAVAILABLE:'自然语言伴奏服务暂不可用。请先检查本地服务，原版本保留。',
   PIANO_REGISTER_UNVERIFIED:'无法核实这段伴奏的保存音区，未调用模型。请打开有生成计划的保存版本，或先移除描述中的音区保持要求。',
   PIANO_REGISTER_CHANGED:'生成结果没有保留要求的音区，候选已拒绝，原版本不变。',
   AI_RUN_BASE_REVISION_CONFLICT:'保存版本已变化。请从作品列表打开最新版本，再检查选区并生成。',
@@ -69,6 +70,9 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
   const audition=useQuery({queryKey:key,queryFn:()=>readPianoPreview(projectId,thread!),enabled:thread!==null,
     refetchInterval:(query)=>PENDING_PHASES.has(query.state.data?.phase??'')?1500:false,retry:false});
   const state=audition.data;
+  const recoveryBlocked=thread!==null&&(audition.isPending||audition.isError);
+  const pianoReady=Boolean(capability.data?.available&&capability.data.render_profile&&!capability.isError);
+  const resourceCode=capability.data?.error_code??(capability.error instanceof ApiError?capability.error.code:null);
   const active=PENDING_PHASES.has(state?.phase??'')||state?.phase==='waiting_piano_approval';
   const semanticContext=semantic||Boolean(state?.model||state?.semantic_summary||state?.phase==='queued'||state?.phase==='planning');
   function clearPendingIntent(){try{window.sessionStorage.removeItem(storageKey);}catch{setIdentityStorageAvailable(false);}}
@@ -78,6 +82,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
     if(value.revision_id)onSaved(value.revision_id);
   };
   const start=useMutation({retry:false,mutationFn:async()=>{
+    if(recoveryBlocked)throw new Error('请先重新读取现有试听进度。');
     const profile=capability.data?.render_profile;
     if(!profile)throw new Error('请先连接可用的钢琴音源。');
     const scope={intent:description.trim(),mode:modify?'modify' as const:'append' as const,
@@ -104,8 +109,8 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
   const cancel=useMutation({mutationFn:()=>cancelPianoPreview(projectId,thread!),onSuccess:change});
   const busy=start.isPending||decision.isPending||cancel.isPending;
   const matches=state?.base_revision_id===revisionId;
-  const ready=rootReady&&!dirty&&matches&&state?.phase==='waiting_piano_approval';
-  const error=start.error||decision.error||cancel.error||audition.error;
+  const ready=rootReady&&!dirty&&!recoveryBlocked&&matches&&state?.phase==='waiting_piano_approval';
+  const error=start.error||decision.error||cancel.error;
   const canPrepare=single||(modify&&sourceSemantic);
   const keepLabel=classicalSource?(modify?'保留这次修改':'保留这条伴奏'):'保存这版钢琴表达';
   return <section className="studio-panel piano-expression" aria-labelledby="piano-expression-title">
@@ -118,37 +123,40 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
     {classicalSource&&!sourceSemantic&&<p>当前来源不支持自然语言伴奏；请使用已审核曲目。</p>}
     {!canPrepare&&<p>{classicalSource?'当前入口支持原谱加一条伴奏，请保留现有两轨范围。':'当前入口支持一条乐器轨。多轨作品仍可使用原有编辑和导出。'}</p>}
     {canPrepare&&<>
-      {!capability.data?.available&&<p className="field-error">{capability.isPending?'正在检查钢琴音源…':'钢琴音源暂不可用，请检查本地渲染服务。原有音色仍可使用。'} <button type="button" onClick={()=>void capability.refetch()} disabled={capability.isFetching}>重新检查</button></p>}
-      {classicalSource&&single&&<fieldset className="piano-actions" disabled={busy||active}><legend>伴奏方式</legend>
+      {!pianoReady&&<p className="field-error" role={capability.isPending?'status':'alert'}>{capability.isPending?'正在检查钢琴音源…':capability.isError?'无法读取钢琴音源状态，请重新检查。':capability.data?.available?'钢琴音源配置不完整，暂不能生成。请重新检查。':'钢琴音源暂不可用，请检查本地渲染服务。原有作品仍保留。'}{resourceCode&&`（${resourceCode}）`} <button type="button" onClick={()=>void capability.refetch()} disabled={capability.isFetching}>重新检查</button></p>}
+      {classicalSource&&single&&<fieldset className="piano-actions" disabled={busy||active||recoveryBlocked}><legend>伴奏方式</legend>
         <label><input type="radio" name="piano-entry" checked={entry==='rules'} onChange={()=>setEntry('rules')}/>规则伴奏</label>
         <label><input type="radio" name="piano-entry" checked={entry==='semantic'} disabled={!sourceSemantic} onChange={()=>setEntry('semantic')}/>自然语言伴奏</label>
       </fieldset>}
-      {semantic?<fieldset className="piano-expression-fields" disabled={busy||active}>
+      {semantic?<fieldset className="piano-expression-fields" disabled={busy||active||recoveryBlocked}>
         <label style={{gridColumn:'1 / -1'}}>伴奏描述<textarea aria-label="伴奏描述" rows={4} maxLength={800} value={description} onChange={e=>setDescription(e.target.value)} style={{width:'100%',boxSizing:'border-box'}}/></label>
         {modify?<>
           <div style={{gridColumn:'1 / -1'}}><button type="button" className="secondary-inline" onClick={()=>setDescription(KEEP_REGISTER_DESCRIPTION)}>填入保留音区的描述</button><p>“保留音区”固定所选每小节的八度，不锁定每个音高。无法核实保存计划时，会在调用模型前停止。</p></div>
+          <p className="saved-audio-note" style={{gridColumn:'1 / -1'}}>{validRange?`本次目标：${arrangement.tracks[1]?.name??'第二轨'} · 第 ${startBar}–${endBar} 小节。`:'请选取有效的 1–4 个连续小节。'}本次范围以开始、结束小节为准，不跟随时间线选区。</p>
           <label>开始小节<input aria-label="开始小节" type="number" min={1} max={sourceBars} step={1} value={startBar} onChange={e=>setStartBar(Number(e.target.value))}/></label>
           <label>结束小节<input aria-label="结束小节" type="number" min={1} max={sourceBars} step={1} value={endBar} onChange={e=>setEndBar(Number(e.target.value))}/></label>
           <p style={{gridColumn:'1 / -1'}}>仅修改新增的第二轨，选择第 1–{sourceBars} 小节内连续 1–4 小节。原和声、原谱与范围外内容保持不变；本轮不支持局部换和弦。{!validRange&&' 请检查小节范围。'}</p>
         </>:<p style={{gridColumn:'1 / -1'}}>为第 1–{sourceBars} 小节新增一条低音区钢琴伴奏，保留锁定的原谱旋律。</p>}
-      </fieldset>:classicalSource?<fieldset className="piano-expression-fields" disabled={busy||active}>
+      </fieldset>:classicalSource?<fieldset className="piano-expression-fields" disabled={busy||active||recoveryBlocked}>
         <label>伴奏织体<select aria-label="伴奏织体" value={pattern} onChange={e=>setPattern(e.target.value as AccompanimentIntent['pattern'])}><option value="roots">稀疏根音点奏</option><option value="broken">分解和弦</option></select></label>
         <label>低音八度<select aria-label="低音八度" value={octave} onChange={e=>setOctave(Number(e.target.value) as 2|3)}><option value={2}>第 2 八度</option><option value={3}>第 3 八度</option></select></label>
         <label>伴奏力度<input aria-label="伴奏力度" type="number" min={32} max={80} value={velocity} onChange={e=>setVelocity(Number(e.target.value))}/></label>
         <label className="piano-chord-field" style={{gridColumn:'1 / -1'}}>每小节和弦<input aria-label="每小节和弦" value={chordText} onChange={e=>setChordText(e.target.value)} maxLength={180}/></label>
         <p style={{gridColumn:'1 / -1'}}>依次填写 {classicalSource.import_report.measure_count} 个和弦，用空格分隔。当前支持 G、C、D、Em、Am、Bm、F、Dm；不支持七和弦或转位。{!validInputs&&' 请检查数量、和弦名称与力度。'}</p>
-      </fieldset>:<fieldset className="piano-expression-fields" disabled={busy||active}>
+      </fieldset>:<fieldset className="piano-expression-fields" disabled={busy||active||recoveryBlocked}>
         <label>力度 <input aria-label="钢琴力度" type="number" min={1} max={127} step={1} value={velocity} onChange={e=>setVelocity(Number(e.target.value))}/></label>
         <label>起音偏移（tick）<input aria-label="钢琴起音偏移" type="number" min={-60} max={60} step={1} value={onset} onChange={e=>setOnset(Number(e.target.value))}/></label>
         <label>按键时长（tick）<input aria-label="钢琴按键时长" type="number" min={1} max={9600} step={1} value={gate} onChange={e=>setGate(Number(e.target.value))}/></label>
       </fieldset>}
       {dirty&&<p className="field-error">请先保存或撤销草稿修改，再试听钢琴表达。</p>}
-      <button className="secondary-inline" type="button" disabled={!rootReady||dirty||!capability.data?.available||!capability.data.render_profile||busy||active||!validInputs}
+      {semanticContext&&<p className="saved-audio-note">自然语言生成需要模型服务；音源就绪仅代表本地渲染资源可用。</p>}
+      <button className="secondary-inline" type="button" disabled={!rootReady||dirty||!pianoReady||busy||active||recoveryBlocked||!validInputs}
         onClick={()=>start.mutate()}>{start.isPending?'正在创建试听…':semantic?(start.isError&&intent.current?.semanticFingerprint===semanticFingerprint?'重试同一次生成请求':'按描述生成 A/B 试听'):start.isError?'重试 A/B 试听':'生成 A/B 试听'}</button>
       {semantic&&start.isError&&<p>网络失败后重试会复用同一次请求；修改描述后生成会发起新的模型请求。</p>}
     </>}
     {thread&&<div className="piano-audition" aria-live="polite">
-      {audition.isPending&&<p>正在恢复试听进度…</p>}
+      {audition.isPending&&<p>正在恢复试听进度；确认现有任务前不会开放新的生成。</p>}
+      {audition.isError&&<p className="field-error" role="alert">暂时读不到已有试听进度。请先重新读取，避免另发生成请求。{audition.error instanceof ApiError&&`（${audition.error.code}）`} <button type="button" disabled={audition.isFetching} onClick={()=>void audition.refetch()}>{audition.isFetching?'正在读取…':'重新读取试听进度'}</button></p>}
       {(state?.phase==='queued'||state?.phase==='planning')&&<><p>Flash 正在规划伴奏，原版本保持不变。可以刷新后继续。</p><p>本次规划返回后可取消试听或放弃候选。</p></>}
       {state?.phase==='waiting_piano_worker'&&<><p>正在生成两版试听，可以刷新后继续。</p><button type="button" disabled={busy} onClick={()=>cancel.mutate()}>取消试听</button></>}
       {state?.semantic_summary&&<p>{state.semantic_summary}</p>}

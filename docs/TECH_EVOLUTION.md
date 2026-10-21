@@ -624,3 +624,22 @@ MF-P04/P05/P06/P10/P11/P13/P15/P16/P18/P20/P21。用户已听上一轮36d2a3e九
 唯一真实C02第5–8bar局部请求，免费复用已认可Plan种子，无新付费append/重试：15→7音、平均力度58.8→41.43、gate5760→2520ticks，原旋律/原和声C-Dm-F-G/逐bar octave2/范围外精确保留，原模型Plan不修补。候选已在隔离项目放弃；新局部听感待用户。2245in+220out=2465tokens，峰价估计上界¥0.006250非账单；批准窗口累计10次/21626tokens/¥0.059998，原累计¥10不重置，按估计余量¥9.940002。request deepseek-v4-flash/response deepseek-flash，人类接受官方V4.1-Flash-1017替代，pre/post官方映射/峰价与精确scope/账本gate通过，未知权重不声称独立验证。所有历史批次和新批永久pause。
 
 一fresh独审3Important+1Minor经唯一修复复查关闭，独立13通过；真实发送阶段/非JSON回执及post核验/相反意图停止器补齐，代理仍不等同人耳。新四段原增益/固定增益等LUFS离线实播通过，**Library明确成功 libfile_b4c25a60cb108191a5bd5d511da428a1（941,269bytes）**；旧包/九段/失败/账本不变。自有PG/生成DSN/API/renderer/browser关闭，共享27容器身份不变，清单先持久再清理12,316,929逻辑bytes，60保留文件指纹通过。Guide/main不变、不部署；dev正常checkpoint与push远端回读以最终交付记录为准。见[验收](evidence/2026-10-21-p23-daily-stability.md)、[机器证据](evidence/2026-10-21-p23-daily-stability.json)、[独审](evidence/2026-10-21-p23-daily-stability-review.md)。
+
+
+## 2026-10-21 Personal Beta B0 owned runtime boundary
+
+The installed launcher/stopper manages only resources bound to its private receipt, exact Docker daemon, project and random owner label. Unknown containers, persistent volumes or networks are refused. Start and stop share a kernel lock; Web PID/root/start-time must match. Stop preserves containers and volumes. Neither entry point starts or stops Colima. This is a narrow runtime boundary acceptance, not the complete product Compose or daily-Beta acceptance.
+
+Installed checks: B0 27; original frontend integration39 plus typecheck; resource fixtures11 and Ruff. The B0 fresh review found two Important findings, both closed in its sole limited repair recheck. The README host-Python prerequisite Minor was then corrected without changing reviewed executable files.
+
+The first real Docker run exposed a separate defect: the resource-inspection Go template omitted the final literal JSON brace. The old fake returned complete JSON regardless of --format, so it had hidden this real boundary error. The original failure is retained. Three relevant tests became RED after correcting the fake; an additional missing-candidate-compose failure is explicitly a fixture issue. A one-character production repair and the faithful three-field fake produced8 focused passes; a separate narrow review found no findings and independently passed3 tests. No ownership condition was relaxed.
+
+The corrected installed code passed real Docker: unknown empty volumes/networks refused, two stop/reopen cycles retained marker data and original owner, repeated stop succeeded. Only fresh randomly named test resources were removed afterward; all27 preexisting container IDs remained. Docker used cached postgres:17-alpine, no published port, no image pull. Shared workloads can change state independently; identity preservation is not a claim that their state was frozen.
+
+Initial sandbox probes could not access the Colima socket and were incorrectly described as host downtime. A formal approved read-only check confirmed the existing VM running. No VM start/stop/reconfiguration or global Docker context change occurred; Docker context colima was supplied for this task only.
+
+New model calls0/cost0. Prior cumulative public-price estimate upper CNY0.059998 is not a bill; the authorized cumulative CNY10 is unchanged. No actual .env/credentials/container Env were read or copied. No new key configuration, main merge, Guide change or public deployment.
+
+Remaining B1/B2: standard loopback profile, reviewed pack readonly mount/pin plus live renderer/API admission, current dedicated images, original-session browser UAT, then one persistent environment real model/edit/reopen/export path and new-target restore. Static UI and valid resource files do not prove these gates.
+
+Machine-readable evidence: [2026-10-21-beta-b0-runtime.json](2026-10-21-beta-b0-runtime.json). The original detailed execution logs, failed response and independent reports remain in the task workspace; no unrelated shared-container inventories or environment contents are published.

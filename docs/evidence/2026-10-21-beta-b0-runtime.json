@@ -1,0 +1,67 @@
+{
+  "schema": "motif-beta-runtime-gate.v1",
+  "date": "2026-10-21",
+  "stage": "P2.3 personal Beta preparation / B0 and B0.1",
+  "requirements": [
+    "MF-P16",
+    "MF-P17",
+    "MF-P18",
+    "MF-P21"
+  ],
+  "baseline": "21dbd8dc34e745deef5e0bde97e997a753ab2965",
+  "accepted_scope": "strictly-owned start/stop boundary, not full product Compose or personal Beta E2E",
+  "installed_author_checks": {
+    "b0_initial": 27,
+    "frontend": 39,
+    "frontend_typecheck": "pass",
+    "resource_fixtures": 11,
+    "resource_lint": "pass",
+    "resource_template_fix": 8
+  },
+  "independent_review": {
+    "B0": "one fresh review and sole repair recheck closed two Important findings; remaining README prerequisite Minor corrected",
+    "B0.1": "new real-Docker template defect, separate limited review: zero findings; three independent tests",
+    "frontend": "original frontend session reviewed patch; installed static/fixture checks only",
+    "resources": "original candidate limited follow-up and symlink-loop integration check; no live renderer admission yet"
+  },
+  "real_boundary": {
+    "cached_image": "postgres:17-alpine",
+    "pulls": 0,
+    "public_ports": 0,
+    "checks": {
+      "unrecorded_volume_refused": true,
+      "unrecorded_network_refused": true,
+      "normal_stop_preserves_data_cycle_1": true,
+      "normal_stop_preserves_data_cycle_2": true,
+      "repeat_stop": true,
+      "restart_keeps_data_and_owner": true
+    },
+    "exact_owned_cleanup": true,
+    "preexisting_container_count": 27,
+    "all_preexisting_ids_preserved": true,
+    "shared_state_note": "running/restarting state may evolve independently; do not claim frozen shared workload state",
+    "vm_start_stop_config_or_global_context_changes": 0
+  },
+  "first_failure": {
+    "label": "RESOURCE_IDENTITY_UNAVAILABLE",
+    "root_cause": "inspectOwnedResource Go template lacked the final literal JSON object brace; old fake ignored format",
+    "repair": "one literal brace, fake now renders the allowed public-field template",
+    "retained_local_artifact_sha256": "e8f51351a94748a95b6b8d69f355e5fd18ba2dd833fb977263e2b0d1a430d64e",
+    "red_note": "three relevant product failures; a fourth failure was the isolated candidate missing compose.yaml, retained separately as fixture setup issue"
+  },
+  "runtime_probe_correction": "Sandbox socket denial was initially misread as Colima downtime. Formal approved read-only status found Colima running; no VM operation was needed. Context colima was supplied per process.",
+  "secrets": "no actual .env/credentials read, copied or persisted; container Env never inspected; model remains disabled",
+  "new_model_calls": 0,
+  "new_cost_cny": "0",
+  "cumulative_prior_estimate_upper_cny": "0.059998",
+  "estimate_is_bill": false,
+  "cumulative_authorized_ceiling_cny": "10",
+  "not_yet_verified": [
+    "full Beta Compose stack",
+    "live reviewed-piano readonly mount/admission",
+    "original frontend browser UAT",
+    "same persistent environment real model path and reopen/export/restore"
+  ],
+  "guide_diff": "empty; no content hash computed",
+  "main_merge_or_deploy": false
+}

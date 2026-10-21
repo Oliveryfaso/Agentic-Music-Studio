@@ -63,7 +63,7 @@ scripts/start_motif_forge.sh
 
 已有仓库时，在仓库根目录直接运行 `scripts/start_motif_forge.sh` 即可。
 
-启动器会准备本地配置和外置存储目录，在需要时启动 Colima，拉起数据库、队列和音频服务，等待就绪后启动前端并打开 **http://127.0.0.1:5173**。首次启动可能安装前端依赖或构建镜像，后续启动会复用已有内容。
+先显式启动自己的 Docker 环境。启动器准备本地配置和外置存储目录，以独立 Compose project 和所有权标签拉起数据库、队列和音频服务，等待就绪后启动前端并打开 **http://127.0.0.1:5173**。首次启动可能安装前端依赖或构建镜像，后续启动会复用已有内容。
 
 结束使用：
 
@@ -71,7 +71,9 @@ scripts/start_motif_forge.sh
 scripts/stop_motif_forge.sh
 ```
 
-停止脚本会关闭本项目前端、Compose 服务以及默认 Colima 虚拟机，**保留数据库卷、镜像、导入素材、作品和导出文件**。如果其他项目共用该 Colima 实例，它们也会随虚拟机暂停；只按启动终端的 `Ctrl+C` 则仅停止前端，后台服务仍在运行。
+停止脚本只关闭可验证的本启动器 Web 进程与精确容器 ID，保留容器、数据库卷、镜像、素材和作品；从不启动或停止 Colima，也不关闭其他项目。所有权记录缺失或身份不符时拒绝认领旧服务，请从其原启动终端处理。只按启动终端的 `Ctrl+C` 仍仅停止前端。
+
+所有权元数据按当前仓库与用户分隔，保存于私有 runtime 目录（可用 `MOTIF_FORGE_RUNTIME_DIR` 显式指定），不包含模型密钥。现有未记录的 Compose 项目不会被自动接管；更换 Docker daemon 会明确拒绝。真实钢琴个人 Beta 的资源/模型档位和整链验证仍需后续阶段，本切片只收口安全启停。
 
 可选命令：
 
@@ -91,7 +93,8 @@ scripts/start_motif_forge.sh --no-open # 启动，但不自动打开浏览器
 | 前端 | Node.js 22.12+ 与 npm |
 | 后台服务 | Docker CLI、Compose、Buildx；可用 Docker Desktop，或安装 Colima |
 | 本地数据 | 可写的存储目录与足够的镜像、音频空间；启动器默认使用仓库旁的 `.motif-forge-data` |
-| 仅后端开发 | Python 3.12 与 uv；正常容器运行不要求宿主机安装 Python |
+| 本机启停 | Python 3，用于标准库文件锁；Node.js 用于所有权检查 |
+| 仅后端开发 | Python 3.12 与 uv |
 | 可选服务 | DeepSeek 用于显式付费模型验证；LangSmith 用于可选开发追踪 |
 
 配置保存在未跟踪的 `.env` 中，不要提交 Key，也不要放进前端 `VITE_*` 变量。默认入口面向本机使用，未配置公共托管所需的认证与隔离。
@@ -247,3 +250,5 @@ You may obtain a copy of the License at
 ```
 
 再分发时请保留 [LICENSE](LICENSE) 文件；如修改了源文件，需按第 4 条标注改动。
+
+启停操作共用内核文件锁；另一操作在初始化/停止期间明确返回 `RUNTIME_OPERATION_BUSY`。锁在Web就绪后释放，异常退出由内核释放，不保留僵死PID锁。启动也验证本Compose的数据库卷与默认网络；未知旧卷/网络不删除、不重标、不自动认领。Node.js与Python 3用于本机所有权与操作锁检查。

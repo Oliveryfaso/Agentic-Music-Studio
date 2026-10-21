@@ -18,7 +18,13 @@
 
 ## 2. 当前产品形态
 
-### 当前切片：P2.3 日常局部编辑稳定性（2026-10-21，技术收口；新局部听感待验）
+### Current slice: personal Beta preparation B0 runtime boundary (2026-10-21)
+
+MF-P16/P17/P18/P21. Strictly-owned start/stop is installed and real-Docker verified: unknown persistent resources refused, two stop/reopen cycles retain data and owner, repeat stop succeeds. Only task-created test resources removed; all27 preexisting container IDs retained, no VM changes. New real-CLI JSON-template defect was preserved, corrected by one literal brace, and narrowly independently reviewed. Installed checks27, original UI39+types, resources11; these do not replace full Beta Compose/browser acceptance.
+
+User accepted the previous P2.3 local listening result as the music baseline. This slice does not change music/compiler/Graph/IR/DSP. Default model remains disabled; no secret read/copy/persistence and no new paid calls. Cumulative estimate upper CNY0.059998, not a bill, within the same CNY10 authorization. B1 dedicated loopback/current-image/resource runtime and B2 same-environment model/edit/reopen/export are still pending. [Boundary evidence](evidence/2026-10-21-beta-b0-runtime.md).
+
+### 前次切片：P2.3 日常局部编辑稳定性（2026-10-21，技术收口；新局部听感待验）
 
 MF-P04/P05/P06/P10/P11/P13/P15/P16/P18/P20/P21。用户已听上一轮36d2a3e九段并称效果不错，作为该次声音基线保留；不推断全曲库或盲测偏好。本轮不改Prompt/编译器/IR/Graph/DB/DSP/音源，只补PianoPanel显式保留音区文本填入、来源拍号/主旋律摘录提示、partial已报告tokens、音区及真实stale HTTP中文处理；无自动提交或默认意图改变。
 

@@ -4,7 +4,8 @@ set -uo pipefail
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$project_root"
 
-runtime_dir="${MOTIF_FORGE_RUNTIME_DIR:-/private/tmp/motif-forge-$(id -u)}"
+runtime_tag="$(printf '%s' "$project_root" | cksum | awk '{print $1}')"
+runtime_dir="${MOTIF_FORGE_RUNTIME_DIR:-/private/tmp/motif-forge-$(id -u)-$runtime_tag}"
 web_pid_file="$runtime_dir/web.pid"
 result=0
 
@@ -14,8 +15,9 @@ Usage: scripts/stop_motif_forge.sh
 
 Stop the complete local Motif Forge stack:
   - the Vite Web Studio started by the launcher;
-  - all services in this repository's Docker Compose project;
-  - the default Colima VM, when it is running.
+  - exact containers carrying this launcher's recorded ownership label.
+
+Shared services and Colima are never stopped. Unrecorded stacks are not adopted.
 
 PostgreSQL volumes, images, imported media, and generated works are preserved.
 The command is safe to repeat when Motif Forge is already stopped.
@@ -35,32 +37,6 @@ if [[ $# -gt 0 ]]; then
       ;;
   esac
 fi
-
-run_quiet_with_timeout() {
-  local timeout_seconds="$1"
-  shift
-  "$@" >/dev/null 2>&1 &
-  local command_pid=$!
-  local deadline=$((SECONDS + timeout_seconds))
-
-  while kill -0 "$command_pid" >/dev/null 2>&1; do
-    if (( SECONDS >= deadline )); then
-      # The probe may have completed while this shell was descheduled.
-      if ! kill -0 "$command_pid" >/dev/null 2>&1; then
-        wait "$command_pid" >/dev/null 2>&1
-        return $?
-      fi
-      if ! kill "$command_pid" >/dev/null 2>&1; then
-        wait "$command_pid" >/dev/null 2>&1
-        return $?
-      fi
-      wait "$command_pid" >/dev/null 2>&1 || true
-      return 124
-    fi
-    sleep 0.2
-  done
-  wait "$command_pid" >/dev/null 2>&1
-}
 
 process_is_running() {
   local pid="$1"
@@ -86,6 +62,8 @@ stop_owned_web() {
   local web_pid=""
   local recorded_root=""
   local command_line=""
+  local recorded_start=""
+  local actual_start=""
 
   if [[ ! -f "$web_pid_file" || -L "$web_pid_file" ]]; then
     echo "Web Studio is already stopped."
@@ -94,10 +72,11 @@ stop_owned_web() {
 
   web_pid="$(sed -n '1p' "$web_pid_file")"
   recorded_root="$(sed -n '2p' "$web_pid_file")"
+  recorded_start="$(sed -n '3p' "$web_pid_file")"
 
   if [[ ! "$web_pid" =~ ^[0-9]+$ || "$recorded_root" != "$project_root" ]]; then
-    echo "Discarding an invalid Motif Forge Web PID record."
-    rm -f "$web_pid_file"
+    echo "Refusing an invalid Motif Forge Web PID record." >&2
+    result=1
     return
   fi
 
@@ -107,6 +86,12 @@ stop_owned_web() {
     return
   fi
 
+  actual_start="$(ps -p "$web_pid" -o lstart= 2>/dev/null | sed 's/^[[:space:]]*//')"
+  if [[ -z "$recorded_start" || "$actual_start" != "$recorded_start" ]]; then
+    echo "Web ownership cannot be verified; no process was stopped. Use its original terminal." >&2
+    result=1
+    return
+  fi
   command_line="$(ps -p "$web_pid" -o command= 2>/dev/null || true)"
   if [[ "$command_line" != *"npm run dev:web"* && "$command_line" != *"vite --config apps/web/vite.config.ts"* ]]; then
     echo "Discarding a stale Web PID record without stopping PID $web_pid."
@@ -128,36 +113,23 @@ stop_owned_web() {
   rm -f "$web_pid_file"
 }
 
-colima_is_running() {
-  if colima status >/dev/null 2>&1; then
-    return 0
-  fi
-  colima list 2>/dev/null | awk 'NR > 1 && $1 == "default" && $2 == "Running" { found = 1 } END { exit !found }'
-}
-
+if [[ "$runtime_dir" != /* || -L "$runtime_dir" || -L "$web_pid_file" ]]; then
+  echo "Runtime ownership path is invalid; no resources were stopped." >&2
+  exit 64
+fi
+if ! command -v node >/dev/null 2>&1 || ! command -v python3 >/dev/null 2>&1; then
+  echo "Node.js and Python 3 are required to verify runtime ownership; no resources were stopped." >&2
+  exit 69
+fi
+node scripts/motif_runtime_owner.mjs init "$project_root" "$runtime_dir" || exit "$?"
+if ! exec 9<> "$runtime_dir/operation.lock"; then exit 1; fi
+python3 scripts/motif_runtime_lock.py acquire "$runtime_dir/operation.lock" || exit "$?"
+# Verify private metadata and the entire container set before touching Web.
+if ! node scripts/motif_runtime_owner.mjs stop "$project_root" "$runtime_dir"; then
+  exit 1
+fi
 stop_owned_web
-
-if command -v docker >/dev/null 2>&1 && run_quiet_with_timeout 3 docker info; then
-  echo "Stopping Motif Forge Compose services…"
-  if ! docker compose down; then
-    echo "Docker Compose could not stop every Motif Forge service." >&2
-    result=1
-  fi
-else
-  echo "Docker is already unavailable; Compose services are not running."
-fi
-
-if command -v colima >/dev/null 2>&1 && colima_is_running; then
-  echo "Stopping Colima…"
-  if ! colima stop; then
-    echo "Colima could not be stopped." >&2
-    result=1
-  fi
-else
-  echo "Colima is already stopped or is not installed."
-fi
-
 if (( result == 0 )); then
-  echo "Motif Forge is fully stopped. Project data and Docker volumes were preserved."
+  echo "Recorded Motif Forge resources stopped; data volumes, shared services and VM preserved."
 fi
 exit "$result"

@@ -9,7 +9,8 @@ open_browser=1
 web_url="http://127.0.0.1:5173"
 api_ready_url="http://127.0.0.1:8000/health/ready"
 render_ready_url="http://127.0.0.1:8090/health"
-runtime_dir="${MOTIF_FORGE_RUNTIME_DIR:-/private/tmp/motif-forge-$(id -u)}"
+runtime_tag="$(printf '%s' "$project_root" | cksum | awk '{print $1}')"
+runtime_dir="${MOTIF_FORGE_RUNTIME_DIR:-/private/tmp/motif-forge-$(id -u)-$runtime_tag}"
 web_pid_file="$runtime_dir/web.pid"
 
 usage() {
@@ -18,7 +19,7 @@ Usage: scripts/start_motif_forge.sh [--check] [--no-open]
 
 Start the complete local Motif Forge portfolio:
   - initialize the external development storage root;
-  - start Colima when Docker is unavailable and Colima is installed;
+  - require an already available Docker daemon; no VM is started or stopped;
   - start the existing Docker Compose backend and workers;
   - wait for API and Render Worker readiness;
   - start the Vite Web Studio and open it in the browser.
@@ -62,37 +63,8 @@ require_command() {
   fi
 }
 
-run_quiet_with_timeout() {
-  local timeout_seconds="$1"
-  shift
-  "$@" >/dev/null 2>&1 &
-  local command_pid=$!
-  local deadline=$((SECONDS + timeout_seconds))
-
-  while kill -0 "$command_pid" >/dev/null 2>&1; do
-    if (( SECONDS >= deadline )); then
-      kill "$command_pid" >/dev/null 2>&1 || true
-      wait "$command_pid" >/dev/null 2>&1 || true
-      return 124
-    fi
-    sleep 0.2
-  done
-  wait "$command_pid" >/dev/null 2>&1
-}
-
 docker_is_ready() {
-  run_quiet_with_timeout 3 docker info
-}
-
-wait_for_docker() {
-  local deadline=$((SECONDS + 60))
-  while (( SECONDS < deadline )); do
-    if docker_is_ready; then
-      return 0
-    fi
-    sleep 1
-  done
-  return 1
+  node scripts/motif_runtime_owner.mjs probe "$project_root" "$runtime_dir" >/dev/null 2>&1
 }
 
 wait_for_http() {
@@ -111,9 +83,15 @@ wait_for_http() {
   return 1
 }
 
-for command_name in docker curl npm; do
+for command_name in docker curl npm node python3; do
   require_command "$command_name"
 done
+
+if (( ! check_only )); then
+node scripts/motif_runtime_owner.mjs init "$project_root" "$runtime_dir" || exit "$?"
+if ! exec 9<> "$runtime_dir/operation.lock"; then exit 1; fi
+python3 scripts/motif_runtime_lock.py acquire "$runtime_dir/operation.lock" || exit "$?"
+fi
 
 if ! docker compose version >/dev/null 2>&1; then
   echo "Docker Compose is unavailable; install the Docker Compose plugin." >&2
@@ -142,7 +120,7 @@ if (( check_only )); then
     exit 78
   fi
   if ! docker_is_ready; then
-    echo "Docker is not ready; a normal launch will try: colima start" >&2
+    echo "Docker is not ready; start your Docker environment explicitly, then retry" >&2
     exit 70
   fi
   docker compose config --quiet
@@ -168,19 +146,26 @@ export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$MOTIF_FORGE_DEV_ST
 export npm_config_cache="${npm_config_cache:-$MOTIF_FORGE_DEV_STORAGE_ROOT/cache/npm}"
 
 if ! docker_is_ready; then
-  if ! command -v colima >/dev/null 2>&1; then
-    echo "Docker is not ready and Colima is unavailable." >&2
-    echo "Start Docker Desktop, then run this command again." >&2
-    exit 70
+  echo "Docker is not ready. Start your Docker environment explicitly; no VM was changed." >&2
+  exit 70
+fi
+ownership="$(node scripts/motif_runtime_owner.mjs prepare "$project_root" "$runtime_dir" "${MOTIF_FORGE_COMPOSE_PROJECT_NAME:-}")"
+read -r compose_project runtime_owner <<< "$ownership"
+export MOTIF_FORGE_RUNTIME_OWNER="$runtime_owner"
+
+# A killed launcher may leave a dead PID receipt; never replace a live owner.
+if [[ -e "$web_pid_file" || -L "$web_pid_file" ]]; then
+  if [[ -L "$web_pid_file" || ! -f "$web_pid_file" ]]; then
+    echo "Web ownership record is invalid; no existing server was adopted." >&2
+    exit 78
   fi
-  echo "Docker is not ready; starting Colima…"
-  colima start --cpus 4 --memory 4 --disk 15 --root-disk 8 \
-    --vm-type vz --mount-type virtiofs --runtime docker \
-    --binfmt=false --ssh-config=false
-  if ! wait_for_docker; then
-    echo "Docker did not become ready after colima start." >&2
-    exit 70
+  previous_pid="$(sed -n '1p' "$web_pid_file")"
+  previous_root="$(sed -n '2p' "$web_pid_file")"
+  if [[ ! "$previous_pid" =~ ^[1-9][0-9]*$ || "$previous_root" != "$project_root" ]] || kill -0 "$previous_pid" 2>/dev/null; then
+    echo "Web ownership is still recorded; stop it using its original launcher first." >&2
+    exit 78
   fi
+  rm -f "$web_pid_file"
 fi
 
 if [[ ! -x node_modules/.bin/vite ]]; then
@@ -189,34 +174,51 @@ if [[ ! -x node_modules/.bin/vite ]]; then
 fi
 
 echo "Starting Motif Forge services…"
-docker compose up -d
+docker compose --project-name "$compose_project" up -d
 
 if ! wait_for_http "$api_ready_url" "Motif Forge API" 90; then
-  docker compose ps >&2 || true
+  docker compose --project-name "$compose_project" ps >&2 || true
   exit 70
 fi
 if ! wait_for_http "$render_ready_url" "Motif Forge Render Worker" 90; then
-  docker compose ps >&2 || true
+  docker compose --project-name "$compose_project" ps >&2 || true
   exit 70
 fi
 
 if curl -fsS --max-time 2 "$web_url" >/dev/null 2>&1; then
-  echo "Motif Forge Web Studio is already running: $web_url"
-  if (( open_browser )) && [[ "$(uname -s)" == "Darwin" ]] && command -v open >/dev/null 2>&1; then
-    open "$web_url"
-  fi
-  exit 0
+  echo "Web port is occupied; no existing server was adopted: $web_url" >&2
+  exit 78
 fi
 
 web_pid=""
+web_started=""
+stop_process_tree() {
+  local pid="$1" child
+  for child in $(pgrep -P "$pid" 2>/dev/null || true); do
+    stop_process_tree "$child"
+  done
+  kill -TERM "$pid" >/dev/null 2>&1 || true
+}
 stop_web() {
-  if [[ -n "$web_pid" ]] && kill -0 "$web_pid" >/dev/null 2>&1; then
-    kill "$web_pid" >/dev/null 2>&1 || true
+  if [[ -n "$web_pid" && -n "$web_started" ]] &&
+      [[ "$(ps -p "$web_pid" -o lstart= 2>/dev/null | sed 's/^[[:space:]]*//')" == "$web_started" ]]; then
+    stop_process_tree "$web_pid"
+    for ((attempt = 1; attempt <= 50; attempt += 1)); do
+      kill -0 "$web_pid" >/dev/null 2>&1 || break
+      sleep 0.1
+    done
+    kill -KILL "$web_pid" >/dev/null 2>&1 || true
     wait "$web_pid" >/dev/null 2>&1 || true
   fi
-  rm -f "$web_pid_file"
+  if [[ -f "$web_pid_file" && ! -L "$web_pid_file" &&
+        "$(sed -n '1p' "$web_pid_file")" == "$web_pid" &&
+        "$(sed -n '3p' "$web_pid_file")" == "$web_started" ]]; then
+    rm -f "$web_pid_file"
+  fi
 }
-trap stop_web EXIT INT TERM
+trap stop_web EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 if [[ -L "$runtime_dir" || -L "$web_pid_file" ]]; then
   echo "Motif Forge runtime path must not be a symbolic link: $runtime_dir" >&2
@@ -225,15 +227,25 @@ fi
 mkdir -p "$runtime_dir"
 chmod 700 "$runtime_dir"
 
-npm run dev:web -- --host 127.0.0.1 --strictPort &
+npm run dev:web -- --host 127.0.0.1 --strictPort 9>&- &
 web_pid=$!
-printf '%s\n%s\n' "$web_pid" "$project_root" > "$web_pid_file"
+web_started="$(ps -p "$web_pid" -o lstart= | sed 's/^[[:space:]]*//')"
+web_record="$runtime_dir/web.pid.$$.tmp"
+printf '%s\n%s\n%s\n' "$web_pid" "$project_root" "$web_started" > "$web_record"
+if ! ln "$web_record" "$web_pid_file"; then
+  rm -f "$web_record"
+  echo "Web ownership is already recorded; no existing record was replaced." >&2
+  exit 78
+fi
+rm -f "$web_record"
 
 if ! wait_for_http "$web_url" "Motif Forge Web Studio" 45; then
   exit 70
 fi
 
 echo
+python3 scripts/motif_runtime_lock.py release "$runtime_dir/operation.lock"
+exec 9>&-
 echo "Motif Forge is ready: $web_url"
 echo "Stop everything with: scripts/stop_motif_forge.sh"
 

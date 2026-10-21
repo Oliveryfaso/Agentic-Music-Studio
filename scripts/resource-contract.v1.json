@@ -1,0 +1,179 @@
+{
+  "schema_version": "motif-resource-contract.v1",
+  "reviewed_repo_commit": "21dbd8dc34e745deef5e0bde97e997a753ab2965",
+  "trust_rule": "Pins come from reviewed code/evidence; never replace a failed pin with a hash learned from a suspect file.",
+  "piano": {
+    "pack_id": "freepats:upright-kw-small",
+    "pack_version": "2019-07-03.motif1",
+    "manifest_sha256": "264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813",
+    "license_sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+    "sample_count": 26,
+    "source_url": "https://freepats.zenvoid.org/Piano/UprightPianoKW/UprightPianoKW-small-SFZ-20190703.7z",
+    "source_archive_sha256": "ffb547fceb91eeb93d78cf8d220d1d5f726dcac891afc15e517805ac48abb39d",
+    "source_archive_bytes_not_rechecked": true,
+    "commercial_use_and_redistribution_basis": "Existing reviewed CC0-1.0 dedication; no new acceptance.",
+    "credits": "FreePats Upright Piano KW; recordings Gonzalo and Roberto, edited/processed Roberto; source 2019-07-03.",
+    "notice_files": [
+      {
+        "path": "readme.txt",
+        "sha256": "176d252d3192c4cb1576c88512f94e981f6208aedec65b9ec5174280c02dc534"
+      }
+    ],
+    "capabilities": {
+      "midi_range": [
+        21,
+        108
+      ],
+      "velocity_layers": 1,
+      "pedal": "unsupported",
+      "release_triggers": "unsupported",
+      "maximum_voices": 32
+    }
+  },
+  "scores": [
+    {
+      "score_id": "mutopia-528-melody.v1",
+      "title": "欢乐颂 · 16 小节旋律",
+      "manifest_path": "ode-manifest.json",
+      "manifest_sha256": "5252feeddf878e187ce4a9ea38b186e44154f78a933771901536abfabc8b5ef5",
+      "license": "Public Domain",
+      "xml_sha256": "995a1d612fd073be18902ada308a525ee973206e0113e5010e1af3520b628907",
+      "measures": 16,
+      "principal_notes": 62,
+      "meter": [
+        4,
+        4
+      ],
+      "bpm": 100,
+      "files": [
+        {
+          "path": "ode-original.ly",
+          "sha256": "a0c865aa9f71221605362622d281405071e0734540e86ce131131757cc803a71"
+        },
+        {
+          "path": "ode-melody.musicxml",
+          "sha256": "995a1d612fd073be18902ada308a525ee973206e0113e5010e1af3520b628907"
+        }
+      ],
+      "simplified": true,
+      "simplification_summary": "仅提取并转写 soprano 音高/时值为无歌词钢琴旋律；不导入其余三个声部，省略原第10/11小节的两处slur；速度100及G大调4/4沿原谱。不是完整SATB或原生MusicXML。",
+      "source_page": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=528"
+    },
+    {
+      "score_id": "c01-minuet-g-a16.v1",
+      "title": "G大调小步舞曲 · A段16小节主旋律",
+      "manifest_path": "c01-minuet-g-a16/manifest.json",
+      "manifest_sha256": "e4011f6fb2045343017b791e74939af15fa986b98a05f239d88c54514113186d",
+      "license": "Public Domain",
+      "xml_sha256": "7f223a9cc8b64af65a28f4a12892acca6b65a7acf8391a820bfba0ff4cd3ac72",
+      "measures": 16,
+      "principal_notes": 64,
+      "meter": [
+        3,
+        4
+      ],
+      "bpm": 100,
+      "files": [
+        {
+          "path": "c01-minuet-g-a16/melody-principal.musicxml",
+          "sha256": "7f223a9cc8b64af65a28f4a12892acca6b65a7acf8391a820bfba0ff4cd3ac72"
+        },
+        {
+          "path": "c01-minuet-g-a16/rights.json",
+          "sha256": "c55fa94db99f4c47a663a15d2b75111fc23fb88ec53c9106d2ee863c4c590906"
+        },
+        {
+          "path": "c01-minuet-g-a16/conversion-losses.json",
+          "sha256": "374c008bc80e5084881c170cd7c38d4cf7a3bafea89b0037c5c9b1c3a6c9f8b8"
+        },
+        {
+          "path": "c01-minuet-g-a16/source-original/anna-magdalena-04.ly",
+          "sha256": "aa6c19e6fecf20753591d739f9e6cf32f3d925fa8a50245c011c8928a1cd1d83"
+        }
+      ],
+      "simplified": true,
+      "simplification_summary": "选取原第1–16小节voiceone，A段单次，不展开重复；省略4处mordent及第8小节B4装饰音，不编造装饰时值。原MIDI速度140改为固定100 BPM；其他声部不导入。是简化旋律，不是完整原谱。",
+      "source_page": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=75"
+    },
+    {
+      "score_id": "c02-la-candeur-a8.v1",
+      "title": "坦诉 La Candeur · 首8小节主旋律",
+      "manifest_path": "c02-la-candeur-a8/manifest.json",
+      "manifest_sha256": "283a4db2c65c406a3aafa80a27977965bd3b18c3644977fba7b3cff012fc9818",
+      "license": "Public Domain",
+      "xml_sha256": "3bbe6a5e4e1487679e87570835039ffe143092176f49b097168c54b7f9376663",
+      "measures": 8,
+      "principal_notes": 61,
+      "meter": [
+        4,
+        4
+      ],
+      "bpm": 112,
+      "files": [
+        {
+          "path": "c02-la-candeur-a8/melody-principal.musicxml",
+          "sha256": "3bbe6a5e4e1487679e87570835039ffe143092176f49b097168c54b7f9376663"
+        },
+        {
+          "path": "c02-la-candeur-a8/rights.json",
+          "sha256": "b02fd7f284a2e699662ed9081d94d5647bc244121c1c6db0417998ab81273d22"
+        },
+        {
+          "path": "c02-la-candeur-a8/conversion-losses.json",
+          "sha256": "d79be5d845283b20aef3e0251783d26fcdc1c50703e93bb84d4d8c2829f9b442"
+        },
+        {
+          "path": "c02-la-candeur-a8/source-original/25EF-01.ly",
+          "sha256": "d1720877ca1b813148cb3c09cc0f26ca5e88c63aab321d2765efde0dd91ec6d6"
+        }
+      ],
+      "simplified": true,
+      "simplification_summary": "选取原第1–8小节vOne，首重复段单次，不展开重复；指法、连线、p及渐强渐弱未转为演奏。原MIDI速度152改为固定112 BPM；原左手声部不导入，末拍休止保留。新增三和弦伴奏是重新配和声，不能还原原谱G7/B、D7等七和弦和转位。",
+      "source_page": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=202"
+    },
+    {
+      "score_id": "j01-bethena-a-first8.v1",
+      "title": "Bethena · A段首8小节主旋律",
+      "manifest_path": "j01-bethena-a-first8/manifest.json",
+      "manifest_sha256": "46cb8ca145db776348c7304422a238b5a6acca45b53b5d9f4ace132fd288832f",
+      "license": "Public Domain",
+      "xml_sha256": "1f7116b0950708f16bfc3ef3434fc7c34c810a646715aae92f3d4ce8dc72ecc6",
+      "measures": 8,
+      "principal_notes": 26,
+      "meter": [
+        3,
+        4
+      ],
+      "bpm": 120,
+      "files": [
+        {
+          "path": "j01-bethena-a-first8/melody-principal.musicxml",
+          "sha256": "1f7116b0950708f16bfc3ef3434fc7c34c810a646715aae92f3d4ce8dc72ecc6"
+        },
+        {
+          "path": "j01-bethena-a-first8/rights.json",
+          "sha256": "5f4909d215f7d43b1dfe539e575574a89a95b0e9d6cfa48ca75072aa8e3eef84"
+        },
+        {
+          "path": "j01-bethena-a-first8/conversion-losses.json",
+          "sha256": "2dc7cde30adbf1da3754881fd7bd53266b643c867bbbda9a76439c987a91f55c"
+        },
+        {
+          "path": "j01-bethena-a-first8/source-original/header.ly",
+          "sha256": "d4cdcd75c31615035689079ad44ac959813e8e107ec262c8ce3c89cc94b36dfe"
+        },
+        {
+          "path": "j01-bethena-a-first8/source-original/joplin_bethena.ly",
+          "sha256": "7e8affedada101f9c0c8ce00c86dff4380cbd04505f31e8fb14394675304afba"
+        },
+        {
+          "path": "j01-bethena-a-first8/source-original/partOne.ly",
+          "sha256": "d590cd8e0945a0dcf709b40a1a5af3d8d8973b58ae5c5952d49ed8d2b8e66033"
+        }
+      ],
+      "simplified": true,
+      "simplification_summary": "选取原第9–16小节partOneRHvI映射为1–8，单次，不展开重复；其余声部和全局mp、a tempo、Valse cantabile未转为演奏。原MIDI速度150改为固定120 BPM，不添加swing。原半音内声部和声未导入，新增三和弦伴奏属于重新配和声。源头1905逝世年错误保留原文，作者资料标为1868–1917。",
+      "source_page": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=463"
+    }
+  ]
+}
