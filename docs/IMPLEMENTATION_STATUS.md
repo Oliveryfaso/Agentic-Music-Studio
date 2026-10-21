@@ -1,6 +1,6 @@
 # Motif Forge 当前实施状态
 
-> 状态日期：2026-10-20（历史验证按原日期保留）
+> 状态日期：2026-10-21（历史验证按原日期保留）
 > 性质：当前代码事实与验收证据，不替代产品合同
 > 更新规则：每个被验收的小纵切结束后更新；不要把目标设计写成已实现能力
 
@@ -18,7 +18,19 @@
 
 ## 2. 当前产品形态
 
-### 当前切片：P2.3 Q4音区保持修复及单次真实验证通过（2026-10-20）
+### 当前切片：P2.3 音乐契合度上下文与针对性验证（2026-10-21，人耳待验）
+
+MF-P04/P05/P06/P10/P11/P13/P15/P16/P18/P20/P21。用户听到新增轨但认为契合不足；已核对旧三曲、最新Q4与原谱左手，确认和声功能/半终止、3/4脉冲、26/23半音无动机跳进和句尾填音风险。原轨与编译时间相同、无声部交叉，不据此宣称测过声学起音。基线明确为固定速度主旋律摘录，非完整原作演奏。
+
+新Prompt v5仅给v2增加拍位/时长加权的多候选和声、核对的源谱锚点、终止/休止/重复/拍号建议；fixed harmony/register优先，modify不加竞争和声。新记录标fit policy，Plan原样保存，旧记录不重解释；无新Schema/Graph/DB/DSP/音源/依赖。一次真实C02同旧意图：第2小节F/第8小节G/末拍休止代理通过，原旋律exact；第4–7bar仍重新配和声，26→23音但gate6720→9600ticks，不能称音乐质量通过。
+
+Python917（既有弃用warning1）、相关31、任务门禁45/mypy2/Ruff通过；一fresh独审1项Important（缺post官方映射/价格GET）经唯一修复/5例限定复核关闭。4组控制8正式Jobs+真实2Jobs，actual API/自有PG/Parent/Worker/fresh重复resume/0追加调用重放与拒绝通过；不冒充Redis/Celery/Compose或新前端全验。单独声部为共享编译器诊断渲染，不计持久Job。
+
+官方V4.1-Flash-1017已有人类接受，request deepseek-v4-flash/response deepseek-flash，pre/post官方GET与精确数据/预算gate通过，不能独立证明权重。本次1请求/2501tokens/峰价估计上界¥0.007132非账单；批准后累计9次/19161tokens/¥0.053748，沿用同一¥10；新旧账本永久pause，无第2次/重试，reasoning未知保持partial/null。
+
+九段原/旧/新及H/R/V/独奏离线实播/同位置切换通过，固定增益−24.01至−23.99LUFS，160k有损副本。**Library新包已明确成功：libfile_9f7aadcc6c988191a1ea2f7ce36f402e（1,946,591bytes）**，历史失败不改写。自有PG/DSN/renderer/browser关闭，共享27容器保持；54保留文件校验，恢复清理可计量17,637,889逻辑bytes，外置盘首次部分删除未计量。Guide/main不变、不部署。下一门为人耳契合/清晰/乐句/偏好对照，未启动新架构。[研究与验收](evidence/2026-10-21-p23-musical-fit.md)、[机器证据](evidence/2026-10-21-p23-musical-fit.json)。
+
+### 历史切片：P2.3 Q4音区保持修复及单次真实验证通过（2026-10-20）
 
 MF-P04/P05/P06/P10/P11/P13/P15/P16/P18/P20/P21。显式“保留音区”固定选区逐bar保存Plan.octave，来源必须用source_run_id重编译并比对精确NoteEvents/Track；不能证明/矛盾在Provider前拒绝。新Prompt v4固定register；Provider、存前、重放三处校验，违例无候选/Job，不转八度修补/重试；旧Schema/IR/DB/Graph不改，原失败样本和七次暂停账本封存。
 

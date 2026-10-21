@@ -60,3 +60,29 @@ most CNY0.20 / two submissions, including failures, within the original cumulati
 CNY10 approval; one Q4 call is planned. Old history is not unlocked or reset.
 Official routing plus a generic response name does not prove a cryptographic
 weight identity. See the task evidence and subsequent outcome for actual use.
+
+### P2.3 music-fit context (2026-10-21)
+
+New v2 calls use `piano-accompaniment-prompt.v5` and record optional
+`fit_policy=piano-musical-fit-context.v1`. The pure helper supplies compact
+advisory facts: duration/metric-weighted two-chord candidates with a bounded
+passing/neighbor heuristic, a few reductions checked against pinned source
+left-hand voices, source cadence destinations, exact repeated-bar identity,
+pulse steps and the principal's terminal rest. It neither identifies a unique
+true harmony nor certifies musical quality. Source seventh chords, inversions,
+chromatic inner voices and phrase-internal harmony changes remain outside the
+current triadic/barwise palette; historical `default_chords` are rule baselines,
+not original-score harmony ground truth.
+
+For modify, source chord candidates/anchors/cadences are omitted; existing
+fixed_harmony and fixed_register always win. Advice never rewrites/clamps a
+returned Plan or adds paid repair. New/old Plan and Record schemas, IR, compiler,
+Graph, storage, DSP and instrument stay unchanged. Cached historical plans are
+replayed exactly, not reinterpreted by new taste rules. There is no new hard
+quality rejection based on scale/chroma/dissonance or movement proxies.
+
+Eval labels for the saved corpus include HARMONIC_ROLE_DRIFT, METRIC_PULSE_DRIFT,
+UNMOTIVATED_REGISTER_LEAP and CADENCE_REST_FILLED. They name observable hypotheses,
+not universal errors: syncopation and nonchord tones can be intentional. Compare
+single-field chord/grid/octave controls and fixed-gain equal-LUFS full mixes;
+separate fit, melody clarity, phrase flow and preference in human acceptance.

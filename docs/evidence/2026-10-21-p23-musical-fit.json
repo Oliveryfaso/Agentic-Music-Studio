@@ -1,0 +1,163 @@
+{
+  "date": "2026-10-21",
+  "stage": "P2.3 musical fit context + targeted test",
+  "base": "2485e63979c8a54d2720b73403a589da057a8f03",
+  "requirements": [
+    "MF-P04",
+    "MF-P05",
+    "MF-P06",
+    "MF-P10",
+    "MF-P11",
+    "MF-P13",
+    "MF-P15",
+    "MF-P16",
+    "MF-P18",
+    "MF-P20",
+    "MF-P21"
+  ],
+  "production": {
+    "prompt": "piano-accompaniment-prompt.v5",
+    "fit_policy": "piano-musical-fit-context.v1",
+    "advisory_only": true,
+    "saved_plan_unmodified": true,
+    "source_track_exact": true,
+    "old_plan_reinterpretation": false,
+    "new_schema_or_graph_or_dsp": false
+  },
+  "eval": {
+    "success_case": "FIT-C02-same-Q2-intent",
+    "proxies": {
+      "bar2_F": true,
+      "half_cadence8_G": true,
+      "terminal_rest_respected": true
+    },
+    "negative_saved_cases": {
+      "HARMONIC_ROLE_DRIFT": [
+        "Q2-bar2",
+        "Q2-bar8"
+      ],
+      "METRIC_PULSE_DRIFT": [
+        "Q1-3/4",
+        "Q3-3/4"
+      ],
+      "UNMOTIVATED_REGISTER_LEAP": [
+        "Q1-26semitones",
+        "Q4-R1-23semitones"
+      ],
+      "CADENCE_REST_FILLED": [
+        "Q2-bar8"
+      ]
+    },
+    "not_a_taste_score": true,
+    "human_music_acceptance": false
+  },
+  "verification": {
+    "tdd_red_missing_context": 3,
+    "new_unit_tests": 9,
+    "related_tests": 31,
+    "full_python_passed": 917,
+    "existing_deprecation_warnings": 1,
+    "mypy_source_files": 2,
+    "ruff": "passed",
+    "task_guard_tests": 45,
+    "final_focused_guard_tests": 12,
+    "offline_formal_jobs": 8,
+    "real_formal_jobs": 2,
+    "diagnostic_stem_render": 1,
+    "fresh_parent_duplicate_resume": true,
+    "saved_replay_additional_model_requests": 0,
+    "boundary": "actual API + owned PostgreSQL + production Parent/Worker; not Redis-Celery/Compose or new full frontend test"
+  },
+  "review": {
+    "fresh_review": 1,
+    "blocking_important": 1,
+    "finding": "missing official route/price post GET",
+    "repair_recheck": 1,
+    "repair_tests": 5,
+    "remaining_blockers": 0
+  },
+  "provider": {
+    "endpoint": "https://api.deepseek.com/chat/completions",
+    "request_model": "deepseek-v4-flash",
+    "response_model": "deepseek-flash",
+    "official_service_version": "DeepSeek-V4.1-Flash-1017",
+    "replacement_human_approved": true,
+    "official_pre_and_post": "passed",
+    "model_version_returned": false,
+    "exact_weights_independently_verified": false
+  },
+  "spend": {
+    "new_submissions": 1,
+    "retries": 0,
+    "usage": {
+      "status": "partial",
+      "total_tokens": 2501,
+      "prompt_tokens": 2146,
+      "reasoning_tokens": null,
+      "completion_tokens": 355,
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 2146
+    },
+    "new_upper_cny_not_bill": 0.007132,
+    "reserved_cny_not_spend": 0.096,
+    "batch_cap_cny": 0.1,
+    "cumulative_postauthorization_calls": 9,
+    "cumulative_postauthorization_tokens": 19161,
+    "cumulative_postauthorization_upper_cny_not_bill": 0.053748,
+    "legacy_preapproval_upper_cny_not_bill": 0.023852,
+    "lifetime_calls": 13,
+    "lifetime_tokens": 26389,
+    "lifetime_upper_cny_not_bill": 0.0776,
+    "same_cumulative_authorization_cny": 10,
+    "all_batches_paused": true
+  },
+  "remaining_music_limits": [
+    "Single stochastic new sample; not causal proof of prompt improvement",
+    "New bars4-7 reharmonize source differently",
+    "New 23 notes vs old26 but gate9600 vs6720ticks; relative velocity changes",
+    "Principal-only fixed-tempo baseline; no source left hand/pedal/dynamic playback",
+    "Single-triad-per-bar palette omits seventh/inversions/chromatic inner voices",
+    "Sample acoustic onset not measured",
+    "Three fixed scores do not establish generalization"
+  ],
+  "listening": {
+    "clips": 9,
+    "lufs_range": [
+      -24.01,
+      -23.99
+    ],
+    "constant_gain_only": true,
+    "encoder_bitrate": "160k",
+    "offline_media_and_same_position_switch": "passed",
+    "library": {
+      "operation": "create_library_file",
+      "status": "succeeded",
+      "library_file_id": "libfile_9f7aadcc6c988191a1ea2f7ce36f402e",
+      "file_id": "file_0000000078ec81f881cd84115763091d",
+      "file_name": "Motif-契合度九段离线对照-2026-10-21.zip",
+      "file_size_bytes": 1946591,
+      "xattrs_applied": true,
+      "attempts_this_task": 1,
+      "metadata_helper_note": "system Python lacks os.setxattr; native xattr command applied and readback verified, no second upload"
+    },
+    "package": "db2caed93c403c363f0e99a791e10d0e1f33c7924b8ef38bc1a1c9b74971a5f7"
+  },
+  "resources": {
+    "owned_pg_renderer_browser_closed": true,
+    "generated_dsn_removed": true,
+    "preexisting_shared_containers_unchanged": 27,
+    "user_db_used": false,
+    "storage_remaining_phase_logical_bytes": 17637889,
+    "retained_files_verified": 54,
+    "initial_partial_cleanup_unmetered": true,
+    "no_shared_prune": true
+  },
+  "identities": {
+    "targeted-ledger.jsonl": "35db2d738bf1150aa0be437fc4c32d9650de99c9bf1ce1593bc5f0c9fe197ef6",
+    "provider-receipt.json": "68b619c6e8534ad6683307a72e146b4153b3e22228d60dbe006106e77fbaaeb8",
+    "official-check-pre.json": "cc4a563188fb0179d5c3ecfbecec4426e404d2e5c967271925ecde92b069b6b0",
+    "official-check-post.json": "f6ebbe750a93016a69a247c1d98c937f0c0324e2ccf7ca8f3d2b7295811e39f7"
+  },
+  "main_guide_unchanged": true,
+  "deployed": false
+}
