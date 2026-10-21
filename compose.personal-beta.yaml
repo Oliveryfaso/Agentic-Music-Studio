@@ -1,0 +1,39 @@
+# Explicit opt-in local profile. Launch with scripts/start_motif_forge.sh --personal-beta.
+# Public .env.example is selected at both CLI and container env_file layers by the launcher.
+x-beta-python-environment: &beta-python-environment
+  DEEPSEEK_API_KEY: ""
+  LANGSMITH_TRACING: "false"
+  LANGSMITH_API_KEY: ""
+  MOTIF_FORGE_RENDER_SERVICE_URL: http://render-worker:8090
+
+services:
+  api:
+    image: motif-forge-beta-api:${MOTIF_FORGE_BETA_IMAGE_TAG:-local}
+    environment: *beta-python-environment
+  migrate:
+    image: motif-forge-beta-api:${MOTIF_FORGE_BETA_IMAGE_TAG:-local}
+    environment: *beta-python-environment
+  storage-init:
+    image: motif-forge-beta-api:${MOTIF_FORGE_BETA_IMAGE_TAG:-local}
+  dispatcher:
+    image: motif-forge-beta-api:${MOTIF_FORGE_BETA_IMAGE_TAG:-local}
+    environment: *beta-python-environment
+  resume-dispatcher:
+    image: motif-forge-beta-api:${MOTIF_FORGE_BETA_IMAGE_TAG:-local}
+    environment: *beta-python-environment
+  media-worker:
+    image: motif-forge-beta-media-worker:${MOTIF_FORGE_BETA_IMAGE_TAG:-local}
+    environment: *beta-python-environment
+  render-worker:
+    image: motif-forge-beta-render-worker:${MOTIF_FORGE_BETA_IMAGE_TAG:-local}
+    environment:
+      MOTIF_FORGE_REVIEWED_PIANO_ROOT: /reviewed-piano
+      # Fixed reviewed scripts/resource-contract.v1.json pin; never learn a pin from suspect bytes.
+      MOTIF_FORGE_REVIEWED_PIANO_MANIFEST_SHA256: 264fdbf12f3c7273a0d15fbcb86abed04b73e08b6fc4faf482eaf41040a0b813
+    volumes:
+      - type: bind
+        source: ${MOTIF_FORGE_REVIEWED_PIANO_ROOT:?Set the existing reviewed piano root}
+        target: /reviewed-piano
+        read_only: true
+        bind:
+          create_host_path: false

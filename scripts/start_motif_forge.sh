@@ -6,6 +6,8 @@ cd "$project_root"
 
 check_only=0
 open_browser=1
+personal_beta=0
+web_port=5173
 web_url="http://127.0.0.1:5173"
 api_ready_url="http://127.0.0.1:8000/health/ready"
 render_ready_url="http://127.0.0.1:8090/health"
@@ -15,7 +17,7 @@ web_pid_file="$runtime_dir/web.pid"
 
 usage() {
   cat <<'EOF'
-Usage: scripts/start_motif_forge.sh [--check] [--no-open]
+Usage: scripts/start_motif_forge.sh [--personal-beta] [--check] [--no-open]
 
 Start the complete local Motif Forge portfolio:
   - initialize the external development storage root;
@@ -25,6 +27,7 @@ Start the complete local Motif Forge portfolio:
   - start the Vite Web Studio and open it in the browser.
 
 Options:
+  --personal-beta  Isolated reviewed-catalog profile; models remain disabled.
   --check     Validate local prerequisites without starting or changing anything.
   --no-open   Do not open the browser after the Web Studio becomes ready.
   -h, --help  Show this help.
@@ -36,6 +39,9 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --personal-beta)
+      personal_beta=1
+      ;;
     --check)
       check_only=1
       ;;
@@ -55,6 +61,38 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
+compose_command=(docker compose)
+if (( personal_beta )); then
+  # Explicit public configuration at both Compose layers; never load/copy .env.
+  unset COMPOSE_FILE COMPOSE_ENV_FILES COMPOSE_PROFILES
+  export MOTIF_FORGE_CONTAINER_ENV_FILE="$project_root/.env.example"
+  compose_command+=(--env-file "$project_root/.env.example"
+    -f "$project_root/compose.yaml" -f "$project_root/compose.personal-beta.yaml")
+  export MOTIF_FORGE_DEV_STORAGE_ROOT="${MOTIF_FORGE_BETA_STORAGE_ROOT:-$project_root/artifacts/personal-beta}"
+  export MOTIF_FORGE_REVIEWED_PIANO_ROOT="${MOTIF_FORGE_REVIEWED_PIANO_ROOT:-$project_root/artifacts/instrument-packs/kw-small-20190703}"
+  export MOTIF_FORGE_COMPOSE_PROJECT_NAME="${MOTIF_FORGE_COMPOSE_PROJECT_NAME:-motif-forge-beta-$(id -u)-$runtime_tag}"
+  runtime_dir="$runtime_dir-personal-beta"
+  web_pid_file="$runtime_dir/web.pid"
+  export MOTIF_FORGE_API_HOST_PORT="${MOTIF_FORGE_BETA_API_PORT:-18000}"
+  export MOTIF_FORGE_RENDER_HOST_PORT="${MOTIF_FORGE_BETA_RENDER_PORT:-18090}"
+  export MOTIF_FORGE_POSTGRES_HOST_PORT="${MOTIF_FORGE_BETA_POSTGRES_PORT:-15432}"
+  export MOTIF_FORGE_REDIS_HOST_PORT="${MOTIF_FORGE_BETA_REDIS_PORT:-16379}"
+  web_port="${MOTIF_FORGE_BETA_WEB_PORT:-15173}"
+  for port in "$MOTIF_FORGE_API_HOST_PORT" "$MOTIF_FORGE_RENDER_HOST_PORT"       "$MOTIF_FORGE_POSTGRES_HOST_PORT" "$MOTIF_FORGE_REDIS_HOST_PORT" "$web_port"; do
+    if [[ ! "$port" =~ ^[1-9][0-9]{0,4}$ ]] || (( 10#$port < 1 || 10#$port > 65535 )); then
+      echo "Invalid personal Beta port; use a number from 1 to 65535." >&2
+      exit 64
+    fi
+  done
+  web_url="http://127.0.0.1:$web_port"
+  api_ready_url="http://127.0.0.1:$MOTIF_FORGE_API_HOST_PORT/health/ready"
+  render_ready_url="http://127.0.0.1:$MOTIF_FORGE_RENDER_HOST_PORT/health"
+  export MOTIF_FORGE_API_PROXY_TARGET="http://127.0.0.1:$MOTIF_FORGE_API_HOST_PORT"
+  export MOTIF_FORGE_ARTIFACT_HOST_ROOT="$MOTIF_FORGE_DEV_STORAGE_ROOT/artifacts"
+  export MOTIF_FORGE_ARTIFACT_ROOT="$MOTIF_FORGE_DEV_STORAGE_ROOT/artifacts"
+  export MOTIF_FORGE_TEMP_ROOT="$MOTIF_FORGE_DEV_STORAGE_ROOT/tmp"
+fi
+
 require_command() {
   local command_name="$1"
   if ! command -v "$command_name" >/dev/null 2>&1; then
@@ -73,7 +111,7 @@ wait_for_http() {
   local attempts="${3:-60}"
 
   for ((attempt = 1; attempt <= attempts; attempt += 1)); do
-    if curl -fsS --max-time 2 "$url" >/dev/null 2>&1; then
+    if curl --noproxy "*" -fsS --max-time 2 "$url" >/dev/null 2>&1; then
       return 0
     fi
     sleep 1
@@ -87,13 +125,35 @@ for command_name in docker curl npm node python3; do
   require_command "$command_name"
 done
 
+if (( personal_beta )); then
+  if [[ ! -x node_modules/.bin/vite ]]; then
+    echo "Web dependencies are missing; install the existing lockfile dependencies explicitly." >&2
+    exit 69
+  fi
+  if ! PYTHONDONTWRITEBYTECODE=1 python3 scripts/personal_beta_preflight.py --repo "$project_root"       --piano-root "$MOTIF_FORGE_REVIEWED_PIANO_ROOT"; then
+    echo "Personal Beta resource preflight failed; no services were started." >&2
+    exit 78
+  fi
+  if ! docker_is_ready; then
+    echo "Docker is not ready; start your Docker environment explicitly, then retry." >&2
+    exit 70
+  fi
+  for target in api media-worker render-worker; do
+    image="motif-forge-beta-$target:${MOTIF_FORGE_BETA_IMAGE_TAG:-local}"
+    if ! docker image inspect --format '{{.Id}}' "$image" >/dev/null 2>&1; then
+      echo "Missing personal Beta image: $image. Use scripts/build_compose_images.sh --personal-beta TARGET for each required target (api, media-worker, render-worker); launch never builds or pulls." >&2
+      exit 78
+    fi
+  done
+fi
+
 if (( ! check_only )); then
 node scripts/motif_runtime_owner.mjs init "$project_root" "$runtime_dir" || exit "$?"
 if ! exec 9<> "$runtime_dir/operation.lock"; then exit 1; fi
 python3 scripts/motif_runtime_lock.py acquire "$runtime_dir/operation.lock" || exit "$?"
 fi
 
-if ! docker compose version >/dev/null 2>&1; then
+if ! "${compose_command[@]}" version >/dev/null 2>&1; then
   echo "Docker Compose is unavailable; install the Docker Compose plugin." >&2
   exit 69
 fi
@@ -111,7 +171,7 @@ if [[ -L "$MOTIF_FORGE_DEV_STORAGE_ROOT" ]]; then
 fi
 
 if (( check_only )); then
-  if [[ ! -f .env ]]; then
+  if (( ! personal_beta )) && [[ ! -f .env ]]; then
     echo "missing .env; a normal launch will create it from .env.example" >&2
     exit 78
   fi
@@ -123,12 +183,12 @@ if (( check_only )); then
     echo "Docker is not ready; start your Docker environment explicitly, then retry" >&2
     exit 70
   fi
-  docker compose config --quiet
+  "${compose_command[@]}" config --quiet
   echo "Motif Forge launch prerequisites are ready."
   exit 0
 fi
 
-if [[ ! -f .env ]]; then
+if (( ! personal_beta )) && [[ ! -f .env ]]; then
   if [[ ! -f .env.example ]]; then
     echo "cannot create .env because .env.example is missing" >&2
     exit 78
@@ -174,18 +234,29 @@ if [[ ! -x node_modules/.bin/vite ]]; then
 fi
 
 echo "Starting Motif Forge services…"
-docker compose --project-name "$compose_project" up -d
+if (( personal_beta )); then
+  "${compose_command[@]}" --project-name "$compose_project" up -d --no-build --pull never
+else
+  "${compose_command[@]}" --project-name "$compose_project" up -d
+fi
 
 if ! wait_for_http "$api_ready_url" "Motif Forge API" 90; then
-  docker compose --project-name "$compose_project" ps >&2 || true
+  "${compose_command[@]}" --project-name "$compose_project" ps >&2 || true
   exit 70
 fi
 if ! wait_for_http "$render_ready_url" "Motif Forge Render Worker" 90; then
-  docker compose --project-name "$compose_project" ps >&2 || true
+  "${compose_command[@]}" --project-name "$compose_project" ps >&2 || true
   exit 70
 fi
 
-if curl -fsS --max-time 2 "$web_url" >/dev/null 2>&1; then
+if (( personal_beta )); then
+  if ! PYTHONDONTWRITEBYTECODE=1 python3 scripts/personal_beta_preflight.py --repo "$project_root"       --piano-root "$MOTIF_FORGE_REVIEWED_PIANO_ROOT"       --api-url "http://127.0.0.1:$MOTIF_FORGE_API_HOST_PORT"       --render-url "http://127.0.0.1:$MOTIF_FORGE_RENDER_HOST_PORT"; then
+    echo "Personal Beta live resource checks failed; inspect the reported code before retrying." >&2
+    exit 70
+  fi
+fi
+
+if curl --noproxy "*" -fsS --max-time 2 "$web_url" >/dev/null 2>&1; then
   echo "Web port is occupied; no existing server was adopted: $web_url" >&2
   exit 78
 fi
@@ -227,7 +298,7 @@ fi
 mkdir -p "$runtime_dir"
 chmod 700 "$runtime_dir"
 
-npm run dev:web -- --host 127.0.0.1 --strictPort 9>&- &
+npm run dev:web -- --host 127.0.0.1 --port "$web_port" --strictPort 9>&- &
 web_pid=$!
 web_started="$(ps -p "$web_pid" -o lstart= | sed 's/^[[:space:]]*//')"
 web_record="$runtime_dir/web.pid.$$.tmp"
@@ -247,7 +318,12 @@ echo
 python3 scripts/motif_runtime_lock.py release "$runtime_dir/operation.lock"
 exec 9>&-
 echo "Motif Forge is ready: $web_url"
-echo "Stop everything with: scripts/stop_motif_forge.sh"
+if (( personal_beta )); then
+  echo "Stop this profile with: scripts/stop_motif_forge.sh --personal-beta"
+  echo "Models are disabled. Runtime receipt supports normal close/reopen; OS temporary-directory cleanup requires explicit recovery."
+else
+  echo "Stop everything with: scripts/stop_motif_forge.sh"
+fi
 
 if (( open_browser )) && [[ "$(uname -s)" == "Darwin" ]] && command -v open >/dev/null 2>&1; then
   open "$web_url"

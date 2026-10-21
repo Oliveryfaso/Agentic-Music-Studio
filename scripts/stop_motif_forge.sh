@@ -8,10 +8,11 @@ runtime_tag="$(printf '%s' "$project_root" | cksum | awk '{print $1}')"
 runtime_dir="${MOTIF_FORGE_RUNTIME_DIR:-/private/tmp/motif-forge-$(id -u)-$runtime_tag}"
 web_pid_file="$runtime_dir/web.pid"
 result=0
+personal_beta=0
 
 usage() {
   cat <<'EOF'
-Usage: scripts/stop_motif_forge.sh
+Usage: scripts/stop_motif_forge.sh [--personal-beta]
 
 Stop the complete local Motif Forge stack:
   - the Vite Web Studio started by the launcher;
@@ -24,8 +25,11 @@ The command is safe to repeat when Motif Forge is already stopped.
 EOF
 }
 
-if [[ $# -gt 0 ]]; then
+while [[ $# -gt 0 ]]; do
   case "$1" in
+    --personal-beta)
+      personal_beta=1
+      ;;
     -h|--help)
       usage
       exit 0
@@ -36,6 +40,11 @@ if [[ $# -gt 0 ]]; then
       exit 64
       ;;
   esac
+  shift
+done
+if (( personal_beta )); then
+  runtime_dir="$runtime_dir-personal-beta"
+  web_pid_file="$runtime_dir/web.pid"
 fi
 
 process_is_running() {

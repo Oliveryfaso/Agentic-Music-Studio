@@ -10,7 +10,7 @@ services:
       dockerfile: services/api/Dockerfile
       target: api
     env_file:
-      - .env
+      - ${MOTIF_FORGE_CONTAINER_ENV_FILE:-.env}
     environment:
       DEEPSEEK_API_KEY: ""
       LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
@@ -27,7 +27,7 @@ services:
       - ${MOTIF_FORGE_ARTIFACT_HOST_ROOT:-./var/artifacts}:/artifacts
       - ${MOTIF_FORGE_TEMP_ROOT:-./var/tmp}:/temp
     ports:
-      - "8000:8000"
+      - "127.0.0.1:${MOTIF_FORGE_API_HOST_PORT:-8000}:8000"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -45,7 +45,7 @@ services:
       target: api
     command: ["alembic", "upgrade", "head"]
     env_file:
-      - .env
+      - ${MOTIF_FORGE_CONTAINER_ENV_FILE:-.env}
     environment:
       DEEPSEEK_API_KEY: ""
       LANGSMITH_TRACING: "false"
@@ -76,7 +76,7 @@ services:
     image: motif-forge-api:local
     command: ["python", "-m", "motif_forge.worker.dispatcher"]
     env_file:
-      - .env
+      - ${MOTIF_FORGE_CONTAINER_ENV_FILE:-.env}
     environment:
       DEEPSEEK_API_KEY: ""
       LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
@@ -98,7 +98,7 @@ services:
     image: motif-forge-api:local
     command: ["python", "-m", "motif_forge.worker.resume_dispatcher"]
     env_file:
-      - .env
+      - ${MOTIF_FORGE_CONTAINER_ENV_FILE:-.env}
     environment:
       DEEPSEEK_API_KEY: ""
       LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
@@ -140,7 +140,7 @@ services:
         "--loglevel=INFO",
       ]
     env_file:
-      - .env
+      - ${MOTIF_FORGE_CONTAINER_ENV_FILE:-.env}
     environment:
       DEEPSEEK_API_KEY: ""
       LANGSMITH_TRACING: "false"
@@ -182,7 +182,7 @@ services:
     expose:
       - "8090"
     ports:
-      - "127.0.0.1:8090:8090"
+      - "127.0.0.1:${MOTIF_FORGE_RENDER_HOST_PORT:-8090}:8090"
     restart: unless-stopped
     stop_grace_period: 30s
 
@@ -194,7 +194,7 @@ services:
       POSTGRES_USER: motif_forge
       POSTGRES_PASSWORD: motif_forge
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${MOTIF_FORGE_POSTGRES_HOST_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U motif_forge -d motif_forge"]
       interval: 5s
@@ -207,7 +207,7 @@ services:
     labels: *motif-runtime-labels
     image: redis:7.4-alpine
     ports:
-      - "6379:6379"
+      - "127.0.0.1:${MOTIF_FORGE_REDIS_HOST_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

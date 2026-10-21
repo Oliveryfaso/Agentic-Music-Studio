@@ -2,16 +2,31 @@
 set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-context_root="$(mktemp -d /private/tmp/motif-forge-docker-context.XXXXXX)"
+personal_beta=0
+if [[ "${1:-}" == --personal-beta ]]; then
+  personal_beta=1
+  shift
+fi
 requested_target="${1:-all}"
+if [[ $# -gt 1 ]] || { (( personal_beta )) && [[ "$requested_target" == all ]]; }; then
+  echo "Personal Beta requires exactly one explicit target: api, media-worker or render-worker." >&2
+  exit 64
+fi
 
 case "$requested_target" in
   all|api|media-worker|render-worker) ;;
   *)
-    echo "usage: $0 [all|api|media-worker|render-worker]" >&2
+    echo "usage: $0 [all|api|media-worker|render-worker] or $0 --personal-beta TARGET" >&2
     exit 64
     ;;
 esac
+image_prefix=motif-forge
+image_tag=local
+if (( personal_beta )); then
+  image_prefix=motif-forge-beta
+  image_tag="${MOTIF_FORGE_BETA_IMAGE_TAG:-local}"
+fi
+context_root="$(mktemp -d /private/tmp/motif-forge-docker-context.XXXXXX)"
 
 cleanup() {
   if [[ "$context_root" != /private/tmp/motif-forge-docker-context.* ]]; then
@@ -82,7 +97,7 @@ if [[ "$requested_target" == all || "$requested_target" == api ]]; then
   docker buildx build \
     --load \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
-    --tag motif-forge-api:local \
+    --tag "${image_prefix}-api:${image_tag}" \
     --target api \
     --file "$context_root/services/api/Dockerfile" \
     "$context_root"
@@ -92,7 +107,7 @@ if [[ "$requested_target" == all || "$requested_target" == media-worker ]]; then
   docker buildx build \
     --load \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
-    --tag motif-forge-media-worker:local \
+    --tag "${image_prefix}-media-worker:${image_tag}" \
     --target media-worker \
     --file "$context_root/services/api/Dockerfile" \
     "$context_root"
@@ -102,7 +117,7 @@ if [[ "$requested_target" == all || "$requested_target" == render-worker ]]; the
   docker buildx build \
     --load \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
-    --tag motif-forge-render-worker:local \
+    --tag "${image_prefix}-render-worker:${image_tag}" \
     --file "$context_root/services/render-worker/Dockerfile" \
     "$context_root"
 fi

@@ -1,0 +1,75 @@
+{
+  "schema": "motif-personal-beta-b1-source-gate.v1",
+  "date": "2026-10-21",
+  "stage": "P2.3 personal Beta / B1 source ready; real runtime blocked",
+  "requirements": [
+    "MF-P16",
+    "MF-P17",
+    "MF-P18",
+    "MF-P21"
+  ],
+  "baseline_commit": "6cb58b26dfa847c84e5ec2403292a52bf0846c90",
+  "code_installed": true,
+  "candidate_files": 9,
+  "installed_focused_tests": {
+    "passed": 67,
+    "seconds": 22.73,
+    "scope": "profile/config/build/preflight and existing owned-runtime contracts, not full product regression"
+  },
+  "fresh_independent_review": {
+    "critical": 0,
+    "important": 0,
+    "minor": 0,
+    "independent_checks": 17,
+    "code_hashes_unchanged": true
+  },
+  "actual_public_config_checks": {
+    "all_ports_loopback": true,
+    "all_model_keys_empty": true,
+    "python_tracing_off": true,
+    "readonly_pack_no_auto_create": true,
+    "fixed_pin": true,
+    "independent_images": true
+  },
+  "actual_host_assets_preflight": {
+    "assets_verified": true,
+    "resource_ready": false,
+    "renderer_admission": "not_checked"
+  },
+  "actual_missing_image_guard": {
+    "exit_code": 78,
+    "no_implicit_build_or_pull": true
+  },
+  "actual_bind_probe": {
+    "exit_code": 125,
+    "result": "bind source path does not exist",
+    "cache_only": true,
+    "network": "none",
+    "leftover_container": false
+  },
+  "confirmed_vm_filesystem": {
+    "path": "/Volumes/KINGSTON",
+    "target": "/",
+    "source": "/dev/vda1",
+    "filesystem": "ext4",
+    "interpretation": "VM has old placeholder directories, not the actual host external-volume share; the approved piano directory is absent"
+  },
+  "blocking_boundary": "Existing VM does not expose the approved external repo/pack/media path. User explicitly allowed only existing-VM startup, no config changes or stop; no mount/config/restart performed. Await user-provided external share/window.",
+  "image_freshness": "existing normal API/media/render image tags are stale versus current source, so not started or retagged; dedicated Beta tags required at future stage gate",
+  "actual_new_image_builds": 0,
+  "actual_new_product_services": 0,
+  "actual_url": null,
+  "actual_test_project": null,
+  "actual_revision": null,
+  "real_compose_beta_accepted": false,
+  "browser_uat": "not run; original frontend session retains ownership",
+  "same_environment_model_edit_reopen_export": "not run",
+  "credentials": "no actual .env or existing secrets read/copied/persisted; model and tracing disabled",
+  "new_model_calls": 0,
+  "new_cost_cny": "0",
+  "cumulative_prior_estimate_upper_cny": "0.059998",
+  "estimate_is_bill": false,
+  "same_cumulative_authorization_ceiling_cny": "10",
+  "main_or_guide_change": false,
+  "public_deployment": false
+}

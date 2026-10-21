@@ -18,6 +18,10 @@
 
 ## 2. 当前产品形态
 
+### B1 source preparation: personal Beta profile, runtime gate pending (2026-10-21)
+
+MF-P16/P17/P18/P21. Installed source/config for isolated loopback Beta, explicit public templates, disabled model/tracing, reviewed readonly pack/pin, live capability/catalog guard and dedicated single-target image build.67 installed focused checks and17 independent checks pass; no review findings. Host assets verify and6 actual Compose config checks pass. Real readonly bind probe fails125: VM sees old ext4 placeholders rather than the actual host external volume. No permission to modify/restart sharedVM; no new image build/service/URL/Project/Revision. This is a source checkpoint, not B1 runtime acceptance. Real Compose/UI and B2 same-environment model/edit/reopen/export await the concrete external-share and later credential boundaries. [Evidence](evidence/2026-10-21-beta-b1-source.md).
+
 ### Current slice: personal Beta preparation B0 runtime boundary (2026-10-21)
 
 MF-P16/P17/P18/P21. Strictly-owned start/stop is installed and real-Docker verified: unknown persistent resources refused, two stop/reopen cycles retain data and owner, repeat stop succeeds. Only task-created test resources removed; all27 preexisting container IDs retained, no VM changes. New real-CLI JSON-template defect was preserved, corrected by one literal brace, and narrowly independently reviewed. Installed checks27, original UI39+types, resources11; these do not replace full Beta Compose/browser acceptance.

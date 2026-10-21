@@ -25,7 +25,7 @@ def test_launcher_exposes_safe_one_command_contract() -> None:
         "MOTIF_FORGE_DEV_STORAGE_ROOT",
         "bootstrap_external_storage.sh",
         "motif_runtime_owner.mjs prepare",
-        'docker compose --project-name "$compose_project" up -d',
+        '"${compose_command[@]}" --project-name "$compose_project" up -d',
         "/health/ready",
         "http://127.0.0.1:8090/health",
         "npm run dev:web",
