@@ -439,3 +439,11 @@ MF-P06/P13/P18/P21。原前端a83decb基线补丁精确5文件集成；恢复目
 MF-P06/P13/P18/P21。原前端新增的两项组件检查已集成：两轮mock确认后Undo新Revision的路由/谱面props/保存音频/导出链接一致，以及固定导出计划两次重开。补独审发现审批mock忽略action，已限定修复为校验project、approve、已知thread和准确hash；唯一窄复核关闭。仓库实际新增2/2及完整Web类型检查通过，无运行时代码变更，无需容器刷新。
 
 同一正常Beta的真实模型两轮/Undo闭环本轮尚未执行：免费独立基底命令两次自动审核超时，均在CreateProcess前拒绝；没有新项目/Job/保存。api与resume-dispatcher仍无模型配置，凭据路径须明确及原生审批，未读取/注入密钥，付费新增0、预留0，旧累计估计¥0.059998非账单不重置。浏览器/声音/下载/键盘均未由这两个mock测试验收；旧原生浏览器审批unknown，不重发。main/Guide和原候选保留。[本轮边界与证据](evidence/2026-10-21-beta-acceptance-state-close.md)。
+
+## 2026-10-22 B2：同一正常 Beta 的真实两轮编辑、保存与 Undo/同版导出
+
+P2.3 / 个人Beta，MF-P04/P05/P06/P11/P13/P15/P16/P17/P18/P21。新独立C02通过正常API/Parent/队列/HITL完成R0→真实R1→真实R2→新Undo U；新进程重读和第三进程终检确认完整IR(U)=IR(R1)、parent(U)=R2、原三项目保持。同U固定导出11文件17,317,449实际bytes/SHA/音频lineage通过，新项目11 Jobs各attempt1，无直接业务表写入或假Job。未改产品代码，原前端mock不再是该API/模型闭环唯一依据。
+
+实际新增2请求/4783tokens，无重试；峰价不计cache估计上界¥0.011876，原窗口累计估计¥0.071874，非账单。同一¥10预算保留旧暂停账本全预留，gate最终保守曝光¥0.161688、余¥9.838312。产品partial/reasoning null如实保留，完整计费核心及精确Run/唯一reservation逐项核对；修正任务脚本known假设与本地/远端operation编号混同，失败保留、首轮复用不重采样。17准备+8最终窄回归、限定独审及真实边界通过。
+
+两个授权临时密钥窗口均恢复空配置，第三进程确认4个携密钥容器已移除；当前模型not_configured，保存试听/导出仍可用。只对齐自有resume至已有API镜像，无新构建/Colima/旧项目操作。浏览器原生审批仍unknown，未重发/绕过；播放、下载、键盘/小屏与本轮人耳偏好仍待原线/用户验收，完整个人Beta未据此封板。main/Guide不改，保留服务与所有失败/音频证据，卫生清理0bytes。[本轮真实证据与边界](evidence/2026-10-22-beta-real-model-loop.md)。

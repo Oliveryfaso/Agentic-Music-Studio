@@ -701,3 +701,11 @@ MF-P06/P13/P18/P21。原前端已审5文件补丁接入实际仓库：用户主�
 ## 2026-10-21 — B2c acceptance-state test-only closure
 
 MF-P06/P13/P18/P21：复用原前端的一文件两测试补丁，补独审并窄修approve mock假阳性，独立复核关闭；workspace和实际repo均2/2，完整Web类型检查通过。仅测试与文档，不修改编配、API、服务、凭据或用户作品。真实模型/正常Beta多轮Undo仍待；免费准备的两次审核timeout均未创建进程，没有把mock、历史案例或正时长音频当作本轮整链成功。新增模型调用/预算预留0，旧估计累计¥0.059998非账单。[证据](evidence/2026-10-21-beta-acceptance-state-close.md)。
+
+## 2026-10-22 — B2 genuine same-environment model loop
+
+P2.3/B2，MF-P04/P05/P06/P11/P13/P15/P16/P17/P18/P21。在正常持久Beta中新C02完成规则R0→真实模型两轮R1/R2→新进程精确Undo U→同U全导出，第三进程重读。主旋律/选区外/和声/第二轮音区保护，11真实Jobs各attempt1，11下载17,317,449bytes/全部SHA与canonical IR/Plan/manifest/Artifact lineage通过；原三项目保持。无直接DB写/伪Job/重试/产品代码变更。旧免费命令审核timeout和本轮已执行严格区分，原暂停与本地验收错误不覆盖。
+
+原验收known断言混淆可选reasoning细分与已知计费核心，另一个review修复误把reservation本地编号等同远端completion；各停在下一模型前、保存反例、窄修复与独审，第一轮仅复用原结果。产品partial/null不改，所有计费分量与精确Run/唯一observed reservation严格绑定；未宣称保留rawHTTP/model_version。17准备/8最终窄检查，真实2请求4783tokens，本轮公开峰价上界¥0.011876、累计观测估计¥0.071874非账单；gate还保留旧未冲销预留，保守曝光¥0.161688、同一¥10不重置。
+
+新明确授权及原生审核仅允许既有key临时进入本任务API/resume，finally恢复空且第三进程确认4个携密钥容器均消失。resume对齐已有API7dad镜像，未构建/下载，其他owned服务元数据保持，Colima/旧项目不动。证据与待前端产物保留约20.8MB，清理0/新cache0，shared builder不prune。当前模型空配置，服务保留供浏览器人工关口；原DevTools unknown不重试，未将API/解码/代理指标说成用户播放/下载/听感验收。[完整证据](evidence/2026-10-22-beta-real-model-loop.md)。
