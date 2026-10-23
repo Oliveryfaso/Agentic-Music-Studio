@@ -26,7 +26,7 @@ export function ClassicalScoreEntry(){
   if(error instanceof ApiError&&['CLASSICAL_SOURCE_NOT_FOUND','CLASSICAL_SOURCE_HASH_MISMATCH','INSTRUMENT_PACK_UNAVAILABLE','RENDER_SERVICE_UNAVAILABLE'].includes(error.code))clearIntent();
  }});
  return <section className="studio-panel classical-score-entry" aria-label="经典谱入口">
-  <div className="panel-heading"><div><p className="eyebrow">START WITH A CLASSIC</p><h2>在经典旋律上继续创作</h2><p>从固定审核的主旋律摘录开始，保留原谱，再增加一条钢琴伴奏。</p><p>这是审核曲库内的双钢琴 Beta，暂不支持任意 MusicXML / MIDI 文件导入。生成后，试听 A/B 后再决定是否保留。</p></div><button type="button" className="secondary-inline" aria-expanded={open} disabled={creation.isPending} onClick={()=>setOpen(!open)}>查看经典谱</button></div>
+  <div className="panel-heading"><div><h2>审核曲库</h2><p>固定审核的主旋律摘录 · 原谱锁定。试听 A/B 后再决定是否保留。</p><p>审核曲库内的双钢琴 Beta，暂不支持任意 MusicXML / MIDI 文件导入。</p></div><button type="button" className="secondary-inline" aria-expanded={open} disabled={creation.isPending} onClick={()=>setOpen(!open)}>查看经典谱</button></div>
   {open&&<ReviewedScorePicker catalog={catalog.data??[]} loading={catalog.isPending} error={catalog.isError} busy={creation.isPending} locked={pending} onRetry={()=>void catalog.refetch()} onImport={score=>creation.mutate(score)}/>}
   {creation.error&&<p role="alert" className="field-error">{creation.error instanceof ApiError?creation.error.message:'尚未收到导入确认。请重试同一次导入，或先查看作品列表。'}</p>}
   {!storageAvailable&&<p role="alert">浏览器无法保存请求标识。请保持此页并重试；刷新可能丢失这次导入身份。</p>}

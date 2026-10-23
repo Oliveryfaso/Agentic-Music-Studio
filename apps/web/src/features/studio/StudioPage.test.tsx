@@ -28,7 +28,8 @@ describe("Read-only Arrangement Studio", () => {
     expect(arrangement.compareDocumentPosition(inspector)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(arrangement.contains(dock)).toBe(true);
     expect(arrangement.compareDocumentPosition(screen.getByText("AI 选区编辑"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(arrangement.compareDocumentPosition(screen.getByText("作品试听"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(workbar.compareDocumentPosition(screen.getByText("作品试听"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(arrangement.compareDocumentPosition(screen.getByText("作品试听"))).toBe(Node.DOCUMENT_POSITION_PRECEDING);
   });
 
   it("keeps pointer edits local until Save Revision", async () => {
@@ -147,6 +148,7 @@ describe("Read-only Arrangement Studio", () => {
 });
 
 function renderStudio() {
+  window.history.replaceState({}, "", `/projects/${PROJECT_ID}/studio/${REVISION_ID}`);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(<QueryClientProvider client={client}><StudioPage projectId={PROJECT_ID} revisionId={REVISION_ID} /></QueryClientProvider>);
 }

@@ -1,11 +1,14 @@
 import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
-import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 import {StudioPage} from './StudioPage';
 import {PianoPanel} from './PianoPanel';
 import {pianoScore} from './pianoTestFixture';
 import type {ClassicalSourceData,PianoCapability,ProjectWorkspace,RevisionStudio} from '../../shared/openapi';
 import {ApiError} from '../../shared/api';
+import {navigateHref} from '../../app/routes';
+import {App} from '../../app/App';
+import {eqBase} from './pianoEqTestFixture';
 import * as piano from './pianoApi';
 import * as projects from '../projects/projectApi';
 import * as studioApi from './studioApi';
@@ -26,6 +29,24 @@ afterEach(()=>{cleanup();vi.resetAllMocks();sessionStorage.clear();window.histor
 function noWrites(){expect(piano.startPianoPreview).not.toHaveBeenCalled();expect(piano.decidePianoPreview).not.toHaveBeenCalled();expect(piano.cancelPianoPreview).not.toHaveBeenCalled();expect(studioApi.commitCommandBatch).not.toHaveBeenCalled();expect(studioApi.undoCommittedRevision).not.toHaveBeenCalled();}
 
 describe('workspace candidate recovery',()=>{
+ it('keeps the actual mixer Draft across view queries and guards a workspace href',async()=>{
+  window.history.replaceState({},'',`/projects/${P}/studio/${R}`);
+  vi.mocked(projects.readProject).mockResolvedValue(workspace());vi.mocked(projects.readRevisionStudio).mockResolvedValue({...saved(),arrangement_ir:eqBase()});
+  render(<App/>);await screen.findByRole('heading',{name:'合同试听作品'});fireEvent.click(screen.getByRole('button',{name:'混音'}));
+  const gain=screen.getByLabelText('Piano 音量');fireEvent.change(gain,{target:{value:'-4'}});fireEvent.pointerUp(gain);fireEvent.blur(gain);
+  expect(screen.getByText('1 个未保存修改')).toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'编排'}));
+  expect(screen.getByText('1 个未保存修改')).toBeInTheDocument();fireEvent.click(screen.getByRole('link',{name:'作品'}));
+  expect(screen.getByRole('alertdialog')).toBeVisible();fireEvent.click(screen.getByText('留在此页'));
+  expect(screen.getByText('1 个未保存修改')).toBeInTheDocument();noWrites();
+ });
+ it('reads an explicitly selected recovery query on the same mounted Studio without generating',async()=>{
+  window.history.replaceState({},'',`/projects/${P}/studio/${R}`);
+  vi.mocked(piano.readPianoPreview).mockResolvedValue({replayed:false,thread_id:T,base_revision_id:R,phase:'cancelled'});
+  mountStudio();await screen.findByRole('link',{name:'恢复这版试听'});
+  navigateHref(`/projects/${P}/studio/${R}?piano_preview=${T}`);
+  await waitFor(()=>expect(piano.readPianoPreview).toHaveBeenCalledWith(P,T));
+  expect(await screen.findByText('试听已取消，原版本保留。')).toBeInTheDocument();noWrites();
+ });
  it('offers the exact existing base/thread link without automatically opening or regenerating it',async()=>{
   mountStudio();const link=await screen.findByRole('link',{name:'恢复这版试听'});
   expect(link).toHaveAttribute('href',`/projects/${P}/studio/${R}?piano_preview=${T}`);expect(window.location.search).toBe('');
@@ -141,4 +162,87 @@ describe('independent model configuration and current head',()=>{
   expect(await screen.findByRole('checkbox',{name:'我已试听，确认保留这条伴奏'})).toBeDisabled();expect(screen.getByText(/当前打开的保存版本已不是分支最新版/)).toBeInTheDocument();
   expect(screen.getByRole('link',{name:'打开最新版本'})).toHaveAttribute('href',`/projects/${P}/studio/${OLD}`);noWrites();
  });
+});
+
+it('does not transfer listened confirmation to another candidate on the same revision',async()=>{
+ const second='piano-'+ 'b'.repeat(32);let release:((value:Awaited<ReturnType<typeof piano.readPianoPreview>>)=>void)|undefined;
+ window.history.replaceState({},'','/?piano_preview='+T);
+ vi.mocked(piano.readPianoPreview).mockImplementation(async(_p,thread)=>thread===T?{replayed:false,thread_id:T,base_revision_id:R,phase:'waiting_piano_approval',candidate_content_hash:'c'.repeat(64)}:await new Promise(resolve=>{release=resolve;}));
+ showPiano({pedal_supported:false,release_triggers_supported:false,available:true,render_profile:profile});
+ const confirmation=await screen.findByRole('checkbox',{name:/我已试听/});await waitFor(()=>expect(confirmation).toBeEnabled());fireEvent.click(confirmation);
+ expect(screen.getByRole('button',{name:'保留这条伴奏'})).toBeEnabled();
+ act(()=>navigateHref('/?piano_preview='+second));await waitFor(()=>expect(release).toBeDefined());
+ const oldButton=screen.queryByRole('button',{name:'保留这条伴奏'});expect(!oldButton||(oldButton as HTMLButtonElement).disabled).toBe(true);
+ await act(async()=>release!({replayed:false,thread_id:second,base_revision_id:R,phase:'waiting_piano_approval',candidate_content_hash:'d'.repeat(64)}));
+ expect(await screen.findByRole('checkbox',{name:/我已试听/})).not.toBeChecked();expect(screen.getByRole('button',{name:'保留这条伴奏'})).toBeDisabled();noWrites();
+});
+
+it.each([false,true])('ignores old A save in a different or remounted editor (reopen A: %s)',async(reopen)=>{
+ const secondProject='55555555-5555-4555-8555-555555555555',secondRevision='66666666-6666-4666-8666-666666666666';
+ const aPath=`/projects/${P}/studio/${R}`,bPath=`/projects/${secondProject}/studio/${secondRevision}`;
+ let release:((value:Awaited<ReturnType<typeof studioApi.commitCommandBatch>>)=>void)|undefined;
+ window.history.replaceState({},'',aPath);
+ vi.mocked(projects.readProject).mockImplementation(async id=>({...workspace(),project_id:id,name:id===P?'作品A':'作品B',head_revision_id:id===P?R:secondRevision}));
+ vi.mocked(projects.readRevisionStudio).mockImplementation(async(id,revision)=>({...saved(),project_id:id,revision_id:revision,arrangement_ir:eqBase()}));
+ vi.mocked(studioApi.commitCommandBatch).mockReturnValue(new Promise(resolve=>{release=resolve;}));
+ render(<App/>);await screen.findByRole('heading',{name:'作品A'});fireEvent.click(screen.getByRole('button',{name:'混音'}));
+ const aGain=screen.getByLabelText('Piano 音量');fireEvent.change(aGain,{target:{value:'-4'}});fireEvent.pointerUp(aGain);fireEvent.click(screen.getByRole('button',{name:'保存新版本'}));
+ await waitFor(()=>expect(studioApi.commitCommandBatch).toHaveBeenCalledTimes(1));
+ act(()=>navigateHref(bPath));fireEvent.click(screen.getByRole('button',{name:'放弃草稿并离开'}));
+ await screen.findByRole('heading',{name:'作品B'});
+ if(reopen){act(()=>navigateHref(aPath));await screen.findByRole('heading',{name:'作品A'});}
+ fireEvent.click(screen.getByRole('button',{name:'混音'}));
+ const bGain=screen.getByLabelText('Piano 音量');fireEvent.change(bGain,{target:{value:'-8'}});fireEvent.pointerUp(bGain);
+ const bLocation=window.location.href;expect(screen.getByText('1 个未保存修改')).toBeInTheDocument();
+ await act(async()=>release!({branch_id:B,revision_id:OLD,content_hash:'a'.repeat(64),actual_change_impact:'L0',render_state:'dirty',replayed:false}));
+ expect(window.location.href).toBe(bLocation);expect(screen.getByRole('heading',{name:reopen?'作品A':'作品B'})).toBeInTheDocument();
+ expect(screen.getByLabelText('Piano 音量')).toHaveValue('-8');expect(screen.getByText('1 个未保存修改')).toBeInTheDocument();
+ fireEvent.click(screen.getByRole('link',{name:'作品'}));expect(screen.getByRole('alertdialog')).toBeVisible();fireEvent.click(screen.getByText('留在此页'));
+ expect(window.location.pathname).toBe(reopen?aPath:bPath);expect(studioApi.commitCommandBatch).toHaveBeenCalledTimes(1);expect(piano.startPianoPreview).not.toHaveBeenCalled();
+});
+
+it('retains a newer same-page Draft when an earlier saved snapshot completes',async()=>{
+ const path=`/projects/${P}/studio/${R}`;let release:((value:Awaited<ReturnType<typeof studioApi.commitCommandBatch>>)=>void)|undefined;
+ window.history.replaceState({},'',path);vi.mocked(projects.readProject).mockResolvedValue(workspace());
+ vi.mocked(projects.readRevisionStudio).mockResolvedValue({...saved(),arrangement_ir:eqBase()});
+ vi.mocked(studioApi.commitCommandBatch).mockReturnValue(new Promise(resolve=>{release=resolve;}));
+ render(<App/>);await screen.findByRole('heading',{name:'合同试听作品'});fireEvent.click(screen.getByRole('button',{name:'混音'}));
+ let gain=screen.getByLabelText('Piano 音量');fireEvent.change(gain,{target:{value:'-4'}});fireEvent.pointerUp(gain);fireEvent.click(screen.getByRole('button',{name:'保存新版本'}));
+ await waitFor(()=>expect(studioApi.commitCommandBatch).toHaveBeenCalledTimes(1));fireEvent.click(screen.getByRole('button',{name:'撤销'}));
+ gain=screen.getByLabelText('Piano 音量');fireEvent.change(gain,{target:{value:'-8'}});fireEvent.pointerUp(gain);const location=window.location.href;
+ await act(async()=>release!({branch_id:B,revision_id:OLD,content_hash:'a'.repeat(64),actual_change_impact:'L0',render_state:'dirty',replayed:false}));
+ expect(window.location.href).toBe(location);expect(screen.getByLabelText('Piano 音量')).toHaveValue('-8');expect(screen.getByText('1 个未保存修改')).toBeInTheDocument();
+ expect(screen.getByText(/分支已更新到/)).toHaveTextContent(OLD);fireEvent.click(screen.getByRole('link',{name:'作品'}));expect(screen.getByRole('alertdialog')).toBeVisible();
+});
+
+it.each(['success','failure'] as const)('keeps normal save ownership behavior for %s',async(outcome)=>{
+ const path=`/projects/${P}/studio/${R}`;let release:((value:Awaited<ReturnType<typeof studioApi.commitCommandBatch>>)=>void)|undefined;let fail:((error:Error)=>void)|undefined;let savedResult=false;
+ window.history.replaceState({},'',path);vi.mocked(projects.readProject).mockImplementation(async()=>({...workspace(),head_revision_id:savedResult?OLD:R}));
+ vi.mocked(projects.readRevisionStudio).mockImplementation(async(_id,revision)=>({...saved(),revision_id:revision,arrangement_ir:eqBase()}));
+ vi.mocked(studioApi.commitCommandBatch).mockReturnValue(new Promise((resolve,reject)=>{release=resolve;fail=reject;}));
+ render(<App/>);await screen.findByRole('heading',{name:'合同试听作品'});fireEvent.click(screen.getByRole('button',{name:'混音'}));
+ const gain=screen.getByLabelText('Piano 音量');fireEvent.change(gain,{target:{value:'-4'}});fireEvent.pointerUp(gain);fireEvent.click(screen.getByRole('button',{name:'保存新版本'}));
+ await waitFor(()=>expect(studioApi.commitCommandBatch).toHaveBeenCalledTimes(1));
+ if(outcome==='success'){savedResult=true;await act(async()=>release!({branch_id:B,revision_id:OLD,content_hash:'a'.repeat(64),actual_change_impact:'L0',render_state:'dirty',replayed:false}));
+  await waitFor(()=>expect(window.location.pathname).toBe(`/projects/${P}/studio/${OLD}`));await waitFor(()=>expect(screen.getByText('0 个未保存修改')).toBeInTheDocument());expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+ }else{await act(async()=>fail!(new Error('offline')));expect(window.location.pathname).toBe(path);expect(screen.getByText('保存失败，草稿仍保留')).toBeInTheDocument();
+  expect(screen.getByLabelText('Piano 音量')).toHaveValue('-4');expect(screen.getByText('1 个未保存修改')).toBeInTheDocument();fireEvent.click(screen.getByRole('link',{name:'作品'}));expect(screen.getByRole('alertdialog')).toBeVisible();}
+ expect(studioApi.commitCommandBatch).toHaveBeenCalledTimes(1);expect(piano.startPianoPreview).not.toHaveBeenCalled();
+});
+
+it.each(['undo','read'] as const)('retains a new Draft while committed Undo waits for %s',async(stage)=>{
+ const path=`/projects/${P}/studio/${R}`;let releaseUndo:((value:Awaited<ReturnType<typeof studioApi.undoCommittedRevision>>)=>void)|undefined;let releaseRead:((value:RevisionStudio)=>void)|undefined;
+ window.history.replaceState({},'',path);vi.mocked(projects.readProject).mockResolvedValue(workspace());
+ vi.mocked(projects.readRevisionStudio).mockImplementation(async(_id,revision)=>revision===OLD&&stage==='read'?await new Promise(resolve=>{releaseRead=resolve;}):{...saved(),revision_id:revision,arrangement_ir:eqBase()});
+ vi.mocked(studioApi.undoCommittedRevision).mockImplementation(async()=>stage==='undo'?await new Promise(resolve=>{releaseUndo=resolve;}):{branch_id:B,revision_id:OLD,undone_revision_id:R,content_hash:'a'.repeat(64),actual_change_impact:'L0',render_state:'dirty',replayed:false});
+ render(<App/>);await screen.findByRole('heading',{name:'合同试听作品'});fireEvent.click(screen.getByRole('button',{name:'混音'}));
+ fireEvent.click(screen.getByRole('button',{name:'撤回已保存修改'}));await waitFor(()=>expect(studioApi.undoCommittedRevision).toHaveBeenCalledTimes(1));
+ if(stage==='read')await waitFor(()=>expect(releaseRead).toBeDefined());
+ const gain=screen.getByLabelText('Piano 音量');fireEvent.change(gain,{target:{value:'-8'}});fireEvent.pointerUp(gain);const location=window.location.href;
+ if(stage==='undo')await act(async()=>releaseUndo!({branch_id:B,revision_id:OLD,undone_revision_id:R,content_hash:'a'.repeat(64),actual_change_impact:'L0',render_state:'dirty',replayed:false}));
+ else await act(async()=>releaseRead!({...saved(),revision_id:OLD,arrangement_ir:eqBase()}));
+ expect(window.location.href).toBe(location);expect(screen.getByLabelText('Piano 音量')).toHaveValue('-8');expect(screen.getByText('1 个未保存修改')).toBeInTheDocument();
+ expect(screen.getByText(/分支已更新到/)).toHaveTextContent(OLD);expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+ fireEvent.click(screen.getByRole('link',{name:'作品'}));expect(screen.getByRole('alertdialog')).toBeVisible();
+ expect(studioApi.commitCommandBatch).not.toHaveBeenCalled();expect(studioApi.undoCommittedRevision).toHaveBeenCalledTimes(1);expect(piano.startPianoPreview).not.toHaveBeenCalled();
 });

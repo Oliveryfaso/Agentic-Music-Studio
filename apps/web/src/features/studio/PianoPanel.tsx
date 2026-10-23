@@ -1,10 +1,13 @@
 import {useMutation,useQuery,useQueryClient} from '@tanstack/react-query';
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useLayoutEffect,useRef,useState} from 'react';
+import {useLocationSearch} from '../../app/NavigationGuard';
+import {navigateHref} from '../../app/routes';
 import {ApiError,audioContentUrl} from '../../shared/api';
 import type {ArrangementIR,PianoPreviewData,PianoPreviewOptions,ClassicalSourceData,AccompanimentIntent,ProjectWorkspace} from '../../shared/openapi';
 import type {EditorSelection} from './editorState';
 import {buildPianoPerformance} from './pianoPerformance';
 import {cancelPianoPreview,decidePianoPreview,readPianoCapability,readPianoPreview,startPianoPreview} from './pianoApi';
+import {useTaskVisibility} from './StudioInspector';
 
 type PianoRecoveryDirectory={info:ProjectWorkspace['piano_preview_recovery'];candidate:ProjectWorkspace['recoverable_piano_preview'];reading:boolean;onRead:()=>Promise<unknown>};
 type SemanticRequest=NonNullable<PianoPreviewOptions['semantic']>;
@@ -32,13 +35,15 @@ function restorePendingIntent(storageKey:string):{intent:PianoIntent|null;availa
 }
 
 
-export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,dirty,rootReady,onSaved,classicalSource,headRevisionId,recovery}:{
+export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,dirty,rootReady,onSaved,classicalSource,headRevisionId,recovery,onTaskStatusChange}:{
   projectId:string;branchId:string;revisionId:string;arrangement:ArrangementIR;selection:EditorSelection|null;
-  dirty:boolean;rootReady:boolean;onSaved:(revision:string)=>void;classicalSource?:ClassicalSourceData;headRevisionId?:string;recovery?:PianoRecoveryDirectory;
+  dirty:boolean;rootReady:boolean;onSaved:(revision:string)=>void;classicalSource?:ClassicalSourceData;headRevisionId?:string;recovery?:PianoRecoveryDirectory;onTaskStatusChange?:(status:string)=>void;
 }){
   const client=useQueryClient();
+  const queryThread=new URLSearchParams(useLocationSearch()).get('piano_preview');
   const capability=useQuery({queryKey:['piano-capability'],queryFn:readPianoCapability,retry:false});
   const [thread,setThread]=useState<string|null>(()=>new URLSearchParams(window.location.search).get('piano_preview'));
+  useEffect(()=>setThread(queryThread),[queryThread]);
   const single=arrangement.tracks.length===1&&arrangement.tracks[0]?.track_type==='instrument';
   const modify=Boolean(classicalSource&&arrangement.tracks.length===2&&arrangement.tracks.every(track=>track.track_type==='instrument'));
   const storageKey='motif:piano-semantic:'+projectId+':'+branchId+':'+revisionId;
@@ -57,7 +62,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
   const previousMode=useRef(modify);
   useEffect(()=>{if(previousMode.current!==modify){setDescription(modify?MODIFY_DESCRIPTION:appendDescription);setStartBar(9);setEndBar(12);previousMode.current=modify;}},[modify]);
   const [velocity,setVelocity]=useState(classicalSource?54:76),[onset,setOnset]=useState(8),[gate,setGate]=useState(180);
-  const [confirmed,setConfirmed]=useState(false);
+  const [confirmedFor,setConfirmedFor]=useState<string|null>(null);
   const [pattern,setPattern]=useState<AccompanimentIntent['pattern']>('roots');
   const [octave,setOctave]=useState<2|3>(2);
   const [chordText,setChordText]=useState(()=>classicalSource?.source.default_chords.join(' ')??'');
@@ -70,14 +75,18 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
   const key=['piano-preview',projectId,thread];
   const audition=useQuery({queryKey:key,queryFn:()=>readPianoPreview(projectId,thread!),enabled:thread!==null,
     refetchInterval:(query)=>PENDING_PHASES.has(query.state.data?.phase??'')?1500:false,retry:false});
-  const state=audition.data;
+  // Keep the Draft mounted across query changes, but never project the previous
+  // thread's media or decision controls under the newly requested identity.
+  const state=thread===queryThread&&audition.data?.thread_id===thread?audition.data:undefined;
+  const candidateIdentity=state?.candidate_content_hash?JSON.stringify([thread,state.base_revision_id,state.candidate_content_hash,state.baseline_artifact_id,state.piano_artifact_id]):null;
+  const confirmed=candidateIdentity!==null&&confirmedFor===candidateIdentity;
   const terminalPhase=['completed','rejected','cancelled','failed'].includes(state?.phase??'');
   const directoryToken=terminalPhase&&thread!==null?`${thread}:${state?.phase}`:null;
   const [checkedDirectoryToken,setCheckedDirectoryToken]=useState<string|null>(null);
   const checkDirectory=useMutation({mutationFn:async()=>{const token=directoryToken;await recovery?.onRead();return token;},onSuccess:setCheckedDirectoryToken});
   const terminalUnverified=directoryToken!==null&&checkedDirectoryToken!==directoryToken;
   const directoryUnconfirmed=recovery!==undefined&&(thread===null||terminalPhase)&&(recovery.reading||checkDirectory.isPending||terminalUnverified||recovery.info?.status!=='ready'||recovery.info.pending_count!==0||Boolean(recovery.candidate));
-  const recoveryBlocked=directoryUnconfirmed||(thread!==null&&(audition.isPending||audition.isError));
+  const recoveryBlocked=directoryUnconfirmed||thread!==queryThread||(thread!==null&&(!state||audition.isPending||audition.isError));
   const staleBase=headRevisionId!==undefined&&headRevisionId!==revisionId;
   const modelConfiguration=capability.isError?'unknown':capability.data?.semantic_generation?.configuration??'unknown';
   const modelNotConfigured=modelConfiguration==='not_configured';
@@ -89,7 +98,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
   function clearPendingIntent(){try{window.sessionStorage.removeItem(storageKey);}catch{setIdentityStorageAvailable(false);}}
   const change=(value:PianoPreviewData)=>{
     client.setQueryData(['piano-preview',projectId,value.thread_id],value);
-    if(value.thread_id!==thread){setThread(value.thread_id);const url=new URL(window.location.href);url.searchParams.set('piano_preview',value.thread_id);window.history.replaceState({},'',url);}
+    if(value.thread_id!==thread){setThread(value.thread_id);const url=new URL(window.location.href);url.searchParams.set('piano_preview',value.thread_id);navigateHref(url.href,true);}
     if(value.revision_id)onSaved(value.revision_id);
   };
   const start=useMutation({retry:false,mutationFn:async()=>{
@@ -111,7 +120,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
     if(intent.current?.fingerprint!==fingerprint)intent.current={fingerprint,key:'web-piano:'+crypto.randomUUID(),semanticFingerprint,...(semantic?{request:semanticRequest}:{})};
     if(semantic){try{window.sessionStorage.setItem(storageKey,JSON.stringify(intent.current));}catch{setIdentityStorageAvailable(false);}}
     return startPianoPreview(projectId,body,intent.current.key);
-  },onSuccess:(value)=>{change(value);if(semantic)clearPendingIntent();intent.current=null;setConfirmed(false);},onError:(error)=>{
+  },onSuccess:(value)=>{change(value);if(semantic)clearPendingIntent();intent.current=null;setConfirmedFor(null);},onError:(error)=>{
     // Only these preparation failures are known to precede Run/Preview creation. Network failures keep the key.
     if(error instanceof ApiError&&error.status===503&&['INSTRUMENT_PACK_UNAVAILABLE','RENDER_SERVICE_UNAVAILABLE'].includes(error.code)){intent.current=null;if(semantic)clearPendingIntent();}
   }});
@@ -122,15 +131,19 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
   const cancel=useMutation({mutationFn:()=>cancelPianoPreview(projectId,thread!),onSuccess:change});
   const busy=start.isPending||decision.isPending||cancel.isPending;
   const matches=state?.base_revision_id===revisionId;
-  const ready=rootReady&&!dirty&&!staleBase&&!recoveryBlocked&&matches&&state?.phase==='waiting_piano_approval';
+  const ready=rootReady&&!dirty&&!staleBase&&!recoveryBlocked&&matches&&candidateIdentity!==null&&state?.phase==='waiting_piano_approval';
   const error=start.error||decision.error||cancel.error;
   const canPrepare=single||(modify&&sourceSemantic);
   const keepLabel=classicalSource?(modify?'保留这次修改':'保留这条伴奏'):'保存这版钢琴表达';
+  useEffect(()=>{
+    const phase=state?.phase??recovery?.candidate?.phase;
+    onTaskStatusChange?.(phase==='waiting_piano_approval'?'待确认':PENDING_PHASES.has(phase??'')?'处理中':audition.isError||recovery?.info?.status==='unavailable'?'读取失败':recovery?.info?.status==='limit_reached'?'需检查候选':phase==='failed'?'任务失败':phase==='completed'?'已完成':phase==='cancelled'?'已取消':phase==='rejected'?'已放弃':'无运行任务');
+  },[state?.phase,audition.isError,recovery?.candidate?.phase,recovery?.info?.status,onTaskStatusChange]);
   return <section className="studio-panel piano-expression" aria-labelledby="piano-expression-title">
     <div className="panel-heading"><div><p className="eyebrow">PIANO / EXPRESSION</p><h3 id="piano-expression-title">{classicalSource?(modify?'修改新增的伴奏':'给原谱加一条伴奏'):'钢琴表达'}</h3></div>
       <span className="status-pill">{classicalSource?(arrangement.tracks.length>1?'原谱 + 伴奏':'原谱旋律'):arrangement.schema_version!=='arrangement-ir.v1'?'已保存真实钢琴':'原有音色'}</span></div>
-    <p className="saved-audio-note">{classicalSource?(semanticContext?'描述想要的密度、音区或力度。Flash 每次生成只发起一次请求，保留前原版本不变。':'选择每小节和弦与伴奏织体，用同一钢琴的低音声部衬托旋律。规则伴奏不消耗模型额度。'):<>调整{selection?'所选范围':'整轨音符'}的演奏表达。先比较试听，确认后保存新版本。</>}</p>
-    <p className="piano-source">FreePats Upright KW · CC0 · 踏板暂不支持</p>
+    <p className="saved-audio-note">{classicalSource?(semanticContext?'每次生成一次模型请求；保留前原版本不变。':'规则伴奏 · 不消耗模型额度'):<>演奏表达 · {selection?'所选范围':'整轨'}</>}</p>
+    <details className="piano-source"><summary>音源</summary><p>FreePats Upright KW · CC0 · 踏板暂不支持</p></details>
     {recovery&&(thread===null||(terminalPhase&&!audition.isError&&!audition.isFetching))&&<PianoRecoveryNotice projectId={projectId} branchId={branchId} headRevisionId={headRevisionId} directory={recovery} dirty={dirty} reading={recovery.reading||checkDirectory.isPending} terminalUnverified={terminalUnverified} onRead={()=>checkDirectory.mutate()}/>}
     {sourceSemantic&&<p className="saved-audio-note">{modelNotConfigured?notConfiguredMessage:modelConfiguration==='configured'?'自然语言服务已在本地配置，未验证远端可用性。':'暂不能确认自然语言服务的本地配置；音源状态单独检查。'}{modelNotConfigured&&capability.data?.semantic_generation?.reason_code&&`（${capability.data.semantic_generation.reason_code}）`}</p>}
     {staleBase&&<div className="field-error"><p>当前打开的保存版本已不是分支最新版，不能生成或保留试听。</p>{dirty?<><p>请先保存或撤销草稿，再打开最新版本。</p><button type="button" disabled>打开最新版本</button></>:<a href={`/projects/${encodeURIComponent(projectId)}/studio/${encodeURIComponent(headRevisionId!)}`}>打开最新版本</a>}</div>}
@@ -183,7 +196,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
       {state?.baseline_artifact_id&&state.piano_artifact_id&&<PianoComparison key={`${thread}:${state.baseline_artifact_id}:${state.piano_artifact_id}`} baseline={state.baseline_artifact_id} piano={state.piano_artifact_id} label={classicalSource?(modify?'局部修改':'加轨版本'):'钢琴表达'}/>}
       {state?.phase==='waiting_piano_approval'&&<>
         {!matches&&<p className="field-error">这段试听属于另一个已保存版本。请打开对应版本后确认。</p>}
-        <label className="piano-confirm"><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)} disabled={!ready||busy}/>我已试听，确认{keepLabel}</label>
+        <label className="piano-confirm"><input type="checkbox" checked={confirmed} onChange={e=>setConfirmedFor(e.target.checked?candidateIdentity:null)} disabled={!ready||busy}/>我已试听，确认{keepLabel}</label>
         <div className="piano-actions"><button type="button" className="primary-inline" disabled={!ready||!confirmed||busy} onClick={()=>decision.mutate('approve')}>{keepLabel}</button>
           <button type="button" disabled={busy} onClick={()=>decision.mutate('reject')}>放弃这版</button></div>
       </>}
@@ -198,12 +211,16 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
 
 function PianoComparison({baseline,piano,label}:{baseline:string;piano:string;label:string}){
   const audio=useRef<HTMLAudioElement>(null);
+  const visible=useTaskVisibility();
   const position=useRef({time:0,playing:false});
   const [selected,setSelected]=useState<'baseline'|'piano'>('baseline');
   const [failed,setFailed]=useState(false);
   const [switching,setSwitching]=useState(false);
   const sourceGeneration=useRef(0);
   useEffect(()=>()=>{++sourceGeneration.current;},[]);
+  useLayoutEffect(()=>{
+    if(!visible){++sourceGeneration.current;position.current.playing=false;audio.current?.pause();}
+  },[visible]);
   function choose(value:'baseline'|'piano'){
     if(value===selected||!audio.current||switching)return;
     if(audio.current.readyState>=1)position.current={time:audio.current.currentTime,playing:!audio.current.paused};++sourceGeneration.current;audio.current.pause();setFailed(false);setSwitching(true);setSelected(value);
@@ -214,8 +231,8 @@ function PianoComparison({baseline,piano,label}:{baseline:string;piano:string;la
       <button type="button" aria-pressed={selected==='piano'} disabled={switching} onClick={()=>choose('piano')}>B · {label}</button>
     </div>
     <audio ref={audio} controls preload="metadata" aria-label="钢琴 A/B 试听" src={audioContentUrl(selected==='baseline'?baseline:piano)}
-      onPlay={event=>{document.querySelectorAll('audio').forEach(other=>{if(other!==event.currentTarget)other.pause();});}}
-      onLoadedMetadata={()=>{const node=audio.current;if(!node)return;setSwitching(false);node.currentTime=Math.min(position.current.time,Math.max(0,node.duration-.01));if(position.current.playing){const token=sourceGeneration.current,source=node.src;void node.play().catch(error=>{if(token===sourceGeneration.current&&audio.current===node&&node.src===source&&error?.name!=="AbortError")setFailed(true);});}}}
+      onPlay={event=>{if(!visible){event.currentTarget.pause();return;}document.querySelectorAll('audio').forEach(other=>{if(other!==event.currentTarget)other.pause();});}}
+      onLoadedMetadata={()=>{const node=audio.current;if(!node)return;setSwitching(false);node.currentTime=Math.min(position.current.time,Math.max(0,node.duration-.01));if(visible&&position.current.playing){const token=sourceGeneration.current,source=node.src;void node.play().catch(error=>{if(token===sourceGeneration.current&&audio.current===node&&node.src===source&&error?.name!=="AbortError")setFailed(true);});}}}
       onError={()=>{setSwitching(false);setFailed(true);}}/>
     <p className="saved-audio-note">切换 A/B 保留播放位置。试听为 160 kbps MP3，正式导出提供 WAV。</p>
     {failed&&<p className="field-error">试听音频暂不可用，请重新载入后再确认。</p>}

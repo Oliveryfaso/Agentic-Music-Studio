@@ -6,7 +6,7 @@ import {eqProfileFor, makePianoEqCommand, readPianoEq, type PianoTrackEq} from "
 
 type GainKey="low_gain_db"|"mid_gain_db"|"high_gain_db";
 type Patch=Partial<Pick<PianoTrackEq,GainKey|"bypass">>;
-interface Props {arrangement:ArrangementIR; savedArrangement:ArrangementIR; disabled?:boolean; onCommand:(command:EditorCommand)=>void}
+interface Props {arrangement:ArrangementIR; savedArrangement:ArrangementIR; disabled?:boolean; onCommand:(command:EditorCommand)=>void;selectedTrackId?:string;onSelectTrack?:(id:string)=>void}
 const BANDS=[{key:"low_gain_db",name:"低频"},{key:"mid_gain_db",name:"中频"},{key:"high_gain_db",name:"高频"}] as const;
 const FREQUENCIES=Array.from({length:160},(_,i)=>20*1000**(i/159));
 function settings(track:PianoTrackEq):PianoEqSettings {
@@ -16,11 +16,11 @@ function sameEq(a:PianoEqSettings,b:PianoEqSettings):boolean {
  return a.bypass===b.bypass&&a.low_gain_db===b.low_gain_db&&a.mid_gain_db===b.mid_gain_db&&a.high_gain_db===b.high_gain_db;
 }
 
-export function PianoEqPanel({arrangement,savedArrangement,disabled=false,onCommand}:Props){
+export function PianoEqPanel({arrangement,savedArrangement,disabled=false,onCommand,selectedTrackId,onSelectTrack}:Props){
  const state=readPianoEq(arrangement),saved=readPianoEq(savedArrangement);
  const [selectedId,setSelectedId]=useState(arrangement.tracks[0]?.track_id??"");
  const [preview,setPreview]=useState<{trackId:string;patch:Patch}|null>(null);
- const selected=state?.tracks.find(track=>track.track_id===selectedId)??state?.tracks[0];
+ const selected=state?.tracks.find(track=>track.track_id===(selectedTrackId??selectedId))??state?.tracks[0];
  const id=selected?.track_id??"",track=arrangement.tracks.find(item=>item.track_id===id);
  const profile=eqProfileFor(arrangement);
  if((savedArrangement.schema_version!=="arrangement-ir.v4"&&savedArrangement.schema_version!=="arrangement-ir.v5")||!state||!selected||!track)return <section className="piano-eq-panel"><p>先保存双钢琴基础混音，再启用三段 EQ。</p></section>;
@@ -32,8 +32,8 @@ export function PianoEqPanel({arrangement,savedArrangement,disabled=false,onComm
  const canRestore=savedTrack&&!sameEq(authoritative,settings(savedTrack));
  const labels=[`低架 ${profile.low_frequency_hz} Hz`,`峰值 ${profile.mid_frequency_hz/1000} kHz · Q ${profile.mid_q}`,`高架 ${profile.high_frequency_hz/1000} kHz`];
  return <section className="piano-eq-panel" aria-label="三段 EQ">
-  <div className="eq-heading"><div><h3>三段 EQ</h3><p>调整记入草稿；保存后显式生成这个版本的试听或导出。</p></div>
-   <label>作用轨道<select aria-label="EQ 作用轨道" value={id} disabled={disabled} onChange={event=>{setPreview(null);setSelectedId(event.target.value);}}>{arrangement.tracks.map(item=><option key={item.track_id} value={item.track_id}>{item.name}</option>)}</select></label>
+  <div className="eq-heading"><div><h3>三段 EQ</h3></div>
+   <label>作用轨道<select aria-label="EQ 作用轨道" value={id} disabled={disabled} onChange={event=>{setPreview(null);setSelectedId(event.target.value);onSelectTrack?.(event.target.value);}}>{arrangement.tracks.map(item=><option key={item.track_id} value={item.track_id}>{item.name}</option>)}</select></label>
   </div>
   <div className="eq-control-grid">{BANDS.map((band,index)=><div className="eq-band" key={id+band.key}>
    <strong>{index+1} · {band.name}</strong>

@@ -35,14 +35,14 @@ export function BriefPage({ projectId }: { projectId: string }) {
 
   return (
     <section className="generate-page" aria-labelledby="brief-title">
-      <a className="back-link" href="/">← 返回作品</a>
+      <a className="back-link" href={project.data.head_revision_id?`/projects/${encodeURIComponent(projectId)}/studio/${encodeURIComponent(project.data.head_revision_id)}`:"/"}>← 返回{project.data.head_revision_id?" Studio":"作品"}</a>
       <header className="workflow-hero">
-        <div><p className="eyebrow">NEW COMPOSITION · {project.data.name}</p><h1 id="brief-title">定义这首作品</h1><p>你给出方向，Agent 提出编曲计划。先一起确认，再把它变成音乐。</p></div>
+        <div><p className="workspace-back">{project.data.name}</p><h1 id="brief-title">新建编曲</h1></div>
         <span className={`storage-state ${project.data.storage_root_status}`}>{project.data.storage_root_status === "ready" ? "存储已就绪" : `存储需检查 · ${project.data.storage_root_status}`}</span>
       </header>
       {accepted && <StatusBanner message="Run 已进入持久队列" detail="正在转到可恢复的 Plan 与进度页面。" />}
       {creation.isError && <StatusBanner tone="danger" message="Brief 提交失败" detail={message(creation.error)} />}
-      <div className="brief-layout"><BriefForm disabled={creation.isPending} onSubmit={(brief) => creation.mutate(brief)} /><aside className="creation-guide"><p className="eyebrow">THE CREATIVE PROCESS</p><h2>接下来会发生什么？</h2><ol><li><span>1</span><div><strong>先定方向</strong><p>写下想法，Agent 提出段落、节奏与配器计划。你可以调整或拒绝。</p></div></li><li><span>2</span><div><strong>听见两种可能</strong><p>批准计划后生成 A/B 试听。比较差异，选择喜欢的方向。</p></div></li><li><span>3</span><div><strong>继续打磨，带走作品</strong><p>在 Studio 编辑音轨与音符，也可以让 AI 修改局部，最后导出音频和工程。</p></div></li></ol><p className="guide-note">不用一直守着页面。任务进度会保留，可以从作品列表继续。</p></aside></div>
+      <div className="brief-layout"><BriefForm disabled={creation.isPending} onSubmit={(brief) => creation.mutate(brief)} /><details className="creation-guide"><summary>创作帮助</summary><p>描述想法 → 确认计划 → A/B 试听 → Studio → 导出。任务保留进度，可从作品列表恢复。</p></details></div>
     </section>
   );
 }

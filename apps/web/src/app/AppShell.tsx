@@ -12,19 +12,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         <a className="brand-button" href="/" aria-label="Motif Forge 首页">
           <span className="brand-mark" aria-hidden="true"><i /><i /><i /></span>
           <span className="brand-lockup-copy">
-            <strong>Motif Forge<span> / </span></strong>
-            <small>音乐，从一个想法开始</small>
+            <strong>Motif Forge</strong>
+            
           </span>
         </a>
         <nav className="shell-nav" aria-label="主导航">
           <a href="/" aria-current={section === "home" ? "page" : undefined}>作品</a>
-          <a href="/about" aria-current={section === "about" ? "page" : undefined}>关于</a>
-          <a href="/evaluation" aria-current={section === "evaluation" ? "page" : undefined}>评估</a>
+          <details className="shell-more" open={section !== "home"}><summary>更多</summary><div><a href="/about" aria-current={section === "about" ? "page" : undefined}>关于</a><a href="/evaluation" aria-current={section === "evaluation" ? "page" : undefined}>评估</a></div></details>
         </nav>
-        <div className="runtime-badge">本地创作空间 <span>LOCAL STUDIO</span></div>
+        <div className="runtime-badge">本地工作台</div>
       </header>
       <main id="main-content" tabIndex={-1}>{children}</main>
-      <footer><span>Motif Forge · 与 Agent 一起创作</span><span>本地保存 · 由你决定</span></footer>
     </div>
   );
 }

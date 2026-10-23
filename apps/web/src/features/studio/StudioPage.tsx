@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useReducer, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 
 import { StatusBanner } from "../../app/StatusBanner";
-import { navigate } from "../../app/routes";
+import { navigate, navigateHref, routePath } from "../../app/routes";
+import { useLocationSearch, useUnsavedNavigation } from "../../app/NavigationGuard";
 import { ApiError, audioContentUrl, rehydrateArtifact } from "../../shared/api";
 import type { AIRun, EditorCommand } from "../../shared/openapi";
 import { readProject, readRevisionStudio } from "../projects/projectApi";
@@ -31,9 +32,12 @@ import { useAudioTransport } from "./useAudioTransport";
 
 export function StudioPage({ projectId, revisionId }: { projectId: string; revisionId: string }) {
   const queryClient = useQueryClient();
+  const search = useLocationSearch();
+  const mixing = new URLSearchParams(search).get("view") === "mix";
   const studio = useQuery({ queryKey: ["revision-studio", projectId, revisionId], queryFn: () => readRevisionStudio(projectId, revisionId) });
   const project = useQuery({ queryKey: ["project", projectId], queryFn: () => readProject(projectId) });
   const catalog = useQuery({ queryKey: ["sound-catalog"], queryFn: listSoundCatalog });
+  const [pianoStatus,setPianoStatus]=useState("打开创作任务");
   const [recoveryFeedback, setRecoveryFeedback] = useState<string | null>(null);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [editRun, dispatchEditRun] = useReducer(reduceEditRunState, undefined, createEditRunState);
@@ -72,6 +76,17 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
     return () => controller.abort();
   }, [editRunId, projectId, queryClient]);
   const draft = useMemo(() => editor ? projectDraft(editor) : studio.data?.arrangement_ir, [editor, studio.data]);
+  const navigation = useUnsavedNavigation((editor?.historyCursor ?? 0) > 0, routePath({name:"studio",projectId,revisionId}));
+  const latestEditor = useRef(editor);
+  const writeRequest = useRef(0);
+  useLayoutEffect(() => { latestEditor.current = editor; }, [editor]);
+  const queryTrack = new URLSearchParams(search).get("track");
+  useEffect(() => {
+    if (!editor || !draft) return;
+    const requested = queryTrack ?? editor.selection?.trackIds[0];
+    const valid = draft.tracks.find(track => track.track_id === requested)?.track_id ?? draft.tracks[0]?.track_id;
+    if (valid && editor.selection?.trackIds[0] !== valid) setEditor(state => state ? editorReducer(state,{type:"select",selection:{trackIds:[valid],startTick:0,endTick:draft.tracks.find(t=>t.track_id===valid)?.clips.reduce((end,clip)=>Math.max(end,clip.start_tick+clip.duration_tick),0)??0}}) : state);
+  }, [queryTrack, editor, draft]);
   const projection = useMemo(() => draft ? projectTimeline(draft) : null, [draft]);
   const duration = delivery?.duration_milliseconds ? delivery.duration_milliseconds / 1000 : (projection?.durationSeconds ?? 0);
   const transport = useAudioTransport(duration, delivery?.availability === "available" ? delivery.artifact_id : null);
@@ -86,31 +101,56 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
   if (!studio.data || !project.data || !projection || !editor) return null;
 
   const dispatch = (action: Parameters<typeof editorReducer>[1]) => setEditor((state) => state ? editorReducer(state, action) : state);
+  const acceptWriteResult = (requestId: number, snapshot: EditorState, revision: string) => {
+    if (!navigation.isCurrent() || requestId !== writeRequest.current) return false;
+    const current = latestEditor.current;
+    const commands = snapshot.commands.slice(0, snapshot.historyCursor);
+    if (!current || current.base.revisionId !== snapshot.base.revisionId || current.historyCursor !== commands.length || !commands.every((command, index) => current.commands[index] === command)) {
+      // The submitted snapshot changed on the server. Keep newer local work
+      // and surface the existing conflict state before any reset/navigation.
+      dispatch({ type: "conflict", serverRevisionId: revision });
+      return false;
+    }
+    return true;
+  };
   const saveDraft = async () => {
+    const requestId = ++writeRequest.current;
     const commands = editor.commands.slice(0, editor.historyCursor);
     dispatch({ type: "saving" });
     try {
       const result = await commitCommandBatch(projectId, { branch_id: editor.base.branchId, base_revision_id: editor.base.revisionId, commands, client_sequence: 0, reason: "HUMAN_STUDIO_EDIT" }, `web-edit-${crypto.randomUUID()}`);
-      dispatch({ type: "commitSuccess", revisionId: result.revision_id, arrangement: projectDraft(editor) });
       void queryClient.invalidateQueries({queryKey:["project",projectId]});
+      if (!acceptWriteResult(requestId, editor, result.revision_id)) return;
+      if (!navigation.clear()) return;
+      dispatch({ type: "commitSuccess", revisionId: result.revision_id, arrangement: projectDraft(editor) });
       navigate({name:"studio",projectId,revisionId:result.revision_id});
     } catch (error) {
+      if (!navigation.isCurrent() || requestId !== writeRequest.current) return;
       if (error instanceof ApiError && error.code === "REVISION_CONFLICT") dispatch({ type: "conflict", serverRevisionId: project.data.head_revision_id });
       else dispatch({ type: "saveError" });
     }
   };
   const undoRevision = async () => {
     if (studio.data.parent_revision_id === null) return;
+    const requestId = ++writeRequest.current;
     try {
       const result = await undoCommittedRevision(projectId, { branch_id: editor.base.branchId, base_revision_id: editor.base.revisionId, target_revision_id: editor.base.revisionId }, `web-undo-${crypto.randomUUID()}`);
-      const restored = await readRevisionStudio(projectId,result.revision_id);
-      setEditor(createEditorState(editor.base.branchId,result.revision_id,restored.arrangement_ir));
       void queryClient.invalidateQueries({queryKey:["project",projectId]});
+      if (!acceptWriteResult(requestId, editor, result.revision_id)) return;
+      const restored = await readRevisionStudio(projectId,result.revision_id);
+      if (!acceptWriteResult(requestId, editor, result.revision_id) || !navigation.clear()) return;
+      setEditor(createEditorState(editor.base.branchId,result.revision_id,restored.arrangement_ir));
       navigate({name:"studio",projectId,revisionId:result.revision_id});
-    } catch { dispatch({ type: "saveError" }); }
+    } catch { if (navigation.isCurrent() && requestId === writeRequest.current) dispatch({ type: "saveError" }); }
   };
   const moveClip = (trackId: string, clipId: string, startTick: number) => dispatch({ type: "append", command: { command_id: crypto.randomUUID(), command_type: "move_clip", schema_version: "editor-command.v1", actor_kind: "human", client_sequence: editor.historyCursor, selection: { track_ids: [trackId], start_tick: 0, end_tick: Math.max(projection.ticksPerBar, projection.totalBars * projection.ticksPerBar) }, payload: { track_id: trackId, clip_id: clipId, start_tick: startTick } } });
   const appendCommand = (command: EditorCommand) => dispatch({ type: "append", command: { ...command, client_sequence: editor.historyCursor } });
+  const chooseTrack = (trackId: string) => {
+    if (!draft?.tracks.some(track => track.track_id === trackId)) return;
+    dispatch({type:"select",selection:editor.selection?.trackIds[0] === trackId ? editor.selection : {trackIds:[trackId],startTick:0,endTick:draft.tracks.find(t=>t.track_id===trackId)?.clips.reduce((end,clip)=>Math.max(end,clip.start_tick+clip.duration_tick),0)??0}});
+    const url = new URL(window.location.href); url.searchParams.set("track",trackId); navigateHref(url.href,true);
+  };
+  const chooseView = (view: "arrange" | "mix") => {const url=new URL(window.location.href);url.searchParams.set("view",view);navigateHref(url.href,true);};
   const selectedTrack = draft?.tracks.find((track) => track.track_id === editor.selection?.trackIds[0]) ?? draft?.tracks[0] ?? null;
   const selectedClip = selectedTrack?.clips.find((clip) => clip.clip_id === editor.selection?.clipId) ?? selectedTrack?.clips[0] ?? null;
 
@@ -143,7 +183,7 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
     }
   };
   return (
-    <section className="studio-page" aria-labelledby="studio-title">
+    <section className="studio-page" data-view={mixing?"mix":"arrange"} aria-labelledby="studio-title">
       <StudioWorkbar
         projectName={project.data.name}
         revisionId={revisionId}
@@ -153,35 +193,37 @@ export function StudioPage({ projectId, revisionId }: { projectId: string; revis
         actions={<><a className="secondary-inline" href={`/projects/${encodeURIComponent(projectId)}/exports/${encodeURIComponent(revisionId)}`}>查看导出</a>{studio.data.source_run_id && <a className="secondary-inline" href={`/runs/${encodeURIComponent(studio.data.source_run_id)}/inspect`}>查看执行记录</a>}</>}
         toolbar={<StudioToolbar state={editor} hasParentRevision={studio.data.parent_revision_id !== null} onUndo={() => dispatch({ type: "undo" })} onRedo={() => dispatch({ type: "redo" })} onSave={() => void saveDraft()} onUndoRevision={() => void undoRevision()} />}
       />
+      <nav className="workspace-views" aria-label="工作区视图"><button type="button" aria-pressed={!mixing} onClick={()=>chooseView("arrange")}>编排</button><button type="button" aria-pressed={mixing} onClick={()=>chooseView("mix")}>混音</button></nav>
       <p className="mobile-review-note">手机上可以试听和查看作品；精细编辑请使用桌面浏览器。</p>
       {studio.data.bundle_id === null && <StatusBanner tone="warning" message="作品已保存，导出尚未完整完成" detail="编排内容已保留。可以继续编辑，或前往导出页查看已完成的文件。" />}
       {!rootReady && <StatusBanner tone="danger" message="作品存储位置暂不可用" detail={`存储状态：${project.data.storage_root_status}。请检查外置磁盘连接；现有作品记录仍然保留。`} />}
+          <section className="studio-panel" aria-labelledby="transport-title"><div className="panel-heading"><div><h2 id="transport-title">作品试听</h2></div>{delivery && <span className={`status-pill ${delivery.availability}`}>{availabilityLabel(delivery.availability)}</span>}</div><p className="saved-audio-note">播放：保存版 {revisionId.slice(0,8)}{editor.historyCursor>0?" · 草稿未渲染":""}</p>{(draft?.schema_version === "arrangement-ir.v3" || draft?.schema_version === "arrangement-ir.v4" || draft?.schema_version === "arrangement-ir.v5") && <a className="secondary-inline" href={`/projects/${encodeURIComponent(projectId)}/exports/${encodeURIComponent(revisionId)}`}>生成此保存版试听/导出</a>}<DeliveryState delivery={delivery} rootReady={rootReady} recoveryPending={recovery.isPending} recoveryFeedback={recoveryFeedback} recoveryError={recovery.isError ? errorMessage(recovery.error) : null} onRecover={(artifactId) => recovery.mutate(artifactId)} transport={transport} duration={duration} /></section>
       <div className="studio-main-workspace">
         <div className="studio-arrangement-main" aria-label="Arrangement 主工作区">
-          {projection.tracks.length === 0 ? <section className="empty-state studio-empty"><div className="empty-wave" aria-hidden="true">···</div><h2>这个版本还没有音轨</h2><p>可以返回作品列表新建编曲，或导入已有音频作为起点。</p></section> : <section className="studio-panel arrangement-panel" aria-labelledby="arrangement-title">
-            <div className="panel-heading"><div><p className="eyebrow">ARRANGEMENT / PPQ {draft?.ppq}</p><h2 id="arrangement-title">可编辑时间线</h2></div><span className="status-pill available">{editor.saveState === "clean" ? "已保存" : "有未保存修改"}</span></div>
-            <div className="arrangement-workspace"><TrackHeaders tracks={projection.tracks} /><ArrangementTimeline projection={projection} currentTime={transport.currentTime} onMoveClip={moveClip} onSelectClip={(trackId, clipId, startTick, endTick) => dispatch({ type: "select", selection: { trackIds: [trackId], clipId, startTick, endTick } })} /></div>
+          {projection.tracks.length === 0 ? <section className="empty-state studio-empty"><div className="empty-wave" aria-hidden="true">···</div><h2>这个版本还没有音轨</h2><p>可以返回作品列表新建编曲，或导入已有音频作为起点。</p></section> : <section hidden={mixing} className="studio-panel arrangement-panel" aria-labelledby="arrangement-title">
+            <div className="panel-heading"><div><h2 id="arrangement-title">编排</h2></div><span className="status-pill available">{editor.saveState === "clean" ? "已保存" : "有未保存修改"}</span></div>
+            <div className="arrangement-workspace"><TrackHeaders tracks={projection.tracks} selectedTrackId={selectedTrack?.track_id ?? ""} onSelectTrack={chooseTrack} /><ArrangementTimeline projection={projection} currentTime={transport.currentTime} onMoveClip={moveClip} onSelectClip={(trackId, clipId, startTick, endTick) => {const url=new URL(window.location.href);url.searchParams.set("track",trackId);navigateHref(url.href,true);dispatch({ type: "select", selection: { trackIds: [trackId], clipId, startTick, endTick } });}} /></div>
             <div className="section-ledger" aria-label="段落列表">{projection.sections.map((section) => <span key={section.sectionId}><strong>{section.label}</strong> · {Math.round(section.energy * 100)}%</span>)}</div>
           </section>}
-      <StudioDock
+      <StudioDock workspaceMode={mixing?"mix":"arrange"}
         piano={selectedTrack && selectedClip?.clip_type === "note" ? <PianoRoll trackId={selectedTrack.track_id} clip={selectedClip} onCommand={appendCommand} /> : <p>选择一个音符片段打开钢琴卷帘。</p>}
-        mixer={<MixerPanel tracks={draft?.tracks ?? []} pianoArrangement={draft ?? editor.base.arrangement} savedArrangement={editor.base.arrangement} disabled={!rootReady || editor.saveState === "saving" || editor.saveState === "conflict"} onCommand={appendCommand} />}
+        mixer={<MixerPanel selectedTrackId={selectedTrack?.track_id ?? ""} onSelectTrack={chooseTrack} output={<section className="master-output" aria-label="主输出"><strong>主输出</strong><span>保存版 {revisionId.slice(0,8)} · {delivery?availabilityLabel(delivery.availability):"尚未生成音频"}</span><a href={`/projects/${encodeURIComponent(projectId)}/exports/${encodeURIComponent(revisionId)}`}>导出</a></section>} tracks={draft?.tracks ?? []} pianoArrangement={draft ?? editor.base.arrangement} savedArrangement={editor.base.arrangement} disabled={!rootReady || editor.saveState === "saving" || editor.saveState === "conflict"} onCommand={appendCommand} />}
         inspector={<ClipInspector trackId={selectedTrack?.track_id ?? ""} clip={selectedClip} onCommand={appendCommand} />}
         library={<>{editor.base.arrangement.schema_version !== "arrangement-ir.v1" && <p>当前版本使用已确认的钢琴音源，普通音色切换暂不支持。</p>}<SampleLibrary entries={catalog.data ?? []} onChoose={selectedTrack && editor.base.arrangement.schema_version === "arrangement-ir.v1" ? (entry) => appendCommand({ command_id: crypto.randomUUID(), command_type: "set_track_param", schema_version: "editor-command.v1", actor_kind: "human", client_sequence: 0, selection: { track_ids: [selectedTrack.track_id] }, payload: { track_id: selectedTrack.track_id, parameter: "instrument_ref", value: entry.preset_id } }) : undefined} /></>}
       />
         </div>
-        <StudioInspector>
+        <StudioInspector approvalKey={editRun.mode === "waiting_approval" ? editRun.preview?.candidate_content_hash : new URLSearchParams(search).get("piano_preview") ?? project.data.recoverable_piano_preview?.thread_id} status={editRun.mode === "waiting_approval" || project.data.recoverable_piano_preview?.phase === "waiting_piano_approval" ? "待确认" : editRun.mode !== "idle" ? editRunModeLabel(editRun.mode) : pianoStatus}>
           {classical?<ClassicalAccompanimentPanel projectId={projectId} branchId={editor.base.branchId} revisionId={editor.base.revisionId}
             arrangement={editor.base.arrangement} selection={editor.selection} dirty={editor.historyCursor>0}
             rootReady={rootReady} headRevisionId={project.data.head_revision_id}
-            recovery={{info:project.data.piano_preview_recovery,candidate:project.data.recoverable_piano_preview,reading:project.isFetching,onRead:async()=>{const result=await project.refetch();if(result.isError)throw result.error;}}} onSaved={(next)=>{void queryClient.invalidateQueries({queryKey:["project",projectId]});navigate({name:"studio",projectId,revisionId:next});}}/>:<PianoPanel projectId={projectId} branchId={editor.base.branchId} revisionId={editor.base.revisionId}
+            onTaskStatusChange={setPianoStatus} recovery={{info:project.data.piano_preview_recovery,candidate:project.data.recoverable_piano_preview,reading:project.isFetching,onRead:async()=>{const result=await project.refetch();if(result.isError)throw result.error;}}} onSaved={(next)=>{void queryClient.invalidateQueries({queryKey:["project",projectId]});navigate({name:"studio",projectId,revisionId:next});}}/>:<PianoPanel projectId={projectId} branchId={editor.base.branchId} revisionId={editor.base.revisionId}
             arrangement={editor.base.arrangement} selection={editor.selection} dirty={editor.historyCursor>0}
             rootReady={rootReady} headRevisionId={project.data.head_revision_id}
-            recovery={{info:project.data.piano_preview_recovery,candidate:project.data.recoverable_piano_preview,reading:project.isFetching,onRead:async()=>{const result=await project.refetch();if(result.isError)throw result.error;}}} onSaved={(next)=>{void queryClient.invalidateQueries({queryKey:["project",projectId]});navigate({name:"studio",projectId,revisionId:next});}}/>}
+            onTaskStatusChange={setPianoStatus} recovery={{info:project.data.piano_preview_recovery,candidate:project.data.recoverable_piano_preview,reading:project.isFetching,onRead:async()=>{const result=await project.refetch();if(result.isError)throw result.error;}}} onSaved={(next)=>{void queryClient.invalidateQueries({queryKey:["project",projectId]});navigate({name:"studio",projectId,revisionId:next});}}/>}
           {!classical&&<EditPanel projectId={projectId} branchId={editor.base.branchId} baseRevisionId={editor.base.revisionId} selection={editor.selection} lockedRanges={[]} rootReady={rootReady} onRunCreated={handleRunCreated} />}
           {editRun.mode !== "idle" && <section className="edit-run-status" aria-live="polite"><strong>{editRunModeLabel(editRun.mode)}</strong>{editRun.errorCode && <span>{editRun.errorCode}</span>}{editRun.mode === "committed" && editRun.revisionId && <button className="primary-button" type="button" onClick={() => navigate({ name: "studio", projectId, revisionId: editRun.revisionId as string })}>打开修改后的版本</button>}</section>}
           {editRun.preview && <EditPreviewCard preview={editRun.preview} busy={editDecisionPending} rootReady={rootReady} onDecision={(action) => void decidePreview(action)} />}
-          <section className="studio-panel" aria-labelledby="transport-title"><div className="panel-heading"><div><p className="eyebrow">SAVED VERSION / MP3</p><h2 id="transport-title">作品试听</h2></div>{delivery && <span className={`status-pill ${delivery.availability}`}>{availabilityLabel(delivery.availability)}</span>}</div><p className="saved-audio-note">当前播放器：保存版 {revisionId.slice(0,8)}；EQ 草稿与旁路不会实时改变这份音频。</p><p className="saved-audio-note">{delivery?.quality_profile === "candidate-preview.v1" ? "试听的是当前版本的已完成预览；正式 WAV 请前往导出页生成。" : "试听的是当前打开版本的导出音频，草稿修改不会实时反映在此处。"}</p>{(draft?.schema_version === "arrangement-ir.v3" || draft?.schema_version === "arrangement-ir.v4" || draft?.schema_version === "arrangement-ir.v5") && <><p>{editor.historyCursor > 0 ? "有未保存修改；这里仍播放当前保存版。先保存，再生成新版试听。" : "保存混音不会自动生成音频；仅播放这个版本已完成的音频。"}</p>{editor.historyCursor > 0 || !rootReady ? <button type="button" disabled>生成此保存版试听/导出</button> : <a className="secondary-inline" href={`/projects/${encodeURIComponent(projectId)}/exports/${encodeURIComponent(editor.base.revisionId)}`}>生成此保存版试听/导出</a>}</>}<DeliveryState delivery={delivery} rootReady={rootReady} recoveryPending={recovery.isPending} recoveryFeedback={recoveryFeedback} recoveryError={recovery.isError ? errorMessage(recovery.error) : null} onRecover={(artifactId) => recovery.mutate(artifactId)} transport={transport} duration={duration} /></section>
+
         </StudioInspector>
       </div>
 

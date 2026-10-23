@@ -11,6 +11,7 @@ import { RunInspectorPage } from "../features/inspection/RunInspectorPage";
 import { EvaluationPage } from "../features/evaluation/EvaluationPage";
 import { PortfolioPage } from "../features/portfolio/PortfolioPage";
 import { AppShell } from "./AppShell";
+import { NavigationGuard } from "./NavigationGuard";
 import { StatusBanner } from "./StatusBanner";
 import { navigate, parseRoute, routeTitle, subscribeToRoute } from "./routes";
 import type { AppRoute } from "./routes";
@@ -27,13 +28,15 @@ export function App() {
   );
   const [route, setRoute] = useState<AppRoute>(() => parseRoute());
   useEffect(() => subscribeToRoute(setRoute), []);
+  const pathname=window.location.pathname;
   useEffect(() => {
-    document.title = routeTitle(route);
-  }, [route]);
+    document.title = routeTitle(parseRoute());
+    document.getElementById("main-content")?.focus();
+  }, [pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>
-      {route.name === "import" ? (
+      <NavigationGuard>{route.name === "import" ? (
         route.projectId ? <ImportReviewPage projectId={route.projectId} /> : <ImportReviewPage />
       ) : (
         <AppShell>
@@ -43,7 +46,7 @@ export function App() {
           {route.name === "brief" && <BriefPage projectId={route.projectId} />}
           {route.name === "run" && <RunPage runId={route.runId} />}
           {route.name === "studio" && <StudioPage key={`${route.projectId}:${route.revisionId}`} projectId={route.projectId} revisionId={route.revisionId} />}
-          {route.name === "export" && <ExportPage projectId={route.projectId} revisionId={route.revisionId} />}
+          {route.name === "export" && <ExportPage key={`${route.projectId}:${route.revisionId}`} projectId={route.projectId} revisionId={route.revisionId} />}
           {route.name === "inspect" && <RunInspectorPage runId={route.runId} />}
           {route.name === "not_found" && (
             <section className="route-missing">
@@ -52,7 +55,7 @@ export function App() {
             </section>
           )}
         </AppShell>
-      )}
+      )}</NavigationGuard>
     </QueryClientProvider>
   );
 }

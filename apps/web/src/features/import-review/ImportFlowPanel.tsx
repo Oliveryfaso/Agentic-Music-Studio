@@ -378,7 +378,7 @@ function RunError({ error, retry }: { error: Error; retry: () => void }) {
 function setRunInUrl(threadId: string) {
   const url = new URL(window.location.href);
   if (threadId) url.searchParams.set("run", threadId); else url.searchParams.delete("run");
-  window.history.replaceState({}, "", url);
+  window.history.replaceState(window.history.state, "", url);
 }
 
 function projectNameFor(filename: string): string {

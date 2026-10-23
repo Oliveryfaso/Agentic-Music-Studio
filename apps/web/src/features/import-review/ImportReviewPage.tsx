@@ -38,7 +38,7 @@ export function ImportReviewPage({ projectId }: { projectId?: string }) {
     setSourceArtifactId(artifactId);
     const url = new URL(window.location.href);
     url.searchParams.set("artifact", artifactId);
-    window.history.replaceState({}, "", url);
+    window.history.replaceState(window.history.state, "", url);
   }, []);
 
   const featureSet = useQuery({
@@ -58,7 +58,7 @@ export function ImportReviewPage({ projectId }: { projectId?: string }) {
     setSourceArtifactId(value);
     const url = new URL(window.location.href);
     url.searchParams.set("artifact", value);
-    window.history.replaceState({}, "", url);
+    window.history.replaceState(window.history.state, "", url);
   }
 
   return (
@@ -66,9 +66,9 @@ export function ImportReviewPage({ projectId }: { projectId?: string }) {
         <a className="back-link" href="/">← 返回作品</a>
         <section className="hero">
           <div>
-            <p className="eyebrow">BRING YOUR OWN SOUND</p>
-            <h1>让已有的声音，成为新的起点。</h1>
-            <p>导入音频或分轨，查看波形、速度与调性。确认分析结果后，再把素材加入编排；原始文件会保留。</p>
+            
+            <h1>导入音频</h1>
+            <p>WAV / MP3 / FLAC · 原始素材保留</p>
           </div>
         </section>
 

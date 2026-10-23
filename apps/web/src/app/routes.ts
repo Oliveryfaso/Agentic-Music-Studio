@@ -10,7 +10,30 @@ export type AppRoute =
   | { name: "inspect"; runId: string }
   | { name: "not_found" };
 
-const NAVIGATION_EVENT = "motif-forge:navigate";
+export const NAVIGATION_EVENT = "motif-forge:navigate";
+export const BEFORE_NAVIGATION_EVENT = "motif-forge:before-navigate";
+export const HISTORY_INDEX = "motifHistoryIndex";
+
+export function ensureHistoryIndex(): number {
+  const value = window.history.state?.[HISTORY_INDEX];
+  if (typeof value === "number") return value;
+  window.history.replaceState({ ...window.history.state, [HISTORY_INDEX]: 0 }, "");
+  return 0;
+}
+
+export function navigateHref(href: string, replace = false): void {
+  const target = new URL(href, window.location.href);
+  if (target.origin !== window.location.origin) return;
+  const commit = () => {
+    const index = ensureHistoryIndex();
+    const state = { [HISTORY_INDEX]: replace ? index : index + 1 };
+    if (replace) window.history.replaceState(state, "", target);
+    else window.history.pushState(state, "", target);
+    window.dispatchEvent(new Event(NAVIGATION_EVENT));
+  };
+  const event = new CustomEvent(BEFORE_NAVIGATION_EVENT, { cancelable: true, detail: { url: target, proceed: commit } });
+  if (window.dispatchEvent(event)) commit();
+}
 
 export function parseRoute(pathname = window.location.pathname): AppRoute {
   const parts = pathname.split("/").filter(Boolean).map(decodePart);
@@ -95,10 +118,7 @@ export function navigate(
   route: Exclude<AppRoute, { name: "not_found" }>,
   options: { replace?: boolean } = {},
 ): void {
-  const path = routePath(route);
-  if (options.replace) window.history.replaceState({}, "", path);
-  else window.history.pushState({}, "", path);
-  window.dispatchEvent(new Event(NAVIGATION_EVENT));
+  navigateHref(routePath(route), options.replace);
 }
 
 export function subscribeToRoute(listener: (route: AppRoute) => void): () => void {

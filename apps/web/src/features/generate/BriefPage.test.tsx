@@ -45,7 +45,7 @@ describe("New Composition Brief", () => {
     }));
 
     renderPage();
-    expect(await screen.findByRole("heading", { name: "定义这首作品" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "新建编曲" })).toBeInTheDocument();
     const strategy = screen.getByLabelText("音乐策略");
     expect(Array.from(strategy.querySelectorAll("option")).map((option) => option.textContent)).toEqual([
       "Classical Chamber",
