@@ -1,6 +1,6 @@
 # Motif Forge 当前实施状态
 
-> 状态日期：2026-10-21（历史验证按原日期保留）
+> 状态日期：2026-10-23（历史验证按原日期保留）
 > 性质：当前代码事实与验收证据，不替代产品合同
 > 更新规则：每个被验收的小纵切结束后更新；不要把目标设计写成已实现能力
 
@@ -18,7 +18,17 @@
 
 ## 2. 当前产品形态
 
-### 当前B2b：正常停启与隔离还原API通过，共享worker额外重启未决（2026-10-21）
+### 当前B2→B3：真实链与当日只读复核通过，技术交付收口（2026-10-23）
+
+MF-P04/P05/P06/P11/P13/P15/P16/P17/P18/P21。10/22同环境规则R0→两轮真实模型编辑R1/R2→新Undo U→同U完整导出已过；今天02:48UTC受审核进程真实exit0，再读同项目/head U、两轮completed/原保存版、11现成文件17,317,449bytes全部HTTP200/SHA/size通过。API ready、真实审核音源capability、Web HTTP200；两模型容器为空且自清空后ID未变，项目仍2请求/4783tokens。启动器--personal-beta --check当日exit0、未启停/读实际.env/构建；静态renderer_admission=not_checked不冒称实时结果，实时能力另有回执。
+
+上轮执行器断线只读缺口已闭合。另两个10/21旧pending候选仅因24h TTL从恢复目录过滤，未批准/丢弃、head不变；不是上述两轮completed记录过期。10/22八音频严格完整解码/无NaN/Inf/削波、MIDI83音符与U导出IR一致的证据复用，今天不重渲染。
+
+本轮无确认产品代码缺陷、无新前端patch/资源需求、0新模型/POST/密钥/启停；仅同步B3计划/状态/路线和[统一运行说明](PERSONAL_BETA_RUNBOOK.md)。原前端浏览器播放/切换/刷新返回/下载/键盘窄屏仍有工具依赖，未重发/绕过unknown原生审批；不是要求用户先试听才能继续工程。当前模型not_configured是正确默认，长期免配置NL服务未成立；持久key是可选新动作，不是本轮文档前置条件。
+
+累计观测峰价估计¥0.071874、保守预算gate曝光¥0.161688（含旧未冲销预留）、同一¥10保持，非账单；本轮增量0。主线B3技术交付可收口，完整个人Beta浏览器封板仍待原线真实回执；不扩曲库/乐器/P3–P5。main/Guide保持，当前Beta/数据保留。[当日证据](evidence/2026-10-23-beta-current-closure.md)。
+
+### 前次B2b：正常停启与隔离还原API通过，共享worker额外重启未决（2026-10-21）
 
 MF-P06/P13/P15/P16/P17/P18/P21。独立C02手工候选2真实Job各attempt1；同一自有Beta正常停启一次，保存Revision/待审批checkpoint/13媒体文件18,089,074bytes精确保持，3原body/key回放无新业务效果。只读完整dump216,825bytes+23媒体payload19,661,346bytes还原到空独立库/RO媒体副本，39表及canonical IR/完整正常HTTP一致；目标API读取通过容器自身loopback，宿主18100连接失败保留。精确清退3临时容器/1网络，源Beta最终Web/API正常，无应用/配置/模型/凭据改动。
 
@@ -40,7 +50,7 @@ MF-P16/P17/P18/P21。经用户精确批准的只读音源共享与同VM一次维
 
 MF-P16/P17/P18/P21. Installed source/config for isolated loopback Beta, explicit public templates, disabled model/tracing, reviewed readonly pack/pin, live capability/catalog guard and dedicated single-target image build.67 installed focused checks and17 independent checks pass; no review findings. Host assets verify and6 actual Compose config checks pass. Real readonly bind probe fails125: VM sees old ext4 placeholders rather than the actual host external volume. No permission to modify/restart sharedVM; no new image build/service/URL/Project/Revision. This is a source checkpoint, not B1 runtime acceptance. Real Compose/UI and B2 same-environment model/edit/reopen/export await the concrete external-share and later credential boundaries. [Evidence](evidence/2026-10-21-beta-b1-source.md).
 
-### Current slice: personal Beta preparation B0 runtime boundary (2026-10-21)
+### Historical slice: personal Beta preparation B0 runtime boundary (2026-10-21)
 
 MF-P16/P17/P18/P21. Strictly-owned start/stop is installed and real-Docker verified: unknown persistent resources refused, two stop/reopen cycles retain data and owner, repeat stop succeeds. Only task-created test resources removed; all27 preexisting container IDs retained, no VM changes. New real-CLI JSON-template defect was preserved, corrected by one literal brace, and narrowly independently reviewed. Installed checks27, original UI39+types, resources11; these do not replace full Beta Compose/browser acceptance.
 

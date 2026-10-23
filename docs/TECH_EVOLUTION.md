@@ -709,3 +709,11 @@ P2.3/B2，MF-P04/P05/P06/P11/P13/P15/P16/P17/P18/P21。在正常持久Beta中新
 原验收known断言混淆可选reasoning细分与已知计费核心，另一个review修复误把reservation本地编号等同远端completion；各停在下一模型前、保存反例、窄修复与独审，第一轮仅复用原结果。产品partial/null不改，所有计费分量与精确Run/唯一observed reservation严格绑定；未宣称保留rawHTTP/model_version。17准备/8最终窄检查，真实2请求4783tokens，本轮公开峰价上界¥0.011876、累计观测估计¥0.071874非账单；gate还保留旧未冲销预留，保守曝光¥0.161688、同一¥10不重置。
 
 新明确授权及原生审核仅允许既有key临时进入本任务API/resume，finally恢复空且第三进程确认4个携密钥容器均消失。resume对齐已有API7dad镜像，未构建/下载，其他owned服务元数据保持，Colima/旧项目不动。证据与待前端产物保留约20.8MB，清理0/新cache0，shared builder不prune。当前模型空配置，服务保留供浏览器人工关口；原DevTools unknown不重试，未将API/解码/代理指标说成用户播放/下载/听感验收。[完整证据](evidence/2026-10-22-beta-real-model-loop.md)。
+
+## 2026-10-23 — B3 current verification and bounded personal-Beta delivery
+
+P2.3/B2→B3，MF-P04/P05/P06/P11/P13/P15/P16/P17/P18/P21。基线f385f17；今天受审核进程42348真实exit0，02:48UTC重读同U/两轮completed/原保存版、11现成文件17,317,449bytes全部HTTP200与SHA/size一致，两个模型容器空且ID自清空后未变，API/真实审核包capability/Web200。正常启动入口--personal-beta --check也exit0，静态资源assets_verified但renderer_admission=not_checked与独立实时证据分开，不是新启动/新渲染。此前exec-server断线失败仍留存，当日只读缺口现已闭合。
+
+仅文档事实收口：B1/B2/B3总计划精确拆项、状态/路线更新与统一运行/恢复说明。原前端无代码缺陷或新patch，浏览器播放/刷新返回/下载等仍工具依赖，主线不代验或重发旧unknown权限。旧两个pending仅TTL自然到期不进目录，当前两轮仍completed；不改TTL/作品。10/22八音频严格解码/MIDI事件证据复用，不用旧测试冒称今天新跑。
+
+本轮0新模型/POST/secret读取启用/构建/启停/产品代码；累计观测峰价估计¥0.071874、保守gate曝光¥0.161688非账单，同一¥10。保留当前Beta/卷/媒体/RO包/失败与交付，删除0bytes，不prune共享builder或操作旧容器/Colima；main/Guide保持。技术交付闭合不等于完整浏览器个人Beta/任意音乐验收，主观听感不阻断工程。[证据](evidence/2026-10-23-beta-current-closure.md) / [运行说明](PERSONAL_BETA_RUNBOOK.md)。

@@ -3,9 +3,17 @@
 > **For agentic workers:** 实施本路线中的具体纵切前，必须先为该纵切建立 `docs/superpowers/plans/YYYY-MM-DD-<slice>.md`，再使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 逐项执行。
 > 状态：已批准的主路线；S2 Task 6 起采用 ADR-016 作品集工程模式
 > 起点：受控 Upload → Import → 分析 HITL → 保持音高对齐 → Web Preview 已完成
-> 执行断点（2026-10-19）：M2 真实三段 EQ 已在保存版 M1 双钢琴上验收，见 `PIANO_EQ_CONTRACT.md`。草稿/保存/重开/精确 Undo、实际参数响应与同源试听导出已通。实时调音、频谱、自动化、新配色/整页原型、多曲和其余 P2–P5 仍待各自授权与合同，不自动启动下一功能。
+> 当前执行断点（2026-10-23）：审核曲库双钢琴个人Beta的B2限定客观链与当日服务/11文件复核已过，B3技术交付和运行说明收口；真实浏览器验收仍由原前端处理工具依赖。M2/P2.3历史合同与证据保留，未自动开启新曲库、乐器或P3–P5。
 
-### P2.3 最新执行断点（2026-10-21，日常局部编辑技术收口）
+### 个人Beta当前收口：B2→B3（2026-10-23）
+
+- **已过客观门**：同环境规则双钢琴R0→两轮真实模型局部编辑R1/R2→正常保存→精确Undo新U（完整IR=R1）→同U固定11文件导出。今天02:48UTC真实只读GET/SELECT重验17,317,449bytes全部SHA/size，head/两轮completed/原保存版保持；两模型容器空、API/审核音源/Web可用；启动器--check实际exit0，不启停。不是本轮模型append、浏览器A/B或新冷启动证明。
+- **本轮已推进B3**：总计划按真实范围拆项/勾选、状态与本路线事实对齐，[运行与恢复说明](PERSONAL_BETA_RUNBOOK.md)、当前入口/固定导出/预算/保留清单。没有新代码缺陷或patch，复用已过音频/MIDI证据，不追加模型或重复昂贵验证。
+- **仍待原前端工具门**：实际播放/切换、刷新/返回/重开、下载、键盘/窄屏。原线缺原CUA/下载审批查询能力，unknown原生请求不重发或绕过；用户听感只约束审美结论，不再是所有技术工作的先决条件。
+- **配置与恢复边界**：默认模型not_configured；临时测试授权已清空，不建立长期key访问。长期配置是用户未来确实选择时的具体新动作，不阻塞本轮交付。历史B2b宿主还原入口失败/共享worker影响未决仅限声明，不扩故障矩阵。旧pending TTL排除与当前两轮completed严格区分。
+- 本轮新增模型/POST/费用/凭据启用/服务启停0。累计观测估计¥0.071874、保守gate曝光¥0.161688（含旧预留），同一¥10且非账单。main/Guide不变，保留唯一Beta/作品/包与失败证据。[当前证据](evidence/2026-10-23-beta-current-closure.md) / [阶段计划](superpowers/plans/2026-10-21-personal-beta-runtime.md)。
+
+### P2.3 前次执行断点（2026-10-21，日常局部编辑技术收口）
 
 用户已听36d2a3e九段并认可这次效果；该版及旧包保持，不因此推断全风格或盲测偏好。当前切片补日常UI与稳定性，算法/声音不变。三曲首中尾/对抗Eval25、PG连续重叠修改→精确Undo→祖先再编辑、新旧4PG、实际built UI/API/Parent/Worker离线8Jobs及live4Jobs通过。最终Python942、Web133（最后文案alias聚焦7）、TS/build、任务门禁55；独审3Important+1Minor经唯一限定复查全关闭。见[本轮证据](evidence/2026-10-21-p23-daily-stability.md)。
 
