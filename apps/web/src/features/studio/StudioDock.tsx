@@ -8,7 +8,7 @@ export function StudioDock({ piano, mixer, inspector, library, workspaceMode }: 
   const panel=new URLSearchParams(search).get("panel");
   const tab=workspaceMode ? (panel === "piano" || panel === "library" ? panel : "inspector") : localTab;
   const setTab=(id:"piano"|"mixer"|"inspector"|"library")=>{setLocalTab(id);if(workspaceMode){const url=new URL(window.location.href);url.searchParams.set("panel",id);navigateHref(url.href,true);}};
-  if(workspaceMode === "mix")return <section className="studio-dock" aria-label="Studio Dock">{mixer}</section>;
+  if(workspaceMode === "mix")return <section className="studio-dock studio-mix-dock" aria-label="Studio Dock">{mixer}</section>;
   const content = { piano, mixer, inspector, library }[tab];
   const tabs = [["piano", "钢琴卷帘"], ["mixer", "混音台"], ["inspector", "片段属性"], ["library", "音色库"]] as const;
   const visibleTabs=workspaceMode ? tabs.filter(([id])=>id!=="mixer") : tabs;

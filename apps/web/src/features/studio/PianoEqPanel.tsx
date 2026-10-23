@@ -23,7 +23,7 @@ export function PianoEqPanel({arrangement,savedArrangement,disabled=false,onComm
  const selected=state?.tracks.find(track=>track.track_id===(selectedTrackId??selectedId))??state?.tracks[0];
  const id=selected?.track_id??"",track=arrangement.tracks.find(item=>item.track_id===id);
  const profile=eqProfileFor(arrangement);
- if((savedArrangement.schema_version!=="arrangement-ir.v4"&&savedArrangement.schema_version!=="arrangement-ir.v5")||!state||!selected||!track)return <section className="piano-eq-panel"><p>先保存双钢琴基础混音，再启用三段 EQ。</p></section>;
+ if((savedArrangement.schema_version!=="arrangement-ir.v4"&&savedArrangement.schema_version!=="arrangement-ir.v5")||!state||!selected||!track)return <section className="piano-eq-panel eq-unavailable"><p>先保存双钢琴基础混音，再启用三段 EQ。</p></section>;
  const authoritative=settings(selected);
  const visible={...authoritative,...(preview?.trackId===id?preview.patch:{})};
  const savedTrack=saved?.tracks.find(item=>item.track_id===id);
