@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from motif_forge.application.run_inspection import (
     DecisionSummary,
@@ -18,6 +18,7 @@ from motif_forge.application.run_inspection import (
     RunVersionSummary,
     safe_event_summary,
 )
+from motif_forge.domain.media_jobs import JobStatus, MediaJobType
 from motif_forge.infrastructure.persistence.ai_runs import read_ai_run_with_pending_usage
 from motif_forge.infrastructure.persistence.database import SessionFactory
 from motif_forge.infrastructure.persistence.tables import (
@@ -56,6 +57,13 @@ class PostgresRunInspectionStore:
                     )
                 ).scalars()
             )
+            event_counts = dict((
+                await session.execute(
+                    select(AIRunEventRow.event_type, func.count())
+                    .where(AIRunEventRow.run_id == run_id)
+                    .group_by(AIRunEventRow.event_type)
+                )
+            ).all())
             approval = (
                 await session.execute(
                     select(AIRunApprovalRow).where(AIRunApprovalRow.run_id == run_id)
@@ -80,6 +88,13 @@ class PostgresRunInspectionStore:
                 ).scalars()
             )
             jobs_by_id = {item.id: item for item in thread_jobs}
+            bundle_output_ids = {
+                item.result_artifact_id
+                for item in thread_jobs
+                if item.job_type == MediaJobType.EXPORT_BUNDLE.value
+                and item.status == JobStatus.SUCCEEDED.value
+                and item.result_artifact_id is not None
+            }
             artifacts_by_id: dict[UUID, AudioArtifactRow] = {}
             bundle = None
             if revision_id is not None:
@@ -108,14 +123,21 @@ class PostgresRunInspectionStore:
                     ).scalars()
                 )
                 artifacts_by_id.update((item.id, item) for item in revision_artifacts)
-                bundle = (
-                    await session.execute(
-                        select(ExportBundleArtifactRow).where(
-                            ExportBundleArtifactRow.project_id == run.project_id,
-                            ExportBundleArtifactRow.revision_id == revision_id,
-                        )
-                    )
-                ).scalar_one_or_none()
+                if bundle_output_ids:
+                    bundles = {
+                        item.id: item
+                        for item in (
+                            await session.execute(
+                                select(ExportBundleArtifactRow).where(
+                                    ExportBundleArtifactRow.project_id == run.project_id,
+                                    ExportBundleArtifactRow.revision_id == revision_id,
+                                    ExportBundleArtifactRow.id.in_(tuple(bundle_output_ids)),
+                                )
+                            )
+                        ).scalars()
+                    }
+                    if len(bundles) == 1:
+                        bundle = next(iter(bundles.values()))
             if jobs_by_id:
                 job_artifacts = tuple(
                     (
@@ -162,7 +184,6 @@ class PostgresRunInspectionStore:
             ),
             None,
         )
-        event_names = tuple(item.event_type.lower() for item in timeline)
         return RunInspectionFacts(
             run=InspectionRunSummary(
                 run_id=run.id, project_id=run.project_id, thread_id=run.thread_id,
@@ -197,10 +218,10 @@ class PostgresRunInspectionStore:
                 byte_size=item.byte_size,
             ) for item in artifacts if item.source_job_id is not None),
             recovery=RecoverySummary(
-                resume_events=sum("resum" in item for item in event_names),
-                replay_events=sum("replay" in item or "dedup" in item for item in event_names),
-                retry_events=sum("retry" in item for item in event_names),
-                cancel_events=sum("cancel" in item for item in event_names),
+                resume_events=None,
+                replay_events=None,
+                retry_events=None,
+                cancel_events=event_counts.get("ai_run.cancelled", 0),
                 terminal_outcome=run.status if run.status in TERMINAL_STATUSES else None,
             ),
         )

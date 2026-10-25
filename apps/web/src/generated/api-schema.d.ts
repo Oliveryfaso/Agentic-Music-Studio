@@ -3767,14 +3767,17 @@ export interface components {
         };
         /** RecoverySummary */
         RecoverySummary: {
-            /** Cancel Events */
+            /**
+             * Cancel Events
+             * @description Recorded ai_run.cancelled transitions, not requests or process exits.
+             */
             cancel_events: number;
             /** Replay Events */
-            replay_events: number;
+            replay_events: number | null;
             /** Resume Events */
-            resume_events: number;
+            resume_events: number | null;
             /** Retry Events */
-            retry_events: number;
+            retry_events: number | null;
             /** Terminal Outcome */
             terminal_outcome: string | null;
         };

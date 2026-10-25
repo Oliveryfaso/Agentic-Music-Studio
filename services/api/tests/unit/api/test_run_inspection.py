@@ -70,3 +70,34 @@ def test_run_inspection_route_combines_authoritative_run_and_safe_facts() -> Non
     serialized = response.text
     for forbidden in ("approval_assertion", "storage_key", "/private/", '"prompt":'):
         assert forbidden not in serialized
+
+
+def test_inspection_api_separates_full_run_counts_from_limited_timeline() -> None:
+    store = FakeInspectionStore()
+    original = facts()
+    store.facts = original.model_copy(update={
+        "timeline": tuple(
+            InspectionEvent(
+                sequence=i, event_type="candidate.critic.completed", phase="test",
+                created_at=datetime(2026, 8, 25, tzinfo=UTC), summary={},
+            ) for i in range(3, 203)
+        ),
+        "timeline_truncated": True,
+        "recovery": RecoverySummary(
+            resume_events=None, replay_events=None, retry_events=None,
+            cancel_events=1, terminal_outcome="succeeded",
+        ),
+    })
+    app = FastAPI()
+    app.include_router(build_run_inspection_router(store))
+
+    with TestClient(app) as client:
+        response = client.get(f"/api/v1/runs/{uid(1)}/inspect")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data["timeline"]) == 200 and data["timeline_truncated"] is True
+    assert data["recovery"] == {
+        "resume_events": None, "replay_events": None, "retry_events": None,
+        "cancel_events": 1, "terminal_outcome": "succeeded",
+    }

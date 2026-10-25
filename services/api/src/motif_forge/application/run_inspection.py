@@ -85,10 +85,14 @@ class InspectionArtifact(InspectionModel):
 
 
 class RecoverySummary(InspectionModel):
-    resume_events: int = Field(ge=0)
-    replay_events: int = Field(ge=0)
-    retry_events: int = Field(ge=0)
-    cancel_events: int = Field(ge=0)
+    """Full-Run persisted event counts; None means the category is not recorded."""
+
+    resume_events: int | None = Field(ge=0)
+    replay_events: int | None = Field(ge=0)
+    retry_events: int | None = Field(ge=0)
+    cancel_events: int = Field(
+        ge=0, description="Recorded ai_run.cancelled transitions, not requests or process exits.",
+    )
     terminal_outcome: str | None
 
 

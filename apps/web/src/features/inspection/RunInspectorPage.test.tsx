@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import type { RunGraphReadModel, RunInspectionFacts } from "../../shared/openapi";
@@ -54,6 +54,45 @@ it("keeps the timeline usable when Graph evidence fails", async () => {
   expect(await screen.findByText("Graph Timeline")).toBeInTheDocument();
   expect(await screen.findByText(/Graph 执行证据暂时不可用/)).toBeInTheDocument();
   expect(screen.getAllByTestId("inspection-event")).toHaveLength(3);
+});
+
+it("keeps full-Run recovery facts independent of the truncated 200-event timeline", async () => {
+  const value = inspection();
+  value.run.status = "cancelled";
+  value.recovery = { resume_events: null, replay_events: null, retry_events: null, cancel_events: 1, terminal_outcome: "cancelled" };
+  value.timeline = Array.from({ length: 200 }, (_, index) => ({
+    sequence: index + 50, event_type: "graph.progress", phase: "rendering",
+    created_at: "2026-10-25T00:00:00Z", summary: { phase: "rendering" },
+  }));
+  value.timeline_truncated = true;
+  stubApi(value, graph());
+  renderPage();
+
+  const recovery = await screen.findByLabelText("全 Run 恢复事件记录");
+  expect(within(recovery).getByText("恢复 未记录 · 回放 未记录")).toBeInTheDocument();
+  expect(within(recovery).getByText("重试 未记录 · 取消终态 1")).toBeInTheDocument();
+  expect(within(recovery).getByText("恢复记录 · 全 Run 持久事件")).toBeInTheDocument();
+  const rows = screen.getAllByTestId("inspection-event");
+  expect(rows).toHaveLength(200);
+  expect(rows.every(row => !row.textContent?.includes("ai_run.cancelled"))).toBe(true);
+  const timeline = screen.getByText("Graph Timeline").closest("details")!;
+  expect(within(timeline).getByText("时间线已截断")).toBeInTheDocument();
+  expect(within(timeline).getByText("仅时间线显示最近 200 条持久事件；恢复概览统计覆盖全 Run。")).toBeInTheDocument();
+});
+
+it.each([
+  { recovery: { resume_events: 0, replay_events: 0, retry_events: 0, cancel_events: 0, terminal_outcome: "succeeded" }, first: "恢复 0 · 回放 0", second: "重试 0 · 取消终态 0" },
+  { recovery: { resume_events: 2, replay_events: 5, retry_events: 8, cancel_events: 9, terminal_outcome: "succeeded" }, first: "恢复 2 · 回放 5", second: "重试 8 · 取消终态 9" },
+])("preserves recorded recovery counts: $first", async ({ recovery: counts, first, second }) => {
+  const value = inspection();
+  value.recovery = counts;
+  stubApi(value, graph());
+  renderPage();
+
+  const recovery = await screen.findByLabelText("全 Run 恢复事件记录");
+  expect(within(recovery).getByText(first)).toBeInTheDocument();
+  expect(within(recovery).getByText(second)).toBeInTheDocument();
+  expect(within(recovery).queryByText(/未记录/)).toBeNull();
 });
 
 function renderPage() {
