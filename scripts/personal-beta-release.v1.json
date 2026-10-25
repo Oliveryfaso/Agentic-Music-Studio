@@ -1,0 +1,9 @@
+{
+  "schema_version": "motif-personal-beta-release.v1",
+  "application_commit": "a3bfb1abc91a6fca820ff5a2367ef449879632aa",
+  "api_image": {
+    "reference": "motif-forge-beta-api:inspector-a3bfb1a",
+    "id": "sha256:b133641886492ffeb3a73c3905beda303ad19d07319cb905ca0969841b6aa3d4"
+  },
+  "compatible_database_revision": "20261020_0030"
+}

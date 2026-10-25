@@ -41,6 +41,14 @@ scripts/stop_motif_forge.sh --personal-beta
 
 当前任务没有再执行上述启动/关闭。早先正常停启与保留数据的实际证据见[B2b](evidence/2026-10-21-beta-b2b-recovery-restore.md)，不把今天的`--check`冒称一次新冷启动或整机重启。
 
+### Inspector 镜像固定选择（隔离修复候选）
+
+`--personal-beta`的API与其schema迁移器共同使用`scripts/personal-beta-release.v1.json`中的已审核发布：Inspector应用源码a3bfb1a、镜像inspector-a3bfb1a及固定image ID，兼容数据库revision声明为20261020_0030。应用源码commit描述镜像内容，不要求启动器当前HEAD仍是a3bfb1a。
+
+启动器会先核对本地迁移图的唯一head、实际公开Compose选择的API/迁移器镜像和本机image ID，并以不可变ID执行创建，避免tag检查后漂移。缺文件、错误head/配置/ref/ID一律在up前拒绝，不回退local、不pull/build，也不从当前可疑镜像学习新pin。普通非Beta用法不变；原全局MOTIF_FORGE_BETA_IMAGE_TAG仍控制其余Beta服务，不能覆盖固定API或迁移器。MOTIF_FORGE_BETA_RELEASE_IMAGE_ID是启动器从manifest派生的配置，不是跳过检查的用户开关。故障恢复应取回已审核镜像；普通build不保证相同image ID，不能仅靠重新build或把检查到的ID写入manifest刷过检查。
+
+本次只验证离线配置/模拟启动，未重新创建当前容器。迁移head检查不是live DB检查，真实冷重建和数据库兼容仍需正常维护验收。现有API-only回退说明保持：受控直调Compose的最后一层旧image覆盖仍有效；它不是正常启动器绕过pin的开关。
+
 ## 模型默认未配置的含义
 
 当前API与resume-dispatcher均空密钥、tracing关闭。界面模型状态应为“未配置”；已保存作品和导出可读，新的自然语言提交需要明确配置。音源可用和远端模型可用是两件事。

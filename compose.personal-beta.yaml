@@ -8,10 +8,10 @@ x-beta-python-environment: &beta-python-environment
 
 services:
   api:
-    image: motif-forge-beta-api:${MOTIF_FORGE_BETA_IMAGE_TAG:-local}
+    image: ${MOTIF_FORGE_BETA_RELEASE_IMAGE_ID:-motif-forge-beta-api:inspector-a3bfb1a}
     environment: *beta-python-environment
   migrate:
-    image: motif-forge-beta-api:${MOTIF_FORGE_BETA_IMAGE_TAG:-local}
+    image: ${MOTIF_FORGE_BETA_RELEASE_IMAGE_ID:-motif-forge-beta-api:inspector-a3bfb1a}
     environment: *beta-python-environment
   storage-init:
     image: motif-forge-beta-api:${MOTIF_FORGE_BETA_IMAGE_TAG:-local}

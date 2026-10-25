@@ -138,10 +138,32 @@ if (( personal_beta )); then
     echo "Docker is not ready; start your Docker environment explicitly, then retry." >&2
     exit 70
   fi
-  for target in api media-worker render-worker; do
+  if ! release="$(PYTHONDONTWRITEBYTECODE=1 python3 scripts/personal_beta_release.py --repo "$project_root")"; then
+    echo "Personal Beta release/local schema check failed; no services were started." >&2
+    exit 78
+  fi
+  IFS=$'\t' read -r beta_api_image beta_api_image_id beta_schema <<< "$release"
+  # Bind creation to the immutable ID, even if the tag moves after inspection.
+  export MOTIF_FORGE_BETA_RELEASE_IMAGE_ID="$beta_api_image_id"
+  if ! selected_images="$("${compose_command[@]}" config --format json | python3 -c 'import json,sys; s=json.load(sys.stdin)["services"]; print(s["api"]["image"], s["migrate"]["image"], sep="\t")' 2>/dev/null)"; then
+    echo "Personal Beta release configuration could not be read; no services were started." >&2
+    exit 78
+  fi
+  IFS=$'\t' read -r selected_api_image selected_migration_image <<< "$selected_images"
+  if [[ "$selected_api_image" != "$beta_api_image_id" || "$selected_migration_image" != "$beta_api_image_id" ]]; then
+    echo "Personal Beta API/migrator images differ from the reviewed release; no services were started." >&2
+    exit 78
+  fi
+  for target in api shared-python media-worker render-worker; do
     image="motif-forge-beta-$target:${MOTIF_FORGE_BETA_IMAGE_TAG:-local}"
-    if ! docker image inspect --format '{{.Id}}' "$image" >/dev/null 2>&1; then
-      echo "Missing personal Beta image: $image. Use scripts/build_compose_images.sh --personal-beta TARGET for each required target (api, media-worker, render-worker); launch never builds or pulls." >&2
+    if [[ "$target" == api ]]; then image="$beta_api_image"; fi
+    if [[ "$target" == shared-python ]]; then image="motif-forge-beta-api:${MOTIF_FORGE_BETA_IMAGE_TAG:-local}"; fi
+    if ! actual_image_id="$(docker image inspect --format '{{.Id}}' "$image" 2>/dev/null)"; then
+      echo "Missing personal Beta image: $image. Restore the reviewed API release; workers can use scripts/build_compose_images.sh --personal-beta TARGET. Launch never builds, pulls or learns a new pin." >&2
+      exit 78
+    fi
+    if [[ "$target" == api && "$actual_image_id" != "$beta_api_image_id" ]]; then
+      echo "Personal Beta API image identity differs from the reviewed release; no services were started." >&2
       exit 78
     fi
   done

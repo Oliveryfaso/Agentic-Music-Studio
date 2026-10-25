@@ -11,6 +11,7 @@ import pytest
 
 ROOT = Path(__file__).parents[1]
 PYTHON = Path(sys.executable)
+RELEASE = json.loads((ROOT / "scripts/personal-beta-release.v1.json").read_text())
 
 
 def executable(path: Path, text: str) -> None:
@@ -29,12 +30,17 @@ def checkout(tmp_path: Path, *, vite: bool = True):
         "scripts/stop_motif_forge.sh",
         "scripts/motif_runtime_lock.py",
         "scripts/build_compose_images.sh",
+        "scripts/personal_beta_release.py",
+        "scripts/personal-beta-release.v1.json",
     ):
         source = ROOT / relative
         if source.exists():
             target = repo / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
+    versions = repo / "infra/migrations/versions"
+    versions.mkdir(parents=True)
+    (versions / "head.py").write_text('revision="20261020_0030"\ndown_revision=None\n')
     (repo / ".env").write_text("SYNTHETIC_POISON_ONLY=never-load\n")
     if vite:
         (repo / "node_modules/.bin").mkdir(parents=True)
@@ -77,6 +83,12 @@ a=sys.argv[1:]
 with open(os.environ['BETA_COMMAND_LOG'],'a') as f:
  f.write(json.dumps(['docker',*a])+'\\n')
 if a and a[0]=='image' and os.environ.get('BETA_MISSING_IMAGE'): sys.exit(1)
+if a and a[0]=='image' and a[-1]==os.environ.get('BETA_MISSING_REF'): sys.exit(1)
+if a and a[0]=='image':
+ print(os.environ.get('BETA_API_IMAGE_ID','sha256:b133641886492ffeb3a73c3905beda303ad19d07319cb905ca0969841b6aa3d4'))
+if 'config' in a and '--format' in a:
+ selected=os.environ.get('MOTIF_FORGE_BETA_RELEASE_IMAGE_ID','motif-forge-beta-api:inspector-a3bfb1a')
+ print(json.dumps({'services':{'api':{'image':os.environ.get('BETA_CONFIG_API_IMAGE',selected)},'migrate':{'image':os.environ.get('BETA_CONFIG_MIGRATE_IMAGE',selected)}}}))
 if 'up' in a: sys.exit(42)
 """,
     )
@@ -194,7 +206,10 @@ def test_beta_rejects_invalid_port_before_docker(tmp_path: Path, port: str):
     assert not calls(log)
 
 
-def test_real_compose_parser_proves_config_isolation_and_readonly_pin(tmp_path: Path):
+@pytest.mark.parametrize("worker_tag", ["local", "acceptance-1"])
+def test_real_compose_parser_proves_config_isolation_and_readonly_pin(
+    tmp_path: Path, worker_tag: str
+):
     assert (ROOT / "compose.personal-beta.yaml").exists(), "personal Beta override is missing"
     docker = shutil.which("docker")
     assert docker, "Compose CLI is required for this no-daemon config boundary"
@@ -215,6 +230,7 @@ def test_real_compose_parser_proves_config_isolation_and_readonly_pin(tmp_path: 
         "DEEPSEEK_API_KEY": "SYNTHETIC_SHELL_MODEL_KEY",
         "COMPOSE_FILE": str(tmp_path / "missing-foreign-compose.yaml"),
         "COMPOSE_ENV_FILES": str(tmp_path / "missing-foreign.env"),
+        "MOTIF_FORGE_BETA_IMAGE_TAG": worker_tag,
     }
     result = subprocess.run(
         [
@@ -251,7 +267,12 @@ def test_real_compose_parser_proves_config_isolation_and_readonly_pin(tmp_path: 
         "render-worker": "render-worker",
     }
     for name, image in expected_images.items():
-        assert services[name]["image"] == f"motif-forge-beta-{image}:local"
+        expected = (
+            "motif-forge-beta-api:inspector-a3bfb1a"
+            if name in {"api", "migrate"}
+            else f"motif-forge-beta-{image}:{worker_tag}"
+        )
+        assert services[name]["image"] == expected
         assert services[name]["environment"].get("DEEPSEEK_API_KEY", "") == ""
     for name in ("api", "migrate", "dispatcher", "resume-dispatcher", "media-worker"):
         values = services[name]["environment"]
@@ -275,6 +296,76 @@ def test_real_compose_parser_proves_config_isolation_and_readonly_pin(tmp_path: 
         config["volumes"]["motif_forge_postgres"]["name"]
         == "motif-beta-config-test_motif_forge_postgres"
     )
+    rollback = repo / "rollback-api.json"
+    rollback_image = "sha256:" + "8" * 64
+    rollback.write_text(json.dumps({"services": {"api": {"image": rollback_image}}}))
+    launch_env = env | {"MOTIF_FORGE_BETA_RELEASE_IMAGE_ID": RELEASE["api_image"]["id"]}
+    pinned = subprocess.run(result.args, env=launch_env, capture_output=True, text=True, timeout=20)
+    assert pinned.returncode == 0, pinned.stderr
+    pinned_services = json.loads(pinned.stdout)["services"]
+    for name in ("api", "migrate"):
+        assert pinned_services[name]["image"] == RELEASE["api_image"]["id"]
+    restored = subprocess.run(
+        [*result.args[:-3], "-f", str(rollback), "config", "--format", "json"],
+        env=launch_env, capture_output=True, text=True, timeout=20,
+    )
+    assert restored.returncode == 0, restored.stderr
+    after = json.loads(restored.stdout)["services"]
+    assert after["api"]["image"] == rollback_image
+    assert {k: v for k, v in after["api"].items() if k != "image"} == {
+        k: v for k, v in pinned_services["api"].items() if k != "image"
+    }
+    assert all(after[name] == service for name, service in pinned_services.items() if name != "api")
+
+
+def test_checked_api_selection_is_independent_of_legacy_worker_tag(tmp_path: Path):
+    repo, env, log = checkout(tmp_path)
+    env["MOTIF_FORGE_BETA_IMAGE_TAG"] = "custom-worker"
+    env["MOTIF_FORGE_BETA_RELEASE_IMAGE_ID"] = "sha256:" + "0" * 64
+    result = launch(repo, env, "--check")
+    assert result.returncode == 0, result.stderr
+    images = [command[-1] for command in calls(log)
+              if command[:3] == ["docker", "image", "inspect"]]
+    assert images == [RELEASE["api_image"]["reference"],
+                      "motif-forge-beta-api:custom-worker",
+                      "motif-forge-beta-media-worker:custom-worker",
+                      "motif-forge-beta-render-worker:custom-worker"]
+
+
+@pytest.mark.parametrize("fault", ["wrong_image_id", "wrong_compose_image", "wrong_migrator_image",
+                                  "missing_contract", "wrong_local_schema",
+                                  "missing_shared_python"])
+def test_release_mismatch_fails_before_any_start_or_write(tmp_path: Path, fault: str):
+    repo, env, log = checkout(tmp_path)
+    if fault == "wrong_image_id":
+        env["BETA_API_IMAGE_ID"] = "sha256:" + "0" * 64
+    elif fault == "wrong_compose_image":
+        env["BETA_CONFIG_API_IMAGE"] = "motif-forge-beta-api:local"
+    elif fault == "wrong_migrator_image":
+        env["BETA_CONFIG_MIGRATE_IMAGE"] = "motif-forge-beta-api:unreviewed-migrator"
+    elif fault == "missing_contract":
+        (repo / "scripts/personal-beta-release.v1.json").unlink()
+    elif fault == "missing_shared_python":
+        env["BETA_MISSING_REF"] = "motif-forge-beta-api:local"
+    else:
+        (repo / "infra/migrations/versions/head.py").write_text(
+            'revision="20261024_0031"\ndown_revision=None\n'
+        )
+    result = launch(repo, env, "--no-open")
+    assert result.returncode == 78, result.stderr
+    assert not any("up" in c or "init" in c or "prepare" in c or "pull" in c or "build" in c
+                   for c in calls(log))
+    assert not (tmp_path / "runtime-personal-beta").exists()
+
+
+def test_normal_nonbeta_check_keeps_legacy_configuration(tmp_path: Path):
+    repo, env, log = checkout(tmp_path)
+    env["MOTIF_FORGE_DEV_STORAGE_ROOT"] = str(tmp_path / "storage")
+    (repo / "scripts/personal-beta-release.v1.json").unlink()
+    result = subprocess.run(["bash", str(repo / "scripts/start_motif_forge.sh"), "--check"],
+                            env=env, capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, result.stderr
+    assert not any(command[:3] == ["docker", "image", "inspect"] for command in calls(log))
 
 
 @pytest.mark.parametrize("target", ["api", "media-worker", "render-worker"])
