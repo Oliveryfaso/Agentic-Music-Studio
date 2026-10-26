@@ -717,3 +717,9 @@ P2.3/B2→B3，MF-P04/P05/P06/P11/P13/P15/P16/P17/P18/P21。基线f385f17；今�
 仅文档事实收口：B1/B2/B3总计划精确拆项、状态/路线更新与统一运行/恢复说明。原前端无代码缺陷或新patch，浏览器播放/刷新返回/下载等仍工具依赖，主线不代验或重发旧unknown权限。旧两个pending仅TTL自然到期不进目录，当前两轮仍completed；不改TTL/作品。10/22八音频严格解码/MIDI事件证据复用，不用旧测试冒称今天新跑。
 
 本轮0新模型/POST/secret读取启用/构建/启停/产品代码；累计观测峰价估计¥0.071874、保守gate曝光¥0.161688非账单，同一¥10。保留当前Beta/卷/媒体/RO包/失败与交付，删除0bytes，不prune共享builder或操作旧容器/Colima；main/Guide保持。技术交付闭合不等于完整浏览器个人Beta/任意音乐验收，主观听感不阻断工程。[证据](evidence/2026-10-23-beta-current-closure.md) / [运行说明](PERSONAL_BETA_RUNBOOK.md)。
+
+## 2026-10-26 — Explicit reviewed-data preparation and honest UI screenshots
+
+MF-P05/P10/P15/P16/P17/P18/P21. Integrated the resource line’s reviewed fixed-archive preparation, opt-in execution and original preflight, retaining all pins and real-source licensing. A sole narrow review closed deadline and controlled-path failures. Mainline rechecked 22 synthetic/preflight cases (11 subtests) and one README contract after style-only normalization. The separate real preparation used the fixed 2019 archive and an already reviewed decoder; it is not playback or VM evidence.
+
+Replaced old green screenshots with three actual Chromium-rendered pages from source 81b1cff, verified unchanged through 473deabb. All are synthetic/mock with silent PCM, not generated music or real download results; provenance and hashes are recorded. No private work, credentials, model calls, dependencies, runtime services, database changes, backup, or cold recreation were used. This is source integration, not a Beta deployment.

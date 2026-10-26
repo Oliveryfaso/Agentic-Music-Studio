@@ -1,0 +1,62 @@
+{
+  "source_commit": "81b1cffc8bf8d20686a80bac6d6ae1cf242df9c4",
+  "requested_release": "473deabb",
+  "release_comparison": "pending; source commit unavailable locally at capture",
+  "captured_at_utc": "2026-10-26T09:58:38.627Z",
+  "machine": "user Mac Darwin arm64",
+  "browser": "installed Playwright Chromium 1234, headless",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "capture": "full-page; no UI cropping",
+  "fixture": "product-ui.mjs + bundled synthetic pianoEqTestFixture.eqBase, names/tempo/id adapted",
+  "fixture_source_sha256": "e471d2768387211ce31c0cc747e9da5d701719d4efff1bd34c15e3fac5ba97a2",
+  "fixture_notes": "Public synthetic example data, two self-authored piano tracks from the repository test fixture; no actual user project",
+  "api": "All API requests mocked. Other origins, non-GET requests and health paths blocked; Vite proxy disabled",
+  "audio": "5.333 second silent PCM placeholder. No playback, real render or music-quality verification",
+  "downloads": "Not clicked or tested; file list metadata is synthetic, not a real export bundle",
+  "watermark": "Runtime badge and page footer label synthetic UI example; product source/CSS not changed",
+  "assertions": {
+    "pages": 3,
+    "page_overflow_max_px": 1,
+    "client_errors": 0,
+    "unmocked_requests": 0,
+    "page_requests": 268
+  },
+  "assets": [
+    {
+      "file": "docs/images/workbench.png",
+      "width": 1440,
+      "height": 1042,
+      "bytes": 116544,
+      "sha256": "b8ba21746edc6b56588c35a27742331956207cf43b4e501e4361b93c63423ac2"
+    },
+    {
+      "file": "docs/images/studio.png",
+      "width": 1440,
+      "height": 1325,
+      "bytes": 133195,
+      "sha256": "e43a18cb977b0772e0ff5378dc87aee7e7ab936fa1a63681b0fb41509232f794"
+    },
+    {
+      "file": "docs/images/export.png",
+      "width": 1440,
+      "height": 1122,
+      "bytes": 129453,
+      "sha256": "3e1afc4b08e5a5d922638c7e00a6f3b86776bdecf55e1a41b3e9c68058105268"
+    }
+  ],
+  "integration_verification": {
+    "release_commit": "473deabb141acc4ec43989350298b667ca11dbd8",
+    "comparison_paths": [
+      "apps/web/src",
+      "apps/web/index.html",
+      "packages/audio-engine/src"
+    ],
+    "changed_paths": [],
+    "source_matches_release_ui": true,
+    "later_settings_patch": "Adds navigation and settings beyond captured source; these screenshots do not show that feature",
+    "root_visual_review": "All three supplied PNGs viewed; light blue/indigo interface and synthetic/silent labels present. No playback/download/browser action performed."
+  }
+}

@@ -13,7 +13,21 @@
 
 ## 演示
 
-旧版绿色界面截图已移除。当前源码使用明亮底色与蓝紫强调色；最新真实截图、操作录屏和可公开作品试听仍待补齐，不使用概念图冒充产品界面。界面验证方法见[开发指南](docs/DEVELOPMENT.md#界面验证与截图)。
+以下是蓝紫配色工作台的真实浏览器截图，使用仓库合成示例和 mock API；音频是静音占位，导出列表也是示例元数据，不能作为实际播放、生成或下载的证明。截图来自 `81b1cff`，与 `473deabb` 的前端源码一致；后续新增的设置入口未出现在这组三页截图中。[素材来源与校验记录](docs/images/screenshots-20261026.json)。
+
+**作品首页：找到保存版本、待审批计划与审核曲库。**
+
+![蓝紫配色的作品首页，使用合成示例数据](docs/images/workbench.png)
+
+**Studio：在同一保存版本上编辑与混音。**
+
+![双钢琴 Studio 混音界面，音频为静音占位](docs/images/studio.png)
+
+**导出：查看绑定保存版本的交付文件。**
+
+![导出界面的合成文件列表，未验证实际下载](docs/images/export.png)
+
+真实操作录屏和可公开作品试听仍待补齐。界面验证方法见[开发指南](docs/DEVELOPMENT.md#界面验证与截图)。
 
 ## 快速开始
 
@@ -121,7 +135,7 @@ flowchart LR
 
 新建入口提供 Classical Chamber、Jazz Harmony & Improvisation，默认古典；历史 Synth Ambient、Minimal Electronic 的 ID、旧作品与导出保留，不再是新建选择。默认音源使用 12 个语义别名映射到 3 个合成核心与 click sample；真实钢琴档位另走固定资源校验。
 
-当前审核资料仅有四个 8–16 小节的固定主旋律摘录，不是完整曲库。固定 2019 钢琴包的 26 个样本在开发环境已有验证，但仓库尚缺从对应上游归档复原 manifest 的公开准备入口，不能用新版包替代固定 pin。UI fixture 的静音 PCM 仅用于界面测试，不作真实试听或音质证据。
+当前审核资料仅有四个 8–16 小节的固定主旋律摘录，不是完整曲库。真实钢琴包固定为 2019 版的 26 个样本；已有原归档和可信兼容解码工具时，可用[审核音源准备入口](docs/REVIEWED_DATA_PREPARATION.md)校验并准备到新目录。默认仅输出计划，显式 `--execute` 才读取归档并写入；不自动下载、安装工具或替换资源 pin。该固定归档的独立准备已通过完整性预检，但不等于播放、VM 挂载或 Beta 运行已通过。部分 macOS 自带 bsdtar 不支持其 WAV 过滤器，应按文档显式选择已有可信工具，不能用新版包代替。UI fixture 的静音 PCM 仅用于界面测试，不作真实试听或音质证据。
 
 个人 Beta 当前 API 发布 pin 为 [`a3bfb1a`](scripts/personal-beta-release.v1.json)，兼容数据库 `20261020_0030`。`--personal-beta` 的启动器验证固定本地 API 镜像和 schema；普通 `--personal-beta api` 构建产生的 `:local` 镜像不能自动满足此 pin。缺镜像或审核资源会明确失败，不下载音源、不改 pin、不启动 / 重启 VM。安装、构建与当前验证边界请先读[个人 Beta 运行手册](docs/PERSONAL_BETA_RUNBOOK.md)。
 
@@ -168,6 +182,7 @@ npm run test:audio
 | --- | --- |
 | [开发与排障](docs/DEVELOPMENT.md) | 安装、测试、截图复现与常见问题 |
 | [个人 Beta 运行手册](docs/PERSONAL_BETA_RUNBOOK.md) | 档位、固定资源、日常使用与维护边界 |
+| [审核音源准备](docs/REVIEWED_DATA_PREPARATION.md) | 原归档校验、显式准备与工具兼容限制 |
 | [实施状态](docs/IMPLEMENTATION_STATUS.md) / [后续路线](docs/NEXT_DEVELOPMENT_ROADMAP.md) | 已部署、候选与未验事项 |
 | [项目指南](docs/PROJECT_GUIDE.md) / [决策记录](docs/DECISION_LOG.md) | 产品、架构与规则依据 |
 | [技术演进](docs/TECH_EVOLUTION.md) / [前端规范](docs/FRONTEND_UX_SPEC.md) | 历史证据与交互合同 |
