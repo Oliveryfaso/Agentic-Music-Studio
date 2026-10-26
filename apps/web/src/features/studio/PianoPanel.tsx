@@ -146,6 +146,7 @@ export function PianoPanel({projectId,branchId,revisionId,arrangement,selection,
     <details className="piano-source"><summary>音源</summary><p>FreePats Upright KW · CC0 · 踏板暂不支持</p></details>
     {recovery&&(thread===null||(terminalPhase&&!audition.isError&&!audition.isFetching))&&<PianoRecoveryNotice projectId={projectId} branchId={branchId} headRevisionId={headRevisionId} directory={recovery} dirty={dirty} reading={recovery.reading||checkDirectory.isPending} terminalUnverified={terminalUnverified} onRead={()=>checkDirectory.mutate()}/>}
     {sourceSemantic&&<p className="saved-audio-note">{modelNotConfigured?notConfiguredMessage:modelConfiguration==='configured'?'自然语言服务已在本地配置，未验证远端可用性。':'暂不能确认自然语言服务的本地配置；音源状态单独检查。'}{modelNotConfigured&&capability.data?.semantic_generation?.reason_code&&`（${capability.data.semantic_generation.reason_code}）`}</p>}
+    {sourceSemantic&&modelNotConfigured&&<a href="/settings">配置 API Key</a>}
     {staleBase&&<div className="field-error"><p>当前打开的保存版本已不是分支最新版，不能生成或保留试听。</p>{dirty?<><p>请先保存或撤销草稿，再打开最新版本。</p><button type="button" disabled>打开最新版本</button></>:<a href={`/projects/${encodeURIComponent(projectId)}/studio/${encodeURIComponent(headRevisionId!)}`}>打开最新版本</a>}</div>}
     {semanticContext&&classicalSource&&<p className="saved-audio-note">当前曲目：{sourceBars} 小节，{sourceBeats}/4。以主旋律摘录为基准；和声与乐句线索辅助编配，请试听后决定是否保留。</p>}
     {semanticContext&&!identityStorageAvailable&&<p className="field-error">浏览器无法保存请求标识。网络失败后请保持此页并重试；刷新可能丢失请求身份，请勿再次新建付费请求。</p>}

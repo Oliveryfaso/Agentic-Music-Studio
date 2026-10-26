@@ -10,6 +10,7 @@ import { ExportPage } from "../features/exports/ExportPage";
 import { RunInspectorPage } from "../features/inspection/RunInspectorPage";
 import { EvaluationPage } from "../features/evaluation/EvaluationPage";
 import { PortfolioPage } from "../features/portfolio/PortfolioPage";
+import { ModelSettingsPage } from "../features/settings/ModelSettingsPage";
 import { AppShell } from "./AppShell";
 import { NavigationGuard } from "./NavigationGuard";
 import { StatusBanner } from "./StatusBanner";
@@ -43,6 +44,7 @@ export function App() {
           {route.name === "home" && <ProjectHomePage />}
           {route.name === "about" && <PortfolioPage />}
           {route.name === "evaluation" && <EvaluationPage />}
+          {route.name === "settings" && <ModelSettingsPage />}
           {route.name === "brief" && <BriefPage projectId={route.projectId} />}
           {route.name === "run" && <RunPage runId={route.runId} />}
           {route.name === "studio" && <StudioPage key={`${route.projectId}:${route.revisionId}`} projectId={route.projectId} revisionId={route.revisionId} />}

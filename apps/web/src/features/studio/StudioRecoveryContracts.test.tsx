@@ -126,6 +126,7 @@ describe('independent model configuration and current head',()=>{
  it('blocks only semantic submission when not configured and preserves the description and selected mode',async()=>{
   showPiano({pedal_supported:false,release_triggers_supported:false,available:true,render_profile:profile,semantic_generation:{configuration:'not_configured',reason_code:'MODEL_NOT_CONFIGURED'}});
   expect(await screen.findByText(/自然语言服务尚未配置/)).toHaveTextContent('MODEL_NOT_CONFIGURED');
+  expect(screen.getByRole('link',{name:'配置 API Key'})).toHaveAttribute('href','/settings');
   expect(screen.queryByText(/钢琴音源暂不可用/)).not.toBeInTheDocument();expect(screen.getByRole('button',{name:'生成 A/B 试听'})).toBeEnabled();
   fireEvent.click(screen.getByRole('radio',{name:'自然语言伴奏'}));fireEvent.change(screen.getByLabelText('伴奏描述'),{target:{value:'稀疏一点，保留旋律'}});
   const submit=screen.getByRole('button',{name:'按描述生成 A/B 试听'});expect(submit).toBeDisabled();fireEvent.click(submit);

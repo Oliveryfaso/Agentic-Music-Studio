@@ -2,6 +2,7 @@ export type AppRoute =
   | { name: "home" }
   | { name: "about" }
   | { name: "evaluation" }
+  | { name: "settings" }
   | { name: "brief"; projectId: string }
   | { name: "run"; runId: string }
   | { name: "studio"; projectId: string; revisionId: string }
@@ -40,6 +41,7 @@ export function parseRoute(pathname = window.location.pathname): AppRoute {
   if (pathname === "/" || parts.length === 0) return { name: "home" };
   if (pathname === "/about") return { name: "about" };
   if (pathname === "/evaluation") return { name: "evaluation" };
+  if (pathname === "/settings") return { name: "settings" };
   if (parts.length === 2 && parts[0] === "runs" && parts[1]) {
     return { name: "run", runId: parts[1] };
   }
@@ -74,6 +76,8 @@ export function routePath(route: Exclude<AppRoute, { name: "not_found" }>): stri
       return "/about";
     case "evaluation":
       return "/evaluation";
+    case "settings":
+      return "/settings";
     case "brief":
       return `/projects/${encodeURIComponent(route.projectId)}/new-composition`;
     case "run":
@@ -97,6 +101,8 @@ export function routeTitle(route: AppRoute): string {
       return "Motif Forge · Agentic Portfolio";
     case "evaluation":
       return "Motif Forge · Evaluation";
+    case "settings":
+      return "Motif Forge · Settings";
     case "brief":
       return "Motif Forge · New Composition";
     case "run":

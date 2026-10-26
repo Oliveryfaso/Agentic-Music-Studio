@@ -174,6 +174,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/model-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Model Settings */
+        get: operations["read_model_settings_api_v1_model_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/model-settings/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check Model Settings */
+        post: operations["check_model_settings_api_v1_model_settings_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/piano-capability": {
         parameters: {
             query?: never;
@@ -2972,6 +3006,20 @@ export interface components {
              */
             schema_version: "render-profile.v1";
         };
+        /** ModelSettingsData */
+        ModelSettingsData: {
+            /** Error Code */
+            error_code?: ("AUTHENTICATION_FAILED" | "PROVIDER_UNAVAILABLE" | "CONNECTION_FAILED" | "INVALID_RESPONSE" | "ENDPOINT_UNSUPPORTED") | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "not_configured" | "configured" | "connected" | "failed";
+        };
+        /** ModelSettingsResponse */
+        ModelSettingsResponse: {
+            data: components["schemas"]["ModelSettingsData"];
+        };
         /** MoveClipCommand */
         MoveClipCommand: {
             /**
@@ -3765,7 +3813,10 @@ export interface components {
              */
             updated_at: string;
         };
-        /** RecoverySummary */
+        /**
+         * RecoverySummary
+         * @description Full-Run persisted event counts; None means the category is not recorded.
+         */
         RecoverySummary: {
             /**
              * Cancel Events
@@ -5294,6 +5345,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_model_settings_api_v1_model_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelSettingsResponse"];
+                };
+            };
+        };
+    };
+    check_model_settings_api_v1_model_settings_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelSettingsResponse"];
                 };
             };
         };

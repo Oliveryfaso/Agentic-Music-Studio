@@ -7,6 +7,7 @@ cd "$project_root"
 check_only=0
 open_browser=1
 personal_beta=0
+enable_deepseek=0
 web_port=5173
 web_url="http://127.0.0.1:5173"
 api_ready_url="http://127.0.0.1:8000/health/ready"
@@ -17,7 +18,7 @@ web_pid_file="$runtime_dir/web.pid"
 
 usage() {
   cat <<'EOF'
-Usage: scripts/start_motif_forge.sh [--personal-beta] [--check] [--no-open]
+Usage: scripts/start_motif_forge.sh [--personal-beta] [--enable-deepseek] [--check] [--no-open]
 
 Start the complete local Motif Forge portfolio:
   - initialize the external development storage root;
@@ -27,7 +28,8 @@ Start the complete local Motif Forge portfolio:
   - start the Vite Web Studio and open it in the browser.
 
 Options:
-  --personal-beta  Isolated reviewed-catalog profile; models remain disabled.
+  --personal-beta  Isolated reviewed-catalog profile; models disabled by default.
+  --enable-deepseek  Explicitly load the private Key configured by configure_deepseek.py.
   --check     Validate local prerequisites without starting or changing anything.
   --no-open   Do not open the browser after the Web Studio becomes ready.
   -h, --help  Show this help.
@@ -41,6 +43,9 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --personal-beta)
       personal_beta=1
+      ;;
+    --enable-deepseek)
+      enable_deepseek=1
       ;;
     --check)
       check_only=1
@@ -61,6 +66,8 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
+# Only the checked private file may supply this Secret to Compose.
+unset DEEPSEEK_API_KEY
 compose_command=(docker compose)
 if (( personal_beta )); then
   # Explicit public configuration at both Compose layers; never load/copy .env.
@@ -91,6 +98,20 @@ if (( personal_beta )); then
   export MOTIF_FORGE_ARTIFACT_HOST_ROOT="$MOTIF_FORGE_DEV_STORAGE_ROOT/artifacts"
   export MOTIF_FORGE_ARTIFACT_ROOT="$MOTIF_FORGE_DEV_STORAGE_ROOT/artifacts"
   export MOTIF_FORGE_TEMP_ROOT="$MOTIF_FORGE_DEV_STORAGE_ROOT/tmp"
+fi
+
+if (( enable_deepseek )); then
+  if ! python3 scripts/configure_deepseek.py --check; then
+    echo "DeepSeek is not enabled. Run: python3 scripts/configure_deepseek.py" >&2
+    exit 78
+  fi
+  deepseek_env_file="$(python3 scripts/configure_deepseek.py --path)"
+  if (( ! personal_beta )); then
+    base_env="$project_root/.env.example"
+    if [[ -f "$project_root/.env" ]]; then base_env="$project_root/.env"; fi
+    compose_command+=(--env-file "$base_env" -f "$project_root/compose.yaml")
+  fi
+  compose_command+=(--env-file "$deepseek_env_file" -f "$project_root/compose.deepseek.yaml")
 fi
 
 require_command() {
@@ -342,7 +363,12 @@ exec 9>&-
 echo "Motif Forge is ready: $web_url"
 if (( personal_beta )); then
   echo "Stop this profile with: scripts/stop_motif_forge.sh --personal-beta"
-  echo "Models are disabled. Runtime receipt supports normal close/reopen; OS temporary-directory cleanup requires explicit recovery."
+  if (( enable_deepseek )); then
+    echo "DeepSeek Key loaded for backend services; connection and generation have not been tested. Open Settings."
+  else
+    echo "Models are disabled. Configure a Key from Settings and explicitly enable it when needed."
+  fi
+  echo "Runtime receipt supports normal close/reopen; OS temporary-directory cleanup requires explicit recovery."
 else
   echo "Stop everything with: scripts/stop_motif_forge.sh"
 fi

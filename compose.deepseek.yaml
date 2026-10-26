@@ -1,0 +1,9 @@
+# Explicit opt-in only; the launcher loads the private file for interpolation.
+# Migration, storage, media/render workers and dispatcher retain their empty Key.
+services:
+  api:
+    environment:
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?Configure the private DeepSeek Key file first}
+  resume-dispatcher:
+    environment:
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?Configure the private DeepSeek Key file first}

@@ -153,7 +153,22 @@ scripts/stop_motif_forge.sh --personal-beta
 ### 外部服务与费用
 
 - **默认不调用付费模型。** Compose 显式清空 `DEEPSEEK_API_KEY`；仅在 `.env` 填 Key 不会启用它。无 Key 规划使用确定性回退；旧通用 AI Edit 回退只支持明确的 gain / 本地音色意图，不能当完整自然语言编辑。
-- **当前配置入口的限制：** 本分支尚无供首次用户直接保存、验证和清除 Key 的日常设置页。已有显式开发验证流程不等于开箱即用的配置体验；在该入口补齐前，请先试用无 Key 路径，不将 Key 写入浏览器变量或为了启用模型直接删除 Compose 保护。
+- **API Key 入口：** 主导航「设置」，或 Studio 的「配置 API Key」。网页说明配置步骤并显示状态，不接收或显示密钥。请在运行 Motif 的电脑终端进入仓库，执行以下命令并按提示隐藏输入：
+
+  ```bash
+  python3 scripts/configure_deepseek.py
+  ```
+
+  默认保存到用户私有文件 `~/.config/motif-forge/deepseek.env`（目录 0700、文件 0600；绝对路径 `XDG_CONFIG_HOME` 可覆盖根目录），不会写进仓库。保存后尚未生效：先完成或取消现有任务，按原方式正常关闭实例，再沿用相同数据目录和 runtime 参数，显式加 `--enable-deepseek` 启动。默认源码演示示例：
+
+  ```bash
+  scripts/stop_motif_forge.sh
+  scripts/start_motif_forge.sh --enable-deepseek --no-open
+  ```
+
+  回到「设置」，先「刷新配置状态」，再按需主动「测试连接」。检查只向 DeepSeek 官方模型列表接口发送一次鉴权请求，不生成内容、不发送作品；成功不代表余额、指定模型生成或 Worker 已验证。错误以脱敏状态提示，刷新后不保留旧的成功结论。启动器排除 shell 中继承的同名旧 Key，只有显式开启时才把私有文件交给 API 和恢复调度器；不启用外部 trace。
+
+  **已有固定镜像 Beta：** 当前 `a3bfb1a` pin 尚不含新设置接口；本批是源码功能，需要按发布流程更新匹配 API 镜像和 pin，不能只更新网页便视为可用。停用时正常关闭同一实例，再不带启用选项重启；`python3 scripts/configure_deepseek.py --clear` 仅删除本机配置文件，不清除正在运行的进程，也不代替供应商吊销。完整步骤、权限和诊断边界见 [API Key 设置](docs/API_KEY_SETTINGS.md)。不要将 Key 写入 `VITE_*`、URL、日志或公开诊断输出。
 - **真实模型是显式开发流程。** 钢琴局部编辑已有少量官方 DeepSeek 实测，包含多轮保存、Undo 与同版本导出；这不代表任意请求或全风格已通过。外部调用会按服务定价计费并发送有界音乐结构与指令，运行前需检查身份、预算、数据范围与停止条件。入口见[开发验证](docs/DEVELOPMENT.md#真实服务与验收)及[实施状态](docs/IMPLEMENTATION_STATUS.md)。
 - **LangSmith 可选。** 默认关闭；开启会使用外部追踪服务，应先核对记录范围与费用，见 [LangSmith 配置](docs/LANGSMITH.md)。Key 不放进前端 `VITE_*`、日志或仓库。
 
@@ -183,6 +198,7 @@ npm run test:audio
 | [开发与排障](docs/DEVELOPMENT.md) | 安装、测试、截图复现与常见问题 |
 | [个人 Beta 运行手册](docs/PERSONAL_BETA_RUNBOOK.md) | 档位、固定资源、日常使用与维护边界 |
 | [审核音源准备](docs/REVIEWED_DATA_PREPARATION.md) | 原归档校验、显式准备与工具兼容限制 |
+| [API Key 设置](docs/API_KEY_SETTINGS.md) | 隐藏输入、显式启用、状态检查与清除 |
 | [实施状态](docs/IMPLEMENTATION_STATUS.md) / [后续路线](docs/NEXT_DEVELOPMENT_ROADMAP.md) | 已部署、候选与未验事项 |
 | [项目指南](docs/PROJECT_GUIDE.md) / [决策记录](docs/DECISION_LOG.md) | 产品、架构与规则依据 |
 | [技术演进](docs/TECH_EVOLUTION.md) / [前端规范](docs/FRONTEND_UX_SPEC.md) | 历史证据与交互合同 |

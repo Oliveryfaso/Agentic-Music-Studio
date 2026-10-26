@@ -595,3 +595,9 @@ a:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); ou
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 
 .brief-layout { grid-template-columns: minmax(0,1fr); }.creation-guide { padding: 12px 0; }.creation-guide summary { cursor: pointer; color: var(--muted); }.spectral-loader i { animation: none; }
+.model-settings { max-width: 920px; }
+.model-settings > section, .model-settings > details { margin-block: 24px; }
+.model-settings li { margin-block: 16px; }
+.model-settings pre { padding: 12px; background: var(--subtle); white-space: pre-wrap; overflow-wrap: anywhere; }
+.model-settings-status { padding: 16px; border: 1px solid var(--line); border-radius: 8px; }
+.model-settings-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 12px; }

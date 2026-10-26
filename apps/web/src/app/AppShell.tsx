@@ -4,7 +4,7 @@ import { parseRoute } from "./routes";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const route = parseRoute();
-  const section = route.name === "about" || route.name === "evaluation" ? route.name : "home";
+  const section = route.name === "about" || route.name === "evaluation" || route.name === "settings" ? route.name : "home";
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">跳至正文</a>
@@ -18,6 +18,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </a>
         <nav className="shell-nav" aria-label="主导航">
           <a href="/" aria-current={section === "home" ? "page" : undefined}>作品</a>
+          <a href="/settings" aria-current={section === "settings" ? "page" : undefined}>设置</a>
           <details className="shell-more" open={section !== "home"}><summary>更多</summary><div><a href="/about" aria-current={section === "about" ? "page" : undefined}>关于</a><a href="/evaluation" aria-current={section === "evaluation" ? "page" : undefined}>评估</a></div></details>
         </nav>
         <div className="runtime-badge">本地工作台</div>

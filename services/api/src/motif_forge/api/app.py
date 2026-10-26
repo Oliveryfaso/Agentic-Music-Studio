@@ -31,6 +31,7 @@ from motif_forge.agent.piano_preview import PianoPreviewNodes
 from motif_forge.api.ai_runs import build_ai_run_router
 from motif_forge.api.classical import build_classical_router
 from motif_forge.api.exports import build_export_router
+from motif_forge.api.model_settings import build_model_settings_router
 from motif_forge.api.piano import build_piano_router
 from motif_forge.api.project_reads import build_project_read_router
 from motif_forge.api.run_graph import build_run_graph_router
@@ -541,6 +542,7 @@ def create_app(
     app = FastAPI(title="Motif Forge API", version=__version__, lifespan=lifespan)
     app.state.uow_factory = runtime_uow
     app.state.upload_uow_factory = runtime_upload_uow
+    app.include_router(build_model_settings_router(runtime_settings))
     app.state.upload_workspace = LocalUploadWorkspace(runtime_settings.artifact_root)
     app.state.parent_graph = None
     app.include_router(build_sound_catalog_router())

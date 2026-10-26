@@ -125,6 +125,120 @@ def calls(log: Path):
     return [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
 
 
+@pytest.mark.parametrize("personal_beta", [False, True])
+@pytest.mark.parametrize("enabled", [False, True])
+def test_launcher_never_inherits_shell_key_or_overrides_checked_file(
+    tmp_path: Path,
+    personal_beta: bool,
+    enabled: bool,
+):
+    repo, env, log = checkout(tmp_path)
+    for relative in ("scripts/configure_deepseek.py", "compose.deepseek.yaml"):
+        shutil.copy2(ROOT / relative, repo / relative)
+    env["XDG_CONFIG_HOME"] = str(tmp_path / "config")
+    key_file = tmp_path / "config/motif-forge/deepseek.env"
+    key_file.parent.mkdir(parents=True, mode=0o700)
+    key_file.write_text("DEEPSEEK_API_KEY=sk-mock-private-A-0123456789\n")
+    key_file.chmod(0o600)
+    env["DEEPSEEK_API_KEY"] = "sk-mock-old-shell-B-9876543210"
+    env["MOTIF_FORGE_DEV_STORAGE_ROOT"] = env["MOTIF_FORGE_BETA_STORAGE_ROOT"]
+    docker = Path(env["PATH"].split(os.pathsep)[0]) / "docker"
+    # Only synthetic files are read; record booleans, never the effective Key.
+    probe = """
+if 'config' in a:
+ file_value=''
+ for index,part in enumerate(a[:-1]):
+  if part=='--env-file':
+   with open(a[index+1]) as source:
+    for line in source:
+     if line.startswith('DEEPSEEK_API_KEY='): file_value=line.strip().split('=',1)[1]
+ effective=os.environ.get('DEEPSEEK_API_KEY',file_value)
+ with open(os.environ['BETA_COMMAND_LOG'],'a') as f:
+  state=['deepseek-source','DEEPSEEK_API_KEY' in os.environ,
+         effective=='sk-mock-private-A-0123456789']
+  f.write(json.dumps(state)+'\\n')
+"""
+    docker.write_text(docker.read_text().replace("a=sys.argv[1:]", "a=sys.argv[1:]\n" + probe))
+    args = ["--check"] + (["--enable-deepseek"] if enabled else [])
+    if personal_beta:
+        result = launch(repo, env, *args)
+    else:
+        result = subprocess.run(
+            ["bash", str(repo / "scripts/start_motif_forge.sh"), *args],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    assert result.returncode == 0, result.stderr
+    recorded = calls(log)
+    sources = [row for row in recorded if row[0] == "deepseek-source"]
+    assert sources and all(row[1] is False for row in sources)
+    assert all(row[2] is enabled for row in sources)
+    assert not any("up" in row for row in recorded)
+    assert "sk-mock" not in result.stdout + result.stderr + log.read_text()
+
+
+def test_beta_deepseek_is_explicit_and_never_logged(tmp_path: Path):
+    repo, env, log = checkout(tmp_path)
+    for relative in ("scripts/configure_deepseek.py", "compose.deepseek.yaml"):
+        shutil.copy2(ROOT / relative, repo / relative)
+    env["XDG_CONFIG_HOME"] = str(tmp_path / "config")
+    key_file = tmp_path / "config/motif-forge/deepseek.env"
+    key_file.parent.mkdir(parents=True, mode=0o700)
+    key_file.write_text("DEEPSEEK_API_KEY=sk-mock-0123456789abcdef\n")
+    key_file.chmod(0o600)
+    result = launch(repo, env, "--enable-deepseek", "--check")
+    assert result.returncode == 0, result.stderr
+    command = next(c for c in calls(log) if "config" in c)
+    assert command.count("-f") == 3
+    assert command.index(str(repo / "compose.deepseek.yaml")) > command.index(
+        str(repo / "compose.personal-beta.yaml")
+    )
+    assert str(key_file) in command
+    assert "sk-mock" not in result.stdout + result.stderr + log.read_text()
+    assert not any("up" in c for c in calls(log))
+
+
+def test_deepseek_missing_or_unsafe_secret_fails_before_docker(tmp_path: Path):
+    repo, env, log = checkout(tmp_path)
+    shutil.copy2(ROOT / "scripts/configure_deepseek.py", repo / "scripts/configure_deepseek.py")
+    env["XDG_CONFIG_HOME"] = str(tmp_path / "config")
+    result = launch(repo, env, "--enable-deepseek", "--check")
+    assert result.returncode == 78
+    assert not calls(log)
+    key_file = tmp_path / "config/motif-forge/deepseek.env"
+    key_file.parent.mkdir(parents=True, mode=0o700)
+    key_file.write_text("DEEPSEEK_API_KEY=sk-mock-0123456789abcdef\n")
+    key_file.chmod(0o644)
+    result = launch(repo, env, "--enable-deepseek", "--check")
+    assert result.returncode == 78 and not calls(log)
+
+
+def test_normal_launcher_can_explicitly_enable_key_without_beta(tmp_path: Path):
+    repo, env, log = checkout(tmp_path)
+    for relative in ("scripts/configure_deepseek.py", "compose.deepseek.yaml"):
+        shutil.copy2(ROOT / relative, repo / relative)
+    env["XDG_CONFIG_HOME"] = str(tmp_path / "config")
+    key_file = tmp_path / "config/motif-forge/deepseek.env"
+    key_file.parent.mkdir(parents=True, mode=0o700)
+    key_file.write_text("DEEPSEEK_API_KEY=sk-mock-0123456789abcdef\n")
+    key_file.chmod(0o600)
+    env["MOTIF_FORGE_DEV_STORAGE_ROOT"] = env["MOTIF_FORGE_BETA_STORAGE_ROOT"]
+    result = subprocess.run(
+        ["bash", str(repo / "scripts/start_motif_forge.sh"), "--enable-deepseek", "--check"],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+    assert result.returncode == 0, result.stderr
+    command = next(c for c in calls(log) if "config" in c)
+    assert command.count("-f") == 2
+    assert str(repo / "compose.personal-beta.yaml") not in command
+    assert str(key_file) in command and str(repo / ".env") in command
+
+
 def test_beta_check_uses_explicit_public_config_without_writes(tmp_path: Path):
     repo, env, log = checkout(tmp_path)
     before = {str(p.relative_to(tmp_path)) for p in tmp_path.rglob("*")}
@@ -307,7 +421,10 @@ def test_real_compose_parser_proves_config_isolation_and_readonly_pin(
         assert pinned_services[name]["image"] == RELEASE["api_image"]["id"]
     restored = subprocess.run(
         [*result.args[:-3], "-f", str(rollback), "config", "--format", "json"],
-        env=launch_env, capture_output=True, text=True, timeout=20,
+        env=launch_env,
+        capture_output=True,
+        text=True,
+        timeout=20,
     )
     assert restored.returncode == 0, restored.stderr
     after = json.loads(restored.stdout)["services"]
@@ -324,17 +441,28 @@ def test_checked_api_selection_is_independent_of_legacy_worker_tag(tmp_path: Pat
     env["MOTIF_FORGE_BETA_RELEASE_IMAGE_ID"] = "sha256:" + "0" * 64
     result = launch(repo, env, "--check")
     assert result.returncode == 0, result.stderr
-    images = [command[-1] for command in calls(log)
-              if command[:3] == ["docker", "image", "inspect"]]
-    assert images == [RELEASE["api_image"]["reference"],
-                      "motif-forge-beta-api:custom-worker",
-                      "motif-forge-beta-media-worker:custom-worker",
-                      "motif-forge-beta-render-worker:custom-worker"]
+    images = [
+        command[-1] for command in calls(log) if command[:3] == ["docker", "image", "inspect"]
+    ]
+    assert images == [
+        RELEASE["api_image"]["reference"],
+        "motif-forge-beta-api:custom-worker",
+        "motif-forge-beta-media-worker:custom-worker",
+        "motif-forge-beta-render-worker:custom-worker",
+    ]
 
 
-@pytest.mark.parametrize("fault", ["wrong_image_id", "wrong_compose_image", "wrong_migrator_image",
-                                  "missing_contract", "wrong_local_schema",
-                                  "missing_shared_python"])
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "wrong_image_id",
+        "wrong_compose_image",
+        "wrong_migrator_image",
+        "missing_contract",
+        "wrong_local_schema",
+        "missing_shared_python",
+    ],
+)
 def test_release_mismatch_fails_before_any_start_or_write(tmp_path: Path, fault: str):
     repo, env, log = checkout(tmp_path)
     if fault == "wrong_image_id":
@@ -353,8 +481,10 @@ def test_release_mismatch_fails_before_any_start_or_write(tmp_path: Path, fault:
         )
     result = launch(repo, env, "--no-open")
     assert result.returncode == 78, result.stderr
-    assert not any("up" in c or "init" in c or "prepare" in c or "pull" in c or "build" in c
-                   for c in calls(log))
+    assert not any(
+        "up" in c or "init" in c or "prepare" in c or "pull" in c or "build" in c
+        for c in calls(log)
+    )
     assert not (tmp_path / "runtime-personal-beta").exists()
 
 
@@ -362,8 +492,13 @@ def test_normal_nonbeta_check_keeps_legacy_configuration(tmp_path: Path):
     repo, env, log = checkout(tmp_path)
     env["MOTIF_FORGE_DEV_STORAGE_ROOT"] = str(tmp_path / "storage")
     (repo / "scripts/personal-beta-release.v1.json").unlink()
-    result = subprocess.run(["bash", str(repo / "scripts/start_motif_forge.sh"), "--check"],
-                            env=env, capture_output=True, text=True, timeout=15)
+    result = subprocess.run(
+        ["bash", str(repo / "scripts/start_motif_forge.sh"), "--check"],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
     assert result.returncode == 0, result.stderr
     assert not any(command[:3] == ["docker", "image", "inspect"] for command in calls(log))
 

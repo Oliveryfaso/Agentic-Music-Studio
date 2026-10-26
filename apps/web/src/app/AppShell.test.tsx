@@ -4,6 +4,14 @@ import { AppShell } from "./AppShell";
 
 afterEach(() => { cleanup(); window.history.replaceState({}, "", "/"); });
 
+it("makes API Key settings discoverable and marks its destination", () => {
+  window.history.replaceState({}, "", "/settings");
+  render(<AppShell><h1>设置</h1></AppShell>);
+  expect(screen.getByRole("link", { name: "设置" })).toHaveAttribute("href", "/settings");
+  expect(screen.getByRole("link", { name: "设置" })).toHaveAttribute("aria-current", "page");
+  expect(screen.getByRole("link", { name: "作品" })).not.toHaveAttribute("aria-current");
+});
+
 it("keeps creation pages in the workspace navigation and exposes a keyboard skip target", () => {
   window.history.replaceState({}, "", "/projects/demo/new-composition");
   render(<AppShell><h1>创作</h1></AppShell>);
