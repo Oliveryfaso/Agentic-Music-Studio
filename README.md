@@ -1,141 +1,95 @@
 # Motif Forge
 
-### 从一个音乐想法，到一首可以继续编辑的作品。
+**面向独立音乐创作者与 Agent 应用开发者的本地音乐工作台：审核编曲计划、比较试听候选，把选中的结果继续编辑并导出。**
 
-一个本地优先的 Agentic 音乐工作台。写下创作意图，审核编曲计划，试听两个方向，再把选中的版本带进 Studio：调整音符、修改局部、导出音频，也能回看 Agent 实际走过的执行路径。
+从一个想法开始，也可以导入已有音频。计划、人工选择、保存版本和执行记录留在同一个工程中，方便继续修改、撤销和查看失败原因。
 
-**LangGraph 编排 · 人在回路 · 确定性音乐编译 · 可恢复执行**
-
-[![Python 3.12–3.13](https://img.shields.io/badge/Python-3.12%E2%80%933.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI 0.116+](https://img.shields.io/badge/FastAPI-0.116%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![LangGraph 1.x](https://img.shields.io/badge/LangGraph-1.x-1C3C3C)](https://langchain-ai.github.io/langgraph/)
-[![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Redis 7.4](https://img.shields.io/badge/Redis-7.4-DC382D?logo=redis&logoColor=white)](https://redis.io/)
-[![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript 5.9](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tone.js 15](https://img.shields.io/badge/Tone.js-15-000000)](https://tonejs.github.io/)
-[![Docker Compose](https://img.shields.io/badge/Docker_Compose-ready-2496ED?logo=docker&logoColor=white)](compose.yaml)
-
-[![Local-first](https://img.shields.io/badge/local--first-no_cloud_required-4B5563)](#能力与边界)
-[![Eval inventory](https://img.shields.io/badge/eval_inventory-96_cases-2E7D32)](docs/evals/S7_EVAL_REPORT.md)
-[![Measured pass](https://img.shields.io/badge/measured_pass-80%2F80-2E7D32)](docs/evals/S7_EVAL_REPORT.md)
-[![Status](https://img.shields.io/badge/status-active_development-6B7280)](docs/IMPLEMENTATION_STATUS.md)
+[![Status](https://img.shields.io/badge/status-personal_Beta-6B7280)](docs/IMPLEMENTATION_STATUS.md)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-[快速开始](#快速开始) · [走完一次创作](#走完一次创作) · [Agent 如何工作](#agent-如何工作) · [能力与边界](#能力与边界) · [技术栈](#技术栈) · [测试与验收](#测试与验收) · [开发文档](#开发文档)
+[演示](#演示) · [快速开始](#快速开始) · [第一次试用](#第一次试用) · [核心能力](#核心能力) · [配置与限制](#配置与限制) · [开发与贡献](#开发与贡献)
 
-![Motif Forge 浅色作品工作台](docs/images/workbench.png)
+> 当前面向本机单用户试用。默认启动不调用付费模型；真实钢琴个人 Beta 是另一个需要预置审核资源和固定镜像的运行档位，不能把开发分支或隔离候选自动视为已部署版本。
 
-> 本页截图由实际前端渲染，使用隔离的示例数据展示界面，不是本轮真实模型生成或音质验收结果。复现方式见[界面验证](docs/DEVELOPMENT.md#界面验证与截图)。
+## 演示
 
-## 不止是“输入一句话，等待一段音频”
-
-Motif Forge 把创作过程保留下来：计划、候选、人工决定、编排结构和导出结果都有明确的位置。你可以改变方向，也可以看清系统做了什么、在哪里等待、为什么失败。
-
-- **先讨论编曲，再生成作品。** Brief 支持用途、情绪、时长与四个 Style Pack；Plan 展示结构和轨道安排，可以调整后再批准。
-- **两个方向，由你选。** A/B 候选带有试听、规则评估与有界修复结果；只有明确选中的候选会成为正式版本。
-- **把生成结果变成可编辑工程。** 轻量 Timeline、Piano Roll、Mixer 与音色面板支持草稿和版本保存；AI 修改限定在选区内，高影响改动先试听再审批。
-- **带入自己的声音。** 导入 WAV、MP3、FLAC 或多个 Stem，确认素材权利，核对 BPM/调性，再选择是否保持音高地对齐。
-- **带走完整交付。** 下载 Master WAV、试听 MP3、分轨、MIDI 和工程文件；导出部分失败时，已完成文件仍可查看和下载。
-- **看得见的 Agent。** 内置 Graph Inspector 展示持久证据、决策、任务和模型用量；可选 LangSmith 用于开发追踪，不替代本地事实。
-
-### 审核方向，而不只看一个进度条
-
-![候选比较与人工选择](docs/images/candidates.png)
-
-### 留在作品里继续编辑
-
-![浅色 Studio 时间线、混音台与创作助手](docs/images/studio.png)
-
-Studio 的试听器播放**已渲染的保存版本**，不是未保存草稿的实时合成监听。移动端侧重查看、试听和审批，精细编辑请使用桌面浏览器。
+旧版绿色界面截图已移除。当前源码使用明亮底色与蓝紫强调色；最新真实截图、操作录屏和可公开作品试听仍待补齐，不使用概念图冒充产品界面。界面验证方法见[开发指南](docs/DEVELOPMENT.md#界面验证与截图)。
 
 ## 快速开始
 
-当前 **S1–S7** 已完成个人作品集级的核心闭环。默认演示不需要模型 Key；这不是多租户在线服务，也不是专业 DAW 的替代品。
+开始前准备 Node.js 22.12+、npm、Python 3.12–3.13、已启动的 Docker / Compose / Buildx，以及宿主和 VM 都能访问的可写数据目录。完整前提见下方运行环境；已有作品请沿用原环境，不用新 clone 认领旧服务。
 
-首次获取：
+下面先体验无 Key 路径；S1–S7 历史验证见 [Eval 报告](docs/evals/S7_EVAL_REPORT.md)，不代表所有新版本与环境都已验收。
+
+### 从源码体验默认演示
+
+这是默认的合成音色 / 确定性回退路径，不要求 DeepSeek Key。
 
 ```bash
 git clone https://github.com/Oliveryfaso/Agentic-Music-Studio.git
 cd Agentic-Music-Studio
-scripts/start_motif_forge.sh
+git switch codex/motif-p0-piano-preparation
+npm ci
+scripts/start_motif_forge.sh --no-open
 ```
 
-已有仓库时，在仓库根目录直接运行 `scripts/start_motif_forge.sh` 即可。
+这里选择现有开发分支；`main`、开发分支和本机固定镜像 Beta 的版本可能不同。请先核对所读 README 与检出的版本一致。
 
-先显式启动自己的 Docker 环境。启动器准备本地配置和外置存储目录，以独立 Compose project 和所有权标签拉起数据库、队列和音频服务，等待就绪后启动前端并打开 **http://127.0.0.1:5173**。首次启动可能安装前端依赖或构建镜像，后续启动会复用已有内容。
+启动器会在缺少时从 `.env.example` 创建本地 `.env`，初始化默认数据根 `../.motif-forge-data`，启动本项目的 Compose 服务、等待 API 与渲染器就绪，再启动前端。首次可能构建镜像；启动会执行当前源码对应的数据库迁移，因此请仅对新演示环境运行，已有环境升级先看[运行手册](docs/PERSONAL_BETA_RUNBOOK.md)。
 
-结束使用：
+**成功标志：** 终端显示 `Motif Forge is ready: http://127.0.0.1:5173`。在运行服务的同一台电脑打开 [http://127.0.0.1:5173](http://127.0.0.1:5173)，应看到作品首页；API 就绪地址是 `http://127.0.0.1:8000/health/ready`。`localhost` 链接不提供远程电脑访问。
+
+正常结束：
 
 ```bash
 scripts/stop_motif_forge.sh
 ```
 
-停止脚本只关闭可验证的本启动器 Web 进程与精确容器 ID，保留容器、数据库卷、镜像、素材和作品；从不启动或停止 Colima，也不关闭其他项目。所有权记录缺失或身份不符时拒绝认领旧服务，请从其原启动终端处理。只按启动终端的 `Ctrl+C` 仍仅停止前端。
+停止器按本启动器记录核对 Web 和容器所有权，保留数据卷、媒体、镜像和容器，不启停 Colima、不操作其他项目。仅按启动终端的 `Ctrl+C` 会停止前端，后台服务仍需上述停止命令。
 
-所有权元数据按当前仓库与用户分隔，保存于私有 runtime 目录（可用 `MOTIF_FORGE_RUNTIME_DIR` 显式指定），不包含模型密钥。现有未记录的 Compose 项目不会被自动接管；更换 Docker daemon 会明确拒绝。真实钢琴个人 Beta 的已验证运行范围与仍待完成的整链门见下一节。
-
-可选命令：
+只查看帮助或检查条件：
 
 ```bash
-scripts/start_motif_forge.sh --check    # 只检查启动条件，不启动服务
-scripts/start_motif_forge.sh --no-open # 启动，但不自动打开浏览器
+scripts/start_motif_forge.sh --help  # 无需启动服务
+scripts/start_motif_forge.sh --check # 不启动服务；首次尚无 .env / 数据根时会报告缺失
 ```
 
-> **默认不会调用付费模型。** 标准 Compose 配置显式清空 DeepSeek Key，使用确定性回退规划，也可以走完审批、候选、渲染和导出。页面会标明回退来源，不将其包装成模型结果。付费 Provider 验证属于单独、显式启用的开发流程，仅往 `.env` 填 Key 不会改变这一默认边界。
-
-### 审核曲库双钢琴个人 Beta：本机启动与手工试听已验证
-
-这是显式选择的本机档位，复用现有Studio、版本与导出，不改变已认可声音。审核曲库是固定主旋律摘录，不能当任意曲谱导入或完整原作；模型仍禁用。已通过正常Compose/Vite启动、固定音源实时检查及审核C02手工伴奏的两次真实队列渲染；**原前端浏览器验收及同环境真实AI日用链仍未验收**，见[B1运行证据与边界](docs/evidence/2026-10-21-beta-b1-runtime.md)。
-
-需要宿主和Docker VM都能访问同一已审核钢琴包与可写外置数据目录。仅在Mac能读到文件不够；VM的同名旧目录也不是实际共享。当前Mac已按明确批准添加精确音源RO共享并保留专用数据目录。启动器不会自动改VM配置、重启共享服务、改pin、下载音源或回落内部盘。
-
-环境前提满足后，显式构建三个独立Beta目标，再启动：
-
-```bash
-scripts/build_compose_images.sh --personal-beta api
-scripts/build_compose_images.sh --personal-beta media-worker
-scripts/build_compose_images.sh --personal-beta render-worker
-scripts/start_motif_forge.sh --personal-beta --no-open
-# 正常关闭，保留本档位作品、数据库卷及容器：
-scripts/stop_motif_forge.sh --personal-beta
-```
-
-如需显式Docker context，在各命令前设置当前已核实的 `DOCKER_CONTEXT`；这不会切换全局context。Beta默认媒体根为仓库下 `artifacts/personal-beta`，可用 `MOTIF_FORGE_BETA_STORAGE_ROOT` 显式指定外置根；已有审核包可用 `MOTIF_FORGE_REVIEWED_PIANO_ROOT` 指定。两者都必须真实可用且满足VM共享，不自动搬运数据。默认独立端口是Web15173/API18000/renderer18090/PG15432/Redis16379，全部只限本机；本轮已实际运行该端口组。已有运行环境请使用原交接中的相同runtime回执目录，不在新目录认领旧服务。
-
-`--personal-beta --check`只检查且不创建文件；首次尚未初始化媒体目录时会明确提示由正常启动创建。缺Web依赖、审核资源或独立镜像会退出，不自动安装/下载。正常启动只有新鲜renderer包身份、API能力与四谱目录都匹配后才报告ready。私有临时所有权receipt被OS清理后继续拒绝认领旧资源，不承诺整机重启后的自动恢复。
+端口、外置盘或 Docker 不可用时，先处理报出的具体条件，见[开发与排障](docs/DEVELOPMENT.md)。不要反复创建新 runtime 目录认领旧服务。
 
 ## Prerequisites · 运行前准备
 
-当前一键路径在 **macOS / Apple Silicon + Colima** 上验证；其他系统的 Docker 路径需自行验证。
+- **已验证环境：** macOS / Apple Silicon + Colima。需要先自行启动可用的 Docker daemon；其他操作系统及 Docker Desktop 路径尚需验证。
+- **工具：** Node.js 22.12+、npm、Python 3.12–3.13、Docker CLI / Compose / Buildx，以及构建脚本使用的 `rsync`。仅修改后端时另需 uv。
+- **存储与网络：** 准备可写的专用数据目录，确保宿主与 Docker VM 都能访问。首次安装依赖、拉取基础镜像与构建需要网络和磁盘空间；这里没有经过测量的通用最低内存承诺。
+- **已有作品：** 继续使用原仓库、原数据根和原 runtime 所有权记录。不要用一个新 clone 自动接管既有服务，也不要删除数据库卷来解决启动问题。
 
-| 用途 | 准备 |
+## 第一次试用
+
+以一个短背景音乐草案为例：**只有“安静、缓慢”的想法 → 审核结构与配器、比较两个方向 → 保存一个能继续编辑、导出并追溯来源的版本。** 这是操作示例，不是对默认回退理解任意自然语言的承诺。
+
+1. 在首页输入作品名并创建作品，点击「新建编曲」。
+2. 在 Brief 保留 `Classical Chamber`，标题填「雨后漫步」，用途填「安静的短片背景音乐」，情绪填「平静，温暖」，时长填 `60` 秒，其余约束先留默认，再点「提交 Brief 并规划」。
+3. 阅读 Plan 的段落和轨道安排；填写审批身份与明确确认说明后批准生成。
+4. 分别试听 A/B 候选，查看规则评估，再明确选择其中一个。默认无 Key 时页面应标记确定性回退，规则分也不等于音乐审美评分。
+5. 打开 Studio，修改音符或混音参数后保存新版本。试听器播放**已渲染的保存版本**，未保存草稿不会即时改变声音。
+6. 打开导出页，等待文件就绪后下载；重新打开作品检查保存版本。运行检查页可查看任务、人工决定和模型用量。
+
+先走通这个无模型例子，再考虑启用外部模型或真实钢琴档位。导入自己的 WAV / MP3 / FLAC 或 Stem 时，需要确认素材权利并审核分析结果。
+
+## 核心能力
+
+| 你要做的事 | 当前实现 |
 | --- | --- |
-| 前端 | Node.js 22.12+ 与 npm |
-| 后台服务 | Docker CLI、Compose、Buildx；可用 Docker Desktop，或安装 Colima |
-| 本地数据 | 可写的存储目录与足够的镜像、音频空间；启动器默认使用仓库旁的 `.motif-forge-data` |
-| 本机启停 | Python 3，用于标准库文件锁；Node.js 用于所有权检查 |
-| 仅后端开发 | Python 3.12 与 uv |
-| 可选服务 | DeepSeek 用于显式付费模型验证；LangSmith 用于可选开发追踪 |
+| 审核创作方向 | Brief → 结构化 Plan → 人工审批 → 两个候选 → 明确选择；不会把未批准候选当正式版本 |
+| 继续修改作品 | Timeline、Piano Roll、Mixer、草稿保存与不可变 Revision；有界 AI 选区编辑，高影响修改先试听确认 |
+| 管理已有素材 | 音频 / Stem 导入、BPM / 调性确认、可选择的保持音高时间对齐；原始导入保留 |
+| 带走同一保存版本 | Master WAV、试听 MP3、Stem、MIDI 与工程文件；动态导出计划绑定具体 Revision，部分失败保留已完成项 |
+| 查看执行事实 | Graph Inspector 展示持久事件、决策、任务与用量；恢复概览与截断时间线分开，缺失用量不会显示成零 |
 
-配置保存在未跟踪的 `.env` 中，不要提交 Key，也不要放进前端 `VITE_*` 变量。默认入口面向本机使用，未配置公共托管所需的认证与隔离。
+模型提出有界结构，确定性代码负责音乐时序、校验、事务、渲染与预算。一个版本化 LangGraph Parent Graph 承接生成、导入、编辑与导出，PostgreSQL 保存工程事实和恢复状态；Redis/Celery 分发任务。详细合同见[项目指南](docs/PROJECT_GUIDE.md)。
 
-启动失败、端口占用、外置盘或代理问题，请看[开发与排障指南](docs/DEVELOPMENT.md)。
-
-## 走完一次创作
-
-1. **建立作品。** 首页输入名称，创建后点击「开始创作」；已有作品也可以继续编曲、打开 Studio 或导入素材。
-2. **写下 Brief。** 选择风格，描述用途、情绪和时长。需要指定速度、调性或结构时，再展开高级约束。
-3. **审核 Plan。** 看清段落与配器；不满意就重新规划。填写审批身份和明确的确认说明，再「批准并生成」。
-4. **比较 A/B。** 分别试听，查看结构和规则评估。填写选择确认后选定候选；规则分不是对音乐审美的客观评级。
-5. **进入 Studio。** 等正式版本和导出就绪后打开 Studio。手工修改先形成草稿，再保存新版本；AI 修改先选中目标，高影响修改仍需预览确认。
-6. **导出或检查执行。** 到导出页下载文件；到运行检查页查看 Graph、人工决策、后台任务和用量。刷新页面后可以继续查看同一次任务。
-
-也可以从「导入音频」开始。逐个确认素材使用权；对低置信度分析，可确认、修正、跳过对齐或取消，不会强迫接受自动判断。
-
-## Agent 如何工作
-
-这里的 Agent 不是直接写音频文件的聊天包装器。**模型负责提出受限计划，确定性代码负责把计划变成音乐和可靠的工程事实。**
+<details>
+<summary>创作主路径示意</summary>
 
 ```mermaid
 flowchart LR
@@ -151,110 +105,74 @@ flowchart LR
     G --> I["内置 Inspector / 可选 LangSmith"]
 ```
 
-这是主创作路径的示意，不是额外的生产 Graph。导入、AI 选区修改与恢复也挂在同一 Parent Graph 中；Redis/Celery 分发音频任务，Chromium/Tone.js 渲染，FFmpeg 处理媒体。
+这张图只说明主创作的数据流，不表示额外的生产 Graph，也不代表全部异常分支。
 
-| 设计点 | 为什么这样做 |
-| --- | --- |
-| 一个 Parent Graph，受限子图 | 统一路由、暂停、恢复和取消，避免几套编排互相漂移 |
-| 结构化模型输出 + 确定性编译 | 模型不直接写 Revision；音乐时序、理论规则、事务和预算由代码把关 |
-| 真实 HITL | 计划、候选与高影响编辑有明确人工决策，不用前端按钮假装审批 |
-| 不可变 Revision | 草稿、试听候选和正式版本分开；撤销也保留历史 |
-| 持久 Outbox / Inbox / checkpoint | 已完成的任务与人工决定可重放，限制重复副作用和重复模型花费 |
-| 安全可观测性 | 用持久证据解释执行，不暴露 Prompt、审批断言、密钥或媒体内容 |
+</details>
 
-![Graph Inspector 与节点证据](docs/images/graph.png)
+## 配置与限制
 
-内置 Graph 不是动画模拟器：节点状态来自受限的 checkpoint 路径和应用事件。无法确认的节点保留未确认状态；Import/Edit 保留其事件时间线。需要模型调用的开发追踪时，参阅 [LangSmith 配置](docs/LANGSMITH.md)。
+### 默认演示与真实钢琴 Beta
 
-## 能力与边界
+| 档位 | 能做什么 | 首跑边界 |
+| --- | --- | --- |
+| 默认源码演示 | 新建古典 / 爵士策略、轻量内置合成音色，体验计划 / 候选 / 编辑 / 导出 | 上面的首跑路径；Style Pack 表达编曲策略，不代表真实乐器采样库 |
+| 审核曲库双钢琴个人 Beta | 固定审核主旋律摘录、真实钢琴资源、局部伴奏与修订 | 需合法审核包、宿主与 VM 共享、既有固定镜像；不是全新 clone 后一条命令可安装的成品 |
+| 隔离工程候选 | 发布、备份和执行隔离方面的后续修复 | 离线或单独边界通过不等于已经上线；以当前实施状态逐项为准 |
 
-### 四个音乐方向
+新建入口提供 Classical Chamber、Jazz Harmony & Improvisation，默认古典；历史 Synth Ambient、Minimal Electronic 的 ID、旧作品与导出保留，不再是新建选择。默认音源使用 12 个语义别名映射到 3 个合成核心与 click sample；真实钢琴档位另走固定资源校验。
 
-| Style Pack | 编曲倾向 |
-| --- | --- |
-| Synth Ambient | 合成器铺底、缓慢演变、空间氛围 |
-| Minimal Electronic | 重复动机、低频脉冲与节奏推进 |
-| Classical Chamber | 声部组织、动机与和声推进 |
-| Jazz Harmony & Improvisation | 和声色彩、律动与伴奏关系 |
+当前审核资料仅有四个 8–16 小节的固定主旋律摘录，不是完整曲库。固定 2019 钢琴包的 26 个样本在开发环境已有验证，但仓库尚缺从对应上游归档复原 manifest 的公开准备入口，不能用新版包替代固定 pin。UI fixture 的静音 PCM 仅用于界面测试，不作真实试听或音质证据。
 
-当前使用轻量内置音色：12 个语义音色别名映射到 3 个合成核心与 click sample。风格侧重编曲策略，**不代表真实钢琴、弦乐或爵士管乐采样库**。
+个人 Beta 当前 API 发布 pin 为 [`a3bfb1a`](scripts/personal-beta-release.v1.json)，兼容数据库 `20261020_0030`。`--personal-beta` 的启动器验证固定本地 API 镜像和 schema；普通 `--personal-beta api` 构建产生的 `:local` 镜像不能自动满足此 pin。缺镜像或审核资源会明确失败，不下载音源、不改 pin、不启动 / 重启 VM。安装、构建与当前验证边界请先读[个人 Beta 运行手册](docs/PERSONAL_BETA_RUNBOOK.md)。
 
-### 有证据，也保留未验证项
-
-- S7 版本化内部 Eval inventory 为 **96 条**：**80 条实测通过、13 条预期拒绝、3 条未测**；不能写成 96/96 全部生成成功。
-- 真实 DeepSeek Generate 历史验收包含 **1 次调用、4,911 tokens**；它是历史样本，不代表每次生成的成本或本轮调用。
-- 付费 AI Edit planner 尚未完成真实验收；无 Key 编辑回退只支持明确的 gain / 本地音色意图。
-- 完整专业 DAW、自动人声/分轨分离、多人协作、公开托管、生产 P95 与规模化主观音质评估不在当前完成声明中。
-- 长时作品、轨道上限和其他最终目标，以[实施状态](docs/IMPLEMENTATION_STATUS.md)中的证据与缺口为准，不把设计目标当作已验证指标。
-
-查看 [Eval 报告](docs/evals/S7_EVAL_REPORT.md)、[最终产品合同](docs/PROJECT_GUIDE.md)和[当前实施状态](docs/IMPLEMENTATION_STATUS.md)。
-
-## 技术栈
-
-| 层 | 选型 |
-| --- | --- |
-| Agent 编排 | LangGraph 1.x 单一 Parent Graph + `langgraph-checkpoint-postgres` 持久检查点 |
-| 后端 | Python 3.12–3.13 · FastAPI · Pydantic v2 · SQLAlchemy 2（async）· Alembic 迁移 |
-| 队列与任务 | Celery 5.6 + Redis 7.4；持久 Outbox / Inbox 负责派发与恢复 |
-| 数据 | PostgreSQL 17，存放创作事实、人工决策、事件与模型用量 |
-| 前端 | React 19 · TypeScript 5.9 · Vite 8 · TanStack Query |
-| 音频渲染 | Node 24 + Playwright Chromium 驱动 Tone.js 15；FFmpeg 负责媒体与转码 |
-| 测试 | pytest（676 条用例）· Vitest（50 个前端测试文件）· Playwright 浏览器冒烟 |
-| 运行 | Docker Compose 编排 9 个服务；Colima 或 Docker Desktop |
-| 可观测性 | 内置 Graph Inspector；可选 LangSmith 开发追踪 |
-| 模型 | 默认确定性回退规划；可选 DeepSeek，属显式启用的付费验证 |
-
-## 主要目录
-
-| 路径 | 内容 |
-| --- | --- |
-| `apps/web` | React 工作台：页面、状态管理、浅色视觉系统 |
-| `services/api` | FastAPI 应用、Agent 图、持久化、迁移与后端测试 |
-| `services/render-worker` | 确定性音乐渲染 Worker（Chromium + Tone.js） |
-| `packages/audio-engine` | 共享音频引擎与类型 |
-| `scripts` | 启动器、分阶段验收、Eval 报告与浏览器冒烟 |
-| `docs` | 产品合同、架构规范、决策记录、实施状态与证据 |
-| `tests` | 契约测试与 Eval 用例 |
-
-## 测试与验收
-
-前端与音频：
+已完成配置的同一 Beta 环境，才使用：
 
 ```bash
-npm run test:web            # 工作台组件与状态
-npm run test:audio          # 音频引擎与渲染 Worker
-npm run eval:s7             # 生成 S7 Eval 报告
-npm run smoke:s7            # S7 作品集确定性验收
-npm run smoke:s7:browser    # S7 浏览器冒烟
-npm run smoke:graph-ui      # Graph Inspector 浏览器冒烟
+scripts/start_motif_forge.sh --personal-beta --check
+scripts/start_motif_forge.sh --personal-beta --no-open
+# 本档位默认 Web：http://127.0.0.1:15173
+scripts/stop_motif_forge.sh --personal-beta
 ```
 
-后端：
+媒体根可用 `MOTIF_FORGE_BETA_STORAGE_ROOT`、已有审核包可用 `MOTIF_FORGE_REVIEWED_PIANO_ROOT` 指定；`DOCKER_CONTEXT` 可显式选择 daemon，不改变全局 context。沿用原 `MOTIF_FORGE_RUNTIME_DIR` 回执。数据盘不可用时不静默回落其他磁盘；模型仍默认禁用。
+
+### 外部服务与费用
+
+- **默认不调用付费模型。** Compose 显式清空 `DEEPSEEK_API_KEY`；仅在 `.env` 填 Key 不会启用它。无 Key 规划使用确定性回退；旧通用 AI Edit 回退只支持明确的 gain / 本地音色意图，不能当完整自然语言编辑。
+- **当前配置入口的限制：** 本分支尚无供首次用户直接保存、验证和清除 Key 的日常设置页。已有显式开发验证流程不等于开箱即用的配置体验；在该入口补齐前，请先试用无 Key 路径，不将 Key 写入浏览器变量或为了启用模型直接删除 Compose 保护。
+- **真实模型是显式开发流程。** 钢琴局部编辑已有少量官方 DeepSeek 实测，包含多轮保存、Undo 与同版本导出；这不代表任意请求或全风格已通过。外部调用会按服务定价计费并发送有界音乐结构与指令，运行前需检查身份、预算、数据范围与停止条件。入口见[开发验证](docs/DEVELOPMENT.md#真实服务与验收)及[实施状态](docs/IMPLEMENTATION_STATUS.md)。
+- **LangSmith 可选。** 默认关闭；开启会使用外部追踪服务，应先核对记录范围与费用，见 [LangSmith 配置](docs/LANGSMITH.md)。Key 不放进前端 `VITE_*`、日志或仓库。
+
+### 已验证范围
+
+- 同一真实钢琴 Beta 项目的两轮模型局部编辑、保存、Undo、重新读取与同版本完整导出已有[实测证据](docs/evidence/2026-10-22-beta-real-model-loop.md)；小样本不能外推全曲、任意长曲、任意曲谱或所有风格。
+- 历史 S7 Eval 是 **96 条内部 inventory：80 实测通过、13 预期拒绝、3 未测**，不是 96 首作品的音质通过率。见 [Eval 报告](docs/evals/S7_EVAL_REPORT.md)。
+- 固定镜像冷重建和当前真实作品的独立恢复仍未完成整体验证；归档完整性不是恢复成功。后续存储/执行隔离候选未随本分支发布，不能将其离线检查写成当前运行版本的验收。
+- 桌面浏览器适合精细编辑；移动端侧重查看、试听与审批。专业 DAW、多人协作、公开托管、自动人声分离与规模化主观音质评估不在当前完成声明中。
+- 新 clone 首跑与既有 Beta 运行证据是不同边界；历史证据和当前缺口见[实施状态](docs/IMPLEMENTATION_STATUS.md)。
+
+## 开发与贡献
+
+前端先使用已有依赖锁，不必为界面修改重建 Docker：
 
 ```bash
-uv run pytest               # services/api/tests + tests
-uv run ruff check .         # lint
-uv run mypy services/api/src
+npm ci
+npm run test:web
+npm run build:web
+npm run test:audio
 ```
 
-验收结论以 [S7 Eval 报告](docs/evals/S7_EVAL_REPORT.md) 与[实施状态](docs/IMPLEMENTATION_STATUS.md) 为准：96 条内部 inventory 中 80 条实测通过、13 条预期拒绝、3 条未测。本 README 不重复声明尚未验证的指标。
+后端宿主环境与 PostgreSQL 集成测试按[开发指南](docs/DEVELOPMENT.md)配置；涉及数据库的测试只能指向专用测试库。提交问题或改动时，请提供运行档位、可复现步骤、预期 / 实际结果及已脱敏错误码，不附 Key 或私人音频。
 
-## 开发文档
-
-| 文档 | 适合什么时候看 |
+| 文档 | 内容 |
 | --- | --- |
-| [开发与排障](docs/DEVELOPMENT.md) | 安装开发环境、跑测试、复现截图、处理启动问题 |
-| [可选 LangSmith](docs/LANGSMITH.md) | 接入追踪，理解记录范围与费用边界 |
-| [项目总指南](docs/PROJECT_GUIDE.md) | 理解最终产品和架构合同 |
-| [决策记录](docs/DECISION_LOG.md) | 理解为什么采用单 Graph、HITL 和不可变版本 |
-| [前端体验规范](docs/FRONTEND_UX_SPEC.md) | 页面状态、桌面/移动边界和浅色视觉系统 |
-| [实施状态](docs/IMPLEMENTATION_STATUS.md) | 区分已实现、部分完成与尚未验证 |
-| [技术演进](docs/TECH_EVOLUTION.md) | 查阅阶段证据、历史问题与修复 |
-| [后续路线](docs/NEXT_DEVELOPMENT_ROADMAP.md) | 风险触发后的开发顺序，而非无止境硬化 |
+| [开发与排障](docs/DEVELOPMENT.md) | 安装、测试、截图复现与常见问题 |
+| [个人 Beta 运行手册](docs/PERSONAL_BETA_RUNBOOK.md) | 档位、固定资源、日常使用与维护边界 |
+| [实施状态](docs/IMPLEMENTATION_STATUS.md) / [后续路线](docs/NEXT_DEVELOPMENT_ROADMAP.md) | 已部署、候选与未验事项 |
+| [项目指南](docs/PROJECT_GUIDE.md) / [决策记录](docs/DECISION_LOG.md) | 产品、架构与规则依据 |
+| [技术演进](docs/TECH_EVOLUTION.md) / [前端规范](docs/FRONTEND_UX_SPEC.md) | 历史证据与交互合同 |
 
----
-
-这是一个以 **Agent / LangGraph 工程实践**为核心的个人作品集。重点是让创作闭环真正可运行、可理解、可恢复，同时诚实呈现音乐能力和验证范围。
+源码主要位于 `apps/web`、`services/api`、`services/render-worker` 和 `packages/audio-engine`。音源、导入素材和第三方组件的许可分别核对，不能把项目代码许可当作所有素材的使用授权。
 
 ## 许可证
 
@@ -271,5 +189,3 @@ You may obtain a copy of the License at
 ```
 
 再分发时请保留 [LICENSE](LICENSE) 文件；如修改了源文件，需按第 4 条标注改动。
-
-启停操作共用内核文件锁；另一操作在初始化/停止期间明确返回 `RUNTIME_OPERATION_BUSY`。锁在Web就绪后释放，异常退出由内核释放，不保留僵死PID锁。启动也验证本Compose的数据库卷与默认网络；未知旧卷/网络不删除、不重标、不自动认领。Node.js与Python 3用于本机所有权与操作锁检查。
