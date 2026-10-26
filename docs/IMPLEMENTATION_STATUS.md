@@ -18,6 +18,12 @@
 
 ## 2. 当前产品形态
 
+### 2026-10-26 候选：API/Web-only 维护合同，未执行
+
+MF-P01/P13/P16/P17/P18/P20/P21。仅新增 stdout-only 更新提案器、维护步骤和同伴 API 边界测试；原 release pin 与应用代码不改。提案器绑定14ce937/a3bfb1a/b133…/schema0030，校验报告的新镜像ID与两安装文件hash，拒绝worker/schema/Dockerfile及未跟踪（含被Git忽略）内容漂移；只提出API覆盖层和原完整ID回退。输出固定为 NOT_READY，报告值匹配不等于真实镜像已验。
+
+主线实际组合28项通过（13新增提案合同、10原发布合同、5同伴API边界；一个既有Starlette警告）。独审发现忽略目录源码漏检，已定向RED→GREEN和唯一窄复核关闭。完整活动集合、新构建身份、容量和真实切换/回退未验；没有完整HTTP任务摘要，不能把首页或历史22成功Job当作当前空闲。未构建镜像、创建容器、启停服务、读取实际DB或Secret。维护预算与确切额外批准范围见[API/Web更新包](BETA_API_WEB_UPDATE.md)。
+
 ### 2026-10-26 源码补丁：可发现的本机 API Key 配置
 
 MF-P01/P13/P16/P18/P20/P21。主导航与 Studio 提供设置入口；网页不接收 Secret，通过隐藏输入脚本保存到用户私有配置，显式 `--enable-deepseek` 才由启动器交给 API / resume-dispatcher。继承的 shell 同名旧 Key 不会覆盖所选文件，清除操作复用父目录拒链与权限规则，缺目录仍幂等。默认禁用、LangSmith 与现有作品不变。
