@@ -18,11 +18,13 @@
 
 ## 2. 当前产品形态
 
-### 2026-10-26 候选：API/Web-only 维护合同，未执行
+### 2026-10-26 候选：API/Web-only 维护合同与设置页修复，未部署
 
-MF-P01/P13/P16/P17/P18/P20/P21。仅新增 stdout-only 更新提案器、维护步骤和同伴 API 边界测试；原 release pin 与应用代码不改。提案器绑定14ce937/a3bfb1a/b133…/schema0030，校验报告的新镜像ID与两安装文件hash，拒绝worker/schema/Dockerfile及未跟踪（含被Git忽略）内容漂移；只提出API覆盖层和原完整ID回退。输出固定为 NOT_READY，报告值匹配不等于真实镜像已验。
+MF-P01/P13/P16/P17/P18/P20/P21。stdout-only 更新提案器将 API 构建源固定14ce937/a3bfb1a回退/schema0030，Web要求独立完整提交身份与匹配源码；选中Web提交及实际目录中的worker/schema/Dockerfile等保护源均必须与API基线一致，未跟踪（含被Git忽略）内容也拒绝。输出固定 NOT_READY，报告hash匹配不等于真实镜像已验；原release pin未改。
 
-主线实际组合28项通过（13新增提案合同、10原发布合同、5同伴API边界；一个既有Starlette警告）。独审发现忽略目录源码漏检，已定向RED→GREEN和唯一窄复核关闭。完整活动集合、新构建身份、容量和真实切换/回退未验；没有完整HTTP任务摘要，不能把首页或历史22成功Job当作当前空闲。未构建镜像、创建容器、启停服务、读取实际DB或Secret。维护预算与确切额外批准范围见[API/Web更新包](BETA_API_WEB_UPDATE.md)。
+接入原前端线六文件补丁：设置页不再误展开“更多”，pathname切换preventScroll聚焦并回到页首，同路径query保持滚动；附独立mock浏览器脚本。实际整合树Python45项（19提案身份、10既有发布、5API边界、11设置API；一个既有Starlette警告）、相关Web41项、TypeScript和静态构建通过。原前端14个Chromium mock场景通过记录保留，但缺独立进程退出回执，不冒充真实Beta部署、Key保存/生成或播放验收。验证脚本的未知 --from 值可生成0场景摘要，是非默认诊断模式的已知限制，不用该模式作验收。
+
+一次另行允许的全表只读事务快照（2026-10-26 12:02:53 UTC，随后ROLLBACK）确认2个AI Run、14个媒体Run、22个Job全部成功，46个Outbox已发布，活动工作/lease/未来待投递均0；只读身份和健康也核实，不能永久宣称空闲。短窗口压缩器占用增长153.28MiB，构建容量仍HOLD；重连未放行维护。本轮无镜像构建、容器创建、停启服务、实际作品更改、Key或模型调用。API/Web实际切换与回退仍未验，见[更新包](BETA_API_WEB_UPDATE.md)。
 
 ### 2026-10-26 源码补丁：可发现的本机 API Key 配置
 

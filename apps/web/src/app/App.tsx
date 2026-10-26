@@ -32,7 +32,8 @@ export function App() {
   const pathname=window.location.pathname;
   useEffect(() => {
     document.title = routeTitle(parseRoute());
-    document.getElementById("main-content")?.focus();
+    document.getElementById("main-content")?.focus({ preventScroll: true });
+    window.scrollTo(0, 0);
   }, [pathname]);
 
   return (

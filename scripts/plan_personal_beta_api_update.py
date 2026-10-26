@@ -33,13 +33,14 @@ PROTECTED_SOURCE = [
     "uv.lock",
     "services/api/Dockerfile",
 ]
+WEB_SOURCE = ["apps/web", "package.json", "package-lock.json", "tsconfig.json"]
 
 
 class UpdatePlanError(ValueError):
     pass
 
 
-def plan_update(repo: Path, evidence: dict) -> dict:
+def plan_update(repo: Path, evidence: dict, *, web_commit: str) -> dict:
     """Validate reported identity against the frozen source, not against live Docker.
 
     The report is not independently authenticated here. A plan always retains the
@@ -68,6 +69,34 @@ def plan_update(repo: Path, evidence: dict) -> dict:
             timeout=10,
         )
         if extra.stdout:
+            raise ValueError
+        if not isinstance(web_commit, str) or not re.fullmatch(r"[0-9a-f]{40}", web_commit):
+            raise ValueError
+        subprocess.run(
+            [*prefix, "merge-base", "--is-ancestor", SOURCE, web_commit],
+            capture_output=True,
+            check=True,
+            timeout=10,
+        )
+        subprocess.run(
+            [*prefix, "diff", "--quiet", SOURCE, web_commit, "--", *PROTECTED_SOURCE],
+            capture_output=True,
+            check=True,
+            timeout=10,
+        )
+        subprocess.run(
+            [*prefix, "diff", "--quiet", web_commit, "--", *WEB_SOURCE],
+            capture_output=True,
+            check=True,
+            timeout=10,
+        )
+        extra_web = subprocess.run(
+            [*prefix, "ls-files", "--others", "--", *WEB_SOURCE],
+            capture_output=True,
+            check=True,
+            timeout=10,
+        )
+        if extra_web.stdout:
             raise ValueError
         if (
             set(evidence) != {"source_commit", "reference", "id", "files"}
@@ -101,7 +130,7 @@ def plan_update(repo: Path, evidence: dict) -> dict:
                 "media-worker",
                 "render-worker",
             ],
-            "web_source": {"old": "81b1cffc8bf8d20686a80bac6d6ae1cf242df9c4", "new": SOURCE},
+            "web_source": {"old": "81b1cffc8bf8d20686a80bac6d6ae1cf242df9c4", "new": web_commit},
             "pending_live_gates": [
                 "actual_new_image_identity",
                 "complete_activity_check",
@@ -120,10 +149,11 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, required=True)
     parser.add_argument("--image-evidence", type=Path, required=True)
+    parser.add_argument("--web-source", required=True, help="Reviewed full Web commit SHA")
     args = parser.parse_args(argv)
     try:
         evidence = json.loads(_source_text(args.image_evidence, 8192))
-        result = plan_update(args.repo, evidence)
+        result = plan_update(args.repo, evidence, web_commit=args.web_source)
     except (UpdatePlanError, OSError, ValueError, UnicodeError):
         print("BETA_UPDATE_SOURCE_BASELINE_OR_IDENTITY_INVALID", file=sys.stderr)
         return 78

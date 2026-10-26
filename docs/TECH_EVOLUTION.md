@@ -735,3 +735,37 @@ The combined source check ran 107 Python cases (11 subtests, one existing Starle
 MF-P01/P13/P16/P17/P18/P20/P21. Added a source-bound stdout-only proposal for the published14ce937 no-Key update; old Inspector identity/schema0030 remain fixed. It proposes only an API image override, future API/migrator pin and exact-old-ID rollback; it never invokes Docker or writes the pin. Worker, schema and Dockerfile drift are rejected. Independent review reproduced ignored-source admission; the one-line scope correction and real Git counterexample closed it at the sole narrow recheck. A fresh combined gate ran28 cases (13proposal,10existing-release,5peer mocked HTTP boundaries; existing Starlette warning).
 
 The maintenance package explicitly retains UNKNOWN activity, actual image identity, capacity and real rollback gates. It separates build/probe from20-minute planned API/Web downtime, discloses API container-layer removal, and preserves workers/data/0030/default-disabled Key. No image build, container, DB/Secret access, model call, backup or runtime operation occurred. This candidate is not a live Beta update.
+
+
+## 2026-10-26 — Split Web/API identity and reviewed settings navigation
+
+Personal Beta, MF-P01/P13/P16/P17/P18/P20/P21. Integrated the original frontend
+session's six-file v2 patch: Settings no longer expands More, pathname focus does
+not scroll headings behind the sticky header, and query-only navigation keeps
+scroll position. The isolated combined tree passed 41 related React tests,
+TypeScript and the 139-module static build. The author's 14-case Chromium mock
+record is retained separately; no independent exit receipt or live Beta claim.
+No new browser invocation was made by this integration slice.
+
+The stdout-only proposal now requires an explicit full Web commit, validates its
+lineage and selected source, and keeps API build identity fixed at14ce937. Five
+new missing-contract tests were observed RED then GREEN. A real-Git counterexample
+then proved that backend drift in the selected commit could be hidden by restored
+working files; a commit-to-commit protected-source check closes it. Neither an
+image nor a release pin is created by this tool. Final counts/review and exact
+source identities are recorded with the local candidate checkpoint.
+
+Final affected Python gate: 45 passed (19 proposal identity, 10 existing release,
+5 peer API boundary, 11 settings API), one existing Starlette warning. Ruff,
+format and diff checks pass; no pattern matches for credentials in changed files.
+The current live checkout remained clean81b1cff and Guide revisiond68b900.
+Independent frontend integration review found no current-path blocker. The narrow
+identity review confirmed the repaired commit-to-commit guard and independently
+ran all19 proposal cases successfully; no remaining current-path Important.
+
+A separately authorized READ ONLY repeatable-read aggregate found no active
+persisted work at 12:02:53 UTC; future maintenance must recheck after stopping API.
+The short host sample did not establish stable build capacity, so the runtime
+remains HOLD. Standard Compose replacement would remove the old API container's
+layer/local logs; old image and data mounts remain, but no old-CID retention path
+has been validated. This consequence remains in the next approval scope.

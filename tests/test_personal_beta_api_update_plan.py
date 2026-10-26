@@ -46,12 +46,102 @@ def repo(tmp_path):
             "services/api/Dockerfile",
             ".gitignore",
             ".dockerignore",
+            "apps/web",
+            "package.json",
+            "package-lock.json",
+            "tsconfig.json",
         ],
         cwd=target,
         check=True,
         capture_output=True,
     )
     return target
+
+
+def test_web_only_commit_has_an_independent_identity_from_api_build(repo):
+    path = repo / "apps/web/src/app/AppShell.tsx"
+    path.write_text(path.read_text() + "\n// synthetic reviewed Web change\n")
+    subprocess.run(["git", "add", "--", str(path)], cwd=repo, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Synthetic Test",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "-c",
+            "core.hooksPath=/dev/null",
+            "commit",
+            "-m",
+            "Synthetic Web identity",
+        ],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+    )
+    web = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    result = module().plan_update(repo, evidence(), web_commit=web)
+    assert result["source_commit"] == SOURCE
+    assert result["future_release_pin"]["application_commit"] == SOURCE
+    assert result["web_source"]["new"] == web and web != SOURCE
+
+
+def test_web_commit_cannot_hide_backend_drift_behind_restored_working_files(repo):
+    path = repo / "services/api/src/motif_forge/api/app.py"
+    path.write_text(path.read_text() + "\n# unreviewed committed backend change\n")
+    subprocess.run(["git", "add", "--", str(path)], cwd=repo, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Synthetic Test",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "-c",
+            "core.hooksPath=/dev/null",
+            "commit",
+            "-m",
+            "Synthetic backend drift",
+        ],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+    )
+    web = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    subprocess.run(
+        ["git", "restore", "--source=" + SOURCE, "--staged", "--worktree", "--", str(path)],
+        cwd=repo,
+        check=True,
+    )
+    mod = module()
+    with pytest.raises(mod.UpdatePlanError):
+        mod.plan_update(repo, evidence(), web_commit=web)
+
+
+@pytest.mark.parametrize("fault", ["changed", "ignored", "missing", "not_full_sha"])
+def test_web_identity_or_source_drift_is_rejected(repo, fault):
+    web = SOURCE
+    if fault == "changed":
+        path = repo / "apps/web/src/app/AppShell.tsx"
+        path.write_text(path.read_text() + "\n// unreviewed Web drift\n")
+    elif fault == "ignored":
+        path = repo / "apps/web/build/probe.ts"
+        path.parent.mkdir()
+        path.write_text("// unreviewed ignored Web source\n")
+        assert (
+            subprocess.run(["git", "check-ignore", "--quiet", str(path)], cwd=repo).returncode == 0
+        )
+    elif fault == "missing":
+        web = "0" * 40
+    else:
+        web = "HEAD"
+    mod = module()
+    with pytest.raises(mod.UpdatePlanError):
+        mod.plan_update(repo, evidence(), web_commit=web)
 
 
 def evidence():
@@ -72,7 +162,7 @@ def evidence():
 
 def test_proposal_is_api_only_and_rollback_uses_approved_old_id(repo):
     before = (repo / "scripts/personal-beta-release.v1.json").read_bytes()
-    result = module().plan_update(repo, evidence())
+    result = module().plan_update(repo, evidence(), web_commit=SOURCE)
     assert result["status"] == "NOT_READY_OFFLINE_PROPOSAL"
     assert result["compatible_database_revision"] == "20261020_0030"
     assert result["api_override"] == {"services": {"api": {"image": evidence()["id"]}}}
@@ -112,7 +202,7 @@ def test_wrong_or_stale_image_evidence_fails_closed(repo, fault):
         proposal[fault] = "invalid"
     mod = module()
     with pytest.raises(mod.UpdatePlanError, match="BETA_UPDATE"):
-        mod.plan_update(repo, proposal)
+        mod.plan_update(repo, proposal, web_commit=SOURCE)
 
 
 @pytest.mark.parametrize(
@@ -143,7 +233,7 @@ def test_changed_worker_or_schema_stops_api_only_assumption(repo, fault):
         path.write_text(json.dumps(value))
     mod = module()
     with pytest.raises(mod.UpdatePlanError):
-        mod.plan_update(repo, evidence())
+        mod.plan_update(repo, evidence(), web_commit=SOURCE)
 
 
 def test_cli_only_prints_proposal_and_sanitizes_bad_evidence(repo, tmp_path):
@@ -151,7 +241,16 @@ def test_cli_only_prints_proposal_and_sanitizes_bad_evidence(repo, tmp_path):
     proof.write_text(json.dumps(evidence()))
     before = (repo / "scripts/personal-beta-release.v1.json").read_bytes()
     result = subprocess.run(
-        ["python3", str(ENTRY), "--repo", str(repo), "--image-evidence", str(proof)],
+        [
+            "python3",
+            str(ENTRY),
+            "--repo",
+            str(repo),
+            "--image-evidence",
+            str(proof),
+            "--web-source",
+            SOURCE,
+        ],
         capture_output=True,
         text=True,
     )
@@ -159,7 +258,16 @@ def test_cli_only_prints_proposal_and_sanitizes_bad_evidence(repo, tmp_path):
     assert json.loads(result.stdout)["status"] == "NOT_READY_OFFLINE_PROPOSAL"
     proof.write_text('{"secret":"synthetic-must-not-leak"}')
     result = subprocess.run(
-        ["python3", str(ENTRY), "--repo", str(repo), "--image-evidence", str(proof)],
+        [
+            "python3",
+            str(ENTRY),
+            "--repo",
+            str(repo),
+            "--image-evidence",
+            str(proof),
+            "--web-source",
+            SOURCE,
+        ],
         capture_output=True,
         text=True,
     )

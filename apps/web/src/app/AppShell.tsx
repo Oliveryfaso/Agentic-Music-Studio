@@ -19,7 +19,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className="shell-nav" aria-label="主导航">
           <a href="/" aria-current={section === "home" ? "page" : undefined}>作品</a>
           <a href="/settings" aria-current={section === "settings" ? "page" : undefined}>设置</a>
-          <details className="shell-more" open={section !== "home"}><summary>更多</summary><div><a href="/about" aria-current={section === "about" ? "page" : undefined}>关于</a><a href="/evaluation" aria-current={section === "evaluation" ? "page" : undefined}>评估</a></div></details>
+          <details className="shell-more" open={section === "about" || section === "evaluation"}><summary>更多</summary><div><a href="/about" aria-current={section === "about" ? "page" : undefined}>关于</a><a href="/evaluation" aria-current={section === "evaluation" ? "page" : undefined}>评估</a></div></details>
         </nav>
         <div className="runtime-badge">本地工作台</div>
       </header>

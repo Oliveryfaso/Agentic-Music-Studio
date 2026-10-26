@@ -31,3 +31,18 @@ Observed: initial11 missing-feature failures, then11PASS; Dockerfile drift RED1â
 review-found ignored-source drift RED1â†’GREEN, final13 proposal cases. Combined gate28PASS
 includes original release10 and peer API boundary5 (one existing Starlette warning).
 One Important closed at the sole narrow recheck. No actual maintenance occurred.
+
+## Frontend integration follow-up (same stage and requirements)
+
+Integrate the original frontend session's six-file v2 patch once. Preserve its
+mock-browser evidence and missing independent process-exit receipt separately.
+The API build remains fixed at 14ce937; require a full, explicit Web commit that
+descends from that source and matches the selected Web files, including ignored
+untracked additions. Test a Web-only commit, source drift and invalid identity
+before changing the proposal tool. Re-run affected Python/React checks, types and
+build, then one narrow integration review. Commit locally and record the API and
+Web identities outside the source tree; no live switch, image build or push.
+
+The last permitted read-only aggregate at 12:02:53 UTC found no active persisted
+work (all 22 Jobs succeeded, no leases), not a permanent idle certificate.
+The build-capacity gate remains HOLD. Reconnection does not close that gate.

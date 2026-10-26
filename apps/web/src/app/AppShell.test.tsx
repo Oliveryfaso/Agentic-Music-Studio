@@ -12,6 +12,12 @@ it("makes API Key settings discoverable and marks its destination", () => {
   expect(screen.getByRole("link", { name: "作品" })).not.toHaveAttribute("aria-current");
 });
 
+it("keeps the secondary menu closed when entering primary settings", () => {
+  window.history.replaceState({}, "", "/settings");
+  render(<AppShell><h1>设置</h1></AppShell>);
+  expect(screen.getByText("更多").closest("details")).not.toHaveAttribute("open");
+});
+
 it("keeps creation pages in the workspace navigation and exposes a keyboard skip target", () => {
   window.history.replaceState({}, "", "/projects/demo/new-composition");
   render(<AppShell><h1>创作</h1></AppShell>);
