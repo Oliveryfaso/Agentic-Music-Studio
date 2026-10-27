@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEEPSEEK_API_KEY: ""
+  LANGSMITH_API_KEY: ""
+  LANGCHAIN_API_KEY: ""
+  LANGSMITH_TRACING: "false"
+  LANGCHAIN_TRACING_V2: "false"
+  MOTIF_FORGE_TEST_POSTGRES_DSN: ""
+  MOTIF_FORGE_TEST_RENDER_IMAGE: ""
+  MOTIF_FORGE_TEST_REDIS_URL: ""
+  MOTIF_FORGE_TEST_ARTIFACT_ROOT: ""
+  MOTIF_FORGE_CONTAINER_ENV_FILE: .env.example
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+  UV_PYTHON_DOWNLOADS: never
+  UV_KEYRING_PROVIDER: disabled
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  python:
+    name: Python regression
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Install test codec from Ubuntu repositories
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y ffmpeg
+      - name: Install the pinned dependency tool
+        run: python -m pip install uv==0.12.1
+      - name: Install frozen Python dependencies
+        run: uv sync --frozen --dev --default-index https://pypi.org/simple
+      - name: Run offline Python regression
+        run: uv run pytest
+      - name: Check core Python errors and shell syntax
+        run: |
+          uv run ruff check --select F services/api/src
+          for script in scripts/start_motif_forge.sh scripts/stop_motif_forge.sh; do
+            bash -n "$script"
+          done
+          uv run python -m compileall -q services/api/src scripts
+
+  web-audio:
+    name: Web and audio regression
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Install frozen JavaScript dependencies
+        run: npm ci
+      - name: Test Web
+        run: npm run test:web
+      - name: Test audio
+        run: npm run test:audio
+      - name: Type-check and build Web
+        run: npm run build:web
+      - name: Type-check and build audio
+        run: npm run build:audio
+      - name: Verify the default no-Key Compose configuration
+        run: |
+          docker compose --env-file .env.example config --format json |
+          python -c '
+          import json, sys
+          services = json.load(sys.stdin)["services"]
+          required = {"api", "dispatcher", "resume-dispatcher", "media-worker", "render-worker"}
+          if not required.issubset(services):
+              raise SystemExit("Required default-profile services are missing")
+          for service in services.values():
+              env = service.get("environment", {})
+              if env.get("DEEPSEEK_API_KEY", "") or env.get("LANGSMITH_API_KEY", ""):
+                  raise SystemExit("Default no-Key profile unexpectedly contains a Key")
+              if str(env.get("LANGSMITH_TRACING", "false")).lower() != "false":
+                  raise SystemExit("Default profile unexpectedly enables external tracing")
+          print("Default no-Key Compose configuration verified; no services started")
+          '

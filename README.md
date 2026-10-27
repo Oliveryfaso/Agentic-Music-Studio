@@ -66,7 +66,7 @@ scripts/stop_motif_forge.sh
 
 ```bash
 scripts/start_motif_forge.sh --help  # 无需启动服务
-scripts/start_motif_forge.sh --check # 不启动服务；首次尚无 .env / 数据根时会报告缺失
+scripts/start_motif_forge.sh --check # 不启动服务；缺依赖、.env 或数据根时明确报告
 ```
 
 端口、外置盘或 Docker 不可用时，先处理报出的具体条件，见[开发与排障](docs/DEVELOPMENT.md)。不要反复创建新 runtime 目录认领旧服务。
@@ -177,7 +177,7 @@ scripts/stop_motif_forge.sh --personal-beta
 
 - 同一真实钢琴 Beta 项目的两轮模型局部编辑、保存、Undo、重新读取与同版本完整导出已有[实测证据](docs/evidence/2026-10-22-beta-real-model-loop.md)；小样本不能外推全曲、任意长曲、任意曲谱或所有风格。
 - 历史 S7 Eval 是 **96 条内部 inventory：80 实测通过、13 预期拒绝、3 未测**，不是 96 首作品的音质通过率。见 [Eval 报告](docs/evals/S7_EVAL_REPORT.md)。
-- 固定镜像冷重建和当前真实作品的独立恢复仍未完成整体验证；归档完整性不是恢复成功。后续存储/执行隔离候选未随本分支发布，不能将其离线检查写成当前运行版本的验收。
+- 真实备份已在隔离环境完成 PostgreSQL 与媒体恢复及摘要校验；恢复后启动应用、播放和导出仍未验，固定镜像冷重建与0031全组合也未完成。源码包含默认只预演的[隔离恢复工具](docs/ISOLATED_RECOVERY.md)，不自动创建环境或覆盖作品；运行 Beta 未部署这批维护工具。
 - 桌面浏览器适合精细编辑；移动端侧重查看、试听与审批。专业 DAW、多人协作、公开托管、自动人声分离与规模化主观音质评估不在当前完成声明中。
 - 新 clone 首跑与既有 Beta 运行证据是不同边界；历史证据和当前缺口见[实施状态](docs/IMPLEMENTATION_STATUS.md)。
 
@@ -193,6 +193,8 @@ npm run test:audio
 ```
 
 后端宿主环境与 PostgreSQL 集成测试按[开发指南](docs/DEVELOPMENT.md)配置；涉及数据库的测试只能指向专用测试库。提交问题或改动时，请提供运行档位、可复现步骤、预期 / 实际结果及已脱敏错误码，不附 Key 或私人音频。
+
+`main` 和 Pull Request 的[自动回归](.github/workflows/ci.yml)运行无 Key 的 Python、Web / 音频测试及构建，不启动数据库或调用模型。需要真实外部服务的用例跳过；CI 通过不等于完整新用户生成或听感验收。
 
 | 文档 | 内容 |
 | --- | --- |

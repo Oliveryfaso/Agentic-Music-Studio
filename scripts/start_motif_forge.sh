@@ -126,6 +126,11 @@ if [[ ! "$python_version" =~ ^Python\ 3\.(12|13)\.[0-9]+$ ]]; then
   exit 69
 fi
 
+if [[ ! -x node_modules/.bin/vite ]]; then
+  echo "Web dependencies are missing; run npm ci from the repository root, then retry." >&2
+  exit 69
+fi
+
 if (( enable_deepseek )); then
   if ! python3 scripts/configure_deepseek.py --check; then
     echo "DeepSeek is not enabled. Run: python3 scripts/configure_deepseek.py" >&2
@@ -161,10 +166,6 @@ wait_for_http() {
 }
 
 if (( personal_beta )); then
-  if [[ ! -x node_modules/.bin/vite ]]; then
-    echo "Web dependencies are missing; install the existing lockfile dependencies explicitly." >&2
-    exit 69
-  fi
   if ! PYTHONDONTWRITEBYTECODE=1 python3 scripts/personal_beta_preflight.py --repo "$project_root"       --piano-root "$MOTIF_FORGE_REVIEWED_PIANO_ROOT"; then
     echo "Personal Beta resource preflight failed; no services were started." >&2
     exit 78
@@ -283,11 +284,6 @@ if [[ -e "$web_pid_file" || -L "$web_pid_file" ]]; then
     exit 78
   fi
   rm -f "$web_pid_file"
-fi
-
-if [[ ! -x node_modules/.bin/vite ]]; then
-  echo "Installing Web dependencies…"
-  npm install
 fi
 
 echo "Starting Motif Forge services…"

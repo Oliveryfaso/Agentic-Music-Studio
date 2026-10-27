@@ -25,7 +25,8 @@ npm run build:web
 先确认 `node --version` 为22.12+、`python3 --version` 为3.12–3.13。macOS
 自带的 Python 可能不满足；选择已安装的受支持解释器到当前 shell 的 PATH，
 不要替换系统 Python。启动器在读取私有 Key、初始化 runtime、写入存储或调用
-Docker 前检查版本，`--help` 不要求这些依赖。
+Docker 前检查版本及已安装的 Vite；缺前端依赖时提示 `npm ci` 并停止，
+不会在启动过程中隐式执行 `npm install`。`--help` 不要求这些依赖。
 
 以下仅用于**新建的演示目录**，不认领已有作品或服务。准备动作会创建公开模板
 配置和专用空数据目录；最后的 `--check` 本身不启动、构建或迁移：
@@ -95,13 +96,17 @@ scripts/build_compose_images.sh render-worker
 
 这三条是可选择的构建入口，不要求每次全部运行。构建脚本为 macOS 外置盘复制一个不带扩展属性的受限临时 context，再构建与清理该 context，不删除仓库源码。
 
-服务就绪检查：
+对已经由你启动的默认演示环境，只读检查服务就绪：
 
 ```bash
-scripts/check_compose_runtime.sh
+curl --fail --silent --show-error http://127.0.0.1:8000/health/ready
+curl --fail --silent --show-error http://127.0.0.1:8090/health
 ```
 
-API 提供 `/health/live` 与 `/health/ready`；后者检查真实依赖，未就绪返回 503，不暴露连接密钥。
+自定义端口或个人 Beta 请使用其实际端口。API 提供 `/health/live` 与
+`/health/ready`；后者检查真实依赖，未就绪返回 503，不暴露连接密钥。
+`scripts/check_compose_runtime.sh` 是历史集成验收脚本，包含旧 schema0016
+断言、临时容器及调度器停启，不是日常健康检查；不要在现有作品环境运行。
 
 真实 PostgreSQL 测试需显式指定测试连接；未提供时会跳过，不能用 SQLite 代替：
 
@@ -115,6 +120,18 @@ scripts/check_postgres_integration.sh
 音频回归入口为 `npm run test:audio`；真实 Chromium 渲染边界为 `scripts/run_audio_spike.sh`。历史完整导出入口 `scripts/check_s1.sh` 还要求显式 DSN、Artifact Root、Render URL 与人工审批参数，详见脚本及阶段计划。不要把历史固定基线当作所有风格的音质结论。
 
 付费 DeepSeek 验收的入口是 `scripts/run_s2_live_deepseek_smoke.py`：它检查显式 opt-in、模型、单次尝试、token 预算及运行环境，运行前必须阅读 guard 和对应计划。常规单元测试使用 fake Provider，不产生模型费用。可选追踪见 [LangSmith](LANGSMITH.md)。
+
+## 公开自动回归
+
+[CI workflow](../.github/workflows/ci.yml) 在 `main` push 和 Pull Request 上运行，
+使用固定官方 Action、标准 Ubuntu runner 与锁定依赖。Python 任务运行 pytest、
+核心源码的 Ruff F 类错误检查及启动脚本语法检查；Web / 音频任务运行单测、
+类型检查、构建和默认 Compose 的无 Key 配置解析。每个任务最多 15 分钟。
+
+CI 清空模型 Key、外部 trace 和真实集成 opt-in，不创建或启动 Compose 服务、
+迁移数据库或调用模型。需要 PostgreSQL、渲染镜像或文件系统特性的测试会按
+现有标记跳过；绿色 CI 不是完整首装、真实生成、音质或恢复后的应用验收。
+完整格式检查和 mypy 仍是独立开发命令，不能把核心 Ruff F 检查称为全仓库风格通过。
 
 ## 常见问题
 

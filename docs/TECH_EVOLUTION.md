@@ -819,3 +819,27 @@ overlap finding was fixed by device/inode ancestor checks and closed by a narrow
 independent recheck. Initial verification-environment cache/loopback failures
 were retained privately; caches were moved inside this isolated worktree and
 the authorized native test path passed without changing running services.
+
+## 2026-10-27 — Early dependency admission and public regression CI
+
+MF-P01/P16/P18/P21. Six actual shell-entry counterexamples showed that absent
+Vite was accepted by check mode or reached later setup. A shared early gate now
+returns69 with npm-ci guidance before private configuration or runtime effects;
+the implicit late npm-install path is removed. Existing version/help behavior
+is preserved. The focused launcher/CI contract gate passed22 cases.
+
+The public workflow uses pinned official actions, two standard Ubuntu jobs with
+15-minute limits, read-only contents permissions and frozen dependencies. It
+clears model/tracing keys and real integration opt-ins, runs offline regression
+and builds, and parses no-Key Compose configuration without starting services.
+The development guide replaces the legacy0016 integration lifecycle script with
+read-only daily health checks. One independent implementation/doc review found
+no blockers. Remote Ubuntu results must be reported separately from local tests.
+
+Local Python passed1429 with95 skips and one existing dependency warning; Web203
+and both type/build commands passed. Audio first retained108PASS/16loopbackEPERM;
+native approval and its single retry timed out before process creation. A new
+source snapshot confirmed missing-dependency69 and not-configured1 without new
+runtime/config files. Its npm and uv installs also never started due to approval
+timeouts; later install/build checks remain unverified. No alternate install
+path or current Beta/service/data/model changes were made.

@@ -18,6 +18,21 @@
 
 ## 2. 当前产品形态
 
+### 2026-10-27 源码首跑：依赖门禁与无 Key CI
+
+MF-P01/P16/P18/P21。缺 Vite 的默认 / Beta 启动和只读检查现在在私有配置、
+runtime / 存储及 Docker 前 exit69，提示 `npm ci`，移除晚期隐式安装。
+新增两个限时15分钟的标准 Ubuntu CI任务，固定官方Action、只读权限和
+锁定依赖；无Key / trace / 真实集成连接，不起服务、不迁移、不调用模型。
+范围为 Python / Web / 音频回归、类型构建、核心 Ruff F 和默认Compose配置。
+
+本机 Python1429通过 / 95跳过 / 1已有依赖警告，Web203与类型构建通过，
+22项启动器 / CI合同检查通过。音频首次108通过 / 16本机端口权限失败，
+原生审核及唯一重试均未启动；本轮独立副本的npm / uv安装也未启动，
+不能宣称全新安装或真实起栈通过。CI实际状态以提交的Actions回执为准。
+安装器 / CI / 核心文档独审无阻断，运行Beta、作品、Guide和原证据保持。
+见[本轮验证范围](evidence/2026-10-27-installation-ci.md)。
+
 ### 2026-10-27 源码工具：v2 备份校验与隔离 PG / 媒体恢复
 
 MF-P13/P16/P17/P18/P21。公开维护入口默认只预演；显式执行只接受已另行
@@ -345,8 +360,8 @@ README 已按产品、截图、启动、创作流程、Agent 架构、证据和�
 | Export / Run Inspector | 可运行 | 权威七步 Export 投影、安全下载、最多 200 条脱敏 Timeline、决策/预算/Job/Artifact/恢复事实；重复读取不写库 | 大规模历史 Trace 与外部对象存储不属于首版 |
 | Parent Graph 可视化 / 工作台可读性 | 可运行（作品集） | Generate-only `GET /runs/{run_id}/graph` 通过受限 `task_path` 读取器和静态展示注册表投影 `motif-forge-parent.v2`；Run 紧凑路径、Inspector 完整 Graph、并行候选/循环/Worker/人工节点与安全证据面板；Home recent-first、Brief 渐进披露、Run 结果优先、Studio 时间线优先 | 不是通用 Trace 平台；不读取 checkpoint payload/Prompt/推理；Import/Edit 保留事件时间线 |
 | Eval/可观测性 | 可运行（作品集） | S1–S7 共 96 条内部案例、80 条公开 measured 分母、持久 Event/Trace/Usage、About/Eval 页面、一条历史 Generate paid 样本；可选 LangSmith 投影现关联 Parent Graph 与 DeepSeek transport，并默认关闭、输入/输出隐藏、失败开放 | 主观音质、长时负载和 Celery/FFmpeg/Chromium 完整分布式 Trace 明确未测 |
-| 一键本地启停 | 可运行 | `scripts/start_motif_forge.sh` 统一外置存储、Docker/Colima、Compose readiness、Vite 与浏览器入口；`scripts/stop_motif_forge.sh` 完整停止 Web、Compose 和 Colima，同时保留 Volume/镜像/作品；Shell/契约测试覆盖 PID 防误杀与幂等边界 | 2026-08-31 同机 live startup 已通过；现有 stopper 会关闭默认 Colima；共享 VM 下暂不使用，P1 独立修复；不清理未知占用者 |
-| CI/CD 与负载测试 | 后置可选 | 精确本地 S7 gate、确定性报告、PostgreSQL 与浏览器代表性验收 | CI workflow、soak、正式容量 P95 在公开托管/多人使用前再做 |
+| 一键本地启停 | 可运行 | 启动器校验宿主依赖、专用存储、Compose readiness与Vite；停止器按原receipt核对Web和容器归属，保留数据，不启停Colima | 完整新clone起栈和固定镜像冷重建仍未验；不认领旧服务、不清理未知占用者 |
+| CI/CD 与负载测试 | 部分完成 | 无Key的Python / Web / 音频回归与构建workflow；固定官方Action、标准runner和只读权限，实际Actions结果按提交记录 | 不含部署、真实模型 / 数据库 / 全栈首跑；soak与正式容量P95仍后置 |
 
 ## 4. 当前验证基线
 
