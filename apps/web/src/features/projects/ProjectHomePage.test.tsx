@@ -17,6 +17,15 @@ afterEach(() => {
 });
 
 describe("Project Home", () => {
+  it("gives first-time users a no-Key starting path and a settings destination", async () => {
+    vi.stubGlobal("fetch",vi.fn().mockResolvedValue(jsonResponse({data:[]})));
+    renderHome();
+    const empty=(await screen.findByRole("heading",{name:"还没有作品"})).closest("section")!;
+    expect(within(empty).getByRole("link",{name:"配置 API Key"})).toHaveAttribute("href","/settings");
+    expect(within(empty).getByText(/练习谱或审核曲库/)).toBeInTheDocument();
+    expect(screen.getByRole("button",{name:"新建钢琴练习谱"})).toBeEnabled();
+  });
+
   it("covers loading, empty, create, cards, open, recovery, error, and retry", async () => {
     let releaseInitial: ((response: Response) => void) | undefined;
     const initial = new Promise<Response>((resolve) => { releaseInitial = resolve; });

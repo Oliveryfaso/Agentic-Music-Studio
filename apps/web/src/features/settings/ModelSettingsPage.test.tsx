@@ -21,6 +21,8 @@ it("exposes real enable and removal steps without collecting secrets or auto che
   expect(document.querySelector("input")).toBeNull();
   expect(fetcher).toHaveBeenCalledTimes(1);
   expect(screen.getByText(/可能产生费用/)).toBeInTheDocument();
+  expect(screen.getByRole("link",{name:"获取 DeepSeek API Key（新窗口）"})).toHaveAttribute("href","https://platform.deepseek.com/api_keys");
+  expect(screen.getByText(/若已保存 Key/)).toBeInTheDocument();
 });
 it("keeps configured separate from connection success and submits only explicit test",async()=>{
   const fetcher=show("configured");

@@ -7,12 +7,19 @@ import {pianoScore} from './pianoTestFixture';
 import * as api from './pianoApi';
 vi.mock('./pianoApi',()=>({readPianoCapability:vi.fn(),readPianoPreview:vi.fn(),startPianoPreview:vi.fn(),decidePianoPreview:vi.fn(),cancelPianoPreview:vi.fn()}));
 afterEach(()=>{cleanup();vi.resetAllMocks();window.sessionStorage.clear();window.history.replaceState({},'','/');});
-function show(state?:Record<string,unknown>){
- vi.mocked(api.readPianoCapability).mockResolvedValue({available:true,render_profile:{}} as never);
+function show(state?:Record<string,unknown>,configuration?:'configured'|'not_configured'){
+ vi.mocked(api.readPianoCapability).mockResolvedValue({available:true,render_profile:{},semantic_generation:configuration?{configuration,reason_code:configuration==='not_configured'?'MODEL_NOT_CONFIGURED':null}:undefined} as never);
  if(state){window.history.replaceState({},'','/?piano_preview=daily');vi.mocked(api.readPianoPreview).mockResolvedValue({thread_id:'daily',base_revision_id:'r',...state} as never);}
  const arrangement=pianoScore();arrangement.tracks.push({...structuredClone(arrangement.tracks[0]!),track_id:'added',name:'伴奏'});
  return render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}})}><PianoPanel projectId="p" branchId="b" revisionId="r" arrangement={arrangement} selection={null} dirty={false} rootReady onSaved={vi.fn()} classicalSource={{source:{score_id:'c02-la-candeur-a8.v1',default_chords:Array(8).fill('C')},import_report:{measure_count:8,beats:4,tonic:'C'}} as never}/></QueryClientProvider>);
 }
+it('keeps descriptive piano modification model-only while showing the configuration destination',async()=>{
+ show(undefined,'not_configured');
+ expect(await screen.findByText(/自然语言服务尚未配置，暂不能按描述修改伴奏/)).toBeInTheDocument();
+ expect(screen.getByRole('link',{name:'配置 API Key'})).toHaveAttribute('href','/settings');
+ expect(screen.getByRole('button',{name:'按描述生成 A/B 试听'})).toBeDisabled();
+ expect(api.startPianoPreview).not.toHaveBeenCalled();
+});
 it('fills an explicit register-preserving intent only on request and never submits automatically',async()=>{
  show();const text=screen.getByLabelText('伴奏描述');expect(text).toHaveValue('这几小节更稀疏、更轻，其余保持');
  expect(screen.getByText(/当前曲目：8 小节，4\/4/)).toBeInTheDocument();

@@ -6,7 +6,7 @@ import { AdvancedBriefFields, type AdvancedBriefValues } from "./AdvancedBriefFi
 type Brief = NonNullable<CreateAIRunInput["brief"]>;
 type NewCompositionStyle = "classical_chamber" | "jazz_harmony_improvisation";
 
-export function BriefForm({ disabled, onSubmit }: { disabled: boolean; onSubmit: (brief: Brief) => void }) {
+export function BriefForm({ disabled, isSubmitting = false, submitLabel = "提交 Brief 并规划", onSubmit }: { disabled: boolean; isSubmitting?: boolean; submitLabel?: string; onSubmit: (brief: Brief) => void }) {
   const [title, setTitle] = useState("");
   const [style, setStyle] = useState<NewCompositionStyle>("classical_chamber");
   const [purpose, setPurpose] = useState("");
@@ -95,7 +95,7 @@ export function BriefForm({ disabled, onSubmit }: { disabled: boolean; onSubmit:
       />
       {error && <p className="field-error" role="alert">{error}</p>}
       <div className="action-row">
-        <button className="primary-button" type="submit" disabled={disabled}>{disabled ? "提交中…" : "提交 Brief 并规划"}</button>
+        <button className="primary-button" type="submit" disabled={disabled}>{isSubmitting ? "提交中…" : submitLabel}</button>
         <span className="form-note">先看计划，再试听 A/B。只有你选定的候选才会成为正式版本。</span>
       </div>
     </form>

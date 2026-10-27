@@ -843,3 +843,21 @@ source snapshot confirmed missing-dependency69 and not-configured1 without new
 runtime/config files. Its npm and uv installs also never started due to approval
 timeouts; later install/build checks remain unverified. No alternate install
 path or current Beta/service/data/model changes were made.
+
+## 2026-10-27 — First-run UI contract correction
+
+MF-P01/P13/P18/P20/P21. The original frontend added discoverable model settings,
+configuration-aware Brief copy, preserved form input and same-page unresolved
+request identity. Integration review found its only Important: not-configured
+incorrectly blocked the backend's valid deterministic fallback. The initial210
+green tests did not establish this contract. Original-session v2 restored an
+explicit free-template action, kept unknown configuration blocked and retained
+the separate piano semantic model requirement. Request-body/key,422 correction
+and late-result ownership protection were preserved; the narrow recheck closed
+the finding without introducing a backend mode flag or cross-refresh protocol.
+
+The integrated candidate passed211 Web tests, TypeScript/build and script syntax.
+The original frontend's nine Chromium mock scenarios are UI evidence only;
+completed/export fixtures and silent PCM are not one real generated work.
+Saved as a separate local frontend change after93f483b. No push was retried,
+no running Beta changed, and no model or private data was used.

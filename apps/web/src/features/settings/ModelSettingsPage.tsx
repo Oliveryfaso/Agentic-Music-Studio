@@ -20,12 +20,13 @@ export function ModelSettingsPage() {
     <header className="page-heading"><div><h1 id="model-settings-title">设置</h1></div><a href="/">返回作品</a></header>
     <section aria-labelledby="model-provider-title">
       <h2 id="model-provider-title">DeepSeek API Key</h2>
-      <p>自然语言编配与修改。按实际用量可能产生费用；作品浏览、已保存试听和规则伴奏无需 Key。</p>
+      <p>模型编配与修改可能产生费用；确定性模板、规则伴奏与已保存试听无需 Key。</p>
       <div className="model-settings-status" role="status" aria-live="polite">
         <strong>{config.isError?"无法读取配置状态":check.isPending?"正在测试连接…":check.isError?"检测未完成":value?labels[value.state]:"正在读取配置…"}</strong>
         {value?.state==="connected"&&!failed&&<p>本次鉴权通过；未验证生成能力、余额或 Worker 配置。刷新后需重新检测。</p>}
         {value?.state==="failed"&&!failed&&value.error_code&&<p>{errors[value.error_code]}</p>}
         {failed&&<p>请确认本地服务已更新并运行，再重试。配置文件不会因此被清除。</p>}
+        {value?.state==="not_configured"&&!failed&&<p>当前服务没有启用 Key。若已保存 Key，请按下方步骤启用，再刷新配置状态。</p>}
         <p>此处读取当前 API 进程配置，保存文件后需重启同一实例才会生效。</p>
       </div>
       <div className="model-settings-actions">
@@ -36,6 +37,7 @@ export function ModelSettingsPage() {
     </section>
     <section aria-labelledby="configure-key-title">
       <h2 id="configure-key-title">配置与启用</h2>
+      <p><a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer">获取 DeepSeek API Key（新窗口）</a></p>
       <ol>
         <li>在运行 Motif 的电脑上，进入项目目录后执行：<pre><code>python3 scripts/configure_deepseek.py</code></pre>按提示隐藏输入 Key。密钥仅保存到本机私有文件，网页不会读取或显示。</li>
         <li>正常关闭原实例，再沿用原启动参数和数据目录，追加 <code>--enable-deepseek</code>。个人 Beta 示例：<pre><code>scripts/start_motif_forge.sh --personal-beta --enable-deepseek</code></pre>不要同时启动第二个实例。已有任务请先完成或取消；Key 文件保存不等于运行服务已更新。</li>

@@ -59,7 +59,7 @@ export function ProjectHomePage() {
         <section className="empty-state">
           <div className="empty-wave" aria-hidden="true">⌁</div>
           <h2>还没有作品</h2>
-          
+          <p>从下方练习谱或审核曲库开始，也可用免费模板规划。需要模型创作时，<a href="/settings">配置 API Key</a>。</p>
         </section>
       )}
       {projects.data && projects.data.length > 0 && (
