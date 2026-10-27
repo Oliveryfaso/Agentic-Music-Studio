@@ -794,3 +794,28 @@ live checks and the original frontend's real read-only browser evidence. Public
 pin templates and the running checkout are not changed by this new source batch.
 Source, works, old failed/UNKNOWN receipts and Guide remain protected; no new
 model calls. See evidence/2026-10-27-beta-first-run.md for exact coverage/limits.
+
+## 2026-10-27 — Bounded v2 backup tools and isolated PG/media restore
+
+MF-P13/P16/P17/P18/P21. Integrated the reviewed maintenance dependency set with
+explicit execution gates and a mandatory trusted `archive_sha256` contract;
+removed the private trial PIN. Default restore dry-run remains free of archive
+reads, Docker calls and resource creation. No persistent schema changes.
+
+The frozen predecessor passed one actual isolated schema0030 PG/media restore
+with normal exit and exact cleanup. The new public identity contract is covered
+by synthetic regression, not claimed as a fresh private-data test. Readonly root,
+resource/ownership admission, non-root exec-i, transactional pg_restore, bounded
+diagnostics and exit supervision remain. See the [sanitized evidence](evidence/2026-10-27-isolated-pg-media-restore.md)
+and [operator contract](ISOLATED_RECOVERY.md). Application restoration is unverified.
+
+This source-only publication does not rebuild or deploy the running Beta, migrate
+its database, create another backup, enable credentials, or spend model budget.
+
+Final public-candidate checks: Python 1,418 passed / 95 skipped / one existing
+dependency warning (maintenance subset 266 passed / two filesystem skips), Web
+203, audio 124, types/builds and scoped Ruff pass. One Important source-alias
+overlap finding was fixed by device/inode ancestor checks and closed by a narrow
+independent recheck. Initial verification-environment cache/loopback failures
+were retained privately; caches were moved inside this isolated worktree and
+the authorized native test path passed without changing running services.

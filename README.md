@@ -198,6 +198,7 @@ npm run test:audio
 | --- | --- |
 | [开发与排障](docs/DEVELOPMENT.md) | 安装、测试、截图复现与常见问题 |
 | [个人 Beta 运行手册](docs/PERSONAL_BETA_RUNBOOK.md) | 档位、固定资源、日常使用与维护边界 |
+| [隔离恢复工具](docs/ISOLATED_RECOVERY.md) | 可信 v2 归档、默认预演、临时 PostgreSQL 与验证边界 |
 | [审核音源准备](docs/REVIEWED_DATA_PREPARATION.md) | 原归档校验、显式准备与工具兼容限制 |
 | [API Key 设置](docs/API_KEY_SETTINGS.md) | 隐藏输入、显式启用、状态检查与清除 |
 | [实施状态](docs/IMPLEMENTATION_STATUS.md) / [后续路线](docs/NEXT_DEVELOPMENT_ROADMAP.md) | 已部署、候选与未验事项 |
