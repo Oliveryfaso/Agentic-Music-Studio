@@ -794,3 +794,15 @@ live checks and the original frontend's real read-only browser evidence. Public
 pin templates and the running checkout are not changed by this new source batch.
 Source, works, old failed/UNKNOWN receipts and Guide remain protected; no new
 model calls. See evidence/2026-10-27-beta-first-run.md for exact coverage/limits.
+
+## 2026-10-27 — Extract the existing cooperative dispatcher repair
+
+Personal Beta, MF-P16/P17/P18/P21. Extracted only the three dispatcher source
+files and original seven signal regressions from reviewed f3913d2 onto a703660;
+no backup/cold/0031 dependency was merged. The actual current main entrypoints
+first reproduced SIGTERM exit-15 without cleanup (2FAIL/2SIGINT PASS). The minimal
+entry wrapper then passed the affected30-case signal/outbox/Celery gate. Only
+owned synthetic test children received signals; no live service or DB call.
+This is an isolated follow-up branch, not a main merge or worker-image activation.
+The old14ce API/Web proposal must still reject its changed protected backend;
+real PID1/transport/PG cancellation and full combined validation remain unproven.

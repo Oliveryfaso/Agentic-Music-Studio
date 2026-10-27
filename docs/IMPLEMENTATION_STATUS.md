@@ -18,6 +18,14 @@
 
 ## 2. 当前产品形态
 
+### 后续隔离源码：两个调度器的 SIGTERM 正常收尾
+
+MF-P16/P17/P18/P21。从已审f3913d2仅提取两个调度器与共用shutdown入口，适配
+a703660；真实main子进程先复现两项SIGTERM未清理，再通过30项信号 / Outbox /
+Celery相关检查。不是合入旧备份分支，不改Job或schema。当前运行workers仍旧镜像，
+本段仅为独立后续分支候选；真实Docker PID1 / PG取消和激活仍待验证，详见
+[信号集成证据](evidence/2026-10-27-dispatcher-shutdown-integration.md)。
+
 ### 2026-10-27 本机 Beta：API / 设置页更新已部署，首跑检查收口
 
 MF-P01/P13/P16/P17/P18/P20/P21。单 API 源码14ce937、镜像

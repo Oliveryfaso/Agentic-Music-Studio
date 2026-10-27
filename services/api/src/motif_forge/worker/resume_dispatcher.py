@@ -103,6 +103,7 @@ from motif_forge.worker.outbox import (
     PostgresOutboxStore,
     dispatch_once,
 )
+from motif_forge.worker.shutdown import run_with_shutdown
 
 
 class MissingDeepSeekPlanner:
@@ -406,7 +407,7 @@ async def run_resume_dispatcher() -> None:
 
 def main() -> None:
     try:
-        asyncio.run(run_resume_dispatcher())
+        asyncio.run(run_with_shutdown(run_resume_dispatcher))
     except KeyboardInterrupt:
         return
 

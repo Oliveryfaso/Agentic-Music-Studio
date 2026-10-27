@@ -14,6 +14,7 @@ from motif_forge.infrastructure.persistence.database import (
 from motif_forge.observability import configure_langsmith
 from motif_forge.worker.celery_app import celery_app
 from motif_forge.worker.outbox import CeleryMediaJobPublisher, PostgresOutboxStore, dispatch_once
+from motif_forge.worker.shutdown import run_with_shutdown
 
 
 async def run_dispatcher() -> None:
@@ -42,7 +43,7 @@ async def run_dispatcher() -> None:
 
 def main() -> None:
     try:
-        asyncio.run(run_dispatcher())
+        asyncio.run(run_with_shutdown(run_dispatcher))
     except KeyboardInterrupt:
         return
 
