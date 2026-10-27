@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).parents[1]
 PYTHON = Path(sys.executable)
@@ -124,6 +125,84 @@ def launch(repo: Path, env: dict[str, str], *args: str):
 
 def calls(log: Path):
     return [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
+
+
+def _assert_reviewed_bind(source, rendered, unsafe_reference):
+    assert isinstance(source, dict)
+    assert source.get("type") == "bind" and source.get("read_only") is True
+    assert source.get("bind", {}).get("create_host_path") is False
+    for mount in (rendered, unsafe_reference):
+        assert mount["type"] == "bind" and mount["read_only"] is True
+        assert mount["target"] == source["target"]
+    assert rendered["source"] == unsafe_reference["source"]
+    safe = rendered.get("bind", {})
+    unsafe = unsafe_reference.get("bind", {})
+    field = "create_host_path"
+    if field in safe:
+        assert type(safe[field]) is bool and safe[field] is False
+    if field in unsafe:
+        assert type(unsafe[field]) is bool and unsafe[field] is True
+    # Compare the same CLI's explicit true control; an omitted field alone
+    # cannot establish which default a particular serializer represents.
+    assert (field in safe, safe.get(field)) != (field in unsafe, unsafe.get(field))
+
+
+def _synthetic_reviewed_bind():
+    return {
+        "type": "bind",
+        "source": "/synthetic-piano",
+        "target": "/reviewed-piano",
+        "read_only": True,
+        "bind": {"create_host_path": False},
+    }
+
+
+@pytest.mark.parametrize(
+    "safe_bind,unsafe_bind", [({}, {"create_host_path": True}), ({"create_host_path": False}, {})]
+)
+def test_reviewed_bind_accepts_distinct_boolean_serializations(safe_bind, unsafe_bind):
+    source = _synthetic_reviewed_bind()
+    _assert_reviewed_bind(source, source | {"bind": safe_bind}, source | {"bind": unsafe_bind})
+
+
+@pytest.mark.parametrize("source_change", ["true", "missing-flag", "missing-bind", "short"])
+def test_reviewed_bind_requires_explicit_source_opt_out(source_change):
+    source = _synthetic_reviewed_bind()
+    rendered = _synthetic_reviewed_bind()
+    unsafe = rendered | {"bind": {"create_host_path": True}}
+    if source_change == "true":
+        source["bind"]["create_host_path"] = True
+    elif source_change == "missing-flag":
+        source["bind"] = {}
+    elif source_change == "missing-bind":
+        del source["bind"]
+    else:
+        source = "/synthetic-piano:/reviewed-piano:ro"
+    with pytest.raises(AssertionError):
+        _assert_reviewed_bind(source, rendered, unsafe)
+
+
+@pytest.mark.parametrize(
+    "safe_bind,unsafe_bind,read_only",
+    [
+        ({"create_host_path": True}, {}, True),
+        ({}, {}, True),
+        ({"create_host_path": False}, {"create_host_path": False}, True),
+        ({"create_host_path": False}, {"create_host_path": True}, False),
+        ({"create_host_path": None}, {"create_host_path": True}, True),
+        ({"create_host_path": False}, {"create_host_path": "true"}, True),
+    ],
+)
+def test_reviewed_bind_rejects_unsafe_or_indistinguishable_output(
+    safe_bind, unsafe_bind, read_only
+):
+    source = _synthetic_reviewed_bind()
+    with pytest.raises(AssertionError):
+        _assert_reviewed_bind(
+            source,
+            source | {"bind": safe_bind, "read_only": read_only},
+            source | {"bind": unsafe_bind},
+        )
 
 
 @pytest.mark.parametrize("personal_beta", [False, True])
@@ -402,7 +481,38 @@ def test_real_compose_parser_proves_config_isolation_and_readonly_pin(
         )
     renderer = services["render-worker"]
     mount = next(v for v in renderer["volumes"] if v["target"] == "/reviewed-piano")
-    assert mount["read_only"] and mount.get("bind", {}).get("create_host_path") is False
+    assert mount["source"] == str(tmp_path / "piano")
+    source_mount = next(
+        v
+        for v in yaml.safe_load((repo / "compose.personal-beta.yaml").read_text())["services"][
+            "render-worker"
+        ]["volumes"]
+        if isinstance(v, dict) and v.get("target") == "/reviewed-piano"
+    )
+    unsafe_reference = repo / "autocreate-reference.json"
+    unsafe_reference.write_text(
+        json.dumps(
+            {
+                "services": {
+                    "render-worker": {"volumes": [mount | {"bind": {"create_host_path": True}}]}
+                }
+            }
+        )
+    )
+    reference = subprocess.run(
+        [*result.args[:-3], "-f", str(unsafe_reference), "config", "--format", "json"],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=20,
+    )
+    assert reference.returncode == 0, reference.stderr
+    reference_mount = next(
+        v
+        for v in json.loads(reference.stdout)["services"]["render-worker"]["volumes"]
+        if v["target"] == "/reviewed-piano"
+    )
+    _assert_reviewed_bind(source_mount, mount, reference_mount)
     pin = json.loads((ROOT / "scripts/resource-contract.v1.json").read_text())["piano"][
         "manifest_sha256"
     ]
@@ -552,3 +662,47 @@ def test_legacy_single_target_build_retains_its_existing_tag(tmp_path: Path):
     builds = [c for c in calls(log) if c[:3] == ["docker", "buildx", "build"]]
     assert len(builds) == 1
     assert builds[0][builds[0].index("--tag") + 1] == "motif-forge-api:local"
+
+
+@pytest.mark.parametrize("directory", ["contexts", "contexts with spaces"])
+def test_build_uses_and_cleans_only_its_context_in_the_system_temp_directory(
+    tmp_path: Path, directory: str
+):
+    repo, env, log = checkout(tmp_path)
+    executable(Path(env["PATH"].split(":")[0]) / "rsync", "#!/bin/sh\nexit 0\n")
+    parent = tmp_path / directory
+    parent.mkdir()
+    unrelated = parent / "keep.txt"
+    unrelated.write_text("unrelated synthetic file")
+    env["TMPDIR"] = str(parent)
+    result = subprocess.run(
+        ["bash", str(repo / "scripts/build_compose_images.sh"), "api"],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+    assert result.returncode == 0, result.stderr
+    builds = [c for c in calls(log) if c[:3] == ["docker", "buildx", "build"]]
+    assert len(builds) == 1
+    context = Path(builds[0][-1])
+    assert context.parent == parent.resolve()
+    assert not context.exists()
+    assert unrelated.read_text() == "unrelated synthetic file"
+
+
+def test_build_refuses_a_missing_temp_parent_before_docker(tmp_path: Path):
+    repo, env, log = checkout(tmp_path)
+    executable(Path(env["PATH"].split(":")[0]) / "rsync", "#!/bin/sh\nexit 0\n")
+    parent = tmp_path / "missing-context-parent"
+    env["TMPDIR"] = str(parent)
+    result = subprocess.run(
+        ["bash", str(repo / "scripts/build_compose_images.sh"), "api"],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+    assert result.returncode != 0
+    assert not calls(log)
+    assert not parent.exists()

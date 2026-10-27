@@ -26,10 +26,11 @@ if (( personal_beta )); then
   image_prefix=motif-forge-beta
   image_tag="${MOTIF_FORGE_BETA_IMAGE_TAG:-local}"
 fi
-context_root="$(mktemp -d /private/tmp/motif-forge-docker-context.XXXXXX)"
+context_parent="$(cd "${TMPDIR:-/tmp}" && pwd -P)"
+context_root="$(mktemp -d "${context_parent%/}/motif-forge-docker-context.XXXXXX")"
 
 cleanup() {
-  if [[ "$context_root" != /private/tmp/motif-forge-docker-context.* ]]; then
+  if [[ "$context_root" != "${context_parent%/}/motif-forge-docker-context."* ]]; then
     echo "refusing to clean unexpected build context: $context_root" >&2
     return 1
   fi
