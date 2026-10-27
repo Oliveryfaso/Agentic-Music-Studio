@@ -42,12 +42,13 @@
 ```bash
 git clone https://github.com/Oliveryfaso/Agentic-Music-Studio.git
 cd Agentic-Music-Studio
-git switch codex/motif-p0-piano-preparation
 npm ci
 scripts/start_motif_forge.sh --no-open
 ```
 
-这里选择现有开发分支；`main`、开发分支和本机固定镜像 Beta 的版本可能不同。请先核对所读 README 与检出的版本一致。
+默认检出公开 `main`；开发分支和本机固定镜像 Beta 的版本可能不同。请先核对所读 README 与检出的版本一致。启动器要求 PATH 中的 `node` 为 22.12+、`python3` 为 3.12–3.13；不支持时先明确停止，不自动安装或替换系统运行时。
+
+2026-10-27 已在全新公开源码副本完成锁定依赖安装、Web / 音频构建和只读启动前检查；完整新环境起栈仍待验，不能把这些检查视为首次生成 / 播放通过。[本轮范围与结果](docs/evidence/2026-10-27-beta-first-run.md)。
 
 启动器会在缺少时从 `.env.example` 创建本地 `.env`，初始化默认数据根 `../.motif-forge-data`，启动本项目的 Compose 服务、等待 API 与渲染器就绪，再启动前端。首次可能构建镜像；启动会执行当前源码对应的数据库迁移，因此请仅对新演示环境运行，已有环境升级先看[运行手册](docs/PERSONAL_BETA_RUNBOOK.md)。
 

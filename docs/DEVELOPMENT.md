@@ -20,6 +20,30 @@ npm run build:web
 
 正式页面通过现有 API 读取数据。只启动 Vite 不会自动提供数据库或音频服务；需要真实创作时使用一键启动，或者显式启动同版本 Compose。
 
+## 新 clone 的启动前检查
+
+先确认 `node --version` 为22.12+、`python3 --version` 为3.12–3.13。macOS
+自带的 Python 可能不满足；选择已安装的受支持解释器到当前 shell 的 PATH，
+不要替换系统 Python。启动器在读取私有 Key、初始化 runtime、写入存储或调用
+Docker 前检查版本，`--help` 不要求这些依赖。
+
+以下仅用于**新建的演示目录**，不认领已有作品或服务。准备动作会创建公开模板
+配置和专用空数据目录；最后的 `--check` 本身不启动、构建或迁移：
+
+```bash
+npm ci
+test -e .env || cp .env.example .env
+export MOTIF_FORGE_DEV_STORAGE_ROOT="$(cd .. && pwd -P)/.motif-forge-data"
+mkdir -p "$MOTIF_FORGE_DEV_STORAGE_ROOT"
+# 只有使用现有 Colima 时才显式设置；Docker Desktop 请使用其实际 context。
+DOCKER_CONTEXT=colima scripts/start_motif_forge.sh --check
+```
+
+成功显示 `Motif Forge launch prerequisites are ready.`。这只检查宿主条件和
+Compose 配置，不证明 VM 能看到数据根、端口空闲、数据库 / 渲染器就绪或作品
+已生成。`--personal-beta` 另有固定音源、镜像和本地 schema 门，不能用默认演示
+检查代替。实际完整启动见 README；当前验证边界见[首跑证据](evidence/2026-10-27-beta-first-run.md)。
+
 ## 界面验证与截图
 
 下面的脚本使用仓库已有的 Playwright / Vite，在独立的 `127.0.0.1:5178` 上渲染真实前端，通过拦截 HTTP 提供隔离示例数据。它不接触实际 API、Docker、模型或用户作品：
@@ -107,14 +131,15 @@ lsof -nP -iTCP:8090 -sTCP:LISTEN
 
 ### Colima 显示运行，但 Docker 不响应
 
-确认没有其他工作依赖当前虚拟机后，执行：
+先检查选择的 context 和 daemon，而不是停止共享虚拟机：
 
 ```bash
-colima stop
-scripts/start_motif_forge.sh
+docker context show
+DOCKER_CONTEXT=colima docker info
 ```
 
-这是重启，不是删除虚拟机。默认停止脚本同样会停默认 Colima；共享实例会影响其他项目。
+启动 / 停止脚本均不启停 Colima。若确需重启 VM，先核对所有依赖它的项目与
+任务，单独安排维护；不要用新 runtime 认领旧服务，也不要删除虚拟机或数据卷。
 
 ### 镜像下载失败或代理不可用
 

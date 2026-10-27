@@ -100,6 +100,32 @@ if (( personal_beta )); then
   export MOTIF_FORGE_TEMP_ROOT="$MOTIF_FORGE_DEV_STORAGE_ROOT/tmp"
 fi
 
+require_command() {
+  local command_name="$1"
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    echo "required command is unavailable: $command_name" >&2
+    exit 69
+  fi
+}
+
+for command_name in docker curl npm node python3; do
+  require_command "$command_name"
+done
+
+# Check the documented host runtimes before reading private configuration or
+# creating receipts/storage. Never install or switch runtimes on the user's behalf.
+node_version="$(node --version 2>/dev/null)" || node_version=""
+if [[ ! "$node_version" =~ ^v([0-9]+)\.([0-9]+)\.[0-9]+$ ]] ||
+    (( BASH_REMATCH[1] < 22 || (BASH_REMATCH[1] == 22 && BASH_REMATCH[2] < 12) )); then
+  echo "Node.js 22.12+ is required; select a supported Node.js on PATH, then retry." >&2
+  exit 69
+fi
+python_version="$(python3 --version 2>/dev/null)" || python_version=""
+if [[ ! "$python_version" =~ ^Python\ 3\.(12|13)\.[0-9]+$ ]]; then
+  echo "Python 3.12-3.13 is required; select a supported python3 on PATH, then retry." >&2
+  exit 69
+fi
+
 if (( enable_deepseek )); then
   if ! python3 scripts/configure_deepseek.py --check; then
     echo "DeepSeek is not enabled. Run: python3 scripts/configure_deepseek.py" >&2
@@ -113,14 +139,6 @@ if (( enable_deepseek )); then
   fi
   compose_command+=(--env-file "$deepseek_env_file" -f "$project_root/compose.deepseek.yaml")
 fi
-
-require_command() {
-  local command_name="$1"
-  if ! command -v "$command_name" >/dev/null 2>&1; then
-    echo "required command is unavailable: $command_name" >&2
-    exit 69
-  fi
-}
 
 docker_is_ready() {
   node scripts/motif_runtime_owner.mjs probe "$project_root" "$runtime_dir" >/dev/null 2>&1
@@ -141,10 +159,6 @@ wait_for_http() {
   echo "$label did not become ready: $url" >&2
   return 1
 }
-
-for command_name in docker curl npm node python3; do
-  require_command "$command_name"
-done
 
 if (( personal_beta )); then
   if [[ ! -x node_modules/.bin/vite ]]; then

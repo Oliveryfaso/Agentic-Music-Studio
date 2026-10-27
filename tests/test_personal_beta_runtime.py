@@ -64,6 +64,7 @@ def checkout(tmp_path: Path, *, vite: bool = True):
 import json,os,sys
 from pathlib import Path
 a=sys.argv[1:]
+if a==['--version']: print('v22.12.0');sys.exit(0)
 with open(os.environ['BETA_COMMAND_LOG'],'a') as f:
  f.write(json.dumps(['node',*a])+'\\n')
 if len(a)>1 and a[1]=='init':

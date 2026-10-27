@@ -769,3 +769,28 @@ The short host sample did not establish stable build capacity, so the runtime
 remains HOLD. Standard Compose replacement would remove the old API container's
 layer/local logs; old image and data mounts remain, but no old-CID retention path
 has been validated. This consequence remains in the next approval scope.
+
+
+## 2026-10-27 — First-run prerequisites and deployed Beta evidence
+
+Personal Beta, MF-P01/P13/P16/P17/P18/P20/P21. An independent public-main clone
+installed its own locked npm dependencies and built Web/audio. Its configured
+read-only launch check incorrectly accepted the host's unsupported Python3.9.
+The actual shell-entry regression observed8FAIL/3PASS before the minimum runtime
+guard; the affected launcher/ownership/release gate then passed81 cases. Node
+metadata now matches the documented22.12 floor; dependency versions are unchanged.
+No automatic runtime installation, private config access or Docker action precedes
+the guard. Documentation corrects an obsolete claim that stop also stops Colima.
+
+The fresh candidate ran203Web and124audio tests, plus both type/build commands.
+The initial audio run's16 loopback EPERM failures are retained; only after native
+permission for its temporary mock servers did the unchanged suite pass. This is
+not a full fresh Compose startup or a new rendering/restore validation.
+
+Separately, the previously authorized local API14ce937/Webf7462dd update completed
+in5.368seconds on unchanged4GiB Colima/schema0030. Public status now distinguishes
+this actual local deployment, its instance-specific pin, the independent narrow
+live checks and the original frontend's real read-only browser evidence. Public
+pin templates and the running checkout are not changed by this new source batch.
+Source, works, old failed/UNKNOWN receipts and Guide remain protected; no new
+model calls. See evidence/2026-10-27-beta-first-run.md for exact coverage/limits.
