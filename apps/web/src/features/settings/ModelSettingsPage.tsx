@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { checkModelConnection, readModelSettings } from "./modelSettingsApi";
+import {settingsReturn} from '../../app/settingsContext';
 
 const labels = {not_configured:"未配置", configured:"已配置 · 未测试", connected:"连接成功", failed:"连接失败"};
 const errors = {
@@ -11,13 +12,14 @@ const errors = {
 };
 
 export function ModelSettingsPage() {
+  const back=settingsReturn(window.location.pathname+window.location.search);
   const config = useQuery({queryKey:["model-settings"],queryFn:readModelSettings,retry:false,staleTime:0});
   const check = useMutation({mutationFn:checkModelConnection,retry:false});
   const value = check.data ?? config.data;
   const busy = config.isFetching || check.isPending;
   const failed = config.isError || check.isError;
   return <section className="portfolio-page model-settings" aria-labelledby="model-settings-title">
-    <header className="page-heading"><div><h1 id="model-settings-title">设置</h1></div><a href="/">返回作品</a></header>
+    <header className="page-heading"><div><h1 id="model-settings-title">设置</h1></div><a href={back.href}>{back.label}</a></header>
     <section aria-labelledby="model-provider-title">
       <h2 id="model-provider-title">DeepSeek API Key</h2>
       <p>模型编配与修改可能产生费用；确定性模板、规则伴奏与已保存试听无需 Key。</p>

@@ -39,8 +39,10 @@ export function ArrangementTimeline({ projection, currentTime, onMoveClip, onSel
       <div className="timeline-hit-layer" style={{ width: projection.widthPixels, height }}>
         {projection.tracks.flatMap((track, trackIndex) => track.clips.map((clip) =>
           <button key={clip.clipId} type="button" aria-label={`Clip ${track.name}`}
+            aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight" aria-description="Alt 加左右方向键移动十六分之一小节；加 Shift 移动一小节。"
             style={{ left: clip.startPixels, top: RULER_HEIGHT + trackIndex * TRACK_HEIGHT + 10, width: Math.max(20, clip.widthPixels), height: TRACK_HEIGHT - 20 }}
             onClick={() => onSelectClip?.(track.trackId, clip.clipId, clip.startTick, clip.endTick)}
+            onKeyDown={event=>{if(!onMoveClip||!event.altKey||event.ctrlKey||event.metaKey||!['ArrowLeft','ArrowRight'].includes(event.key))return;event.preventDefault();const step=projection.ticksPerBar/(event.shiftKey?1:16);onMoveClip(track.trackId,clip.clipId,Math.max(0,clip.startTick+(event.key==='ArrowLeft'?-step:step)));}}
             onPointerDown={(event) => { event.currentTarget.setPointerCapture?.(event.pointerId); setDrag({ trackId: track.trackId, clipId: clip.clipId, originX: event.clientX, startTick: clip.startTick }); }} />
         ))}
       </div>

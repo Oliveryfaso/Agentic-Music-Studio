@@ -3,6 +3,7 @@ import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import {afterEach,expect,it,vi} from 'vitest';
 import {PianoPanel} from './PianoPanel';
 import {ApiError} from '../../shared/api';
+import {settingsReturn} from '../../app/settingsContext';
 import {pianoScore} from './pianoTestFixture';
 import * as api from './pianoApi';
 vi.mock('./pianoApi',()=>({readPianoCapability:vi.fn(),readPianoPreview:vi.fn(),startPianoPreview:vi.fn(),decidePianoPreview:vi.fn(),cancelPianoPreview:vi.fn()}));
@@ -19,6 +20,16 @@ it('keeps descriptive piano modification model-only while showing the configurat
  expect(screen.getByRole('link',{name:'配置 API Key'})).toHaveAttribute('href','/settings');
  expect(screen.getByRole('button',{name:'按描述生成 A/B 试听'})).toBeDisabled();
  expect(api.startPianoPreview).not.toHaveBeenCalled();
+});
+it.each(['mix','arrange'])('returns from the inline settings entry to the exact saved Studio %s context',async(view)=>{
+ const path='/projects/11111111-1111-4111-8111-111111111111/studio/22222222-2222-4222-8222-222222222222';
+ window.history.replaceState({},'',path+'?view='+view+'&track=added&piano_preview=existing-candidate&unrecognized=discard-me');
+ show(undefined,'not_configured');
+ const link=await screen.findByRole('link',{name:'配置 API Key'});
+ const href=link.getAttribute('href')!;
+ expect(new URL(href,'http://motif.local').searchParams.get('return_to')).toBe(path+'?view='+view+'&track=added&piano_preview=existing-candidate');
+ expect(settingsReturn(href)).toEqual({href:path+'?view='+view+'&track=added&piano_preview=existing-candidate',label:'返回 Studio'});
+ expect(href).not.toContain('discard-me');expect(api.startPianoPreview).not.toHaveBeenCalled();
 });
 it('fills an explicit register-preserving intent only on request and never submits automatically',async()=>{
  show();const text=screen.getByLabelText('伴奏描述');expect(text).toHaveValue('这几小节更稀疏、更轻，其余保持');

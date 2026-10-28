@@ -1,0 +1,345 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-28T03:29:22Z",
+  "title": "Design System: Motif Forge Instrument Workbench",
+  "extensions": {
+    "colorMeta": {
+      "canvas": {
+        "role": "neutral",
+        "displayName": "工作台灰",
+        "canonical": "#e9e7e2"
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "面板白",
+        "canonical": "#f9f8f5"
+      },
+      "subtle": {
+        "role": "neutral",
+        "displayName": "凹槽灰",
+        "canonical": "#dedcd6"
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "石墨",
+        "canonical": "#25262a"
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "次级灰",
+        "canonical": "#62635f"
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "分隔灰",
+        "canonical": "#c5c3bd"
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "控件边界",
+        "canonical": "#7b7773"
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "烧橙",
+        "canonical": "#b3441c"
+      },
+      "accent-hover": {
+        "role": "primary",
+        "displayName": "烧橙悬停",
+        "canonical": "#943615"
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "浅赭底",
+        "canonical": "#f4e6de"
+      },
+      "selected-channel": {
+        "role": "neutral",
+        "displayName": "选轨面",
+        "canonical": "#e2d2c7"
+      },
+      "secondary": {
+        "role": "neutral",
+        "displayName": "褐灰",
+        "canonical": "#6b5950"
+      },
+      "warm": {
+        "role": "neutral",
+        "displayName": "赭褐",
+        "canonical": "#9a492b"
+      },
+      "success": {
+        "role": "neutral",
+        "displayName": "中性成功状态",
+        "canonical": "#5b5551"
+      },
+      "warning": {
+        "role": "neutral",
+        "displayName": "警告赭",
+        "canonical": "#895600"
+      },
+      "danger": {
+        "role": "neutral",
+        "displayName": "危险红",
+        "canonical": "#a52b3e"
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "主动作白字",
+        "canonical": "#ffffff"
+      },
+      "button-hover": {
+        "role": "neutral",
+        "displayName": "中性悬停面",
+        "canonical": "#e8e5de"
+      },
+      "disabled-text": {
+        "role": "neutral",
+        "displayName": "禁用文字",
+        "canonical": "#77736d"
+      },
+      "disabled-surface": {
+        "role": "neutral",
+        "displayName": "禁用面",
+        "canonical": "#e6e3dd"
+      },
+      "track-fill-1": {
+        "role": "neutral",
+        "displayName": "track-fill-1",
+        "canonical": "#bfc0c5"
+      },
+      "track-fill-2": {
+        "role": "neutral",
+        "displayName": "track-fill-2",
+        "canonical": "#dec3b1"
+      },
+      "track-fill-3": {
+        "role": "neutral",
+        "displayName": "track-fill-3",
+        "canonical": "#d2c6ad"
+      },
+      "track-fill-4": {
+        "role": "neutral",
+        "displayName": "track-fill-4",
+        "canonical": "#bbb5b2"
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "作品页标题",
+        "purpose": "实际32px标题与移动端28px变体；无外部展示字体。"
+      },
+      "title": {
+        "displayName": "作品条目标题",
+        "purpose": "20px、650字重；Studio标题按实际断点另有20/19px。"
+      },
+      "body": {
+        "displayName": "中文正文",
+        "purpose": "系统无衬线14px，基础行高1.55。"
+      },
+      "label": {
+        "displayName": "辅助信息",
+        "purpose": "12px为主，部分控制说明13px；不把桌面局部11px推广为通用层级。"
+      },
+      "numeric": {
+        "displayName": "等宽数字",
+        "purpose": "通道dB、声像等读数，适用位置使用tabular-nums。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "primary-control",
+        "value": "0 1px 2px #25262a26, inset 0 1px #ffffff26",
+        "purpose": "主动作的浅外阴影与高光。"
+      },
+      {
+        "name": "transport-inset",
+        "value": "inset 0 1px #ffffff80",
+        "purpose": "播放控制槽高光。"
+      },
+      {
+        "name": "transport-key",
+        "value": "inset 0 1px #ffffff55, 0 1px 2px #25262a22",
+        "purpose": "Transport实体按键。"
+      },
+      {
+        "name": "eq-dial",
+        "value": "inset 0 1px #fff, 0 2px 4px #25262a1a",
+        "purpose": "实际EQ旋钮局部材质。"
+      },
+      {
+        "name": "brief-form",
+        "value": "0 2px 5px #25262a0b",
+        "purpose": "Brief浅面表单。"
+      },
+      {
+        "name": "navigation-popover",
+        "value": "0 8px 20px #25262a12",
+        "purpose": "更多导航展开层。"
+      },
+      {
+        "name": "pressed-control",
+        "value": "inset 0 1px 3px #25262a22",
+        "purpose": "可用按钮按下状态。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "button-transition",
+        "value": "background-color 100ms, box-shadow 100ms, transform 100ms",
+        "purpose": "已落地按钮过渡；无新缓动曲线。"
+      },
+      {
+        "name": "button-press",
+        "value": "translateY(1px)",
+        "purpose": "可用按钮active反馈，减少动态时移除。"
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation:none !important; transition:none !important; scroll-behavior:auto !important; transform:none on active buttons",
+        "purpose": "prefers-reduced-motion:reduce已有规则，保留静态状态。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide-workbench-min",
+        "value": "1100px"
+      },
+      {
+        "name": "compact-workbench-max",
+        "value": "1099px"
+      },
+      {
+        "name": "stacked-workbench-max",
+        "value": "768px"
+      },
+      {
+        "name": "large-input-text-max",
+        "value": "480px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "烧橙主操作",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "当前明确主操作；示例只展示样式，不触发播放或业务写入。",
+      "html": "<button class=\"ds-primary\" type=\"button\">播放</button>",
+      "css": ".ds-primary{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;min-height:44px;padding:0 16px;border:1px solid var(--accent,#b3441c);border-radius:7px;background:var(--accent,#b3441c);color:#fff;font-weight:800;line-height:1.4;cursor:pointer;box-shadow:0 1px 2px #25262a26,inset 0 1px #ffffff26;transition:background-color 100ms,box-shadow 100ms,transform 100ms}.ds-primary:not(:disabled):hover{background:#943615}.ds-primary:not(:disabled):active{transform:translateY(1px);box-shadow:inset 0 1px 3px #25262a22}.ds-primary:focus-visible{outline:2px solid var(--text,#25262a);outline-offset:3px;box-shadow:0 0 0 2px var(--surface,#f9f8f5)}.ds-primary:disabled{color:#77736d;background:#e6e3dd;border-color:var(--line,#c5c3bd);box-shadow:none;transform:none;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-primary,.ds-secondary,.ds-text{transition:none}.ds-primary:active,.ds-secondary:active,.ds-text:active{transform:none}}"
+    },
+    {
+      "name": "实体次要按钮",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "查看、停止和还原等次要操作；实际 disabled 原因由产品上下文提供。",
+      "html": "<button class=\"ds-secondary\" type=\"button\">停止</button>",
+      "css": ".ds-secondary{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;min-height:44px;padding:0 16px;border:1px solid var(--line-strong,#7b7773);border-radius:7px;background:var(--surface,#f9f8f5);color:var(--text,#25262a);font-weight:800;line-height:1.4;cursor:pointer;transition:background-color 100ms,box-shadow 100ms,transform 100ms}.ds-secondary:not(:disabled):hover{background:#e8e5de}.ds-secondary:not(:disabled):active{transform:translateY(1px);box-shadow:inset 0 1px 3px #25262a22}.ds-secondary:focus-visible{outline:2px solid var(--text,#25262a);outline-offset:3px;box-shadow:0 0 0 2px var(--surface,#f9f8f5)}.ds-secondary:disabled{color:#77736d;background:#e6e3dd;border-color:var(--line,#c5c3bd);box-shadow:none;transform:none;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-primary,.ds-secondary,.ds-text{transition:none}.ds-primary:active,.ds-secondary:active,.ds-text:active{transform:none}}"
+    },
+    {
+      "name": "文字动作",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "没有独立填充面的辅助动作。",
+      "html": "<button class=\"ds-text\" type=\"button\">刷新配置状态</button>",
+      "css": ".ds-text{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;font-size:12px;min-height:44px;padding:8px 0;border:0;border-radius:7px;background:transparent;color:var(--accent,#b3441c);font-weight:600;cursor:pointer;transition:background-color 100ms,box-shadow 100ms,transform 100ms}.ds-text:not(:disabled):hover{background:#e8e5de}.ds-text:not(:disabled):active{transform:translateY(1px);box-shadow:inset 0 1px 3px #25262a22}.ds-text:focus-visible{outline:2px solid var(--text,#25262a);outline-offset:3px;box-shadow:0 0 0 2px var(--surface,#f9f8f5)}.ds-text:disabled{color:#77736d;background:#e6e3dd;border-color:var(--line,#c5c3bd);box-shadow:none;transform:none;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-primary,.ds-secondary,.ds-text{transition:none}.ds-primary:active,.ds-secondary:active,.ds-text:active{transform:none}}"
+    },
+    {
+      "name": "带标签字段",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Brief 样式样本；保留真实 label，移动端字号按现有规则提升。",
+      "html": "<label class=\"ds-field\">音乐想法<input class=\"ds-input\" type=\"text\" placeholder=\"描述这首作品的音乐想法\"></label>",
+      "css": ".ds-field{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;display:grid;gap:7px;color:var(--muted,#62635f)}.ds-input{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;width:100%;min-width:0;padding:10px 11px;border:1px solid var(--line-strong,#7b7773);border-radius:8px;background:var(--surface,#f9f8f5);color:var(--text,#25262a);caret-color:var(--accent,#b3441c)}.ds-input::placeholder{color:var(--muted,#62635f)}.ds-input:focus-visible{outline:2px solid var(--text,#25262a);outline-offset:3px;box-shadow:0 0 0 2px var(--surface,#f9f8f5)}@media(max-width:480px){.ds-input{font-size:16px}}"
+    },
+    {
+      "name": "全局导航",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "当前页用中性填充；示例为同页静态导航样式。",
+      "html": "<nav class=\"ds-nav\" aria-label=\"导航样式\"><a href=\"#works\" aria-current=\"page\">作品</a><a href=\"#settings\">设置</a></nav>",
+      "css": ".ds-nav{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;display:flex;gap:10px}.ds-nav a{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;border-radius:7px;color:var(--muted,#62635f);font-size:13px;text-decoration:none}.ds-nav a:hover{background:var(--subtle,#dedcd6);color:var(--accent,#b3441c)}.ds-nav a[aria-current=page]{background:var(--subtle,#dedcd6);color:var(--text,#25262a)}.ds-nav a:focus-visible{outline:2px solid var(--text,#25262a);outline-offset:3px;box-shadow:0 0 0 2px var(--surface,#f9f8f5)}@media(max-width:768px){.ds-nav a{padding:8px 10px}}"
+    },
+    {
+      "name": "文字状态标签",
+      "kind": "chip",
+      "refersTo": "status-chip",
+      "description": "26px 信息标签，不表示可点击按钮；状态同时以文字表达。",
+      "html": "<span class=\"ds-status\"><i aria-hidden=\"true\"></i>等待确认</span>",
+      "css": ".ds-status{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;display:inline-flex;align-items:center;gap:7px;min-height:26px;padding:0 9px;border:1px solid var(--line-strong,#7b7773);border-radius:999px;background:transparent;color:var(--text,#25262a);font-size:12px;white-space:nowrap}.ds-status i{width:6px;height:6px;border-radius:50%;background:currentColor}"
+    },
+    {
+      "name": "连续工作面板",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "音乐内容的安静浅面；不复制旧大阴影。",
+      "html": "<section class=\"ds-panel\" aria-label=\"混音样式\"><header class=\"ds-panel-heading\"><h2>混音</h2><span>草稿参数 · 保存后渲染</span></header></section>",
+      "css": ".ds-panel{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;border:1px solid var(--line,#c5c3bd);border-radius:9px;background:var(--surface,#f9f8f5);color:var(--text,#25262a)}.ds-panel-heading{display:flex;align-items:center;gap:12px;padding:10px 12px}.ds-panel-heading h2{margin:0;font-size:15px}.ds-panel-heading span{font-size:12px;color:var(--muted,#62635f)}"
+    },
+    {
+      "name": "保存版播放控制槽",
+      "kind": "custom",
+      "refersTo": "transport",
+      "description": "仅静态样式；实际播放器来自产品组件，图中静音 PCM 不能证明听感。",
+      "html": "<section class=\"ds-transport\" aria-label=\"保存版播放样式\"><button type=\"button\" class=\"ds-transport-play\">播放</button><button type=\"button\" class=\"ds-transport-stop\">停止</button><input class=\"ds-position\" type=\"range\" min=\"0\" max=\"2\" value=\"0\" aria-label=\"播放位置样式\"><span class=\"ds-time\">0:00 / 0:02</span><span class=\"ds-source\">播放：保存版</span></section>",
+      "css": ".ds-transport{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 12px;border:1px solid var(--line,#c5c3bd);border-radius:9px;background:var(--subtle,#dedcd6);color:var(--text,#25262a);box-shadow:inset 0 1px #ffffff80}.ds-transport button{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;min-width:44px;min-height:44px;padding:8px 12px;border:1px solid var(--line-strong,#7b7773);border-radius:7px;background:var(--surface,#f9f8f5);color:var(--text,#25262a);font-weight:600;box-shadow:inset 0 1px #ffffff55,0 1px 2px #25262a22;transition:background-color 100ms,box-shadow 100ms,transform 100ms}.ds-transport .ds-transport-play{background:var(--accent,#b3441c);color:#fff;border-color:var(--accent,#b3441c)}.ds-transport-stop:hover{background:#e8e5de}.ds-transport-play:hover{background:#943615}.ds-transport button:focus-visible,.ds-position:focus-visible{outline:2px solid var(--text,#25262a);outline-offset:3px;box-shadow:0 0 0 2px var(--surface,#f9f8f5)}.ds-transport button:active{transform:translateY(1px);box-shadow:inset 0 1px 3px #25262a22}.ds-position{flex:1;min-width:60px;accent-color:var(--accent,#b3441c)}.ds-time{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}.ds-source{font-size:12px;color:var(--muted,#62635f)}@media(prefers-reduced-motion:reduce){.ds-transport button{transition:none}.ds-transport button:active{transform:none}}"
+    },
+    {
+      "name": "选中混音通道",
+      "kind": "custom",
+      "refersTo": "channel-strip",
+      "description": "展示144px通道宽、两行轨名与原生range；数值是静态样本，未接产品命令。",
+      "html": "<section class=\"ds-channel\" aria-label=\"Piano通道样式\"><button class=\"ds-channel-name\" type=\"button\" aria-pressed=\"true\"><span>01 · 锁定素材</span><strong>Piano</strong></button><button class=\"ds-channel-eq\" type=\"button\">EQ</button><label class=\"ds-pan\">声像 <output>C</output><input type=\"range\" min=\"-1\" max=\"1\" step=\"0.1\" value=\"0\" aria-label=\"Piano声像样式\"></label><div class=\"ds-switches\"><button type=\"button\" aria-pressed=\"false\">M</button><button type=\"button\" aria-pressed=\"false\">S</button></div><label class=\"ds-fader\">音量<output>0.0 dB</output><input type=\"range\" min=\"-60\" max=\"6\" step=\"0.1\" value=\"0\" aria-label=\"Piano音量样式\"></label><span class=\"ds-channel-state\">输出</span></section>",
+      "css": ".ds-channel{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;display:grid;align-content:start;gap:8px;flex:0 0 144px;min-width:144px;width:144px;padding:12px;background:#e2d2c7;box-shadow:inset 0 3px var(--accent,#b3441c);color:var(--text,#25262a)}.ds-channel button{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;min-height:44px;padding:4px;border:1px solid var(--line-strong,#7b7773);border-radius:7px;background:var(--surface,#f9f8f5);color:var(--text,#25262a);font-weight:600}.ds-channel button:hover{background:#e8e5de}.ds-channel button:active{transform:translateY(1px);box-shadow:inset 0 1px 3px #25262a22}.ds-channel button:focus-visible,.ds-channel input:focus-visible{outline:2px solid var(--text,#25262a);outline-offset:3px;box-shadow:0 0 0 2px var(--surface,#f9f8f5)}.ds-channel .ds-channel-name{display:grid;gap:4px;align-content:start;min-height:70px;padding:0;border:0;border-radius:0;background:transparent;text-align:left}.ds-channel-name span{font-size:12px;color:var(--muted,#62635f)}.ds-channel-name strong{font-size:14px;line-height:1.4;min-height:40px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}.ds-pan{display:grid;grid-template-columns:1fr auto;gap:4px;font-size:13px}.ds-pan input{grid-column:1/-1;width:100%;min-height:28px;accent-color:var(--accent,#b3441c)}.ds-switches{display:grid;grid-template-columns:1fr 1fr;gap:6px}.ds-switches button[aria-pressed=true]{background:var(--text,#25262a);border-color:var(--text,#25262a);color:#fff}.ds-fader{display:grid;justify-items:center;gap:5px;font-size:13px}.ds-fader input{writing-mode:vertical-lr;direction:rtl;width:44px;height:148px;min-height:0;padding:0;border:0;background:transparent;accent-color:var(--accent,#b3441c)}.ds-channel output{font:12px ui-monospace,monospace;font-variant-numeric:tabular-nums}.ds-channel-state{font-size:12px;color:var(--muted,#62635f);text-align:center}@media(prefers-reduced-motion:reduce){.ds-channel button:active{transform:none}}@media(max-width:768px){.ds-pan input{min-height:44px}}"
+    },
+    {
+      "name": "EQ数值控制",
+      "kind": "custom",
+      "refersTo": "eq-band",
+      "description": "提取实际EQ段与数字路径；示例不模拟DSP或旋钮的自定义事件。",
+      "html": "<section class=\"ds-eq-band\" aria-label=\"低频EQ样式\"><h4>1 · 低频</h4><label class=\"ds-eq-number\"><input type=\"number\" min=\"-12\" max=\"12\" step=\"0.1\" value=\"0\" aria-label=\"低频增益样式\">dB</label><small>低架 180 Hz</small></section>",
+      "css": ".ds-eq-band{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px;border:0;border-radius:8px;background:var(--canvas,#e9e7e2);color:var(--text,#25262a);text-align:center}.ds-eq-band h4{margin:0;font-size:14px}.ds-eq-number{display:flex;align-items:center;justify-content:center;gap:5px}.ds-eq-number input{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;width:78px;min-width:0;padding:7px 5px;border:1px solid var(--line-strong,#7b7773);border-radius:6px;background:var(--surface,#f9f8f5);color:var(--text,#25262a);text-align:center;font-variant-numeric:tabular-nums}.ds-eq-number input:focus-visible{outline:2px solid var(--text,#25262a);outline-offset:3px;box-shadow:0 0 0 2px var(--surface,#f9f8f5)}.ds-eq-band small{font-size:12px;color:var(--muted,#62635f)}@media(max-width:768px){.ds-eq-band{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px}.ds-eq-band small{grid-column:1/-1}.ds-eq-number input{max-width:100px}}@media(max-width:480px){.ds-eq-band{padding:8px}.ds-eq-band h4{font-size:13px}.ds-eq-number input{font-size:16px;width:60px}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "器材质感创作工作室",
+    "overview": "浅灰工作面承载音乐，石墨文字、明确的控件边缘和烧橙强调帮助用户识别当前动作。材质由浅内阴影、高光边和按压反馈形成；选中的音轨与正在操作的控制组有清晰归属。用户选定的 Midlife 参考已转化为这套实际前端，本文记录隔离源码中的实现，不把提案尺寸当作完成事实。\n\n连续工作面贯穿作品、创建、计划、候选、Studio、设置和导出。信息按作品身份、操作、音乐内容和按需任务展开；版本来源、草稿状态及错误仍留在对应控制附近。现有 React/TypeScript/Vite、DOM 控件和 Canvas 编辑器继续使用，本轮没有新增依赖、纹理资产或外部字体。",
+    "keyCharacteristics": [
+      "暖灰与石墨组成主体，烧橙用于主要动作和选择标记。",
+      "分隔线与可操作边界分工明确，浅凹凸只强调控制关系。",
+      "系统中文字体与等宽数字兼顾密度、轨名和时间读数。",
+      "混音通道、EQ 与保存版试听明确区分草稿参数和音频事实。"
+    ],
+    "rules": [
+      {
+        "name": "The Control Edge Rule",
+        "body": "操作边界使用 line-strong；分隔线不承担唯一控件轮廓。该 token 当前为 `#7b7773`，不得回抄旧提案的 `#797a76`。",
+        "section": "colors"
+      },
+      {
+        "name": "The Single Accent Rule",
+        "body": "新控制沿用烧橙与中性灰。代码中的 `violet`、`cyan`、`mint` 是兼容标识，不是紫、青、绿设计许可。",
+        "section": "colors"
+      },
+      {
+        "name": "The Material at Controls Rule",
+        "body": "凹凸服务于可操作控制与组边缘；音乐、说明和列表不为器材感叠加装饰层。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** 从前置 token 与后加载的 workbench 样式读取当前视觉值，保持 DOM 与 Canvas 的展示色一致。",
+      "**Do** 用轨号、名称、文字状态与按压语义同时表达选择；为旋钮保留数字输入与键盘路径。",
+      "**Do** 把草稿参数、保存版播放、恢复和导出来源放在对应控制附近。",
+      "**Do** 在窄屏纵排工作区，允许通道 bank 和 EQ 曲线局部横滚，并保留保存、任务和主输出入口。"
+    ],
+    "donts": [
+      "**Don't** 从旧提案或兼容变量名重新引入绿色、青紫主色或旧控件边界。",
+      "**Don't** 添加假 meter、假频谱、随机波形、虚假进度、无功能旋钮、FX 或未实现的音频能力。",
+      "**Don't** 用纹理图、外部字体、新 UI 依赖或持续装饰动画替代现有边缘和明暗材质。",
+      "**Don't** 把 mock 截图、静音播放、既有测试数字或待完成审查写成 Beta 部署、真实生成、听感或完整可达性结论。",
+      "**Don't** 把局部 11px 说明、桌面紧凑控件或遗留样式注释升级为未来界面的通用规范；这些现状没有在文档任务中修复。"
+    ]
+  }
+}

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { parseRoute } from "./routes";
+import {settingsHref} from './settingsContext';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const route = parseRoute();
@@ -18,8 +19,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </a>
         <nav className="shell-nav" aria-label="主导航">
           <a href="/" aria-current={section === "home" ? "page" : undefined}>作品</a>
-          <a href="/settings" aria-current={section === "settings" ? "page" : undefined}>设置</a>
-          <details className="shell-more" open={section === "about" || section === "evaluation"}><summary>更多</summary><div><a href="/about" aria-current={section === "about" ? "page" : undefined}>关于</a><a href="/evaluation" aria-current={section === "evaluation" ? "page" : undefined}>评估</a></div></details>
+          <a href={settingsHref(window.location.pathname+window.location.search)} aria-current={section === "settings" ? "page" : undefined}>设置</a>
+          <details className="shell-more"><summary>更多</summary><div><a href="/about" aria-current={section === "about" ? "page" : undefined}>关于</a><a href="/evaluation" aria-current={section === "evaluation" ? "page" : undefined}>评估</a></div></details>
         </nav>
         <div className="runtime-badge">本地工作台</div>
       </header>

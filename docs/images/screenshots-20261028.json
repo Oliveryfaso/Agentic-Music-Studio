@@ -1,0 +1,61 @@
+{
+  "captured_date": "2026-10-28",
+  "source_base": "af3a31aaef660b89f459681896d55c48b5a015be",
+  "frontend_patch_sha256": "8fe44690a2f54ed89c71a0d5a3004dd7325d710188f12dd00247f74258dd7435",
+  "machine": "macOS; installed Playwright Chromium headless",
+  "capture": "full-page screenshots of implemented frontend, not concept art",
+  "fixture": "Public synthetic product-ui and pianoEqTestFixture; no private user project",
+  "api": "Mock API; captured no write requests",
+  "audio": "Silent PCM fixture; not a generated music or audio quality demonstration",
+  "downloads": "Synthetic file metadata; actual downloads not verified",
+  "runtime": "No deployment; existing Beta unchanged",
+  "integration_visual_review": "Root viewed desktop Studio, home, export and separate 390px mix captures. Warm gray / graphite / orange controls and readable native faders; narrow toolbar remains tall, local EQ horizontal scrolling is intentional. No new browser interaction performed.",
+  "assets": [
+    {
+      "file": "docs/images/studio.png",
+      "capture_name": "09-studio-mix-1440",
+      "bytes": 123170,
+      "sha256": "15b50041d6b73e79635ff771b7579234baf013966414857d4b4967dae44ace16",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "page": {
+        "width": 1440,
+        "height": 1144
+      }
+    },
+    {
+      "file": "docs/images/workbench.png",
+      "capture_name": "01-home-1440",
+      "bytes": 109119,
+      "sha256": "d4f88c2d559ceffc443d57f00513969a8336caa860b76d31877e52125adedf52",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "page": {
+        "width": 1440,
+        "height": 1059
+      }
+    },
+    {
+      "file": "docs/images/export.png",
+      "capture_name": "12-export-ready-1440",
+      "bytes": 119868,
+      "sha256": "daabd7be2f141e9b8a7e9f563285f22584c6c9dc666dd178f47e97694ab7d46d",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "page": {
+        "width": 1440,
+        "height": 1233
+      }
+    }
+  ],
+  "limits": [
+    "No real-model generation, payment, approval/save or export download acceptance",
+    "Native 200%, screen reader, physical touch and all viewport edges unverified"
+  ]
+}

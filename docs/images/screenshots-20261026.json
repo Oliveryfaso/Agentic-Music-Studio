@@ -58,5 +58,7 @@
     "source_matches_release_ui": true,
     "later_settings_patch": "Adds navigation and settings beyond captured source; these screenshots do not show that feature",
     "root_visual_review": "All three supplied PNGs viewed; light blue/indigo interface and synthetic/silent labels present. No playback/download/browser action performed."
-  }
+  },
+  "superseded_by": "screenshots-20261028.json",
+  "historical_record": "Hashes below describe the original 2026-10-26 captures. The listed stable asset filenames now contain the replacement captures identified by superseded_by."
 }

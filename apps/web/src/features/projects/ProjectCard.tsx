@@ -31,7 +31,6 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
     <article className="project-card">
       <div className="project-card-heading">
         <div>
-          <p className="eyebrow">{project.has_playable_revision ? "COMPOSITION" : "NEW IDEA"}</p>
           <h2>{project.name}</h2>
         </div>
         <span className={`project-run-status ${run?.status ?? "idle"}`}>
@@ -64,7 +63,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
             {run.status === "waiting_approval" ? "查看并确认计划" : "继续查看进度"}
           </button>
         )}
-        <button
+        <details className="project-extra"><summary>更多操作</summary><div><button
           className="secondary-inline"
           type="button"
           onClick={() => navigate({ name: "brief", projectId: project.project_id })}
@@ -78,6 +77,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
         >
           导入音频
         </button>
+        </div></details>
       </div>
     </article>
   );

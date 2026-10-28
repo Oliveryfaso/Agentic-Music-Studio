@@ -1,5 +1,5 @@
 import {useMutation,useQuery,useQueryClient} from '@tanstack/react-query';
-import {useState} from 'react';
+import {useLayoutEffect,useMemo,useState} from 'react';
 import {navigate} from '../../app/routes';
 import {ApiError} from '../../shared/api';
 import type {ClassicalScoreDescription} from '../../shared/openapi';
@@ -15,14 +15,23 @@ function restoreIntent():ImportIntent|null{
 }
 export function ClassicalScoreEntry(){
  const client=useQueryClient(),[pending,setPending]=useState(restoreIntent),[open,setOpen]=useState(()=>restoreIntent()!==null),[storageAvailable,setStorageAvailable]=useState(true);
+ const owner=useMemo(()=>({active:false,path:window.location.pathname,request:pending}),[]);
+ useLayoutEffect(()=>{owner.active=true;return()=>{owner.active=false;};},[owner]);
+ const ownsPage=()=>owner.active&&window.location.pathname===owner.path;
  const catalog=useQuery({queryKey:['classical-scores'],queryFn:listClassicalScores,enabled:open,retry:false});
- function clearIntent(){setPending(null);try{sessionStorage.removeItem(STORAGE);}catch{setStorageAvailable(false);}}
+ function clearIntent(){
+  setPending(null);const expected=owner.request;owner.request=null;
+  try{const raw=sessionStorage.getItem(STORAGE);if(raw&&expected){const stored=JSON.parse(raw) as ImportIntent;
+   if(stored.key===expected.key&&stored.scoreId===expected.scoreId&&stored.reviewKey===expected.reviewKey)sessionStorage.removeItem(STORAGE);
+  }}catch{setStorageAvailable(false);}
+ }
  const creation=useMutation({retry:false,mutationFn:(score:ClassicalScoreDescription)=>{
   if(pending&&(pending.scoreId!==score.score_id||pending.reviewKey!==reviewKey(score)))throw new Error('未确认的导入身份已锁定，请先核对来源。');
   const intent=pending??{scoreId:score.score_id,reviewKey:reviewKey(score),key:'web-classical:'+crypto.randomUUID()};
-  setPending(intent);try{sessionStorage.setItem(STORAGE,JSON.stringify(intent));}catch{setStorageAvailable(false);}
+  owner.request=intent;setPending(intent);try{sessionStorage.setItem(STORAGE,JSON.stringify(intent));}catch{setStorageAvailable(false);}
   return importClassicalScore(intent.scoreId,intent.key);
- },onSuccess:value=>{clearIntent();void client.invalidateQueries({queryKey:['projects']});navigate({name:'studio',projectId:value.project_id,revisionId:value.revision_id});},onError:error=>{
+ },onSuccess:value=>{if(!ownsPage())return;clearIntent();void client.invalidateQueries({queryKey:['projects']});navigate({name:'studio',projectId:value.project_id,revisionId:value.revision_id});},onError:error=>{
+  if(!ownsPage())return;
   if(error instanceof ApiError&&['CLASSICAL_SOURCE_NOT_FOUND','CLASSICAL_SOURCE_HASH_MISMATCH','INSTRUMENT_PACK_UNAVAILABLE','RENDER_SERVICE_UNAVAILABLE'].includes(error.code))clearIntent();
  }});
  return <section className="studio-panel classical-score-entry" aria-label="经典谱入口">

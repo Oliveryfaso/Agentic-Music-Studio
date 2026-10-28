@@ -46,7 +46,7 @@ export function App() {
           {route.name === "about" && <PortfolioPage />}
           {route.name === "evaluation" && <EvaluationPage />}
           {route.name === "settings" && <ModelSettingsPage />}
-          {route.name === "brief" && <BriefPage projectId={route.projectId} />}
+          {route.name === "brief" && <BriefPage key={route.projectId} projectId={route.projectId} />}
           {route.name === "run" && <RunPage runId={route.runId} />}
           {route.name === "studio" && <StudioPage key={`${route.projectId}:${route.revisionId}`} projectId={route.projectId} revisionId={route.revisionId} />}
           {route.name === "export" && <ExportPage key={`${route.projectId}:${route.revisionId}`} projectId={route.projectId} revisionId={route.revisionId} />}

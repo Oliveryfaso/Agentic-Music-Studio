@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FormEvent, useState, useRef } from "react";
+import { FormEvent, useState, useRef, useMemo, useLayoutEffect } from "react";
 
 import { navigate } from "../../app/routes";
 import { ApiError } from "../../shared/api";
@@ -15,21 +15,31 @@ export function ProjectHomePage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [expanded, setExpanded] = useState(false);
+  const page=useMemo(()=>({active:false,path:window.location.pathname}),[]);
+  useLayoutEffect(()=>{page.active=true;return()=>{page.active=false;};},[page]);
+  const ownsPage=()=>page.active&&window.location.pathname===page.path;
+  const creationRequest=useRef<{name:string;key:string}|null>(null);
   const studyKey=useRef<string|null>(null);
   const study=useMutation({mutationFn:()=>{
     studyKey.current??='web-piano-study:'+crypto.randomUUID();
     return createPianoStudy(studyKey.current);
-  },onSuccess:(value)=>{studyKey.current=null;void queryClient.invalidateQueries({queryKey:["projects"]});
+  },onSuccess:(value)=>{if(!ownsPage())return;studyKey.current=null;void queryClient.invalidateQueries({queryKey:["projects"]});
     navigate({name:"studio",projectId:value.project_id,revisionId:value.revision_id});}});
   const projects = useQuery({ queryKey: ["projects"], queryFn: () => listProjects() });
   const creation = useMutation({
-    mutationFn: (projectName: string) => createProject(
-      { name: projectName },
-      `web-project-${crypto.randomUUID()}`,
-    ),
-    onSuccess: async () => {
+    mutationFn: async (projectName: string) => {
+      if(creationRequest.current&&creationRequest.current.name!==projectName)throw new UnconfirmedCreationError();
+      const pending=creationRequest.current??{name:projectName,key:`web-project-${crypto.randomUUID()}`};
+      creationRequest.current=pending;
+      try{return await createProject({name:projectName},pending.key);}
+      catch(error){if(error instanceof ApiError&&error.status===422&&creationRequest.current===pending)creationRequest.current=null;throw error;}
+    },
+    onSuccess: async (result) => {
+      if(!ownsPage())return;
+      creationRequest.current=null;
       setName("");
       await queryClient.invalidateQueries({ queryKey: ["projects"] });
+      if(ownsPage())navigate({name:"brief",projectId:result.project_id});
     },
   });
 
@@ -42,7 +52,7 @@ export function ProjectHomePage() {
 
   return (
     <section className="project-home" aria-labelledby="project-home-title">
-      <header className="project-home-hero"><h1 id="project-home-title">作品</h1><span className="status-pill">古典与爵士</span></header>
+      <header className="project-home-hero"><div><h1 id="project-home-title">作品</h1><p>古典与爵士 · 你的创作工作室</p></div><a className="primary-button" href="#new-work">新建作品</a></header>
 
       {projects.isPending && <ProjectLoading />}
       {projects.isError && (
@@ -57,7 +67,6 @@ export function ProjectHomePage() {
       )}
       {projects.data?.length === 0 && (
         <section className="empty-state">
-          <div className="empty-wave" aria-hidden="true">⌁</div>
           <h2>还没有作品</h2>
           <p>从下方练习谱或审核曲库开始，也可用免费模板规划。需要模型创作时，<a href="/settings">配置 API Key</a>。</p>
         </section>
@@ -74,10 +83,10 @@ export function ProjectHomePage() {
           />
         </section>
       )}
-      <section className="new-work-start" aria-label="新建作品">      <form className="create-project-form" onSubmit={submit}>
+      <section className="new-work-start" id="new-work" aria-label="新建作品"><header className="start-heading"><h2>从哪里开始？</h2><p>改编一份曲谱，或写下自己的音乐想法。</p></header><ClassicalScoreEntry/><div className="start-alternatives"><form className="create-project-form" onSubmit={submit}>
         <div>
           
-          <label htmlFor="project-name">新建作品</label>
+          <label htmlFor="project-name">从想法开始</label><p>新建编曲，先看计划再试听。</p>
           
         </div>
         <div className="create-project-controls">
@@ -95,7 +104,7 @@ export function ProjectHomePage() {
           </button>
         </div>
         {creation.isError && <p className="field-error" role="alert">{errorMessage(creation.error)}</p>}
-        {creation.isSuccess && <div className="project-created" role="status"><span>作品已创建</span><button className="secondary-inline" type="button" onClick={() => navigate({ name: "brief", projectId: creation.data.project_id })}>开始创作 →</button></div>}
+        {creation.isSuccess && <div className="project-created" role="status">作品已创建</div>}
       </form>
 
       <section className="piano-study-entry" aria-label="钢琴练习谱入口">
@@ -103,8 +112,7 @@ export function ProjectHomePage() {
         <button type="button" className="secondary-inline" disabled={study.isPending} onClick={()=>study.mutate()}>{study.isPending?"正在创建练习谱…":study.isError?"重试新建练习谱":"新建钢琴练习谱"}</button>
         {study.error&&<p className="field-error" role="alert">{errorMessage(study.error)}</p>}
       </section>
-      <ClassicalScoreEntry/>
-</section>
+</div></section>
     </section>
   );
 }
@@ -120,5 +128,7 @@ function ProjectLoading() {
 }
 
 function errorMessage(error: Error): string {
-  return error instanceof ApiError ? error.message : "暂时连接不到本地服务。请确认 Motif Forge 已启动，然后重试。";
+  return error instanceof UnconfirmedCreationError ? "上次创建结果尚未确认。请恢复原作品名称后重试，或核对上方作品列表。" : error instanceof ApiError ? error.message : "暂时连接不到本地服务。请确认 Motif Forge 已启动，然后重试。";
 }
+
+class UnconfirmedCreationError extends Error {}

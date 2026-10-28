@@ -1,43 +1,44 @@
 # Motif Forge
 
-**面向独立音乐创作者与 Agent 应用开发者的本地音乐工作台：审核编曲计划、比较试听候选，把选中的结果继续编辑并导出。**
+简体中文 · [English](README.en.md)
 
-从一个想法开始，也可以导入已有音频。计划、人工选择、保存版本和执行记录留在同一个工程中，方便继续修改、撤销和查看失败原因。
+**面向独立创作者的本地器乐工作台：审核编曲计划、比较候选，把选中的草案继续编辑并导出。**
+
+先用不需要 API Key 的模板体验创作流程，也可以导入已有音频。计划、人工选择、保存版本和执行记录留在同一个工程中，方便修改、撤销和查看失败原因。
 
 [![Status](https://img.shields.io/badge/status-personal_Beta-6B7280)](docs/IMPLEMENTATION_STATUS.md)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-[演示](#演示) · [快速开始](#快速开始) · [第一次试用](#第一次试用) · [核心能力](#核心能力) · [配置与限制](#配置与限制) · [开发与贡献](#开发与贡献)
+[演示](#演示) · [快速开始](#快速开始) · [第一次试用](#第一次试用) · [核心能力](#核心能力) · [配置自己的 API Key](#配置自己的-api-key) · [验证与限制](#验证与限制) · [文档与贡献](#文档与贡献)
 
-> 当前面向本机单用户试用。默认启动不调用付费模型；真实钢琴个人 Beta 是另一个需要预置审核资源和固定镜像的运行档位，不能把开发分支或隔离候选自动视为已部署版本。
+> 当前面向本机单用户试用。默认模板不理解任意自然语言；启用 Key 也不代表默认古典、爵士已具备整曲模型规划。先走通免费路径，再按已支持的入口使用模型。
 
 ## 演示
 
-以下是蓝紫配色工作台的真实浏览器截图，使用仓库合成示例和 mock API；音频是静音占位，导出列表也是示例元数据，不能作为实际播放、生成或下载的证明。截图来自 `81b1cff`，与 `473deabb` 的前端源码一致；后续新增的设置入口未出现在这组三页截图中。[素材来源与校验记录](docs/images/screenshots-20261026.json)。
+以下是 **2026-10-28 已实现的器材工作室界面**：暖灰工作面、石墨控制区和烧橙强调色。截图由真实浏览器渲染，使用公开合成数据、mock API 和静音媒体；导出列表只是示例元数据，不代表真实生成、音质或下载验收，也不表示已有 Beta 实例已升级。[素材来源](docs/images/screenshots-20261028.json)。
 
-**作品首页：找到保存版本、待审批计划与审核曲库。**
+**Studio：编辑与混音同一个保存版本。**
 
-![蓝紫配色的作品首页，使用合成示例数据](docs/images/workbench.png)
+![暖灰与烧橙 Studio 的合成双钢琴混音界面，媒体静音](docs/images/studio.png)
 
-**Studio：在同一保存版本上编辑与混音。**
+<details>
+<summary>作品首页与导出页示例</summary>
 
-![双钢琴 Studio 混音界面，音频为静音占位](docs/images/studio.png)
+![作品首页的合成示例](docs/images/workbench.png)
 
-**导出：查看绑定保存版本的交付文件。**
+![导出页的合成文件列表，未验证实际下载](docs/images/export.png)
 
-![导出界面的合成文件列表，未验证实际下载](docs/images/export.png)
+</details>
 
-真实操作录屏和可公开作品试听仍待补齐。界面验证方法见[开发指南](docs/DEVELOPMENT.md#界面验证与截图)。
+真实公开作品试听与操作录屏仍待补齐。这些是实现界面的截图，不能代替音乐质量证明。
 
 ## 快速开始
 
-开始前准备 Node.js 22.12+、npm、Python 3.12–3.13、已启动的 Docker / Compose / Buildx，以及宿主和 VM 都能访问的可写数据目录。完整前提见下方运行环境；已有作品请沿用原环境，不用新 clone 认领旧服务。
+### 新演示环境首跑
 
-下面先体验无 Key 路径；S1–S7 历史验证见 [Eval 报告](docs/evals/S7_EVAL_REPORT.md)，不代表所有新版本与环境都已验收。
+先准备 Node.js **22.12+**、npm、PATH 中的 `python3` **3.12–3.13**、Docker CLI / Compose / Buildx 和 `rsync`，并启动 Docker daemon。数据目录需要宿主机和 VM 都能访问；完整环境边界见下方。
 
-### 从源码体验默认演示
-
-这是默认的合成音色 / 确定性回退路径，不要求 DeepSeek Key。
+不需要 DeepSeek Key。**已有作品升级请先看[运行手册](docs/PERSONAL_BETA_RUNBOOK.md)**，不要用新 clone 接管旧服务。
 
 ```bash
 git clone https://github.com/Oliveryfaso/Agentic-Music-Studio.git
@@ -46,13 +47,9 @@ npm ci
 scripts/start_motif_forge.sh --no-open
 ```
 
-默认检出公开 `main`；开发分支和本机固定镜像 Beta 的版本可能不同。请先核对所读 README 与检出的版本一致。启动器要求 PATH 中的 `node` 为 22.12+、`python3` 为 3.12–3.13；不支持时先明确停止，不自动安装或替换系统运行时。
+启动器会在缺少时创建 `.env`、初始化默认数据根 `../.motif-forge-data`，启动本项目后端与前端并等待就绪。首次可能构建镜像；启动会执行 Compose 配置中的数据库迁移。它不会安装或替换 Node / Python，也不启停 Colima。
 
-2026-10-27 已在全新公开源码副本完成锁定依赖安装、Web / 音频构建和只读启动前检查；完整新环境起栈仍待验，不能把这些检查视为首次生成 / 播放通过。[本轮范围与结果](docs/evidence/2026-10-27-beta-first-run.md)。
-
-启动器会在缺少时从 `.env.example` 创建本地 `.env`，初始化默认数据根 `../.motif-forge-data`，启动本项目的 Compose 服务、等待 API 与渲染器就绪，再启动前端。首次可能构建镜像；启动会执行当前源码对应的数据库迁移，因此请仅对新演示环境运行，已有环境升级先看[运行手册](docs/PERSONAL_BETA_RUNBOOK.md)。
-
-**成功标志：** 终端显示 `Motif Forge is ready: http://127.0.0.1:5173`。在运行服务的同一台电脑打开 [http://127.0.0.1:5173](http://127.0.0.1:5173)，应看到作品首页；API 就绪地址是 `http://127.0.0.1:8000/health/ready`。`localhost` 链接不提供远程电脑访问。
+**成功标志：** 终端显示 `Motif Forge is ready: http://127.0.0.1:5173`。在运行服务的同一台电脑打开 [http://127.0.0.1:5173](http://127.0.0.1:5173)；API 就绪地址是 `http://127.0.0.1:8000/health/ready`。本机地址不能用于访问另一台电脑上的实例。
 
 正常结束：
 
@@ -60,130 +57,91 @@ scripts/start_motif_forge.sh --no-open
 scripts/stop_motif_forge.sh
 ```
 
-停止器按本启动器记录核对 Web 和容器所有权，保留数据卷、媒体、镜像和容器，不启停 Colima、不操作其他项目。仅按启动终端的 `Ctrl+C` 会停止前端，后台服务仍需上述停止命令。
+停止器按运行记录核对归属，保留数据库卷、媒体、镜像和容器，不操作其他项目。`Ctrl+C` 只停止前端，后台服务仍需上面的停止命令。
 
-只查看帮助或检查条件：
-
-```bash
-scripts/start_motif_forge.sh --help  # 无需启动服务
-scripts/start_motif_forge.sh --check # 不启动服务；缺依赖、.env 或数据根时明确报告
-```
-
-端口、外置盘或 Docker 不可用时，先处理报出的具体条件，见[开发与排障](docs/DEVELOPMENT.md)。不要反复创建新 runtime 目录认领旧服务。
+完整新环境首装仍待验；[S1–S7 历史验证](docs/evals/S7_EVAL_REPORT.md)不代表所有新版本与环境都已通过。
 
 ## Prerequisites · 运行前准备
 
-- **已验证环境：** macOS / Apple Silicon + Colima。需要先自行启动可用的 Docker daemon；其他操作系统及 Docker Desktop 路径尚需验证。
-- **工具：** Node.js 22.12+、npm、Python 3.12–3.13、Docker CLI / Compose / Buildx，以及构建脚本使用的 `rsync`。仅修改后端时另需 uv。
-- **存储与网络：** 准备可写的专用数据目录，确保宿主与 Docker VM 都能访问。首次安装依赖、拉取基础镜像与构建需要网络和磁盘空间；这里没有经过测量的通用最低内存承诺。
-- **已有作品：** 继续使用原仓库、原数据根和原 runtime 所有权记录。不要用一个新 clone 自动接管既有服务，也不要删除数据库卷来解决启动问题。
+- 已验证的本机运行环境是 **macOS / Apple Silicon + Colima**。Ubuntu CI 通过不等于其他系统的完整首装已验。
+- 使用宿主机和 Docker VM 都可访问的专用可写数据目录。首次安装、拉取镜像与构建需要网络和磁盘空间；这里没有通用最低内存承诺。
+
+只读检查，不启动服务：
+
+```bash
+scripts/start_motif_forge.sh --help
+scripts/start_motif_forge.sh --check
+```
+
+新 clone 缺依赖、`.env` 或数据根时，`--check` 会明确报告缺失，不能把它当成无需准备就必过的步骤。安装、端口和存储排障见[开发指南](docs/DEVELOPMENT.md)。
 
 ## 第一次试用
 
-以一个短背景音乐草案为例：**只有“安静、缓慢”的想法 → 审核结构与配器、比较两个方向 → 保存一个能继续编辑、导出并追溯来源的版本。** 这是操作示例，不是对默认回退理解任意自然语言的承诺。
+**使用路径示例：一个短背景音乐草案 → 审核模板计划、比较两个方向 → 保存可编辑版本并导出。** 这不是已生成作品展示，也不是模板理解任意描述的承诺。当前界面主要使用中文。
 
-1. 在首页输入作品名并创建作品，点击「新建编曲」。
-2. 在 Brief 保留 `Classical Chamber`，标题填「雨后漫步」，用途填「安静的短片背景音乐」，情绪填「平静，温暖」，时长填 `60` 秒，其余约束先留默认，再点「提交 Brief 并规划」。
-3. 阅读 Plan 的段落和轨道安排；填写审批身份与明确确认说明后批准生成。
-4. 分别试听 A/B 候选，查看规则评估，再明确选择其中一个。默认无 Key 时页面应标记确定性回退，规则分也不等于音乐审美评分。
-5. 打开 Studio，修改音符或混音参数后保存新版本。试听器播放**已渲染的保存版本**，未保存草稿不会即时改变声音。
-6. 打开导出页，等待文件就绪后下载；重新打开作品检查保存版本。运行检查页可查看任务、人工决定和模型用量。
-
-先走通这个无模型例子，再考虑启用外部模型或真实钢琴档位。导入自己的 WAV / MP3 / FLAC 或 Stem 时，需要确认素材权利并审核分析结果。
+1. 在首页「从想法开始」输入作品名称「雨后漫步」，点击「创建作品」，会直接进入「新建编曲」。顶部「新建作品」可跳到这个入口。
+2. 保留 `Classical Chamber`，标题填「雨后漫步」，用途填「短片背景音乐」，情绪填「平静，温暖」，时长填 `60` 秒，其余先留默认。未启用模型时点击「使用免费模板规划」。
+3. 阅读计划，填写审批身份和明确确认说明后批准；试听 A/B 候选并选择一个。规则分不等于音乐审美评分。
+4. 在 Studio 修改音符或混音参数，保存新版本。试听播放的是**已渲染的保存版本**，未保存草稿不会即时改变声音。
+5. 打开导出页，等待文件就绪后下载；重新打开作品检查保存版本。导出与试听应对应同一保存版本。
 
 ## 核心能力
 
 | 你要做的事 | 当前实现 |
 | --- | --- |
-| 审核创作方向 | Brief → 结构化 Plan → 人工审批 → 两个候选 → 明确选择；不会把未批准候选当正式版本 |
-| 继续修改作品 | Timeline、Piano Roll、Mixer、草稿保存与不可变 Revision；有界 AI 选区编辑，高影响修改先试听确认 |
-| 管理已有素材 | 音频 / Stem 导入、BPM / 调性确认、可选择的保持音高时间对齐；原始导入保留 |
-| 带走同一保存版本 | Master WAV、试听 MP3、Stem、MIDI 与工程文件；动态导出计划绑定具体 Revision，部分失败保留已完成项 |
-| 查看执行事实 | Graph Inspector 展示持久事件、决策、任务与用量；恢复概览与截断时间线分开，缺失用量不会显示成零 |
+| 审核创作方向 | 需求表单 → 结构化计划 → 人工审批 → 两个候选 → 明确选择 |
+| 继续修改作品 | Timeline、Piano Roll、Mixer、草稿保存、不可变版本与 Undo / Redo；已支持的模型编辑有范围和确认边界 |
+| 管理已有素材 | WAV / MP3 / FLAC 与 Stem 导入、BPM / 调性确认、可选保持音高时间对齐；保留原始导入，需确认素材权利 |
+| 导出同一版本 | Master WAV、试听 MP3、Stem、MIDI 和工程文件；导出计划绑定保存版本，部分失败保留已完成项 |
+| 查看任务与恢复 | Inspector 展示持久进度、人工决定、任务和用量；缺失用量不冒充零 |
 
-模型提出有界结构，确定性代码负责音乐时序、校验、事务、渲染与预算。一个版本化 LangGraph Parent Graph 承接生成、导入、编辑与导出，PostgreSQL 保存工程事实和恢复状态；Redis/Celery 分发任务。详细合同见[项目指南](docs/PROJECT_GUIDE.md)。
+模型负责有界提案，确定性代码负责音乐时序、校验、渲染和预算。工程结构与合同见[项目指南](docs/PROJECT_GUIDE.md)，不需要先读懂全部架构才能试用。
+
+## 配置自己的 API Key
+
+**这是可选步骤，不是免费模板的前提。** 默认古典 / 爵士整曲规划尚未实现付费模型路径；已实现的钢琴有界局部编辑有少量实测，不能外推为通用自然语言整曲创作。
+
+1. 打开主导航「设置」，或 Studio 的「配置 API Key」。在 [DeepSeek 官方平台](https://platform.deepseek.com/api_keys)获取自己的 Key。
+2. 在运行 Motif 的电脑终端进入仓库，执行隐藏输入命令：
+
+   ```bash
+   python3 scripts/configure_deepseek.py
+   ```
+
+   默认保存在 `~/.config/motif-forge/deepseek.env`，目录 / 文件权限为 `0700` / `0600`，不写入仓库；网页不接收或显示密钥。保存后**尚未启用**。
+3. 先完成或取消当前任务。以下仅用于上面的默认演示实例；个人 Beta 或自定义数据 / runtime 参数必须沿用原配置：
+
+   ```bash
+   scripts/stop_motif_forge.sh
+   scripts/start_motif_forge.sh --enable-deepseek --no-open
+   ```
+
+4. 回到「设置」刷新配置状态，再按需主动「测试连接」。它只向官方模型列表接口发一次鉴权请求，不生成作品；成功不代表余额、指定模型或 Worker 已验证。
+
+仅在 `.env` 填 Key **不会启用模型**。显式开启后 Key 交给 API 和恢复调度器；Docker 管理者可能读取容器环境。模型操作会向 DeepSeek 发送有界音乐结构与描述，并可能计费，提交前应看当前运行状态。
+
+停用时正常关闭同一实例，再不带启用选项重启。`--clear` 仅删除本机配置文件，不清除运行进程中的 Key，也不代替供应商吊销。不要把 Key 放进 `VITE_*`、URL 或日志。完整步骤、固定镜像 Beta 的接口匹配和清除命令见[API Key 设置](docs/API_KEY_SETTINGS.md)。[LangSmith](docs/LANGSMITH.md) 默认关闭，外部追踪需另行配置。
+
+## 验证与限制
+
+- **默认音色与真实钢琴是两个档位。** 默认使用轻量合成音色，不代表完整采样库。新建入口是 Classical Chamber 与 Jazz Harmony & Improvisation；历史电子风格保留旧作品兼容。
+- **审核素材有限。** 当前仅四个 8–16 小节主旋律摘录；固定 2019 钢琴包有 26 个样本，不是完整曲库。合法原归档与兼容工具的显式准备流程见[审核音源准备](docs/REVIEWED_DATA_PREPARATION.md)，不自动下载或安装。
+- **证据有边界。** 少量真实钢琴模型编辑 / 保存 / Undo / 同版导出有[实测记录](docs/evidence/2026-10-22-beta-real-model-loop.md)；不代表任意长曲、曲谱、风格或主观音质达标。[历史 Eval](docs/evals/S7_EVAL_REPORT.md) 是内部案例统计，不是作品音质通过率。
+- **仍有待验项。** 全新安装到首次成曲、当前版真实 Key 完整链、恢复后的应用播放 / 导出和固定镜像冷重建仍未全部完成；存储 / 执行隔离候选也待完整联调。已通过的隔离 PostgreSQL / 媒体恢复不等于完整应用恢复。
+- **产品范围。** 当前是本机单用户器乐工作台；桌面适合精细编辑，移动端侧重查看、试听与审批。专业 DAW、多人协作、公开托管、自动人声分离不在当前完成声明中。
 
 <details>
-<summary>创作主路径示意</summary>
+<summary>已有审核钢琴 Beta：与默认演示的区别</summary>
 
-```mermaid
-flowchart LR
-    UI["Web 工作台"] --> G["唯一 LangGraph Parent Graph"]
-    G --> P["规划子图\n结构化 Plan / 回退"]
-    P --> H["人工审核计划"]
-    H --> C["两个候选\n确定性编译 + Critic / 有界 Repair"]
-    C --> A["人工选择"]
-    A --> R["不可变 Revision"]
-    R --> W["持久任务 → 音频 Worker"]
-    W --> E["Master / MP3 / Stem / MIDI / 工程"]
-    G <--> DB[("PostgreSQL\n检查点、决策、事件与用量")]
-    G --> I["内置 Inspector / 可选 LangSmith"]
-```
+需预置审核音源、宿主 / VM 共享和匹配的固定本地镜像，不是新 clone 后一条命令可安装的档位。仓库所带[发布 pin 模板](scripts/personal-beta-release.v1.json)不等于某台机器当前部署版本，也不提供镜像。
 
-这张图只说明主创作的数据流，不表示额外的生产 Graph，也不代表全部异常分支。
+已有实例应沿用原数据根和 runtime 回执。仅更新源码或网页不会自动更新其 API、镜像或 pin；先按[个人 Beta 运行手册](docs/PERSONAL_BETA_RUNBOOK.md)和[实施状态](docs/IMPLEMENTATION_STATUS.md)核对，不把未部署候选当成已上线。
 
 </details>
 
-## 配置与限制
+## 文档与贡献
 
-### 默认演示与真实钢琴 Beta
-
-| 档位 | 能做什么 | 首跑边界 |
-| --- | --- | --- |
-| 默认源码演示 | 新建古典 / 爵士策略、轻量内置合成音色，体验计划 / 候选 / 编辑 / 导出 | 上面的首跑路径；Style Pack 表达编曲策略，不代表真实乐器采样库 |
-| 审核曲库双钢琴个人 Beta | 固定审核主旋律摘录、真实钢琴资源、局部伴奏与修订 | 需合法审核包、宿主与 VM 共享、既有固定镜像；不是全新 clone 后一条命令可安装的成品 |
-| 隔离工程候选 | 发布、备份和执行隔离方面的后续修复 | 离线或单独边界通过不等于已经上线；以当前实施状态逐项为准 |
-
-新建入口提供 Classical Chamber、Jazz Harmony & Improvisation，默认古典；历史 Synth Ambient、Minimal Electronic 的 ID、旧作品与导出保留，不再是新建选择。默认音源使用 12 个语义别名映射到 3 个合成核心与 click sample；真实钢琴档位另走固定资源校验。
-
-当前审核资料仅有四个 8–16 小节的固定主旋律摘录，不是完整曲库。真实钢琴包固定为 2019 版的 26 个样本；已有原归档和可信兼容解码工具时，可用[审核音源准备入口](docs/REVIEWED_DATA_PREPARATION.md)校验并准备到新目录。默认仅输出计划，显式 `--execute` 才读取归档并写入；不自动下载、安装工具或替换资源 pin。该固定归档的独立准备已通过完整性预检，但不等于播放、VM 挂载或 Beta 运行已通过。部分 macOS 自带 bsdtar 不支持其 WAV 过滤器，应按文档显式选择已有可信工具，不能用新版包代替。UI fixture 的静音 PCM 仅用于界面测试，不作真实试听或音质证据。
-
-个人 Beta 当前 API 发布 pin 为 [`a3bfb1a`](scripts/personal-beta-release.v1.json)，兼容数据库 `20261020_0030`。`--personal-beta` 的启动器验证固定本地 API 镜像和 schema；普通 `--personal-beta api` 构建产生的 `:local` 镜像不能自动满足此 pin。缺镜像或审核资源会明确失败，不下载音源、不改 pin、不启动 / 重启 VM。安装、构建与当前验证边界请先读[个人 Beta 运行手册](docs/PERSONAL_BETA_RUNBOOK.md)。
-
-已完成配置的同一 Beta 环境，才使用：
-
-```bash
-scripts/start_motif_forge.sh --personal-beta --check
-scripts/start_motif_forge.sh --personal-beta --no-open
-# 本档位默认 Web：http://127.0.0.1:15173
-scripts/stop_motif_forge.sh --personal-beta
-```
-
-媒体根可用 `MOTIF_FORGE_BETA_STORAGE_ROOT`、已有审核包可用 `MOTIF_FORGE_REVIEWED_PIANO_ROOT` 指定；`DOCKER_CONTEXT` 可显式选择 daemon，不改变全局 context。沿用原 `MOTIF_FORGE_RUNTIME_DIR` 回执。数据盘不可用时不静默回落其他磁盘；模型仍默认禁用。
-
-### 外部服务与费用
-
-- **默认不调用付费模型。** Compose 显式清空 `DEEPSEEK_API_KEY`；仅在 `.env` 填 Key 不会启用它。无 Key 规划使用确定性回退；旧通用 AI Edit 回退只支持明确的 gain / 本地音色意图，不能当完整自然语言编辑。
-- **API Key 入口：** 主导航「设置」，或 Studio 的「配置 API Key」。网页说明配置步骤并显示状态，不接收或显示密钥。请在运行 Motif 的电脑终端进入仓库，执行以下命令并按提示隐藏输入：
-
-  ```bash
-  python3 scripts/configure_deepseek.py
-  ```
-
-  默认保存到用户私有文件 `~/.config/motif-forge/deepseek.env`（目录 0700、文件 0600；绝对路径 `XDG_CONFIG_HOME` 可覆盖根目录），不会写进仓库。保存后尚未生效：先完成或取消现有任务，按原方式正常关闭实例，再沿用相同数据目录和 runtime 参数，显式加 `--enable-deepseek` 启动。默认源码演示示例：
-
-  ```bash
-  scripts/stop_motif_forge.sh
-  scripts/start_motif_forge.sh --enable-deepseek --no-open
-  ```
-
-  回到「设置」，先「刷新配置状态」，再按需主动「测试连接」。检查只向 DeepSeek 官方模型列表接口发送一次鉴权请求，不生成内容、不发送作品；成功不代表余额、指定模型生成或 Worker 已验证。错误以脱敏状态提示，刷新后不保留旧的成功结论。启动器排除 shell 中继承的同名旧 Key，只有显式开启时才把私有文件交给 API 和恢复调度器；不启用外部 trace。
-
-  **已有固定镜像 Beta：** 当前 `a3bfb1a` pin 尚不含新设置接口；本批是源码功能，需要按发布流程更新匹配 API 镜像和 pin，不能只更新网页便视为可用。停用时正常关闭同一实例，再不带启用选项重启；`python3 scripts/configure_deepseek.py --clear` 仅删除本机配置文件，不清除正在运行的进程，也不代替供应商吊销。完整步骤、权限和诊断边界见 [API Key 设置](docs/API_KEY_SETTINGS.md)。不要将 Key 写入 `VITE_*`、URL、日志或公开诊断输出。
-- **真实模型是显式开发流程。** 钢琴局部编辑已有少量官方 DeepSeek 实测，包含多轮保存、Undo 与同版本导出；这不代表任意请求或全风格已通过。外部调用会按服务定价计费并发送有界音乐结构与指令，运行前需检查身份、预算、数据范围与停止条件。入口见[开发验证](docs/DEVELOPMENT.md#真实服务与验收)及[实施状态](docs/IMPLEMENTATION_STATUS.md)。
-- **LangSmith 可选。** 默认关闭；开启会使用外部追踪服务，应先核对记录范围与费用，见 [LangSmith 配置](docs/LANGSMITH.md)。Key 不放进前端 `VITE_*`、日志或仓库。
-
-### 已验证范围
-
-- 同一真实钢琴 Beta 项目的两轮模型局部编辑、保存、Undo、重新读取与同版本完整导出已有[实测证据](docs/evidence/2026-10-22-beta-real-model-loop.md)；小样本不能外推全曲、任意长曲、任意曲谱或所有风格。
-- 历史 S7 Eval 是 **96 条内部 inventory：80 实测通过、13 预期拒绝、3 未测**，不是 96 首作品的音质通过率。见 [Eval 报告](docs/evals/S7_EVAL_REPORT.md)。
-- 真实备份已在隔离环境完成 PostgreSQL 与媒体恢复及摘要校验；恢复后启动应用、播放和导出仍未验，固定镜像冷重建与0031全组合也未完成。源码包含默认只预演的[隔离恢复工具](docs/ISOLATED_RECOVERY.md)，不自动创建环境或覆盖作品；运行 Beta 未部署这批维护工具。
-- 桌面浏览器适合精细编辑；移动端侧重查看、试听与审批。专业 DAW、多人协作、公开托管、自动人声分离与规模化主观音质评估不在当前完成声明中。
-- 新 clone 首跑与既有 Beta 运行证据是不同边界；历史证据和当前缺口见[实施状态](docs/IMPLEMENTATION_STATUS.md)。
-
-## 开发与贡献
-
-前端先使用已有依赖锁，不必为界面修改重建 Docker：
+修改前端可先走宿主机测试，不必重建 Docker：
 
 ```bash
 npm ci
@@ -192,28 +150,25 @@ npm run build:web
 npm run test:audio
 ```
 
-后端宿主环境与 PostgreSQL 集成测试按[开发指南](docs/DEVELOPMENT.md)配置；涉及数据库的测试只能指向专用测试库。提交问题或改动时，请提供运行档位、可复现步骤、预期 / 实际结果及已脱敏错误码，不附 Key 或私人音频。
+[CI](.github/workflows/ci.yml) 在 main / Pull Request 上运行无 Key 的 Python、Web / 音频回归和构建，不启动真实数据库或调用模型。需要真实外部服务的用例按条件跳过；绿色 CI 不是完整首装、音乐质量或恢复验收。
 
-`main` 和 Pull Request 的[自动回归](.github/workflows/ci.yml)运行无 Key 的 Python、Web / 音频测试及构建，不启动数据库或调用模型。需要真实外部服务的用例跳过；CI 通过不等于完整新用户生成或听感验收。
-
-| 文档 | 内容 |
+| 文档 | 用途 |
 | --- | --- |
-| [开发与排障](docs/DEVELOPMENT.md) | 安装、测试、截图复现与常见问题 |
-| [个人 Beta 运行手册](docs/PERSONAL_BETA_RUNBOOK.md) | 档位、固定资源、日常使用与维护边界 |
-| [隔离恢复工具](docs/ISOLATED_RECOVERY.md) | 可信 v2 归档、默认预演、临时 PostgreSQL 与验证边界 |
-| [审核音源准备](docs/REVIEWED_DATA_PREPARATION.md) | 原归档校验、显式准备与工具兼容限制 |
+| [开发与排障](docs/DEVELOPMENT.md) | 后端环境、测试、端口、截图与常见问题 |
 | [API Key 设置](docs/API_KEY_SETTINGS.md) | 隐藏输入、显式启用、状态检查与清除 |
+| [审核音源准备](docs/REVIEWED_DATA_PREPARATION.md) | 固定归档、工具兼容与准备边界 |
+| [个人 Beta 运行手册](docs/PERSONAL_BETA_RUNBOOK.md) | 既有实例、资源、固定镜像与维护 |
+| [隔离恢复工具](docs/ISOLATED_RECOVERY.md) | 默认预演、可信归档与恢复限制 |
 | [实施状态](docs/IMPLEMENTATION_STATUS.md) / [后续路线](docs/NEXT_DEVELOPMENT_ROADMAP.md) | 已部署、候选与未验事项 |
-| [项目指南](docs/PROJECT_GUIDE.md) / [决策记录](docs/DECISION_LOG.md) | 产品、架构与规则依据 |
-| [技术演进](docs/TECH_EVOLUTION.md) / [前端规范](docs/FRONTEND_UX_SPEC.md) | 历史证据与交互合同 |
+| [项目指南](docs/PROJECT_GUIDE.md) / [决策记录](docs/DECISION_LOG.md) | 产品与架构合同 |
 
-源码主要位于 `apps/web`、`services/api`、`services/render-worker` 和 `packages/audio-engine`。音源、导入素材和第三方组件的许可分别核对，不能把项目代码许可当作所有素材的使用授权。
+问题报告请附运行档位、版本、复现步骤和已脱敏错误码，不附密钥或私人音频。源码位于 `apps/web`、`services/api`、`services/render-worker` 与 `packages/audio-engine`。
 
 ## 许可证
 
-本项目采用 [Apache License 2.0](LICENSE) 授权，允许商用、修改与再分发，并附带专利授权条款。
+项目代码采用 [Apache License 2.0](LICENSE)。音源、导入素材与第三方组件的许可分别核对，代码许可不是所有素材的使用授权。
 
-```
+```text
 Copyright 2026 Oliver
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -223,4 +178,4 @@ You may obtain a copy of the License at
     http://www.apache.org/licenses/LICENSE-2.0
 ```
 
-再分发时请保留 [LICENSE](LICENSE) 文件；如修改了源文件，需按第 4 条标注改动。
+再分发时保留 [LICENSE](LICENSE)；修改源文件时按第 4 条标注更改。

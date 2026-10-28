@@ -50,3 +50,31 @@ it('unlocks selection only after a known failure before persistence',async()=>{
  fireEvent.click(screen.getByLabelText(/我已了解.*来源/));fireEvent.click(screen.getByRole('button',{name:'导入这份旋律谱'}));
  await screen.findByText('Piano unavailable');expect(screen.getByRole('radio',{name:/坦诉/})).toBeEnabled();expect(sessionStorage.length).toBe(0);
 });
+
+it.each(['success','known failure'])('keeps another page and its import intent after a late %s',async(outcome)=>{
+ let resolve!:(value:never)=>void,reject!:(error:Error)=>void;
+ vi.mocked(api.listClassicalScores).mockResolvedValue(entries());
+ vi.mocked(api.importClassicalScore).mockImplementation(()=>new Promise((yes,no)=>{resolve=yes;reject=no;}));
+ const view=renderEntry();await openScores();fireEvent.click(screen.getByLabelText(/我已了解.*来源/));fireEvent.click(screen.getByRole('button',{name:'导入这份旋律谱'}));
+ await waitFor(()=>expect(api.importClassicalScore).toHaveBeenCalledTimes(1));
+ view.unmount();window.history.replaceState({},'', '/settings');
+ const newer=JSON.stringify({scoreId:'another',reviewKey:'another',key:'web-classical:newer'});sessionStorage.setItem('motif:classical-import:v1',newer);
+ if(outcome==='success')resolve({project_id:'old',revision_id:'old'} as never);
+ else {const {ApiError}=await import('../../shared/api');reject(new ApiError('Not available','INSTRUMENT_PACK_UNAVAILABLE',true,503));}
+ await new Promise(done=>setTimeout(done,20));
+ expect(window.location.pathname).toBe('/settings');expect(sessionStorage.getItem('motif:classical-import:v1')).toBe(newer);
+});
+it('ignores an import success when the path changed before unmount',async()=>{
+ let finish!:(value:never)=>void;vi.mocked(api.listClassicalScores).mockResolvedValue(entries());vi.mocked(api.importClassicalScore).mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));
+ renderEntry();await openScores();fireEvent.click(screen.getByLabelText(/我已了解.*来源/));fireEvent.click(screen.getByRole('button',{name:'导入这份旋律谱'}));await waitFor(()=>expect(finish).toBeTypeOf('function'));
+ const pending=sessionStorage.getItem('motif:classical-import:v1');window.history.replaceState({},'', '/settings');finish({project_id:'old',revision_id:'old'} as never);
+ await new Promise(done=>setTimeout(done,20));expect(window.location.pathname).toBe('/settings');expect(sessionStorage.getItem('motif:classical-import:v1')).toBe(pending);
+});
+
+it('does not clear the re-entered Home intent when an older import completes',async()=>{
+ let finish!:(value:never)=>void;vi.mocked(api.listClassicalScores).mockResolvedValue(entries());vi.mocked(api.importClassicalScore).mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));
+ const old=renderEntry();await openScores();fireEvent.click(screen.getByLabelText(/我已了解.*来源/));fireEvent.click(screen.getByRole('button',{name:'导入这份旋律谱'}));await waitFor(()=>expect(finish).toBeTypeOf('function'));
+ old.unmount();renderEntry();await screen.findByRole('button',{name:'重试同一次导入'});
+ const pending=sessionStorage.getItem('motif:classical-import:v1');finish({project_id:'old',revision_id:'old'} as never);
+ await new Promise(done=>setTimeout(done,20));expect(window.location.pathname).toBe('/');expect(sessionStorage.getItem('motif:classical-import:v1')).toBe(pending);expect(screen.getByRole('button',{name:'重试同一次导入'})).toBeInTheDocument();expect(api.importClassicalScore).toHaveBeenCalledTimes(1);
+});

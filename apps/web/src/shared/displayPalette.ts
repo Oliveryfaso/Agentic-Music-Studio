@@ -1,7 +1,7 @@
 /** Presentation only: never serialize these colors into ArrangementIR. */
 export const displayPalette = {
-  canvas: "#f5f4f0", surface: "#ffffff", inset: "#eeedf3",
-  text: "#202330", muted: "#626676", line: "#d9dae1", controlBorder: "#7c8192",
-  accent: "#3949ab", secondary: "#7450a0", warm: "#a96440",
-  trackFills: ["#bac3eb", "#d9c9ed", "#dcc9b5", "#c3c9ec"],
+  canvas: "#e9e7e2", surface: "#f9f8f5", inset: "#dedcd6",
+  text: "#25262a", muted: "#62635f", line: "#c5c3bd", controlBorder: "#7b7773",
+  accent: "#b3441c", secondary: "#6b5950", warm: "#9a492b",
+  trackFills: ["#bfc0c5", "#dec3b1", "#d2c6ad", "#bbb5b2"],
 } as const;

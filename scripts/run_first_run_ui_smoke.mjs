@@ -63,7 +63,7 @@ try{
  await check('empty-home-first-project-route-without-a-Key',async()=>{
   await page.goto(origin);const empty=page.locator('.empty-state');await empty.getByRole('link',{name:'配置 API Key'}).waitFor();await capture('01-empty-home');
   await page.getByLabel('作品名称').fill('合成首作');await page.getByRole('button',{name:'创建作品',exact:true}).click();
-  await page.getByRole('button',{name:'开始创作 →'}).click();await page.getByText('未启用模型 · 可使用免费模板',{exact:true}).waitFor();assert(await freeSubmit().isEnabled());assert.equal(writes.length,1);await capture('02-brief-free-fallback');
+  await page.getByText('未启用模型 · 可使用免费模板',{exact:true}).waitFor();assert(await freeSubmit().isEnabled());assert.equal(writes.length,1);await capture('02-brief-free-fallback');
  });
  await check('no-Key-explicit-template-plan-reaches-approval',async()=>{
   await page.getByLabel('作品标题',{exact:true}).fill('合成首作');await page.getByRole('textbox',{name:'用途',exact:true}).fill('纯器乐短片配乐');await page.getByLabel('情绪',{exact:true}).fill('明亮，轻盈');
@@ -79,7 +79,7 @@ try{
  });
  await check('untested-enabled-explicit-submit-failure-and-retry',async()=>{
   failCreate=true;await submit().click();await page.getByText('Brief 提交失败',{exact:true}).waitFor();assert.equal(await page.getByRole('textbox',{name:'用途',exact:true}).inputValue(),'纯器乐短片配乐');assert.equal(writes.length,3);await capture('04-brief-request-failure');
-  failCreate=false;await submit().click();await page.waitForURL('**/runs/'+runId);await page.getByText('计划确认',{exact:true}).first().waitFor();assert.equal(writes.length,4);assert(generationRequests[1].key);assert.deepEqual(generationRequests[2],generationRequests[1]);
+  failCreate=false;await submit().click();await page.waitForURL('**/runs/'+runId);await page.locator('.plan-review').waitFor();assert.equal(writes.length,4);assert(generationRequests[1].key);assert.deepEqual(generationRequests[2],generationRequests[1]);
  });
  await check('completed-run-state-to-muted-playback',async()=>{
   // Independent completed fixture: not evidence that planning/approval/rendering actually ran.

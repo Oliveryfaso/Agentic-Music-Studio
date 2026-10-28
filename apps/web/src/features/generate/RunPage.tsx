@@ -138,7 +138,7 @@ export function RunPage({ runId }: { runId: string }) {
     <section className="generate-page run-page">
       <a className="back-link" href={run.revision_id?`/projects/${encodeURIComponent(run.project_id)}/studio/${encodeURIComponent(run.revision_id)}`:"/"}>← 返回{run.revision_id?" Studio":"作品"}</a>
       <RunProgress run={run} state={state} />
-      {graphQuery.data && <ExecutionPathStrip graph={graphQuery.data} inspectorHref={`/runs/${encodeURIComponent(run.run_id)}/inspect`} />}
+      {graphQuery.data && <details className="run-execution-details"><summary>执行详情</summary><ExecutionPathStrip graph={graphQuery.data} inspectorHref={`/runs/${encodeURIComponent(run.run_id)}/inspect`} /></details>}
       {graphQuery.isError && <StatusBanner tone="warning" message="执行路径暂时不可用" detail="审批、候选选择、取消与结果操作不受影响。" />}
       {feedback && <StatusBanner tone="warning" message={feedback} detail="另一项操作已更新了任务。你的作品没有被覆盖。" />}
       {error && <StatusBanner tone="danger" message="操作未完成" detail={error} />}

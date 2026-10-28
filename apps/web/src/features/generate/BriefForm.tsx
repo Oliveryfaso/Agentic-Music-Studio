@@ -6,8 +6,8 @@ import { AdvancedBriefFields, type AdvancedBriefValues } from "./AdvancedBriefFi
 type Brief = NonNullable<CreateAIRunInput["brief"]>;
 type NewCompositionStyle = "classical_chamber" | "jazz_harmony_improvisation";
 
-export function BriefForm({ disabled, isSubmitting = false, submitLabel = "提交 Brief 并规划", onSubmit }: { disabled: boolean; isSubmitting?: boolean; submitLabel?: string; onSubmit: (brief: Brief) => void }) {
-  const [title, setTitle] = useState("");
+export function BriefForm({ disabled, isSubmitting = false, submitLabel = "提交 Brief 并规划", initialTitle = "", onDirtyChange, onSubmit }: { disabled: boolean; isSubmitting?: boolean; submitLabel?: string; initialTitle?: string; onDirtyChange?: (dirty:boolean)=>void; onSubmit: (brief: Brief) => void }) {
+  const [title, setTitle] = useState(initialTitle);
   const [style, setStyle] = useState<NewCompositionStyle>("classical_chamber");
   const [purpose, setPurpose] = useState("");
   const [duration, setDuration] = useState("90");
@@ -35,6 +35,7 @@ export function BriefForm({ disabled, isSubmitting = false, submitLabel = "提�
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if(isSubmitting)return;
     const forbidden = /人声|演唱|歌唱|vocal|sing(?:er|ing)?/i;
     if (forbidden.test(`${purpose} ${hardConstraints}`)) {
       if (forbidden.test(hardConstraints)) advancedRef.current!.open = true;
@@ -73,16 +74,17 @@ export function BriefForm({ disabled, isSubmitting = false, submitLabel = "提�
   }
 
   return (
-    <form className="brief-form" onSubmit={submit} noValidate>
-      <div className="form-section-heading"><span className="step-number">01</span><div><h2>从音乐的方向开始</h2><p>不需要专业术语。场景、情绪和一个大致的时长，就足够开始。</p></div></div>
+    <form className="brief-form" onSubmit={submit} onChange={()=>onDirtyChange?.(true)} noValidate>
+      <fieldset className="brief-fields" disabled={isSubmitting}>
+      <div className="form-section-heading"><h2>写下音乐想法</h2></div>
       <div className="brief-grid">
-        <Field label="作品标题"><input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} placeholder="给这次编曲起一个名字" /></Field>
+        <Field label="作品标题"><input required value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} placeholder="给这次编曲起一个名字" /></Field>
         <Field label="音乐策略"><select value={style} onChange={(event) => setStyle(event.target.value as NewCompositionStyle)}>
           <option value="classical_chamber">Classical Chamber</option>
           <option value="jazz_harmony_improvisation">Jazz Harmony &amp; Improvisation</option>
         </select></Field>
-        <Field label="用途"><textarea value={purpose} onChange={(event) => setPurpose(event.target.value)} rows={4} placeholder="例如：一段雨后城市漫步的短片配乐。开头安静，随后渐渐明亮，结尾留一点余韵。" /></Field>
-        <Field label="情绪"><input value={moods} onChange={(event) => setMoods(event.target.value)} placeholder="温暖，轻盈，带一点好奇" aria-describedby="moods-hint" /></Field>
+        <Field label="用途"><textarea required value={purpose} onChange={(event) => setPurpose(event.target.value)} rows={4} placeholder="雨后漫步的短片配乐，先安静，再明亮，结尾留一点余韵。" /></Field>
+        <Field label="情绪"><input required value={moods} onChange={(event) => setMoods(event.target.value)} placeholder="温暖，轻盈，带一点好奇" aria-describedby="moods-hint" /></Field>
         <Field label="目标时长（秒）"><input type="number" min="60" max="300" value={duration} onChange={(event) => setDuration(event.target.value)} /></Field>
       </div>
       <p className="form-note" id="moods-hint">情绪可填 1–6 个，用逗号分开。时长支持 60–300 秒；目前仅支持纯器乐。</p>
@@ -93,9 +95,10 @@ export function BriefForm({ disabled, isSubmitting = false, submitLabel = "提�
         detailsRef={advancedRef}
         bpmRef={bpmRef}
       />
+      </fieldset>
       {error && <p className="field-error" role="alert">{error}</p>}
       <div className="action-row">
-        <button className="primary-button" type="submit" disabled={disabled}>{isSubmitting ? "提交中…" : submitLabel}</button>
+        <button className="primary-button" type="submit" disabled={disabled||isSubmitting}>{isSubmitting ? "提交中…" : submitLabel}</button>
         <span className="form-note">先看计划，再试听 A/B。只有你选定的候选才会成为正式版本。</span>
       </div>
     </form>

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectHomePage } from "./ProjectHomePage";
@@ -17,6 +17,71 @@ afterEach(() => {
 });
 
 describe("Project Home", () => {
+  it.each(['create','study'])("does not reclaim navigation when %s finishes after the path changes before unmount",async(kind)=>{
+    let finish!:(value:Response)=>void,parsed=false;
+    vi.stubGlobal('fetch',vi.fn((_input:RequestInfo|URL,init?:RequestInit)=>init?.method==='POST'?new Promise<Response>(resolve=>{finish=resolve;}):Promise.resolve(jsonResponse({data:[]}))));
+    renderHome();await screen.findByText('还没有作品');
+    if(kind==='create'){fireEvent.change(screen.getByLabelText('作品名称'),{target:{value:'Pending work'}});fireEvent.click(screen.getByRole('button',{name:'创建作品'}));}
+    else fireEvent.click(screen.getByRole('button',{name:'新建钢琴练习谱'}));
+    await waitFor(()=>expect(finish).toBeTypeOf('function'));
+    window.history.replaceState({},'', '/settings');
+    finish({ok:true,json:async()=>{parsed=true;return {data:{project_id:PROJECT_ID,revision_id:REVISION_ID,active_branch_id:BRANCH_ID,root_revision_id:REVISION_ID,branch_id:BRANCH_ID,content_hash:'fixture',replayed:false}};}} as Response);
+    await waitFor(()=>expect(parsed).toBe(true));
+    await new Promise(resolve=>setTimeout(resolve,20));
+    expect(window.location.pathname).toBe('/settings');
+  });
+
+  it("does not reclaim navigation after waiting for project-list invalidation",async()=>{
+    let release!:(value:Response)=>void,reads=0;
+    vi.stubGlobal('fetch',vi.fn((_input:RequestInfo|URL,init?:RequestInit)=>{
+      if(init?.method==='POST')return Promise.resolve(jsonResponse({data:{project_id:PROJECT_ID,active_branch_id:BRANCH_ID,root_revision_id:REVISION_ID,content_hash:'fixture',replayed:false}},201));
+      reads++;return reads===1?Promise.resolve(jsonResponse({data:[]})):new Promise<Response>(resolve=>{release=resolve;});
+    }));
+    renderHome();await screen.findByText('还没有作品');fireEvent.change(screen.getByLabelText('作品名称'),{target:{value:'Pending work'}});fireEvent.click(screen.getByRole('button',{name:'创建作品'}));
+    await waitFor(()=>expect(release).toBeTypeOf('function'));
+    window.history.replaceState({},'', '/settings');release(jsonResponse({data:[]}));
+    await new Promise(resolve=>setTimeout(resolve,20));expect(window.location.pathname).toBe('/settings');
+  });
+
+  it("ignores a late practice-score acknowledgement after leaving Home",async()=>{
+    let finish!:(v:Response)=>void;
+    vi.stubGlobal('fetch',vi.fn((_input:RequestInfo|URL,init?:RequestInit)=>init?.method==='POST'?new Promise<Response>(r=>{finish=r;}):Promise.resolve(jsonResponse({data:[]}))));
+    const view=renderHome();await screen.findByText('还没有作品');fireEvent.click(screen.getByRole('button',{name:'新建钢琴练习谱'}));
+    await waitFor(()=>expect(finish).toBeTypeOf('function'));view.unmount();window.history.replaceState({},'', '/settings');
+    finish(jsonResponse({data:{project_id:PROJECT_ID,revision_id:REVISION_ID,branch_id:BRANCH_ID,content_hash:'fixture',replayed:false}},201));
+    await new Promise(r=>setTimeout(r,20));expect(window.location.pathname).toBe('/settings');
+  });
+  it("continues into creation and reuses an unknown create request", async () => {
+    const sent: {key:string|null;body:string}[]=[];
+    vi.stubGlobal("fetch",vi.fn(async (_input:RequestInfo|URL,init?:RequestInit)=>{
+      if(init?.method!=="POST")return jsonResponse({data:[]});
+      sent.push({key:new Headers(init.headers).get("Idempotency-Key"),body:String(init.body)});
+      return sent.length===1?jsonResponse({detail:"try again",error_code:"UNAVAILABLE"},503):jsonResponse({data:{project_id:PROJECT_ID,active_branch_id:BRANCH_ID,root_revision_id:REVISION_ID,content_hash:"fixture",replayed:true}},201);
+    }));
+    renderHome();await screen.findByText("还没有作品");
+    fireEvent.change(screen.getByLabelText("作品名称"),{target:{value:"First piece"}});
+    fireEvent.click(screen.getByRole("button",{name:"创建作品"}));await screen.findByRole("alert");
+    fireEvent.click(screen.getByRole("button",{name:"创建作品"}));
+    await waitFor(()=>expect(window.location.pathname).toBe(`/projects/${PROJECT_ID}/new-composition`));
+    expect(sent).toHaveLength(2);expect(sent[0]?.key).toBeTruthy();expect(sent[1]).toEqual(sent[0]);
+  });
+
+  it("does not navigate from a late create acknowledgement after leaving Home", async () => {
+    let finish!:(v:Response)=>void;
+    vi.stubGlobal("fetch",vi.fn((_input:RequestInfo|URL,init?:RequestInit)=>init?.method==="POST"?new Promise<Response>(r=>{finish=r;}):Promise.resolve(jsonResponse({data:[]}))));
+    const view=renderHome();await screen.findByText("还没有作品");fireEvent.change(screen.getByLabelText("作品名称"),{target:{value:"First piece"}});fireEvent.click(screen.getByRole("button",{name:"创建作品"}));
+    await waitFor(()=>expect(finish).toBeTypeOf("function"));view.unmount();window.history.replaceState({},"","/settings");
+    finish(jsonResponse({data:{project_id:PROJECT_ID,active_branch_id:BRANCH_ID,root_revision_id:REVISION_ID,content_hash:"fixture",replayed:false}},201));
+    await new Promise(r=>setTimeout(r,20));expect(window.location.pathname).toBe("/settings");
+  });
+  it("explains the locked original name after an unknown create result",async()=>{
+    let creates=0;
+    vi.stubGlobal('fetch',vi.fn(async(_input:RequestInfo|URL,init?:RequestInit)=>{if(init?.method==='POST'){creates++;throw new Error('response lost');}return jsonResponse({data:[]});}));
+    renderHome();await screen.findByText('还没有作品');fireEvent.change(screen.getByLabelText('作品名称'),{target:{value:'Original'}});fireEvent.click(screen.getByRole('button',{name:'创建作品'}));await screen.findByRole('alert');
+    fireEvent.change(screen.getByLabelText('作品名称'),{target:{value:'Changed'}});fireEvent.click(screen.getByRole('button',{name:'创建作品'}));
+    expect(await screen.findByText(/恢复原作品名称后重试/)).toBeInTheDocument();expect(creates).toBe(1);
+  });
+
   it("gives first-time users a no-Key starting path and a settings destination", async () => {
     vi.stubGlobal("fetch",vi.fn().mockResolvedValue(jsonResponse({data:[]})));
     renderHome();
@@ -65,7 +130,7 @@ describe("Project Home", () => {
 
     releaseInitial?.(jsonResponse({ data: [] }));
     expect(await screen.findByText("还没有作品")).toBeInTheDocument();
-    expect(screen.getByText("古典与爵士")).toBeInTheDocument();
+    expect(screen.getByText(/古典与爵士 · 你的创作工作室/)).toBeInTheDocument();
     expect(screen.queryByText("4 种音乐风格")).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("作品名称"), {
@@ -77,7 +142,7 @@ describe("Project Home", () => {
     expect(screen.getByText("正在规划")).toBeInTheDocument();
     expect(screen.getByText(/A Very Long Portfolio Composition Name/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "开始创作 →" }));
+    await waitFor(()=>expect(window.location.pathname).toBe(`/projects/${PROJECT_ID}/new-composition`));
     expect(window.location.pathname).toBe(`/projects/${PROJECT_ID}/new-composition`);
 
     fireEvent.click(screen.getByRole("button", { name: "打开 Orbital Glass 最新版本" }));

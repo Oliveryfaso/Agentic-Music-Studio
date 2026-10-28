@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { BriefPage } from "./BriefPage";
+import {NavigationGuard} from '../../app/NavigationGuard';
 
 const PROJECT_ID = "11111111-1111-4111-8111-111111111111";
 const BRANCH_ID = "22222222-2222-4222-8222-222222222222";
@@ -16,6 +17,18 @@ afterEach(() => {
 });
 
 describe("New Composition Brief", () => {
+  it("protects entered ideas when following the contextual settings link",async()=>{
+    window.history.replaceState({},"",`/projects/${PROJECT_ID}/new-composition`);
+    vi.stubGlobal('fetch',vi.fn(async(input:RequestInfo|URL)=>String(input).includes('model-settings')?jsonResponse({data:{state:'not_configured',error_code:null}}):jsonResponse({data:projectWorkspace()})));
+    const client=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}});
+    render(<QueryClientProvider client={client}><NavigationGuard><BriefPage projectId={PROJECT_ID}/></NavigationGuard></QueryClientProvider>);
+    await screen.findByRole('heading',{name:'新建编曲'});
+    fireEvent.change(screen.getByLabelText('用途'),{target:{value:'An idea to keep'}});
+    fireEvent.click(screen.getByRole('link',{name:'配置 API Key'}));
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+    expect(screen.getByLabelText('用途')).toHaveValue('An idea to keep');
+    expect(window.location.pathname).toBe(`/projects/${PROJECT_ID}/new-composition`);
+  });
   it.each(["classical_chamber", "jazz_harmony_improvisation"])("submits focused %s while keeping invalid instrumental input local", async (selectedStyle) => {
     let createRequests = 0;
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
