@@ -218,7 +218,12 @@
         "name": "large-input-text-max",
         "value": "480px"
       }
-    ]
+    ],
+    "finalPolish": {
+      "base": "378b17cf11997a2a349823115b492e37eff7efdd",
+      "publicEvidence": "docs/images/screenshots-20261028.json",
+      "scope": "CSS-only workbar and EQ density; no behavior change"
+    }
   },
   "components": [
     {
@@ -299,7 +304,7 @@
       "refersTo": "eq-band",
       "description": "提取实际EQ段与数字路径；示例不模拟DSP或旋钮的自定义事件。",
       "html": "<section class=\"ds-eq-band\" aria-label=\"低频EQ样式\"><h4>1 · 低频</h4><label class=\"ds-eq-number\"><input type=\"number\" min=\"-12\" max=\"12\" step=\"0.1\" value=\"0\" aria-label=\"低频增益样式\">dB</label><small>低架 180 Hz</small></section>",
-      "css": ".ds-eq-band{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px;border:0;border-radius:8px;background:var(--canvas,#e9e7e2);color:var(--text,#25262a);text-align:center}.ds-eq-band h4{margin:0;font-size:14px}.ds-eq-number{display:flex;align-items:center;justify-content:center;gap:5px}.ds-eq-number input{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;width:78px;min-width:0;padding:7px 5px;border:1px solid var(--line-strong,#7b7773);border-radius:6px;background:var(--surface,#f9f8f5);color:var(--text,#25262a);text-align:center;font-variant-numeric:tabular-nums}.ds-eq-number input:focus-visible{outline:2px solid var(--text,#25262a);outline-offset:3px;box-shadow:0 0 0 2px var(--surface,#f9f8f5)}.ds-eq-band small{font-size:12px;color:var(--muted,#62635f)}@media(max-width:768px){.ds-eq-band{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px}.ds-eq-band small{grid-column:1/-1}.ds-eq-number input{max-width:100px}}@media(max-width:480px){.ds-eq-band{padding:8px}.ds-eq-band h4{font-size:13px}.ds-eq-number input{font-size:16px;width:60px}}"
+      "css": ".ds-eq-band{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px;border:0;border-radius:8px;background:var(--canvas,#e9e7e2);color:var(--text,#25262a);text-align:center}.ds-eq-band h4{margin:0;font-size:14px}.ds-eq-number{display:flex;align-items:center;justify-content:center;gap:5px}.ds-eq-number input{font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;font-size:14px;width:78px;min-width:0;padding:7px 5px;border:1px solid var(--line-strong,#7b7773);border-radius:6px;background:var(--surface,#f9f8f5);color:var(--text,#25262a);text-align:center;font-variant-numeric:tabular-nums}.ds-eq-number input:focus-visible{outline:2px solid var(--text,#25262a);outline-offset:3px;box-shadow:0 0 0 2px var(--surface,#f9f8f5)}.ds-eq-band small{font-size:12px;color:var(--muted,#62635f)}@media(max-width:768px){.ds-eq-band{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px}.ds-eq-band small{grid-column:1/-1}.ds-eq-number input{max-width:100px}}@media(max-width:480px){.ds-eq-band{padding:8px}.ds-eq-band h4{font-size:13px}.ds-eq-number input{font-size:16px;width:60px}}"
     }
   ],
   "narrative": {

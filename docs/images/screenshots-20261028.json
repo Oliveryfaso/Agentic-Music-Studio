@@ -9,25 +9,27 @@
   "audio": "Silent PCM fixture; not a generated music or audio quality demonstration",
   "downloads": "Synthetic file metadata; actual downloads not verified",
   "runtime": "No deployment; existing Beta unchanged",
-  "integration_visual_review": "Root viewed desktop Studio, home, export and separate 390px mix captures. Warm gray / graphite / orange controls and readable native faders; narrow toolbar remains tall, local EQ horizontal scrolling is intentional. No new browser interaction performed.",
+  "integration_visual_review": "Root inspected final1440/390 clean and390 dirty/error screenshots: denser toolbar and EQ, visible statuses and real controls; no new root browser interaction.",
   "assets": [
     {
       "file": "docs/images/studio.png",
-      "capture_name": "09-studio-mix-1440",
-      "bytes": 123170,
-      "sha256": "15b50041d6b73e79635ff771b7579234baf013966414857d4b4967dae44ace16",
+      "capture_name": "studio-mix-1440",
+      "bytes": 122052,
+      "sha256": "aa9e544b158e4328ff06d97c507c87bbf3710cb3839ca3bf87302dab77666793",
       "viewport": {
         "width": 1440,
         "height": 1000
       },
       "page": {
         "width": 1440,
-        "height": 1144
-      }
+        "height": 1016
+      },
+      "source_base": "378b17cf11997a2a349823115b492e37eff7efdd",
+      "polish_patch_sha256": "ed560106be5c0c78030803a18d181671e01aa1c0d5bbf6ae33c77e2ced6874ee"
     },
     {
       "file": "docs/images/workbench.png",
-      "capture_name": "01-home-1440",
+      "capture_name": "workbench-1440",
       "bytes": 109119,
       "sha256": "d4f88c2d559ceffc443d57f00513969a8336caa860b76d31877e52125adedf52",
       "viewport": {
@@ -37,7 +39,9 @@
       "page": {
         "width": 1440,
         "height": 1059
-      }
+      },
+      "source_base": "378b17cf11997a2a349823115b492e37eff7efdd",
+      "polish_patch_sha256": "ed560106be5c0c78030803a18d181671e01aa1c0d5bbf6ae33c77e2ced6874ee"
     },
     {
       "file": "docs/images/export.png",
@@ -51,11 +55,26 @@
       "page": {
         "width": 1440,
         "height": 1233
-      }
+      },
+      "capture_note": "Retained original actual mock capture; this polish does not modify export presentation."
     }
   ],
   "limits": [
     "No real-model generation, payment, approval/save or export download acceptance",
     "Native 200%, screen reader, physical touch and all viewport edges unverified"
-  ]
+  ],
+  "final_polish": {
+    "source_base": "378b17cf11997a2a349823115b492e37eff7efdd",
+    "css_patch_sha256": "ed560106be5c0c78030803a18d181671e01aa1c0d5bbf6ae33c77e2ced6874ee",
+    "css_sha256": "c6c4f03d2aceb353f085c860dca03335c2216a7c092c5ea162983b311595b939",
+    "mobile390_workbar_px": {
+      "before": 339,
+      "after": 245
+    },
+    "desktop_eq_px": {
+      "before": 642,
+      "after": 518
+    },
+    "note": "CSS-only; export unchanged and retains its original capture provenance; no Beta deployment"
+  }
 }

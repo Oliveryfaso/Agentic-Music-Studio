@@ -91,7 +91,7 @@ input[type=range]{accent-color:var(--accent)}
 .studio-meta{grid-row:2;gap:12px;justify-content:flex-start}.studio-meta span{border:0;padding:0;font-size:12px}
 .studio-workbar-actions{grid-column:2;grid-row:1;display:flex;gap:8px}.studio-workbar-actions a{min-height:44px}
 .studio-workbar>.studio-toolbar{grid-column:2;grid-row:2;padding:0;border:0;margin:0;gap:6px;justify-content:flex-end}
-.studio-toolbar button{min-height:36px}.studio-toolbar .saved-audio-note{max-width:160px;line-height:1.4}.studio-toolbar>span{font-size:12px}
+.studio-toolbar button{min-height:36px}.studio-toolbar .saved-audio-note{max-width:160px;margin:0;padding:0;line-height:1.4}.studio-toolbar>span{font-size:12px;overflow-wrap:anywhere}
 .workspace-views{padding:0;border:0;gap:4px;align-items:center}.workspace-views button{min-height:40px;padding:6px 18px;border-radius:6px;color:var(--muted)}
 .workspace-views button[aria-pressed=true]{background:var(--text);color:var(--surface);border-color:var(--text);box-shadow:inset 0 1px #ffffff22}
 .studio-page>[aria-labelledby=transport-title]{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 12px;background:var(--subtle);border:1px solid var(--line);border-radius:9px;box-shadow:inset 0 1px #ffffff80}
@@ -121,9 +121,9 @@ input[type=range]{accent-color:var(--accent)}
 .channel-identity{min-height:70px;align-content:start}.channel-identity strong{font-size:14px;line-height:1.4;overflow-wrap:normal;word-break:normal;min-height:40px}.channel-identity span{font-size:12px}.channel-identity[aria-pressed=true]{color:var(--text)}
 .channel-eq,.channel-restore{min-height:44px;font-size:13px}.channel-switches button{min-height:44px}.channel-switches button[aria-pressed=true]{background:var(--text);border-color:var(--text)}
 .mixer-panel .channel-pan{font-size:13px}.channel-pan input{min-height:28px}.mixer-panel .channel-fader{font-size:13px}.channel-fader input[type=range]{height:148px!important;width:44px!important}.channel-state{font-size:12px}
-.mix-detail{gap:16px}.mix-detail .piano-eq-panel{padding:16px;background:var(--surface);border:0}.piano-eq-panel h3{font-size:18px}
-.eq-control-grid{gap:16px}.eq-band{background:var(--canvas);border:0;border-radius:8px;padding:16px}.eq-dial{background:var(--surface);border-color:var(--line-strong);box-shadow:inset 0 1px #fff,0 2px 4px #25262a1a}
-.eq-band small{font-size:12px}.eq-response{margin:16px 0}.eq-response figcaption{font-size:12px}.eq-response svg{height:auto;max-height:160px;min-width:300px}
+.mix-detail{gap:12px}.mix-detail .piano-eq-panel{padding:12px;background:var(--surface);border:0}.piano-eq-panel h3{font-size:18px}
+.eq-control-grid{gap:16px;margin:12px 0}.eq-band{background:var(--canvas);border:0;border-radius:8px;padding:12px}.eq-dial{background:var(--surface);border-color:var(--line-strong);box-shadow:inset 0 1px #fff,0 2px 4px #25262a1a}
+.eq-band small{font-size:12px}.eq-response{margin:12px 0 0}.eq-response figcaption{font-size:12px}.eq-response svg{height:auto;max-height:160px;min-width:300px}
 .eq-response-line{stroke:var(--text)}.eq-response-ghost{stroke:var(--accent)}
 .master-output{padding:12px;background:var(--canvas);border:0;border-radius:8px}.master-output a{min-height:44px;display:flex;align-items:center}.master-output span{font-size:12px}
 .run-page{max-width:1120px}.run-progress{border:0;border-radius:10px;padding:20px;background:var(--surface)}.run-progress h1{font-size:28px}
@@ -153,7 +153,7 @@ input[type=range]{accent-color:var(--accent)}
 .studio-playbar>.secondary-inline{grid-column:1/-1}
 .run-execution-details>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--muted)}
 .mix-help>summary{min-height:44px;display:flex;align-items:center;cursor:pointer}
-@media(min-width:1100px){.studio-page{gap:4px}.studio-workbar{padding:8px 12px;gap:4px 16px}.studio-workbar-identity h1{font-size:20px}.workspace-views button{min-height:36px}.studio-workbar .workspace-back{font-size:12px}.studio-workbar>.studio-toolbar{flex-wrap:nowrap}.studio-toolbar .saved-audio-note{max-width:104px;font-size:11px}}
+@media(min-width:1100px){.studio-page{gap:4px}.studio-workbar{padding:8px 12px;gap:4px 16px}.studio-workbar-identity h1{font-size:20px}.workspace-views button{min-height:36px}.studio-workbar .workspace-back{font-size:12px}.studio-workbar>.studio-toolbar{flex-wrap:nowrap}.studio-toolbar .saved-audio-note{max-width:140px;font-size:12px}}
 @media(max-width:768px){.app-shell>main:has(.studio-page){padding:12px}.studio-page>[aria-labelledby=transport-title].studio-playbar{grid-template-columns:minmax(0,1fr)}.studio-playbar>.playbar-source{grid-column:1;grid-row:2;justify-items:start;display:flex;align-items:center;max-width:none}.studio-playbar>.studio-transport{grid-row:1}}
 .studio-page>.studio-playbar[aria-labelledby=transport-title]>.studio-transport{grid-column:1;grid-row:1;min-width:0;width:auto}
 .mix-detail{grid-template-columns:minmax(0,1fr)}
@@ -169,3 +169,25 @@ input[type=range]{accent-color:var(--accent)}
 /* Keep the submitted draft stable; pending configuration alone still permits editing. */
 .brief-fields{min-width:0;margin:0;padding:0;border:0;display:grid;gap:16px;}
 @media(max-width:768px){.channel-strip .channel-pan input,.piano-eq-panel select,.piano-eq-panel input[type=number]{min-height:44px;}}
+
+@media(min-width:1100px){
+  .eq-band{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;justify-items:start;text-align:left;gap:8px 12px}
+  .eq-band>.eq-dial{grid-column:1;grid-row:1/3}
+  .eq-band>strong,.eq-band>.eq-number{grid-column:2}
+  .eq-band>small,.eq-band>.field-error{grid-column:1/-1}
+}
+@media(max-width:768px){
+  .studio-workbar>.studio-toolbar{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center}
+  .studio-toolbar>button{grid-row:1;padding-inline:10px;white-space:nowrap}
+  .studio-toolbar>button:nth-of-type(3){grid-column:3}
+  .studio-toolbar>button:nth-of-type(4){grid-column:4}
+  .studio-toolbar>[role=status]{grid-column:1/3;grid-row:2;width:auto;margin:0}
+  .studio-toolbar>.saved-audio-note{grid-column:3/-1;grid-row:2;max-width:none}
+  .studio-toolbar>.field-error{grid-column:1/-1}
+}
+@media(max-width:374px){
+  .studio-workbar>.studio-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .studio-toolbar>button{grid-row:auto}
+  .studio-toolbar>button:nth-of-type(3),.studio-toolbar>button:nth-of-type(4){grid-column:auto}
+  .studio-toolbar>[role=status],.studio-toolbar>.saved-audio-note{grid-column:1/-1;grid-row:auto}
+}
